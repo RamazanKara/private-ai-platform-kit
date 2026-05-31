@@ -132,11 +132,14 @@ download_github_asset() {
   fi
 
   if [[ -n "${GITHUB_TOKEN:-}" && -n "$api_url" ]]; then
-    curl "${CURL_ARGS[@]}" \
+    if ! curl "${CURL_ARGS[@]}" \
       -H "Authorization: Bearer ${GITHUB_TOKEN}" \
       -H "Accept: application/octet-stream" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$api_url" -o "$output"
+      "$api_url" -o "$output"; then
+      log "warning: GitHub API asset download failed for ${owner_repo} ${asset_name}; falling back to browser download URL"
+      curl "${CURL_ARGS[@]}" "$browser_url" -o "$output"
+    fi
   else
     curl "${CURL_ARGS[@]}" "$browser_url" -o "$output"
   fi
