@@ -101,6 +101,7 @@ payload = json.loads(Path(sys.argv[1]).read_text())
 asset_name = sys.argv[2]
 for asset in payload.get("assets", []):
     if asset.get("name") == asset_name:
+        print(asset.get("url", ""))
         print(asset.get("browser_download_url", ""))
         print(asset.get("digest", ""))
         raise SystemExit(0)
@@ -120,16 +121,25 @@ download_github_asset() {
   curl "${CURL_ARGS[@]}" "https://api.github.com/repos/${owner_repo}/releases/tags/${tag}" -o "$release_json"
   mapfile -t asset < <(python_release_asset "$release_json" "$asset_name")
   rm -f "$release_json"
-  local url="${asset[0]:-}"
-  local digest="${asset[1]:-}"
-  [[ -n "$url" ]] || die "could not resolve download URL for ${owner_repo} ${asset_name}"
+  local api_url="${asset[0]:-}"
+  local browser_url="${asset[1]:-}"
+  local digest="${asset[2]:-}"
+  [[ -n "$browser_url" ]] || die "could not resolve download URL for ${owner_repo} ${asset_name}"
 
   if [[ "$DRY_RUN" == "1" ]]; then
-    log "dry-run download ${url}"
+    log "dry-run download ${browser_url}"
     return 0
   fi
 
-  curl "${CURL_ARGS[@]}" "$url" -o "$output"
+  if [[ -n "${GITHUB_TOKEN:-}" && -n "$api_url" ]]; then
+    curl "${CURL_ARGS[@]}" \
+      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      -H "Accept: application/octet-stream" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      "$api_url" -o "$output"
+  else
+    curl "${CURL_ARGS[@]}" "$browser_url" -o "$output"
+  fi
   if [[ "$digest" == sha256:* ]]; then
     local expected="${digest#sha256:}"
     local actual

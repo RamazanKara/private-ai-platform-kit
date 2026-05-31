@@ -25,6 +25,8 @@ jobs:
           go-version: "1.25"
           cache: false
       - name: Install validation tools
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           scripts/install-validation-tools.sh --bin-dir "$HOME/.local/bin"
