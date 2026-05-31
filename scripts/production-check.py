@@ -542,6 +542,59 @@ def check_validation_toolchain(errors: list[str]) -> None:
         require(errors, completed.returncode == 0, f"validation toolchain check failed: {completed.stderr or completed.stdout}")
 
 
+def check_release_packaging(errors: list[str]) -> None:
+    workflow_path = ROOT / ".github/workflows/ci.yml"
+    require(errors, workflow_path.exists(), "CI workflow must exist")
+    if workflow_path.exists():
+        workflow = workflow_path.read_text()
+        for token in ("GATEWAY_TAGS", "RAG_TAGS", "GITHUB_REF_NAME", ":latest", ":main", "cosign sign --yes"):
+            require(errors, token in workflow, f"CI workflow must publish and sign release image tags with {token}")
+
+    gateway_values = yaml.safe_load((ROOT / "charts/inference-gateway/values.yaml").read_text()) or {}
+    rag_values = yaml.safe_load((ROOT / "charts/rag-service/values.yaml").read_text()) or {}
+    gateway_chart = yaml.safe_load((ROOT / "charts/inference-gateway/Chart.yaml").read_text()) or {}
+    rag_chart = yaml.safe_load((ROOT / "charts/rag-service/Chart.yaml").read_text()) or {}
+    gateway_tag = str(nested(gateway_values, "image", "tag", default=""))
+    rag_tag = str(nested(rag_values, "image", "tag", default=""))
+    gateway_version = str(gateway_chart.get("version", ""))
+    rag_version = str(rag_chart.get("version", ""))
+    require(errors, gateway_tag.startswith("v"), "inference-gateway chart image tag must be a release tag")
+    require(errors, rag_tag.startswith("v"), "rag-service chart image tag must be a release tag")
+    require(errors, gateway_tag.lstrip("v") == gateway_version, "inference-gateway chart version must match image tag")
+    require(errors, rag_tag.lstrip("v") == rag_version, "rag-service chart version must match image tag")
+    require(errors, gateway_tag not in {"latest", "main"}, "inference-gateway chart must not default to floating tags")
+    require(errors, rag_tag not in {"latest", "main"}, "rag-service chart must not default to floating tags")
+    require(errors, str(nested(gateway_values, "image", "repository", default="")).startswith("ghcr.io/"), "inference-gateway chart must default to a GHCR image")
+    require(errors, str(nested(rag_values, "image", "repository", default="")).startswith("ghcr.io/"), "rag-service chart must default to a GHCR image")
+
+    for chart in ("agent-workspace", "budget-redis", "inference-gateway", "ollama", "qdrant-vector-store", "rag-service", "vllm"):
+        metadata = yaml.safe_load((ROOT / f"charts/{chart}/Chart.yaml").read_text()) or {}
+        require(errors, metadata.get("version") == gateway_version, f"{chart} chart version must match the release chart version")
+
+    for service in ("inference-gateway", "rag-service"):
+        dockerignore = ROOT / f"services/{service}/.dockerignore"
+        require(errors, dockerignore.exists(), f"{service} Docker context must define .dockerignore")
+        if dockerignore.exists():
+            text = dockerignore.read_text()
+            require(errors, ".venv/" in text and ".pytest_cache/" in text, f"{service} .dockerignore must exclude local test environments")
+
+    overlay_script = ROOT / "scripts/configure-customer-overlay.py"
+    require(errors, os.access(overlay_script, os.X_OK), "customer overlay configurator must be executable")
+    makefile = (ROOT / "Makefile").read_text()
+    require(errors, "customer-overlay:" in makefile and "customer-overlay-check:" in makefile, "Makefile must expose customer overlay targets")
+    customer_readme = (ROOT / "clusters/customer/README.md").read_text()
+    require(errors, "make customer-overlay" in customer_readme, "customer README must document overlay configuration")
+    require(errors, "Handoff Checklist" in customer_readme, "customer README must include a handoff checklist")
+    if overlay_script.exists():
+        completed = subprocess.run(
+            [sys.executable, str(overlay_script), "--check"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        require(errors, completed.returncode == 0, f"customer overlay check failed: {completed.stderr or completed.stdout}")
+
+
 def check_release_gates(errors: list[str]) -> None:
     config_path = ROOT / "slo/release-gates.yaml"
     script = ROOT / "scripts/release-gate.py"
@@ -880,6 +933,7 @@ def main() -> int:
     check_evidence_pack(errors)
     check_validation_toolchain(errors)
     check_release_gates(errors)
+    check_release_packaging(errors)
     check_slo_governance(errors)
     check_quota_governance(errors)
     check_model_provenance_governance(errors)

@@ -71,7 +71,14 @@ For the full local path, including sandbox tracing, RAG, coding-agent workspaces
 
 ## Customer-Owned Kubernetes
 
-The customer profile assumes Kubernetes already exists. Install Argo CD, point `gitops/argocd/root-app-customer.yaml` at your fork, and apply the customer values under [clusters/customer](clusters/customer/).
+The customer profile assumes Kubernetes already exists. Install Argo CD, configure the customer GitOps overlay, and apply the customer values under [clusters/customer](clusters/customer/).
+
+```bash
+make customer-overlay \
+  CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
+  CUSTOMER_REVISION=v0.3.0 \
+  CUSTOMER_GPU_PROFILE=nvidia
+```
 
 NVIDIA clusters should expose `nvidia.com/gpu`; AMD clusters should expose `amd.com/gpu`. Label GPU nodes with `platform.ai/node-pool=gpu` and `platform.ai/gpu-vendor=<nvidia|amd>`, then use:
 

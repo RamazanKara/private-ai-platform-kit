@@ -47,6 +47,28 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - name: Normalize image repository
         run: echo "IMAGE_REPO=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - name: Compute image tags
+        run: |
+          set -euo pipefail
+          gateway_tags="ghcr.io/${IMAGE_REPO}/inference-gateway:${GITHUB_SHA}"
+          rag_tags="ghcr.io/${IMAGE_REPO}/rag-service:${GITHUB_SHA}"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            gateway_tags+=$'\n'"ghcr.io/${IMAGE_REPO}/inference-gateway:${GITHUB_REF_NAME}"
+            gateway_tags+=$'\n'"ghcr.io/${IMAGE_REPO}/inference-gateway:latest"
+            rag_tags+=$'\n'"ghcr.io/${IMAGE_REPO}/rag-service:${GITHUB_REF_NAME}"
+            rag_tags+=$'\n'"ghcr.io/${IMAGE_REPO}/rag-service:latest"
+          elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            gateway_tags+=$'\n'"ghcr.io/${IMAGE_REPO}/inference-gateway:main"
+            rag_tags+=$'\n'"ghcr.io/${IMAGE_REPO}/rag-service:main"
+          fi
+          {
+            echo "GATEWAY_TAGS<<EOF"
+            printf '%s\n' "$gateway_tags"
+            echo "EOF"
+            echo "RAG_TAGS<<EOF"
+            printf '%s\n' "$rag_tags"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@v4.1.0
       - uses: docker/login-action@v4.2.0
         with:
@@ -58,13 +80,13 @@ jobs:
         with:
           context: services/inference-gateway
           push: true
-          tags: ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway:${{ github.sha }}
+          tags: ${{ env.GATEWAY_TAGS }}
       - name: Build and push RAG service image
         uses: docker/build-push-action@v7.2.0
         with:
           context: services/rag-service
           push: true
-          tags: ghcr.io/${{ env.IMAGE_REPO }}/rag-service:${{ github.sha }}
+          tags: ${{ env.RAG_TAGS }}
       - uses: anchore/sbom-action@v0.24.0
         with:
           image: ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway:${{ github.sha }}
@@ -96,5 +118,7 @@ jobs:
       - uses: sigstore/cosign-installer@v4.1.2
       - name: Sign image
         run: |
-          cosign sign --yes ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway:${{ github.sha }}
-          cosign sign --yes ghcr.io/${{ env.IMAGE_REPO }}/rag-service:${{ github.sha }}
+          printf '%s\n%s\n' "$GATEWAY_TAGS" "$RAG_TAGS" | while read -r image; do
+            [[ -n "$image" ]] || continue
+            cosign sign --yes "$image"
+          done

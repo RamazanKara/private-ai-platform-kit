@@ -16,7 +16,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 
 | Need | Document |
 | --- | --- |
-| Customer-owned Kubernetes assumptions | [Customer cluster README](../clusters/customer/README.md) |
+| Customer-owned Kubernetes deployment | [Customer cluster README](../clusters/customer/README.md) |
 | Validation prerequisites | [Validation toolchain](../runbooks/validation-toolchain.md) |
 | GPU scheduling and capacity | [GPU capacity](../runbooks/gpu-capacity.md) |
 | Policy troubleshooting | [Policy blocked deploy](../runbooks/policy-blocked-deploy.md) |

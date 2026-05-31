@@ -338,6 +338,7 @@ make smoke RUNTIME_BACKEND=ollama</code></pre>
           <p class="section-lead">Use the same charts and controls on clusters the customer already operates. Customer values are provider-neutral and assume existing ingress, storage, secrets, observability, and optional GPU node pools.</p>
         </div>
         <ul class="checklist">
+          <li>Run <code>make customer-overlay</code> with the customer Git repository and release tag.</li>
           <li>Use <code>clusters/customer/values/vllm-nvidia.yaml</code> for <code>nvidia.com/gpu</code> nodes.</li>
           <li>Use <code>clusters/customer/values/vllm-amd.yaml</code> for <code>amd.com/gpu</code> nodes.</li>
           <li>Label GPU nodes with <code>platform.ai/node-pool=gpu</code> and <code>platform.ai/gpu-vendor=&lt;nvidia|amd&gt;</code>.</li>

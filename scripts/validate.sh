@@ -90,6 +90,9 @@ services/inference-gateway/.venv/bin/python scripts/release-gate.py --check
 log "checking tenant onboarding spec"
 services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check
 
+log "checking customer overlay configuration"
+services/inference-gateway/.venv/bin/python scripts/configure-customer-overlay.py --check
+
 log "checking model catalog governance"
 services/inference-gateway/.venv/bin/python scripts/model-catalog.py --check
 

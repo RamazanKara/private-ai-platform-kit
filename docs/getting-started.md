@@ -181,7 +181,16 @@ The matching report targets write JSON and Markdown evidence under `results/`.
 
 ## Customer-Owned Kubernetes
 
-For an existing Kubernetes cluster, install Argo CD, update the repo URL in `gitops/argocd/root-app-customer.yaml`, and sync the applications from `clusters/customer/`.
+For an existing Kubernetes cluster, install Argo CD, configure the customer overlay, and sync the applications from `clusters/customer/`.
+
+```bash
+make customer-overlay \
+  CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
+  CUSTOMER_REVISION=v0.3.0 \
+  CUSTOMER_GPU_PROFILE=nvidia
+```
+
+Use `CUSTOMER_GPU_PROFILE=amd` for AMD ROCm clusters.
 
 Customer clusters should provide ingress, storage classes, secret backends, logging, and optional GPU nodes. The stack expects GPU nodes to expose standard Kubernetes device resources:
 
@@ -204,6 +213,8 @@ clusters/customer/values/vllm-amd.yaml
 Customer RAG values switch retrieval to Qdrant and deploy `charts/qdrant-vector-store` with persistent storage. Size Qdrant storage, vector dimensions, and ingestion to the customer's embedding model and approved knowledge pipeline.
 
 For regulated or offline teams, start from `tenants/onboarding/regulated-offline-coding-agents.yaml`.
+
+The full customer deployment checklist is in `clusters/customer/README.md`.
 
 ## Clean Up
 

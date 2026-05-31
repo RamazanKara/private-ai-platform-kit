@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.3.0 - 2026-06-01
+
+Customer-ready release packaging and documentation cleanup.
+
+### Changed
+
+- Added a GitHub Pages landing page and moved detailed local commands into `docs/getting-started.md`.
+- Reworked the customer-owned Kubernetes README into a deployment checklist with GitOps, secrets, GPU scheduling, values review, smoke test, and handoff steps.
+- Added `make customer-overlay` and `make customer-overlay-check` to configure and validate customer fork/mirror repo URLs, target revisions, and NVIDIA/AMD vLLM profile selection.
+- Updated Helm chart versions to `0.3.0` and gateway/RAG chart image defaults to `v0.3.0`.
+- Updated CI image publishing so branch builds push `:main`, tag builds push `:<tag>` and `:latest`, and every published tag is signed with Cosign.
+- Removed timestamped generated reports from the tracked tree; sample evidence artifacts remain.
+
+### Validation
+
+- `make validate`
+- GitHub Actions CI passed on `main` for validation, image build, SBOM, Trivy SARIF upload, and Cosign signing.
+
 ## v0.2.0 - 2026-06-01
 
 Version refresh and rename release for Private AI Platform Kit.

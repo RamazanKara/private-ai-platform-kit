@@ -8,9 +8,12 @@ LIVE ?= 0
 TENANT_SPEC ?= tenants/onboarding/coding-agents.yaml
 TENANT_OUTPUT ?= tenants/generated
 TOOLCHAIN_PROFILE ?= validate
+CUSTOMER_REPO_URL ?= https://github.com/RamazanKara/private-ai-platform-kit.git
+CUSTOMER_REVISION ?= HEAD
+CUSTOMER_GPU_PROFILE ?= nvidia
 PYTHON := services/inference-gateway/.venv/bin/python
 
-.PHONY: python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated agent-lab-up agent-smoke chaos-drill eval loadtest restore-drill backup-drill evidence release-gate release-report slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+.PHONY: python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest restore-drill backup-drill evidence release-gate release-report slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
 
 python-env:
 	./scripts/bootstrap-python.sh
@@ -47,6 +50,12 @@ tenant-onboard: python-env
 
 tenant-onboard-regulated: python-env
 	$(PYTHON) scripts/tenant-onboard.py --spec tenants/onboarding/regulated-offline-coding-agents.yaml --output-dir "$(TENANT_OUTPUT)"
+
+customer-overlay: python-env
+	$(PYTHON) scripts/configure-customer-overlay.py --repo-url "$(CUSTOMER_REPO_URL)" --target-revision "$(CUSTOMER_REVISION)" --gpu-profile "$(CUSTOMER_GPU_PROFILE)"
+
+customer-overlay-check: python-env
+	$(PYTHON) scripts/configure-customer-overlay.py --check
 
 agent-lab-up:
 	./scripts/agent-lab-up.sh

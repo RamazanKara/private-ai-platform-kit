@@ -10,6 +10,8 @@ dist/
 build/
 .coverage
 htmlcov/
+.tmp-*
+*.tmp
 tenants/generated/
 results/loadtest/*.json
 results/loadtest/*.html
