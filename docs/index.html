@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Private AI Platform Kit</title>
+  <meta name="description" content="A local-first Kubernetes platform stack for private LLMs, RAG, and coding-agent workspaces.">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --ink: #101828;
+      --muted: #475467;
+      --line: #d9e0ea;
+      --panel: #ffffff;
+      --accent: #0b5cad;
+      --accent-dark: #073f7a;
+      --green: #13795b;
+      --code: #111827;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 68px;
+      gap: 24px;
+    }
+
+    .brand {
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .navlinks {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 0.95rem;
+    }
+
+    .hero {
+      padding: 72px 0 44px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 36px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-weight: 700;
+      margin: 0 0 12px;
+    }
+
+    h1 {
+      font-size: clamp(2.35rem, 5vw, 4.75rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+      margin: 0;
+      max-width: 780px;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 1.18rem;
+      max-width: 740px;
+      margin: 22px 0 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .button.primary:hover {
+      background: var(--accent-dark);
+      text-decoration: none;
+    }
+
+    .demo {
+      background: #0b1020;
+      border: 1px solid #1f2a44;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 22px 55px rgba(16, 24, 40, 0.18);
+    }
+
+    .demo img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    section {
+      padding: 44px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    h2 {
+      font-size: clamp(1.55rem, 3vw, 2.35rem);
+      line-height: 1.08;
+      margin: 0 0 14px;
+      letter-spacing: 0;
+    }
+
+    .section-lead {
+      color: var(--muted);
+      max-width: 760px;
+      margin: 0 0 24px;
+      font-size: 1.05rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    pre {
+      margin: 22px 0 0;
+      overflow-x: auto;
+      background: var(--code);
+      color: #e5e7eb;
+      border-radius: 8px;
+      padding: 18px;
+      font-size: 0.95rem;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .checklist li {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    footer {
+      padding: 28px 0 44px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 840px) {
+      .hero-grid,
+      .split,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 44px;
+      }
+
+      nav {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="wrap" aria-label="Primary">
+      <a class="brand" href="https://github.com/RamazanKara/private-ai-platform-kit">Private AI Platform Kit</a>
+      <div class="navlinks">
+        <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md">README</a>
+        <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/getting-started.md">Start</a>
+        <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/production-readiness.md">Readiness</a>
+        <a href="https://github.com/RamazanKara/private-ai-platform-kit/tree/main/runbooks">Runbooks</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="eyebrow">Local-first. Customer-cluster ready.</p>
+          <h1>Run private LLMs and coding agents on Kubernetes.</h1>
+          <p class="lead">A complete platform kit for teams that need Ollama locally, vLLM on NVIDIA or AMD GPU clusters, isolated agent workspaces, RAG, policy, observability, restore drills, and release evidence without being tied to a cloud provider.</p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/RamazanKara/private-ai-platform-kit">View repository</a>
+            <a class="button" href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/getting-started.md">Run locally</a>
+          </div>
+        </div>
+        <div class="demo" aria-label="Terminal live demo">
+          <img src="assets/private-ai-platform-kit-demo.gif" alt="Terminal demo showing a private AI assistant saying hello world">
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Platform Pieces</h2>
+        <p class="section-lead">The repo is a working platform surface, not just diagrams. It includes service code, Helm charts, local and customer cluster values, validation scripts, runbooks, and sample evidence.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Private inference</h3>
+            <p>OpenAI-compatible gateway with Ollama locally and vLLM profiles for NVIDIA or AMD GPU clusters.</p>
+          </article>
+          <article class="card">
+            <h3>Coding-agent labs</h3>
+            <p>Locked-down namespaces, storage, RBAC, quotas, default-deny networking, approved egress, and trace headers.</p>
+          </article>
+          <article class="card">
+            <h3>RAG and vector search</h3>
+            <p>Local lexical retrieval plus optional Qdrant-backed customer knowledge profiles.</p>
+          </article>
+          <article class="card">
+            <h3>Governance</h3>
+            <p>Approved model catalog, promotion requests, artifact provenance, eval suites, and gateway allowlists.</p>
+          </article>
+          <article class="card">
+            <h3>Operations</h3>
+            <p>SLOs, release gates, quota and chargeback, data retention, egress governance, restore drills, and chaos drills.</p>
+          </article>
+          <article class="card">
+            <h3>Supply chain</h3>
+            <p>CI builds images, creates SBOMs, scans with Trivy, uploads SARIF, and signs images with Cosign.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap split">
+        <div>
+          <h2>Start On Your Laptop</h2>
+          <p class="section-lead">Bring up the local lab on kind, sync Argo CD applications, and send a smoke request through the gateway.</p>
+        </div>
+        <div>
+          <pre><code>make toolchain-doctor
+make validate
+make local-up
+make bootstrap-argocd
+make sync
+make smoke RUNTIME_BACKEND=ollama</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap split">
+        <div>
+          <h2>Move To Customer-Owned Kubernetes</h2>
+          <p class="section-lead">Use the same charts and controls on clusters the customer already operates. Customer values are provider-neutral and assume existing ingress, storage, secrets, observability, and optional GPU node pools.</p>
+        </div>
+        <ul class="checklist">
+          <li>Use <code>clusters/customer/values/vllm-nvidia.yaml</code> for <code>nvidia.com/gpu</code> nodes.</li>
+          <li>Use <code>clusters/customer/values/vllm-amd.yaml</code> for <code>amd.com/gpu</code> nodes.</li>
+          <li>Label GPU nodes with <code>platform.ai/node-pool=gpu</code> and <code>platform.ai/gpu-vendor=&lt;nvidia|amd&gt;</code>.</li>
+          <li>Keep customer model, data retention, egress, quota, and restore evidence under review.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Evidence Before Handoff</h2>
+        <p class="section-lead">The kit includes repeatable checks for customer demos, restore reviews, incident follow-ups, and production-readiness handoff.</p>
+        <pre><code>make evidence
+make release-gate
+make slo-check
+make quota-check
+make model-check
+make model-provenance-check</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">Private AI Platform Kit is not affiliated with or endorsed by The Linux Foundation.</div>
+  </footer>
+</body>
+</html>

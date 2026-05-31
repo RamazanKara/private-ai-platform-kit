@@ -1,16 +1,18 @@
 # Private AI Platform Kit Documentation
 
-Use this map to move from product overview to implementation detail, operational runbooks, and customer handoff evidence.
+Use this map when the README is too high-level and you need a specific setup, operations, or customer handoff document.
 
 ## Start Here
 
 | Need | Document |
 | --- | --- |
-| Product overview and quick start | [README](../README.md) |
+| Public overview | [README](../README.md) |
+| GitHub Pages landing page | [index.html](index.html) |
+| Local setup and validation flow | [Getting started](getting-started.md) |
 | Production control matrix | [Production readiness](production-readiness.md) |
 | Upstream reference links | [References](references.md) |
 
-## Local Lab And Customer Cluster Setup
+## Setup
 
 | Need | Document |
 | --- | --- |
@@ -19,7 +21,7 @@ Use this map to move from product overview to implementation detail, operational
 | GPU scheduling and capacity | [GPU capacity](../runbooks/gpu-capacity.md) |
 | Policy troubleshooting | [Policy blocked deploy](../runbooks/policy-blocked-deploy.md) |
 
-## Private AI Runtime And Coding Agents
+## Runtime And Agent Labs
 
 | Need | Document |
 | --- | --- |
@@ -32,7 +34,7 @@ Use this map to move from product overview to implementation detail, operational
 | RAG service | [RAG service](../runbooks/rag-service.md) |
 | Qdrant vector RAG profile | [Vector RAG](../runbooks/vector-rag.md) |
 
-## Governance And Handoff Evidence
+## Governance And Evidence
 
 | Need | Document |
 | --- | --- |
@@ -43,11 +45,6 @@ Use this map to move from product overview to implementation detail, operational
 | Quota and chargeback | [Quota and chargeback](../runbooks/quota-chargeback.md) |
 | Data retention and privacy | [Data retention](../runbooks/data-retention.md) |
 | External egress approvals | [Egress governance](../runbooks/egress-governance.md) |
-
-## Model And Supply-Chain Governance
-
-| Need | Document |
-| --- | --- |
 | Model lifecycle and promotion | [Model governance](../runbooks/model-governance.md) |
 | Model artifact provenance | [Model provenance](../runbooks/model-provenance.md) |
 | Restore verification | [Restore drill](../runbooks/restore-drill.md) |

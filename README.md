@@ -1,4 +1,4 @@
-# Private AI Platform Kit: Run Private LLMs and Coding Agents on Kubernetes
+# Private AI Platform Kit: Local-First Kubernetes for Private LLMs
 
 [![CI](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/RamazanKara/private-ai-platform-kit?include_prereleases)](https://github.com/RamazanKara/private-ai-platform-kit/releases)
@@ -7,11 +7,11 @@
 ![Helm](https://img.shields.io/badge/Helm-charts-0F1689)
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB)
 
-Private AI Platform Kit is a hands-on reference implementation for teams that want to run private LLMs and coding agents on Kubernetes. It starts locally on `kind`, then carries the same charts, policies, runbooks, and evidence checks into customer-owned clusters.
+Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs, RAG, and coding-agent workspaces. It starts on a local `kind` cluster with Ollama, then uses the same Helm charts, GitOps layout, policies, runbooks, and evidence checks on customer-owned clusters with vLLM and GPU nodes.
 
-## What This Proves
+It is designed for teams that want the operating model of a production AI platform without depending on a specific cloud provider.
 
-This repo proves a private AI platform can be operated with GitOps, policy as code, traceability, model governance, budget controls, RAG, isolated coding-agent workspaces, evals, SLOs, restore drills, and evidence packs without changing the core operating model between a local lab and customer-owned Kubernetes.
+[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) | [Getting started](docs/getting-started.md) | [Production readiness](docs/production-readiness.md) | [Runbooks](docs/README.md)
 
 ## Live Demo
 
@@ -19,285 +19,105 @@ This repo proves a private AI platform can be operated with GitOps, policy as co
   <img src="docs/assets/private-ai-platform-kit-demo.gif" alt="Terminal demo showing a private AI assistant saying hello world" width="100%">
 </p>
 
-The demo is a short terminal hello-world cut generated from `scripts/demo-live.sh`.
+The demo is generated from [scripts/demo-live.sh](scripts/demo-live.sh). The source MP4 is kept at [docs/assets/private-ai-platform-kit-demo.mp4](docs/assets/private-ai-platform-kit-demo.mp4).
 
-## Why It Matters
+## What You Get
 
-- Serve private models behind an OpenAI-compatible gateway using Ollama locally or vLLM on customer GPU clusters.
-- Give coding agents isolated workspaces with storage, RBAC, default-deny networking, approved egress, and RAG access.
-- Trace and govern every request with API keys, request IDs, sandbox IDs, redacted audit logs, metrics, and budget limits.
-- Bring production controls into the local workflow: model governance, provenance, quotas, retention, SLOs, release gates, restore drills, chaos drills, SBOMs, signing, scanning, and evidence packs.
+- OpenAI-compatible gateway for private chat-completion traffic.
+- Local Ollama profile for fast laptop demos and vLLM profiles for NVIDIA or AMD GPU clusters.
+- Multi-replica gateway and runtime options with HPA, PodDisruptionBudgets, topology spread, and shared Redis-backed sandbox budgets.
+- Locked-down coding-agent workspaces with namespace isolation, PVC storage, RBAC, quotas, default-deny networking, approved egress, and RAG access.
+- RAG service with local lexical retrieval and an optional Qdrant vector-store profile for customer knowledge bases.
+- Model governance with approved-only gateway allowlists, promotion requests, provenance records, and eval suites.
+- Operational controls for SLOs, release gates, quota and chargeback, data retention, egress governance, restore drills, chaos drills, evidence packs, SBOMs, scans, and signed images.
 
-## Architecture
+## How It Works
 
 ![Private AI Platform Kit architecture](docs/assets/architecture.svg)
 
-Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway forwards the request to either Ollama or vLLM based on `RUNTIME_BACKEND`, records Prometheus metrics, and returns an OpenAI-compatible response. Argo CD reconciles platform add-ons and workloads from this repository. The default lab runs fully on `kind` with Ollama. Customers can apply the same charts and policies to their existing Kubernetes clusters and enable vLLM on GPU nodes they already operate.
+Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway forwards traffic to Ollama or vLLM based on `RUNTIME_BACKEND`, enforces model allowlists and admission limits, records Prometheus metrics, and emits redacted audit events. Callers can pass `X-Request-ID`, `X-Sandbox-ID`, and W3C `traceparent`; the gateway returns and forwards those headers without logging raw prompt text.
 
-Gateway requests are traceable by design. Callers can send `X-Request-ID`, `X-Sandbox-ID`, and W3C `traceparent`; the gateway returns and forwards those headers, emits structured JSON audit events, and records prompt length plus a SHA-256 fingerprint without logging raw prompt text.
+The local lab runs fully on `kind`. Customer clusters keep the same repo structure and replace only the platform services they already operate: ingress, storage classes, secret backends, logging, observability, and GPU node pools.
 
-Gateway and RAG business endpoints support API-key authentication. Local values enable it with a demo hash for `local-development-only`; customer values reference External Secrets-backed hash secrets. Health and metrics endpoints remain open for Kubernetes probes and in-cluster scraping.
+## Run It Locally
 
-Model use is governed at the gateway. Set `runtime.allowedModels` in Helm values, or `ALLOWED_MODELS` in the gateway environment, to reject unapproved model IDs before traffic reaches Ollama or vLLM.
+Install or verify the local toolchain:
 
-Gateway admission controls also bound request cost and risk before runtime forwarding. Configure `admission.maxMessages`, `admission.maxPromptChars`, `admission.maxCompletionTokens`, and `admission.allowStreaming` in Helm values.
+```bash
+make toolchain-doctor
+make toolchain-install
+export PATH="$PWD/.tools/bin:$PATH"
+```
 
-Gateway guardrails reject obvious credential material before prompts reach the runtime. Configure `guardrails.promptSecretDetection` in Helm values and keep it enabled for coding-agent workspaces.
+Validate the repo without a live cluster:
 
-Sandbox budgets provide an additional guardrail for lab usage. Configure `budget.requestLimit`, `budget.promptCharLimit`, and `budget.estimatedTokenLimit` in Helm values, then inspect current usage at `GET /v1/sandbox/budget` with the same `X-Sandbox-ID` used for inference traffic. Local and customer values use a Redis-compatible shared budget backend so multiple gateway replicas see the same counters.
+```bash
+make validate
+make production-check
+```
 
-Approved model metadata lives in `model-catalog/models.yaml` and is published to the cluster as the `ai-model-catalog` ConfigMap.
+Start the local platform and run an Ollama-backed smoke test:
 
-Coding agents can run inside the `agent-workspace` chart's namespace. The workspace includes quota, default limits, restricted pod security, namespace-scoped RBAC, a PVC for `/workspace`, default-deny networking, and approved egress to the inference gateway and RAG service. The RAG service returns retrieved platform context plus OpenAI-compatible `grounded_messages` for agents that need customer-approved context before calling the gateway. Local values use zero-dependency lexical retrieval; customer values enable an optional Qdrant vector-store profile in the `vector` namespace for larger approved knowledge bases.
+```bash
+make local-up
+make bootstrap-argocd
+make sync
+make smoke RUNTIME_BACKEND=ollama
+```
 
-## Prerequisites
+The default local model is `qwen3:0.6b`. A real model pull can take time and disk space on the first run.
 
-Local validation needs Python 3, Docker, kind, kubectl, Helm, Go, and Syft. Full security and load-test validation also need Argo CD CLI, Cosign, Trivy, k6, kubeconform, and the Kyverno CLI.
-
-Inspect the current workstation toolchain:
-
-    make toolchain-doctor
-
-Install the strict validation tools into `.tools/bin`:
-
-    make toolchain-install
-    export PATH="$PWD/.tools/bin:$PATH"
-
-Generate a toolchain evidence report:
-
-    make toolchain-report TOOLCHAIN_PROFILE=strict
-
-Run a local static check:
-
-    make validate
-
-Run a stricter check that fails when optional production tools are missing:
-
-    make validate-full
-
-Run the same static readiness gates without relying on a live cluster:
-
-    make production-check
-
-Generate a customer-facing evidence pack:
-
-    make evidence
-
-Check release gates against eval, load, restore, toolchain, SLO, governance, and evidence-pack thresholds:
-
-    make release-gate
-
-Validate SLO objectives and error-budget evidence:
-
-    make slo-check
-
-Validate quota and chargeback governance:
-
-    make quota-check
-
-Validate approved external egress for coding-agent and tenant workspaces:
-
-    make egress-check
-
-Validate data retention and privacy governance:
-
-    make retention-check
-
-## Local Quick Start
-
-Create a local cluster and bootstrap GitOps:
-
-    make local-up
-    make bootstrap-argocd
-    make sync
-
-Run a smoke test through the gateway:
-
-    make smoke RUNTIME_BACKEND=ollama
-
-The default local path uses Ollama with `qwen3:0.6b` for smoke testing. The smoke scripts send `PLATFORM_API_KEY`, defaulting to the local demo key `local-development-only`. A real model pull can take time and disk space; set `MODEL_ID` in the gateway values when you want to use a different model.
-
-Run the traceable sandbox proof:
-
-    make sandbox-smoke
-
-This applies the `ai-sandbox` namespace controls, runs a restricted Kubernetes Job through the gateway, and verifies request, sandbox, and trace headers.
-
-Create and validate a team tenant lab:
-
-    make tenant-smoke
-
-Generate customer tenant onboarding artifacts:
-
-    make tenant-onboard
-
-Generate the regulated/offline tenant profile with no external CIDR egress:
-
-    make tenant-onboard-regulated
-
-Validate RAG and coding-agent workspace access:
-
-    make rag-smoke
-    make agent-smoke
-
-Validate the optional vector-store profile without needing a live Qdrant instance:
-
-    helm template validate-qdrant charts/qdrant-vector-store --values clusters/customer/values/qdrant-vector-store.yaml
-    helm template validate-rag charts/rag-service --values clusters/customer/values/rag-service.yaml
-
-Run a safe recovery drill:
-
-    make chaos-drill
-
-Run customer dependency and capacity drills:
-
-    DRILL=rag-service-rollout make chaos-drill
-    DRILL=qdrant-vector-store-rollout make chaos-drill
-    DRILL=vllm-runtime-rollout make chaos-drill
-    DRILL=gpu-capacity-preflight RUN_SMOKE=0 make chaos-drill
+For the full local path, including sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates, follow [docs/getting-started.md](docs/getting-started.md).
 
 ## Customer-Owned Kubernetes
 
-For an existing Kubernetes cluster, install Argo CD, update `gitops/argocd/root-app.yaml` to point at your repository URL, and sync the same applications. The `clusters/customer/` values are provider-neutral and assume the customer already supplies ingress, storage classes, optional GPU nodes, and any enterprise secret backend.
+The customer profile assumes Kubernetes already exists. Install Argo CD, point `gitops/argocd/root-app-customer.yaml` at your fork, and apply the customer values under [clusters/customer](clusters/customer/).
 
-GPU scheduling is standard Kubernetes scheduling. NVIDIA clusters should expose `nvidia.com/gpu`; AMD clusters should expose `amd.com/gpu`. Label GPU nodes with `platform.ai/node-pool=gpu` and `platform.ai/gpu-vendor=<nvidia|amd>`, then use `clusters/customer/values/vllm-nvidia.yaml` or `clusters/customer/values/vllm-amd.yaml`.
+NVIDIA clusters should expose `nvidia.com/gpu`; AMD clusters should expose `amd.com/gpu`. Label GPU nodes with `platform.ai/node-pool=gpu` and `platform.ai/gpu-vendor=<nvidia|amd>`, then use:
 
-The default customer vLLM profile runs `Qwen/Qwen3-Coder-Next` with multiple replicas, an HPA, PodDisruptionBudget, service-account token automount disabled, and topology spread constraints. It requests four GPUs per replica for tensor parallel serving; reduce the model, context length, or GPU count in customer values when targeting smaller clusters. The local profile keeps vLLM at zero replicas so CPU-only workstations can run the lab with Ollama.
+- [clusters/customer/values/vllm-nvidia.yaml](clusters/customer/values/vllm-nvidia.yaml)
+- [clusters/customer/values/vllm-amd.yaml](clusters/customer/values/vllm-amd.yaml)
 
-Customer RAG values switch `retrieval.backend` to `qdrant` and deploy `charts/qdrant-vector-store` with persistent storage. Customers should size Qdrant storage, vector dimensions, and document ingestion to their own embedding model and approved knowledge pipeline.
+The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-agent workloads. Tune replica count, context length, tensor parallelism, and GPU requests to the customer cluster before production use.
 
-For regulated or offline teams, use `tenants/onboarding/regulated-offline-coding-agents.yaml` or `make tenant-onboard-regulated`. It renders confidential tenant labels, disables external CIDR egress, disables default job-management RBAC, and keeps access limited to in-cluster DNS, gateway, and RAG paths.
+## Docs
 
-## Restore Drills
-
-Application-data restore verification is handled by the existing GitHub project `RamazanKara/restore-drill`. This repo consumes that tool through local wrapper scripts and a Kubernetes CronJob path. Velero is used separately for cluster resource and persistent-volume backup.
-
-Run the local restore drill:
-
-    make restore-drill RUNTIME=local
-
-Run restore-drill plus the Velero disposable namespace scenario:
-
-    make backup-drill
-
-Restore evidence is written under `results/restore-drill/`.
-
-## Load Testing
-
-Run k6 load tests against the gateway:
-
-    make loadtest
-
-Results are written under `results/loadtest/` as JSON plus a Markdown summary.
-
-## Evaluation Harness
-
-Run repeatable prompt checks against the gateway:
-
-    make eval
-
-The default suite lives at `evals/smoke-suite.yaml`. A richer coding-agent suite lives at `evals/coding-agent-suite.yaml` and covers change planning, secret handling, prompt-injection boundaries, and incident triage. The wrapper writes JSON and Markdown evidence under `results/evals/`. Use `GATEWAY_URL=http://host:port make eval` when the gateway is already reachable.
-
-Run the coding-agent suite explicitly:
-
-    SUITE=evals/coding-agent-suite.yaml make eval
-
-## Model Governance
-
-Validate model lifecycle metadata, promotion requests, approved-only allowlists, and vLLM profile alignment:
-
-    make model-check
-
-Generate a JSON and Markdown governance report:
-
-    make model-report
-
-Reports are written under `results/model-catalog/`.
-
-Validate approved model artifact provenance:
-
-    make model-provenance-check
-    make model-provenance-report
-
-Reports are written under `results/model-provenance/`.
-
-## Customer Evidence Pack
-
-Generate a Markdown and JSON evidence pack before demos, release reviews, incident follow-ups, or restore-drill handoff:
-
-    make evidence
-
-After the local lab is synced, include live Kubernetes readiness checks:
-
-    make evidence LIVE=1
-
-Evidence packs are written under `results/evidence/` and summarize static controls, generated artifacts, and customer action items.
-
-## Release Gates
-
-Check whether current handoff evidence meets the local customer-readiness thresholds:
-
-    make release-gate
-
-Generate JSON and Markdown release-gate evidence:
-
-    make release-report
-
-Thresholds live in `slo/release-gates.yaml`; reports are written under `results/release-gate/`.
-
-## SLO And Error Budgets
-
-Customer-facing SLO objectives live in `slo/objectives.yaml`. They cover inference error rate and latency, smoke evaluation pass rate, restore verification, and coding-agent platform readiness.
-
-    make slo-check
-    make slo-report
-
-Reports are written under `results/slo/`.
-
-## Quota And Chargeback
-
-Reviewed quota plans live in `governance/quota-plans.yaml`. They connect Kubernetes quotas, gateway sandbox budgets, workspace sizing, and required chargeback labels.
-
-    make quota-check
-    make quota-report
-
-Reports are written under `results/quota/`.
-
-## Egress Governance
-
-External egress for coding-agent workspaces and tenant labs must be approved in `network/egress-catalog.yaml` and referenced with `catalogRef` before NetworkPolicies allow it.
-
-    make egress-check
-    make egress-report
-
-## Data Retention
-
-Retention and privacy controls live in `governance/data-retention.yaml`. They cover redacted audit logs, generated evidence, RAG knowledge, agent workspace data, and model governance records.
-
-    make retention-check
-    make retention-report
-
-## Tenant Onboarding
-
-Generate a customer-ready tenant package from a reviewed spec:
-
-    make tenant-onboard
-
-The default spec is `tenants/onboarding/coding-agents.yaml`. The generator writes a tenant manifest, agent workspace Helm values, and a short apply guide under `tenants/generated/`.
-
-## Runbooks
-
-Start with the [documentation map](docs/README.md). The main production checklist is the [production readiness matrix](docs/production-readiness.md), and operational procedures live under `runbooks/`.
-
-Key runbooks:
-
-| Need | Document |
+| Need | Start here |
 | --- | --- |
-| Operate gateway access, sandboxing, and budgets | [API access](runbooks/api-access.md), [traceable sandbox](runbooks/traceability-sandbox.md), [budget controls](runbooks/budget-controls.md) |
-| Run coding-agent labs | [agent workspaces](runbooks/agent-workspaces.md), [tenant labs](runbooks/tenant-labs.md), [RAG service](runbooks/rag-service.md), [vector RAG](runbooks/vector-rag.md) |
-| Govern customer handoff | [evidence packs](runbooks/evidence-pack.md), [release gates](runbooks/release-gates.md), [SLOs](runbooks/slo-error-budget.md), [validation toolchain](runbooks/validation-toolchain.md) |
-| Prove resilience and recovery | [restore drills](runbooks/restore-drill.md), [chaos drills](runbooks/chaos-drills.md), [runtime incident response](runbooks/incident-inference-runtime.md) |
-| Review security and compliance | [guardrails](runbooks/guardrails.md), [model governance](runbooks/model-governance.md), [model provenance](runbooks/model-provenance.md), [egress governance](runbooks/egress-governance.md), [data retention](runbooks/data-retention.md) |
+| First local run | [Getting started](docs/getting-started.md) |
+| Production controls | [Production readiness matrix](docs/production-readiness.md) |
+| Full documentation map | [Docs index](docs/README.md) |
+| Customer cluster assumptions | [Customer cluster README](clusters/customer/README.md) |
+| Restore verification | [Restore drill runbook](runbooks/restore-drill.md) |
+| Coding-agent workspaces | [Agent workspaces runbook](runbooks/agent-workspaces.md) |
+| Model governance | [Model governance runbook](runbooks/model-governance.md) |
+| Upstream references | [References](docs/references.md) |
+
+## Repo Map
+
+| Path | Purpose |
+| --- | --- |
+| `charts/` | Helm charts for gateway, runtimes, RAG, vector store, budget Redis, and agent workspaces |
+| `clusters/local/` | Local `kind` and Argo CD values |
+| `clusters/customer/` | Provider-neutral customer cluster values |
+| `services/` | Gateway and RAG service code |
+| `runbooks/` | Operational procedures and incident drills |
+| `governance/`, `model-catalog/`, `network/`, `slo/` | Reviewed policy and evidence inputs |
+| `results/` | Sample evidence artifacts; generated reports are ignored by default |
+| `backup/restore-drill/` | Restore-drill wrapper around `RamazanKara/restore-drill` |
+
+## Evidence Commands
+
+```bash
+make evidence
+make release-gate
+make slo-check
+make quota-check
+make model-check
+make model-provenance-check
+```
+
+CI builds and pushes gateway and RAG images, generates SBOMs, runs Trivy, uploads SARIF, and signs images with Cosign.
 
 ## Trademark Notice
 
