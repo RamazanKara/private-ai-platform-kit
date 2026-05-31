@@ -1,5 +1,12 @@
 # AI Platform Ops Lab: Run Private LLMs and Coding Agents on Kubernetes
 
+[![CI](https://github.com/RamazanKara/ai-platform-ops-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/RamazanKara/ai-platform-ops-lab/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/RamazanKara/ai-platform-ops-lab?include_prereleases)](https://github.com/RamazanKara/ai-platform-ops-lab/releases)
+[![License](https://img.shields.io/github/license/RamazanKara/ai-platform-ops-lab)](LICENSE)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-GitOps-326CE5)
+![Helm](https://img.shields.io/badge/Helm-charts-0F1689)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB)
+
 AI Platform Ops Lab is a hands-on operations lab for teams that want to run private LLMs and coding agents on Kubernetes. It starts locally on `kind`, then carries the same charts, policies, runbooks, and evidence checks into customer-owned clusters.
 
 ## Live Demo
