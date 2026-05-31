@@ -21,6 +21,8 @@ The demo video is generated from a real command run with `scripts/demo-live.sh`.
 
 ## Architecture
 
+![AI Platform Ops Lab architecture](docs/assets/architecture.svg)
+
 Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway forwards the request to either Ollama or vLLM based on `RUNTIME_BACKEND`, records Prometheus metrics, and returns an OpenAI-compatible response. Argo CD reconciles platform add-ons and workloads from this repository. The default lab runs fully on `kind` with Ollama. Customers can apply the same charts and policies to their existing Kubernetes clusters and enable vLLM on GPU nodes they already operate.
 
 Gateway requests are traceable by design. Callers can send `X-Request-ID`, `X-Sandbox-ID`, and W3C `traceparent`; the gateway returns and forwards those headers, emits structured JSON audit events, and records prompt length plus a SHA-256 fingerprint without logging raw prompt text.

@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">AI Platform Ops Lab architecture</title>
+  <desc id="desc">Architecture diagram showing API clients and coding agents calling an inference gateway, with governed routing to Ollama or vLLM, RAG context, GitOps controls, observability, and evidence workflows.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#334155"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .soft { fill: #eef6ff; stroke: #7aa7d9; }
+      .green { fill: #eefaf2; stroke: #62a878; }
+      .gold { fill: #fff7e6; stroke: #d99f2b; }
+      .rose { fill: #fff1f2; stroke: #e07480; }
+      .ink { fill: #0f172a; font-family: Inter, Segoe UI, Arial, sans-serif; }
+      .muted { fill: #475569; font-family: Inter, Segoe UI, Arial, sans-serif; }
+      .tiny { font-size: 18px; }
+      .small { font-size: 20px; }
+      .medium { font-size: 24px; font-weight: 700; }
+      .large { font-size: 32px; font-weight: 800; }
+      .line { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .line-soft { stroke: #64748b; stroke-width: 2.5; fill: none; marker-end: url(#arrow); stroke-dasharray: 8 8; }
+      .pill { fill: #e2e8f0; }
+      .label { font-size: 17px; fill: #334155; font-family: Inter, Segoe UI, Arial, sans-serif; font-weight: 700; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1280" height="760"/>
+
+  <text x="60" y="64" class="ink large">AI Platform Ops Lab</text>
+  <text x="60" y="98" class="muted small">Local-first Kubernetes platform for private LLMs, RAG, and isolated coding-agent workspaces</text>
+
+  <rect x="45" y="125" width="260" height="510" class="panel soft"/>
+  <text x="74" y="168" class="ink medium">Users</text>
+  <rect x="75" y="198" width="200" height="94" rx="12" fill="#ffffff" stroke="#7aa7d9" stroke-width="2"/>
+  <text x="102" y="235" class="ink small">API clients</text>
+  <text x="102" y="263" class="muted tiny">OpenAI-compatible</text>
+  <rect x="75" y="322" width="200" height="106" rx="12" fill="#ffffff" stroke="#7aa7d9" stroke-width="2"/>
+  <text x="102" y="360" class="ink small">Coding agents</text>
+  <text x="102" y="388" class="muted tiny">Workspace PVC</text>
+  <text x="102" y="414" class="muted tiny">RBAC and egress</text>
+  <rect x="75" y="458" width="200" height="98" rx="12" fill="#ffffff" stroke="#7aa7d9" stroke-width="2"/>
+  <text x="102" y="495" class="ink small">Platform team</text>
+  <text x="102" y="523" class="muted tiny">GitOps and runbooks</text>
+
+  <rect x="365" y="150" width="275" height="250" class="panel green"/>
+  <text x="398" y="193" class="ink medium">Inference Gateway</text>
+  <text x="398" y="229" class="muted tiny">POST /v1/chat/completions</text>
+  <rect x="395" y="258" width="215" height="42" rx="21" class="pill"/>
+  <text x="420" y="286" class="label">API keys</text>
+  <rect x="395" y="314" width="215" height="42" rx="21" class="pill"/>
+  <text x="420" y="342" class="label">Request and sandbox IDs</text>
+  <rect x="395" y="370" width="215" height="42" rx="21" class="pill"/>
+  <text x="420" y="398" class="label">Budgets and guardrails</text>
+
+  <rect x="735" y="130" width="230" height="126" class="panel"/>
+  <text x="774" y="175" class="ink medium">Ollama</text>
+  <text x="774" y="209" class="muted tiny">Local kind runtime</text>
+  <rect x="735" y="300" width="230" height="126" class="panel"/>
+  <text x="782" y="345" class="ink medium">vLLM</text>
+  <text x="782" y="379" class="muted tiny">Customer GPU runtime</text>
+
+  <rect x="735" y="485" width="230" height="132" class="panel soft"/>
+  <text x="778" y="531" class="ink medium">RAG Service</text>
+  <text x="778" y="565" class="muted tiny">Approved context</text>
+  <text x="778" y="592" class="muted tiny">Optional Qdrant vector store</text>
+
+  <rect x="1035" y="130" width="200" height="180" class="panel gold"/>
+  <text x="1065" y="175" class="ink medium">GitOps</text>
+  <text x="1065" y="210" class="muted tiny">Argo CD</text>
+  <text x="1065" y="238" class="muted tiny">Helm charts</text>
+  <text x="1065" y="266" class="muted tiny">Kyverno policies</text>
+
+  <rect x="1035" y="360" width="200" height="257" class="panel rose"/>
+  <text x="1065" y="405" class="ink medium">Evidence</text>
+  <text x="1065" y="440" class="muted tiny">Prometheus metrics</text>
+  <text x="1065" y="468" class="muted tiny">Grafana dashboards</text>
+  <text x="1065" y="496" class="muted tiny">Redacted audit logs</text>
+  <text x="1065" y="524" class="muted tiny">Evals and load tests</text>
+  <text x="1065" y="552" class="muted tiny">SLO release gates</text>
+  <text x="1065" y="580" class="muted tiny">Restore drills</text>
+
+  <path d="M275 245 C315 245 325 245 365 245" class="line"/>
+  <path d="M275 375 C325 410 335 520 735 550" class="line-soft"/>
+  <path d="M640 240 C685 210 690 190 735 190" class="line"/>
+  <path d="M640 328 C690 342 690 360 735 360" class="line"/>
+  <path d="M640 380 C690 465 690 520 735 540" class="line-soft"/>
+  <path d="M965 190 C1000 190 1000 215 1035 215" class="line-soft"/>
+  <path d="M965 550 C1000 550 1000 490 1035 490" class="line-soft"/>
+  <path d="M640 280 C850 270 890 430 1035 430" class="line-soft"/>
+  <path d="M275 507 C510 670 820 675 1035 555" class="line-soft"/>
+
+  <rect x="365" y="455" width="275" height="162" class="panel"/>
+  <text x="398" y="500" class="ink medium">Governance Inputs</text>
+  <text x="398" y="536" class="muted tiny">Model catalog and provenance</text>
+  <text x="398" y="564" class="muted tiny">Quota and chargeback plans</text>
+  <text x="398" y="592" class="muted tiny">Retention and egress catalog</text>
+
+  <path d="M503 455 C503 430 503 425 503 400" class="line-soft"/>
+
+  <text x="60" y="700" class="muted tiny">The same charts, policies, runbooks, and checks run locally on kind and carry into customer-owned Kubernetes clusters.</text>
+</svg>
