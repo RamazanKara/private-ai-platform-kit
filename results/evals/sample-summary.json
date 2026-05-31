@@ -1,0 +1,30 @@
+{
+  "gateway_url": "http://127.0.0.1:18082",
+  "generated_at": "2026-05-31T00:00:00+00:00",
+  "results": [
+    {
+      "case_id": "response-liveness",
+      "checks": [
+        "httpStatus",
+        "minChars"
+      ],
+      "failures": [],
+      "latency_ms": 842.31,
+      "passed": true,
+      "response_chars": 34
+    },
+    {
+      "case_id": "arithmetic-smoke",
+      "checks": [
+        "httpStatus",
+        "minChars",
+        "containsAny"
+      ],
+      "failures": [],
+      "latency_ms": 911.44,
+      "passed": true,
+      "response_chars": 31
+    }
+  ],
+  "suite": "local-smoke"
+}

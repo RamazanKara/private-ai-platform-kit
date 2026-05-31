@@ -1,0 +1,186 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-team-a-lab
+  labels:
+    app.kubernetes.io/name: ai-team-a-lab
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: research
+    platform.ai/environment: local
+    platform.ai/owner: team-a
+    platform.ai/sandbox-id: team-a-lab
+    platform.ai/tenant: team-a
+    platform.ai/traceable-sandbox: "true"
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-quota
+  namespace: ai-team-a-lab
+  labels:
+    app.kubernetes.io/name: tenant-quota
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: research
+    platform.ai/environment: local
+    platform.ai/owner: team-a
+    platform.ai/sandbox-id: team-a-lab
+    platform.ai/tenant: team-a
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    pods: "10"
+    configmaps: "20"
+    secrets: "10"
+    persistentvolumeclaims: "2"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  namespace: ai-team-a-lab
+  labels:
+    app.kubernetes.io/name: tenant-defaults
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: research
+    platform.ai/environment: local
+    platform.ai/owner: team-a
+    platform.ai/sandbox-id: team-a-lab
+    platform.ai/tenant: team-a
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 50m
+        memory: 64Mi
+      default:
+        cpu: 500m
+        memory: 512Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-default-deny
+  namespace: ai-team-a-lab
+  labels:
+    app.kubernetes.io/name: tenant-default-deny
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: research
+    platform.ai/environment: local
+    platform.ai/owner: team-a
+    platform.ai/sandbox-id: team-a-lab
+    platform.ai/tenant: team-a
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-allow-dns-and-gateway
+  namespace: ai-team-a-lab
+  labels:
+    app.kubernetes.io/name: tenant-allow-dns-and-gateway
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: research
+    platform.ai/environment: local
+    platform.ai/owner: team-a
+    platform.ai/sandbox-id: team-a-lab
+    platform.ai/tenant: team-a
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: inference
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: rag
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-trace-contract
+  namespace: ai-team-a-lab
+  labels:
+    app.kubernetes.io/name: tenant-trace-contract
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: research
+    platform.ai/environment: local
+    platform.ai/owner: team-a
+    platform.ai/sandbox-id: team-a-lab
+    platform.ai/tenant: team-a
+data:
+  sandbox-id: team-a-lab
+  required-headers: X-Request-ID, X-Sandbox-ID, X-API-Key, traceparent
+  gateway-url: http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080
+  rag-url: http://rag-service-rag-service.rag.svc.cluster.local:8080
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-lab-viewer
+  namespace: ai-team-a-lab
+  labels:
+    app.kubernetes.io/name: tenant-lab-viewer
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: research
+    platform.ai/environment: local
+    platform.ai/owner: team-a
+    platform.ai/sandbox-id: team-a-lab
+    platform.ai/tenant: team-a
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "configmaps", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tenant-lab-viewers
+  namespace: ai-team-a-lab
+  labels:
+    app.kubernetes.io/name: tenant-lab-viewers
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: research
+    platform.ai/environment: local
+    platform.ai/owner: team-a
+    platform.ai/sandbox-id: team-a-lab
+    platform.ai/tenant: team-a
+subjects:
+  - kind: Group
+    name: team-a
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: tenant-lab-viewer
+  apiGroup: rbac.authorization.k8s.io

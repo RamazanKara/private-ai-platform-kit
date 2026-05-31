@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-platform-contract
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "agent-workspace.labels" . | nindent 4 }}
+data:
+  sandbox-id: {{ .Values.sandbox.id | quote }}
+  tenant: {{ .Values.sandbox.tenant | quote }}
+  gateway-url: {{ .Values.platform.gatewayUrl | quote }}
+  rag-url: {{ .Values.platform.ragUrl | quote }}
+  workspace-path: {{ .Values.workspace.mountPath | quote }}
+  required-headers: {{ .Values.platform.requiredHeaders | quote }}
+  compliance-profile: {{ .Values.sandbox.complianceProfile | quote }}
+  data-classification: {{ .Values.sandbox.dataClassification | quote }}
+  external-egress-allowed: {{ .Values.sandbox.externalEgressAllowed | quote }}
+  private-registry-required: {{ .Values.sandbox.requirePrivateRegistry | quote }}
+  evidence-retention-days: {{ .Values.sandbox.evidenceRetentionDays | quote }}
+  egress-policy: |
+    {{- if not .Values.sandbox.externalEgressAllowed }}
+    Default-deny egress is enabled. This profile intentionally allows only
+    kube-dns, the inference gateway, and the RAG service. External CIDR egress
+    requires a reviewed onboarding-spec change.
+    {{- else }}
+    Default-deny egress is enabled. Coding agents may reach kube-dns, the
+    inference gateway, the RAG service, and explicitly configured CIDR allowlists
+    for customer-approved Git, package mirror, artifact, or ticketing systems.
+    {{- end }}

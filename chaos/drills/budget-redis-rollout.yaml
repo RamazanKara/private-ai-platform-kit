@@ -1,0 +1,18 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: budget-redis-rollout
+spec:
+  description: Restart the shared sandbox budget Redis Deployment and prove the gateway can still reserve budget.
+  target:
+    namespace: budget
+    kind: Deployment
+    name: budget-redis
+  action: rollout-restart
+  validation:
+    command: make smoke RUNTIME_BACKEND=ollama
+    expected: Redis returns PONG and gateway smoke succeeds after rollout
+  safety:
+    destructive: false
+    requiresConfirmation: false
+    maxDurationSeconds: 300

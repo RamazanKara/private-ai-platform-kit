@@ -1,0 +1,30 @@
+apiVersion: platform.ai/v1alpha1
+kind: ApprovedEgressCatalog
+metadata:
+  name: ai-platform-agent-egress
+spec:
+  defaults:
+    requireCatalogRef: true
+    requireTlsPort: true
+    maxCidrPrefix:
+      ipv4: 24
+      ipv6: 64
+  entries:
+    - id: customer-git-artifact-mirror-example
+      status: approved
+      owner: platform-security
+      environments:
+        - customer
+      expiresOn: "2027-05-31"
+      description: Customer-approved Git, artifact, or package mirror example for coding-agent workspaces.
+      allowedUseCases:
+        - git-clone
+        - package-restore
+        - artifact-download
+      dataClassification:
+        maxOutbound: internal
+      destinations:
+        - cidr: 203.0.113.0/24
+          ports:
+            - 443
+          protocol: TCP

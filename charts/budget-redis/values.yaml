@@ -1,0 +1,38 @@
+replicaCount: 1
+fullnameOverride: budget-redis
+
+image:
+  repository: redis
+  tag: "7.4-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 6379
+
+serviceAccount:
+  create: true
+  name: ""
+  automountServiceAccountToken: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: shared-budget
+
+networkPolicy:
+  enabled: true
+  allowedIngressNamespaces:
+    - inference
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 0

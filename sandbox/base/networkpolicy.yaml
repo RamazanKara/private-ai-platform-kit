@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-sandbox-default-deny
+  namespace: ai-sandbox
+  labels:
+    app.kubernetes.io/name: ai-sandbox-default-deny
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: platform
+    platform.ai/environment: local
+    platform.ai/owner: platform-team
+    platform.ai/sandbox-id: local-lab
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-sandbox-allow-dns-and-gateway
+  namespace: ai-sandbox
+  labels:
+    app.kubernetes.io/name: ai-sandbox-allow-dns-and-gateway
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: platform
+    platform.ai/environment: local
+    platform.ai/owner: platform-team
+    platform.ai/sandbox-id: local-lab
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: inference
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: rag
+      ports:
+        - protocol: TCP
+          port: 8080

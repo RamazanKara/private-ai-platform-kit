@@ -1,0 +1,105 @@
+apiVersion: platform.ai/v1alpha1
+kind: QuotaPlanSet
+metadata:
+  name: ai-platform-ops-lab-quota-plans
+spec:
+  description: Reviewed quota and chargeback plans for local labs, coding-agent tenants, and customer-owned runtime profiles.
+  chargeback:
+    requiredLabels:
+      - platform.ai/owner
+      - platform.ai/cost-center
+      - platform.ai/environment
+      - platform.ai/sandbox-id
+    optionalLabels:
+      - platform.ai/tenant
+      - platform.ai/model-id
+      - platform.ai/gpu-vendor
+    allocationUnit: sandbox-day
+    reportingCurrency: USD
+  plans:
+    - id: local-lab
+      name: Local workstation lab
+      environment: local
+      namespace: ai-sandbox
+      sandboxId: local-lab
+      owner: platform-team
+      costCenter: platform
+      workloadKind: sandbox
+      acceleratorClass: cpu
+      kubernetesQuota:
+        requestsCpu: "2"
+        requestsMemory: 4Gi
+        limitsCpu: "4"
+        limitsMemory: 8Gi
+        pods: "10"
+        persistentVolumeClaims: "2"
+      gatewayBudget:
+        requestLimit: 250
+        promptCharLimit: 500000
+        estimatedTokenLimit: 150000
+        windowSeconds: 86400
+      sourceRefs:
+        - sandbox/base/resource-controls.yaml
+        - clusters/local/values/inference-gateway.yaml
+      review:
+        cadence: before-demo
+        approver: platform-team
+    - id: coding-agents-lab
+      name: Customer coding-agent tenant lab
+      environment: customer
+      namespace: ai-coding-agents
+      sandboxId: coding-agents-lab
+      owner: agent-platform
+      costCenter: research
+      workloadKind: coding-agent
+      acceleratorClass: cpu-or-gpu-runtime
+      kubernetesQuota:
+        requestsCpu: "8"
+        requestsMemory: 16Gi
+        limitsCpu: "16"
+        limitsMemory: 32Gi
+        pods: "40"
+        persistentVolumeClaims: "8"
+        secrets: "20"
+        configMaps: "60"
+      workspace:
+        pvcSize: 50Gi
+        maxConcurrentAgents: 20
+      gatewayBudget:
+        requestLimit: 5000
+        promptCharLimit: 25000000
+        estimatedTokenLimit: 7500000
+        windowSeconds: 86400
+      sourceRefs:
+        - tenants/onboarding/coding-agents.yaml
+        - clusters/customer/values/inference-gateway.yaml
+      review:
+        cadence: before-tenant-onboarding
+        approver: customer-platform-owner
+    - id: customer-shared-runtime
+      name: Customer shared runtime budget
+      environment: customer
+      namespace: inference
+      sandboxId: customer-lab
+      owner: platform-team
+      costCenter: platform
+      workloadKind: shared-runtime
+      acceleratorClass: nvidia-or-amd
+      kubernetesQuota:
+        requestsCpu: "16"
+        requestsMemory: 64Gi
+        limitsCpu: "32"
+        limitsMemory: 128Gi
+        pods: "60"
+      gatewayBudget:
+        requestLimit: 10000
+        promptCharLimit: 50000000
+        estimatedTokenLimit: 15000000
+        windowSeconds: 86400
+      sourceRefs:
+        - clusters/customer/values/inference-gateway.yaml
+        - clusters/customer/values/vllm-nvidia.yaml
+        - clusters/customer/values/vllm-amd.yaml
+      review:
+        cadence: before-release
+        approver: platform-team

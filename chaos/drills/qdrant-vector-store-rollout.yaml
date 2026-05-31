@@ -1,0 +1,18 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: qdrant-vector-store-rollout
+spec:
+  description: Restart the Qdrant vector-store Deployment and prove vector-backed RAG recovers.
+  target:
+    namespace: vector
+    kind: Deployment
+    name: qdrant-vector-store
+  action: rollout-restart
+  validation:
+    command: EXPECTED_RAG_BACKEND=qdrant make rag-smoke
+    expected: Qdrant rollout completes and RAG health reports the qdrant backend before query smoke passes
+  safety:
+    destructive: false
+    requiresConfirmation: false
+    maxDurationSeconds: 300

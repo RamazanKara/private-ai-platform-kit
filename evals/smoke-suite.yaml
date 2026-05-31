@@ -1,0 +1,31 @@
+apiVersion: platform.ai/v1alpha1
+kind: EvalSuite
+metadata:
+  name: local-smoke
+spec:
+  model: qwen2.5:0.5b
+  defaults:
+    sandboxId: eval-lab
+    temperature: 0
+    maxTokens: 64
+    maxLatencyMs: 30000
+  cases:
+    - id: response-liveness
+      description: Verifies the model returns a non-empty assistant message.
+      messages:
+        - role: system
+          content: You are a concise test assistant.
+        - role: user
+          content: Say hello in one short sentence.
+      checks:
+        minChars: 1
+    - id: arithmetic-smoke
+      description: Verifies a basic reasoning response for regression smoke tests.
+      messages:
+        - role: user
+          content: What is 2 + 2? Reply with one short sentence.
+      checks:
+        minChars: 1
+        containsAny:
+          - "4"
+          - four

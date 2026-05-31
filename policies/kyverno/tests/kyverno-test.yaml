@@ -1,0 +1,36 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ai-platform-policy-tests
+policies:
+  - ../policies.yaml
+resources:
+  - resources/good-pod.yaml
+  - resources/latest-pod.yaml
+  - resources/privileged-pod.yaml
+  - resources/missing-resources-pod.yaml
+results:
+  - policy: ai-platform-required-labels
+    rule: require-platform-labels
+    resources:
+      - good-pod
+    kind: Pod
+    result: pass
+  - policy: ai-platform-image-and-resources
+    rule: block-latest-tags
+    resources:
+      - latest-pod
+    kind: Pod
+    result: fail
+  - policy: ai-platform-restricted-pods
+    rule: disallow-privileged
+    resources:
+      - privileged-pod
+    kind: Pod
+    result: fail
+  - policy: ai-platform-image-and-resources
+    rule: require-requests-and-limits
+    resources:
+      - missing-resources-pod
+    kind: Pod
+    result: fail

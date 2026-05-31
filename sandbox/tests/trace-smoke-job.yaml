@@ -1,0 +1,68 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ai-sandbox-trace-smoke
+  namespace: ai-sandbox
+  labels:
+    app.kubernetes.io/name: ai-sandbox-trace-smoke
+    app.kubernetes.io/component: sandbox-validation
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: platform
+    platform.ai/environment: local
+    platform.ai/owner: platform-team
+    platform.ai/sandbox-id: local-lab
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ai-sandbox-trace-smoke
+        app.kubernetes.io/component: sandbox-validation
+        app.kubernetes.io/part-of: ai-platform-ops-lab
+        platform.ai/cost-center: platform
+        platform.ai/environment: local
+        platform.ai/owner: platform-team
+        platform.ai/sandbox-id: local-lab
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: curl
+          image: curlimages/curl:8.11.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              headers="$(mktemp)"
+              body="$(mktemp)"
+              curl -fsS \
+                -D "${headers}" \
+                -o "${body}" \
+                -H "X-Request-ID: sandbox-smoke" \
+                -H "X-Sandbox-ID: local-lab" \
+                -H "X-API-Key: local-development-only" \
+                -H "traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" \
+                http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080/healthz
+              grep -qi '^x-request-id: sandbox-smoke' "${headers}"
+              grep -qi '^x-sandbox-id: local-lab' "${headers}"
+              grep -qi '^traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' "${headers}"
+              cat "${body}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

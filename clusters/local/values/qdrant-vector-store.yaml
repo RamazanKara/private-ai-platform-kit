@@ -1,0 +1,22 @@
+replicaCount: 1
+
+persistence:
+  enabled: false
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: rag-vector-local
+
+serviceMonitor:
+  enabled: false

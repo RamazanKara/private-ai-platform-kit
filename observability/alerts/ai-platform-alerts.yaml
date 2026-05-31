@@ -1,0 +1,131 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ai-platform-ops-lab-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: ai-platform-alerts
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+spec:
+  groups:
+    - name: inference.rules
+      rules:
+        - alert: InferenceGatewayHighErrorRate
+          expr: |
+            sum(rate(inference_gateway_requests_total{route="/v1/chat/completions",status!="200"}[5m]))
+            /
+            clamp_min(sum(rate(inference_gateway_requests_total{route="/v1/chat/completions"}[5m])), 1)
+            > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Inference gateway error rate is above 5 percent.
+        - alert: InferenceGatewayErrorBudgetFastBurn
+          expr: |
+            (
+              sum(rate(inference_gateway_requests_total{route="/v1/chat/completions",status!="200"}[5m]))
+              /
+              clamp_min(sum(rate(inference_gateway_requests_total{route="/v1/chat/completions"}[5m])), 1)
+            ) > 0.072
+            and
+            (
+              sum(rate(inference_gateway_requests_total{route="/v1/chat/completions",status!="200"}[1h]))
+              /
+              clamp_min(sum(rate(inference_gateway_requests_total{route="/v1/chat/completions"}[1h])), 1)
+            ) > 0.072
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Inference gateway is burning the 99.5 percent availability error budget quickly.
+        - alert: InferenceGatewayErrorBudgetSlowBurn
+          expr: |
+            (
+              sum(rate(inference_gateway_requests_total{route="/v1/chat/completions",status!="200"}[30m]))
+              /
+              clamp_min(sum(rate(inference_gateway_requests_total{route="/v1/chat/completions"}[30m])), 1)
+            ) > 0.015
+            and
+            (
+              sum(rate(inference_gateway_requests_total{route="/v1/chat/completions",status!="200"}[6h]))
+              /
+              clamp_min(sum(rate(inference_gateway_requests_total{route="/v1/chat/completions"}[6h])), 1)
+            ) > 0.015
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Inference gateway is steadily burning the 99.5 percent availability error budget.
+        - alert: InferenceGatewayHighLatency
+          expr: histogram_quantile(0.95, sum(rate(inference_gateway_request_duration_seconds_bucket[5m])) by (le)) > 10
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Inference gateway p95 latency is above 10 seconds.
+        - alert: InferenceGatewaySandboxErrors
+          expr: |
+            sum(rate(inference_gateway_sandbox_requests_total{status!="200"}[5m])) by (sandbox)
+            /
+            clamp_min(sum(rate(inference_gateway_sandbox_requests_total[5m])) by (sandbox), 1)
+            > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: A traceable sandbox has an inference gateway error rate above 5 percent.
+        - alert: InferenceGatewayAdmissionRejections
+          expr: sum(rate(inference_gateway_admission_rejections_total[5m])) by (sandbox, reason) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: A sandbox is sending requests rejected by gateway admission policy.
+        - alert: InferenceGatewaySandboxBudgetNearLimit
+          expr: |
+            (
+              inference_gateway_sandbox_budget_usage
+              /
+              clamp_min(inference_gateway_sandbox_budget_limit, 1)
+            ) > 0.8
+            and inference_gateway_sandbox_budget_limit > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: A sandbox is above 80 percent of a configured gateway budget.
+        - alert: RestoreDrillFailed
+          expr: restore_drill_validation_passed == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Latest restore-drill validation failed.
+        - alert: RestoreDrillStale
+          expr: time() - restore_drill_last_success_timestamp > 93600
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: No successful restore drill has completed in the last 26 hours.
+    - name: rag.rules
+      rules:
+        - alert: RagServiceHighErrorRate
+          expr: |
+            sum(rate(rag_service_requests_total{route="/v1/rag/query",status!="200"}[5m]))
+            /
+            clamp_min(sum(rate(rag_service_requests_total{route="/v1/rag/query"}[5m])), 1)
+            > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: RAG service query error rate is above 5 percent.
+        - alert: RagServiceHighLatency
+          expr: histogram_quantile(0.95, sum(rate(rag_service_request_duration_seconds_bucket[5m])) by (le)) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: RAG service p95 latency is above 1 second.

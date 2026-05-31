@@ -1,0 +1,39 @@
+apiVersion: platform.ai/v1alpha1
+kind: ModelCatalog
+metadata:
+  name: ai-platform-ops-lab-models
+spec:
+  models:
+    - id: qwen2.5:0.5b
+      runtime: ollama
+      owner: platform-team
+      status: approved
+      stage: local-lab
+      riskTier: low
+      dataClassification: internal
+      license: model-provider
+      source: ollama-library
+      accelerators:
+        - cpu
+      contextWindow: 32768
+      maxPromptChars: 8192
+      maxCompletionTokens: 1024
+      promotionRequest: model-catalog/promotion-requests/qwen-local-lab-approved.yaml
+      notes: Default local smoke-test model for CPU-only workstations.
+    - id: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+      runtime: vllm
+      owner: platform-team
+      status: approved
+      stage: customer-lab
+      riskTier: low
+      dataClassification: internal
+      license: apache-2.0
+      source: huggingface
+      accelerators:
+        - nvidia
+        - amd
+      contextWindow: 2048
+      maxPromptChars: 32768
+      maxCompletionTokens: 4096
+      promotionRequest: model-catalog/promotion-requests/tinyllama-customer-lab-approved.yaml
+      notes: Small OpenAI-compatible vLLM profile for customer GPU clusters.

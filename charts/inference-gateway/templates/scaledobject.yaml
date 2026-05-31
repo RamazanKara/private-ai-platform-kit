@@ -1,0 +1,21 @@
+{{- if .Values.keda.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "inference-gateway.fullname" . }}
+  labels:
+    {{- include "inference-gateway.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "inference-gateway.fullname" . }}
+  minReplicaCount: {{ .Values.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.maxReplicaCount }}
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: {{ .Values.keda.prometheusServerAddress | quote }}
+        metricName: inference_gateway_requests_per_second
+        threshold: {{ .Values.keda.threshold | quote }}
+        query: sum(rate(inference_gateway_requests_total{route="/v1/chat/completions",status="200"}[2m]))
+{{- end }}
+

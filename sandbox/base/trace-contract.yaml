@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-sandbox-trace-contract
+  namespace: ai-sandbox
+  labels:
+    app.kubernetes.io/name: ai-sandbox-trace-contract
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: platform
+    platform.ai/environment: local
+    platform.ai/owner: platform-team
+    platform.ai/sandbox-id: local-lab
+data:
+  required-request-headers: |
+    X-Request-ID: caller-provided request correlation id, or gateway-generated UUID.
+    X-Sandbox-ID: lowercase sandbox identifier. Defaults to local-lab.
+    X-API-Key: API key for gateway and RAG business endpoints when auth is enabled.
+    traceparent: optional W3C trace context value propagated to the runtime.
+  audit-event-fields: |
+    event, request_id, traceparent, sandbox_id, backend, model, status_code,
+    runtime_status_code, latency_ms, message_count, message_roles, prompt_chars,
+    prompt_sha256, usage, error.
+  prompt-handling: |
+    The gateway logs prompt length and SHA-256 fingerprint only. It must not log
+    raw prompt text in audit events.
+  rag-url: http://rag-service-rag-service.rag.svc.cluster.local:8080
+  agent-workspace-url: ai-agents namespace, agent-platform-contract ConfigMap

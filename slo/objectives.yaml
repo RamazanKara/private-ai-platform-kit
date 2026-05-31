@@ -1,0 +1,80 @@
+apiVersion: platform.ai/v1alpha1
+kind: SLOSet
+metadata:
+  name: ai-platform-ops-lab-slos
+spec:
+  profile: local-customer-handoff
+  description: Customer-facing SLOs and evidence checks for the local AI lab and portable customer stack.
+  objectives:
+    - id: inference-availability
+      service: inference-gateway
+      description: Chat completion requests should stay below the accepted error-rate budget.
+      indicator: load-error-rate
+      target:
+        minRequests: 1
+        maxErrorRate: 0.05
+      evidence:
+        - results/loadtest/loadtest-*.json
+        - results/loadtest/sample-summary.json
+      alertRefs:
+        - InferenceGatewayHighErrorRate
+        - InferenceGatewayErrorBudgetFastBurn
+        - InferenceGatewayErrorBudgetSlowBurn
+      customerAction: Tune runtime capacity, admission limits, and gateway replicas before increasing coding-agent concurrency.
+    - id: inference-latency
+      service: inference-gateway
+      description: Chat completion latency should remain inside the local handoff target.
+      indicator: load-latency
+      target:
+        minRequests: 1
+        maxP95LatencyMs: 10000
+        maxP99LatencyMs: 15000
+      evidence:
+        - results/loadtest/loadtest-*.json
+        - results/loadtest/sample-summary.json
+      alertRefs:
+        - InferenceGatewayHighLatency
+      customerAction: Size Ollama or vLLM replicas, GPU inventory, and queueing policy to the customer concurrency target.
+    - id: eval-quality-smoke
+      service: inference-gateway
+      description: The selected model should pass the configured smoke evaluation suite.
+      indicator: eval-pass-rate
+      target:
+        minCases: 2
+        minPassRate: 1.0
+        maxCaseLatencyMs: 30000
+      evidence:
+        - results/evals/eval-*.json
+        - results/evals/sample-summary.json
+      alertRefs: []
+      customerAction: Extend the suite with customer coding-agent tasks before production use.
+    - id: restore-verification
+      service: restore-drill
+      description: Application-data restore verification should pass for critical lab state.
+      indicator: restore-pass-rate
+      target:
+        minPassRate: 1.0
+        requireValidationPassed: true
+      evidence:
+        - results/restore-drill/restore-drill-run-*.json
+        - results/restore-drill/sample-redis-run.json
+      alertRefs:
+        - RestoreDrillFailed
+        - RestoreDrillStale
+      customerAction: Schedule restore drills for each customer data store and retain reports under the retention policy.
+    - id: agent-platform-readiness
+      service: coding-agent-platform
+      description: Static and optional live evidence should prove the platform controls needed by coding agents.
+      indicator: evidence-controls
+      target:
+        maxFailedControls: 0
+        requiredControls:
+          - RAG service for coding-agent grounding
+          - Coding-agent workspaces
+          - Traceable sandbox isolation
+          - Egress governance for coding agents
+      evidence:
+        - results/evidence/evidence-*.json
+        - results/evidence/sample-summary.json
+      alertRefs: []
+      customerAction: Regenerate the evidence pack after every platform upgrade, tenant onboarding change, or agent workspace policy change.

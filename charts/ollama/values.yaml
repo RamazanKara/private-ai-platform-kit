@@ -1,0 +1,46 @@
+replicaCount: 1
+
+image:
+  repository: ollama/ollama
+  tag: "0.5.7"
+  pullPolicy: IfNotPresent
+
+model:
+  name: qwen2.5:0.5b
+  pullOnStart: false
+
+service:
+  port: 11434
+
+serviceAccount:
+  create: true
+  name: ""
+  automountServiceAccountToken: false
+
+persistence:
+  enabled: true
+  size: 20Gi
+
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: local-lab

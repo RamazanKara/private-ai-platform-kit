@@ -1,0 +1,19 @@
+{
+  "metrics": {
+    "http_req_duration": {
+      "p(50)": 425.0,
+      "p(95)": 1280.0,
+      "p(99)": 2400.0
+    },
+    "http_req_failed": {
+      "rate": 0.0
+    },
+    "http_reqs": {
+      "count": 60,
+      "rate": 1.0
+    }
+  },
+  "root_group": {
+    "name": "chat"
+  }
+}

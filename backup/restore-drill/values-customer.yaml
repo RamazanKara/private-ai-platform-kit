@@ -1,0 +1,17 @@
+schedule: "0 3 * * *"
+concurrencyPolicy: Forbid
+activeDeadlineSeconds: 3600
+backoffLimit: 1
+runtime:
+  mode: kubernetes
+  namespace: restore-drill
+  podLabels:
+    restore-drill/ephemeral: "true"
+    platform.ai/part-of: ai-platform-ops-lab
+config:
+  existingConfigMap: restore-drill-config
+rbac:
+  create: true
+networkPolicy:
+  enabled: true
+

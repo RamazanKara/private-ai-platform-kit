@@ -1,0 +1,19 @@
+[
+  {
+    "name": "ai-platform-local-redis-aof",
+    "provider": "redis",
+    "status": "pass",
+    "duration_ms": 0,
+    "validation_passed": true,
+    "checks": [
+      {
+        "name": "health-check-key",
+        "type": "key_sample",
+        "expected": "true",
+        "actual": "true",
+        "passed": true
+      }
+    ]
+  }
+]
+

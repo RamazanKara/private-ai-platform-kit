@@ -1,0 +1,18 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: gpu-capacity-preflight
+spec:
+  description: Check that customer GPU nodes are labeled and expose allocatable NVIDIA or AMD GPU resources before runtime failover drills.
+  target:
+    namespace: cluster
+    kind: NodeSelector
+    name: platform.ai/node-pool=gpu
+  action: capacity-preflight
+  validation:
+    command: DRILL=gpu-capacity-preflight RUN_SMOKE=0 make chaos-drill
+    expected: At least one matching node has platform.ai/gpu-vendor and allocatable nvidia.com/gpu or amd.com/gpu capacity
+  safety:
+    destructive: false
+    requiresConfirmation: false
+    maxDurationSeconds: 60

@@ -1,0 +1,49 @@
+replicaCount: 1
+
+image:
+  repository: qdrant/qdrant
+  tag: "v1.18.1"
+  pullPolicy: IfNotPresent
+
+service:
+  httpPort: 6333
+  grpcPort: 6334
+
+serviceAccount:
+  create: true
+  name: ""
+  automountServiceAccountToken: false
+
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClassName: ""
+  mountPath: /qdrant/storage
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: customer
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: rag-vector
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  allowedIngressNamespaces:
+    - rag
+    - monitoring
+
+serviceMonitor:
+  enabled: true
+  interval: 30s

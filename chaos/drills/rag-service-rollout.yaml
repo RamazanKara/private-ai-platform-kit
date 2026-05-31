@@ -1,0 +1,18 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: rag-service-rollout
+spec:
+  description: Restart the RAG service Deployment and prove coding-agent grounding still works.
+  target:
+    namespace: rag
+    kind: Deployment
+    name: rag-service-rag-service
+  action: rollout-restart
+  validation:
+    command: make rag-smoke
+    expected: RAG health, trace headers, retrieval results, and grounded messages succeed after rollout
+  safety:
+    destructive: false
+    requiresConfirmation: false
+    maxDurationSeconds: 300

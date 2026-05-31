@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: restore-drill
+  labels:
+    app.kubernetes.io/name: restore-drill
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: platform
+    platform.ai/environment: local
+    platform.ai/owner: platform-team
+    platform.ai/sandbox-id: local-lab

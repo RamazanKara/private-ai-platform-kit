@@ -1,0 +1,36 @@
+fullnameOverride: vllm
+replicaCount: 2
+image:
+  repository: vllm/vllm-openai
+  tag: "v0.7.2"
+  pullPolicy: IfNotPresent
+model:
+  name: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+  dtype: auto
+  maxModelLen: "2048"
+accelerator:
+  enabled: true
+  vendor: nvidia
+  resourceName: nvidia.com/gpu
+  count: 1
+  nodeSelector:
+    platform.ai/node-pool: gpu
+    platform.ai/gpu-vendor: nvidia
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+externalSecrets:
+  enabled: true
+  huggingFaceTokenSecretName: hf-token
+  huggingFaceTokenKey: token
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: customer
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: customer-lab

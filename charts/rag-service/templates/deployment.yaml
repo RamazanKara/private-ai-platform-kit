@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-service.fullname" . }}
+  labels:
+    {{- include "rag-service.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "rag-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "rag-service.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "rag-service.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      {{- if .Values.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpread.maxSkew }}
+          topologyKey: {{ .Values.topologySpread.topologyKey | quote }}
+          whenUnsatisfiable: {{ .Values.topologySpread.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "rag-service.selectorLabels" . | nindent 14 }}
+      {{- end }}
+      containers:
+        - name: rag
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: RAG_DOCUMENT_DIR
+              value: {{ .Values.knowledge.mountPath | quote }}
+            - name: RAG_RETRIEVAL_BACKEND
+              value: {{ .Values.retrieval.backend | quote }}
+            - name: DEFAULT_SANDBOX_ID
+              value: {{ .Values.traceability.defaultSandboxId | quote }}
+            - name: AUDIT_LOG_ENABLED
+              value: {{ .Values.traceability.auditLogEnabled | quote }}
+            - name: MAX_QUERY_CHARS
+              value: {{ .Values.retrieval.maxQueryChars | quote }}
+            - name: DEFAULT_TOP_K
+              value: {{ .Values.retrieval.defaultTopK | quote }}
+            - name: MAX_TOP_K
+              value: {{ .Values.retrieval.maxTopK | quote }}
+            - name: MAX_CONTEXT_CHARS
+              value: {{ .Values.retrieval.maxContextChars | quote }}
+            - name: QDRANT_URL
+              value: {{ .Values.retrieval.vectorStore.url | quote }}
+            - name: QDRANT_COLLECTION
+              value: {{ .Values.retrieval.vectorStore.collection | quote }}
+            - name: QDRANT_TIMEOUT_SECONDS
+              value: {{ .Values.retrieval.vectorStore.timeoutSeconds | quote }}
+            - name: QDRANT_VECTOR_DIMENSIONS
+              value: {{ .Values.retrieval.vectorStore.dimensions | quote }}
+            - name: QDRANT_BOOTSTRAP_FROM_KNOWLEDGE
+              value: {{ .Values.retrieval.vectorStore.bootstrapFromKnowledge | quote }}
+            - name: API_KEY_AUTH_ENABLED
+              value: {{ .Values.auth.enabled | quote }}
+            - name: API_KEY_HEADER
+              value: {{ .Values.auth.apiKeyHeader | quote }}
+            - name: API_KEY_SHA256S
+              {{- if .Values.auth.existingSecret.name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecret.name | quote }}
+                  key: {{ .Values.auth.existingSecret.key | quote }}
+              {{- else }}
+              value: {{ join "," .Values.auth.apiKeyHashes | quote }}
+              {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: knowledge
+              mountPath: {{ .Values.knowledge.mountPath | quote }}
+              readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: knowledge
+          configMap:
+            name: {{ include "rag-service.fullname" . }}-knowledge

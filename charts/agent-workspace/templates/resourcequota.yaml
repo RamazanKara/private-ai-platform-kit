@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agent-workspace-quota
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "agent-workspace.labels" . | nindent 4 }}
+spec:
+  hard:
+    requests.cpu: {{ .Values.resourceQuota.requestsCpu | quote }}
+    requests.memory: {{ .Values.resourceQuota.requestsMemory }}
+    limits.cpu: {{ .Values.resourceQuota.limitsCpu | quote }}
+    limits.memory: {{ .Values.resourceQuota.limitsMemory }}
+    pods: {{ .Values.resourceQuota.pods | quote }}
+    persistentvolumeclaims: {{ .Values.resourceQuota.persistentVolumeClaims | quote }}
+    secrets: {{ .Values.resourceQuota.secrets | quote }}
+    configmaps: {{ .Values.resourceQuota.configMaps | quote }}

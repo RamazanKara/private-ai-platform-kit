@@ -1,0 +1,161 @@
+apiVersion: platform.ai/v1alpha1
+kind: ValidationToolchain
+metadata:
+  name: ai-platform-ops-lab-validation-toolchain
+spec:
+  profiles:
+    validate:
+      description: Core tools required for `make validate`. Optional production tools are reported and skipped unless `make validate-full` is used.
+      required:
+        - python3
+        - helm
+      optional:
+        - kubeconform
+        - kyverno
+        - restore-drill
+        - k6
+        - syft
+        - argocd
+        - cosign
+        - trivy
+        - docker
+        - kind
+        - kubectl
+        - go
+    local:
+      description: Tools expected for running the full local lab, rebuilding images, syncing workloads, and generating local operational evidence.
+      required:
+        - python3
+        - docker
+        - kind
+        - kubectl
+        - helm
+        - go
+        - syft
+      optional:
+        - kubeconform
+        - kyverno
+        - restore-drill
+        - k6
+        - argocd
+        - cosign
+        - trivy
+    strict:
+      description: Full production validation stack used by `make validate-full` and customer handoff readiness reviews.
+      required:
+        - python3
+        - helm
+        - kubeconform
+        - kyverno
+        - restore-drill
+        - k6
+        - syft
+        - argocd
+        - cosign
+        - trivy
+      optional:
+        - docker
+        - kind
+        - kubectl
+        - go
+  tools:
+    python3:
+      command: python3
+      versionCommand: ["python3", "--version"]
+      category: runtime
+      purpose: Runs service tests, YAML checks, readiness gates, report generators, and local automation.
+      installHint: Install Python 3.12 or newer.
+    docker:
+      command: docker
+      versionCommand: ["docker", "--version"]
+      category: local-cluster
+      purpose: Builds local service images and runs kind nodes.
+      installHint: Install Docker Desktop or a compatible Docker Engine.
+    kind:
+      command: kind
+      versionCommand: ["kind", "version"]
+      category: local-cluster
+      purpose: Creates the local Kubernetes reference cluster.
+      installHint: Install kind from the upstream Kubernetes SIGs release artifacts.
+    kubectl:
+      command: kubectl
+      versionCommand: ["kubectl", "version", "--client=true"]
+      category: kubernetes
+      purpose: Applies manifests, inspects local readiness, and runs live evidence checks.
+      installHint: Install kubectl matching the customer's supported Kubernetes minor versions.
+    helm:
+      command: helm
+      versionCommand: ["helm", "version", "--short"]
+      category: kubernetes
+      purpose: Lints and renders all platform charts and customer overlays.
+      installHint: Install Helm 3.
+    go:
+      command: go
+      versionCommand: ["go", "version"]
+      category: build
+      purpose: Builds or installs Go-based validation utilities such as kubeconform, Kyverno CLI, and restore-drill.
+      installHint: Install Go 1.25 or newer for the CI-aligned validation path.
+    kubeconform:
+      command: kubeconform
+      versionCommand: ["kubeconform", "-v"]
+      defaultVersion: v0.7.0
+      installerEnv: KUBECONFORM_VERSION
+      category: kubernetes-validation
+      purpose: Validates Kubernetes YAML against schemas before customer handoff.
+      installHint: Run `make toolchain-install` or install kubeconform from yannh/kubeconform releases.
+    kyverno:
+      command: kyverno
+      versionCommand: ["kyverno", "version"]
+      defaultVersion: v1.18.1
+      installerEnv: KYVERNO_VERSION
+      category: policy
+      purpose: Runs policy-as-code tests for labels, pod security, resources, image tags, and signature policy.
+      installHint: Run `make toolchain-install` or install the Kyverno CLI release asset.
+    restore-drill:
+      command: restore-drill
+      versionCommand: ["restore-drill", "version"]
+      defaultVersion: v1.0.1
+      installerEnv: RESTORE_DRILL_VERSION
+      category: backup-restore
+      purpose: Validates restore-drill configuration and runs application-data restore evidence.
+      installHint: Install `github.com/RamazanKara/restore-drill/cmd/restore-drill` or use the customer's packaged binary.
+    k6:
+      command: k6
+      versionCommand: ["k6", "version"]
+      defaultVersion: v2.0.0
+      installerEnv: K6_VERSION
+      category: load-test
+      purpose: Validates and runs gateway load-test scenarios.
+      installHint: Run `make toolchain-install` or install k6 from Grafana release packages.
+    syft:
+      command: syft
+      versionCommand: ["syft", "version"]
+      defaultVersion: v1.44.0
+      installerEnv: SYFT_VERSION
+      category: supply-chain
+      purpose: Generates filesystem and image SBOM evidence.
+      installHint: Run `make toolchain-install` or install Syft from Anchore release packages.
+    argocd:
+      command: argocd
+      versionCommand: ["argocd", "version", "--client"]
+      defaultVersion: v3.4.3
+      installerEnv: ARGOCD_VERSION
+      category: gitops
+      purpose: Validates local GitOps client compatibility for Argo CD workflows.
+      installHint: Run `make toolchain-install` or install the Argo CD CLI release asset.
+    cosign:
+      command: cosign
+      versionCommand: ["cosign", "version"]
+      defaultVersion: v3.0.6
+      installerEnv: COSIGN_VERSION
+      category: supply-chain
+      purpose: Verifies image-signing workflows and customer promotion gates.
+      installHint: Run `make toolchain-install` or install Cosign from Sigstore release packages.
+    trivy:
+      command: trivy
+      versionCommand: ["trivy", "--version"]
+      defaultVersion: v0.70.0
+      installerEnv: TRIVY_VERSION
+      category: supply-chain
+      purpose: Runs filesystem, secret, config, and image vulnerability scans.
+      installHint: Run `make toolchain-install` or install Trivy from Aqua Security release packages.

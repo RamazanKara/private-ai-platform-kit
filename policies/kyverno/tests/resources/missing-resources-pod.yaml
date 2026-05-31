@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: missing-resources-pod
+  labels:
+    app.kubernetes.io/name: missing-resources-pod
+    app.kubernetes.io/component: test
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: platform
+    platform.ai/environment: test
+    platform.ai/owner: platform-team
+    platform.ai/sandbox-id: policy-test
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: missing
+      image: nginx:1.27.3
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL

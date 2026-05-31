@@ -1,0 +1,120 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/ramazankara/ai-platform-ops-lab/rag-service
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8080
+
+serviceAccount:
+  create: true
+  name: ""
+  automountServiceAccountToken: false
+
+traceability:
+  auditLogEnabled: true
+  defaultSandboxId: local-lab
+
+auth:
+  enabled: false
+  apiKeyHeader: X-API-Key
+  apiKeyHashes: []
+  existingSecret:
+    name: ""
+    key: api-key-sha256s
+
+retrieval:
+  backend: lexical
+  maxQueryChars: 2048
+  defaultTopK: 3
+  maxTopK: 8
+  maxContextChars: 6000
+  vectorStore:
+    url: ""
+    collection: ai-platform-ops-lab
+    timeoutSeconds: 1.0
+    dimensions: 384
+    bootstrapFromKnowledge: true
+
+knowledge:
+  mountPath: /knowledge
+  documents:
+    platform-overview.md: |
+      # AI Platform Ops Lab
+
+      AI Platform Ops Lab is a local-first, provider-neutral Kubernetes platform
+      for private LLM and coding-agent workloads. The local stack runs on kind.
+      Customer clusters bring their own Kubernetes, ingress, storage, secrets,
+      GPU nodes, and enterprise observability.
+    coding-agents.md: |
+      # Coding Agents
+
+      Coding agents should call the inference gateway with X-Request-ID,
+      X-Sandbox-ID, and traceparent when available. Agent workloads run in
+      isolated namespaces with quota, default limits, default-deny network
+      policy, workspace storage, and explicit egress to approved platform APIs.
+    controls.md: |
+      # Platform Controls
+
+      The platform includes model catalog governance, gateway admission controls,
+      Redis-backed sandbox budgets, redacted audit logs, Prometheus metrics,
+      evaluation evidence, restore-drill evidence, policy-as-code, SBOMs,
+      signed images, tenant labs, and controlled chaos drills.
+    accelerators.md: |
+      # Accelerator Support
+
+      Ollama is the default local runtime. vLLM is the production-style runtime
+      for customer clusters. NVIDIA profiles request nvidia.com/gpu and AMD ROCm
+      profiles request amd.com/gpu.
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 96Mi
+  limits:
+    cpu: 300m
+    memory: 256Mi
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: local-lab
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
+networkPolicy:
+  enabled: true
+  allowedIngressNamespaces:
+    - ai-agents
+    - ai-sandbox
+    - monitoring
+  allowedIngressNamespaceLabels:
+    - platform.ai/traceable-sandbox: "true"
+  dnsEgress:
+    namespace: kube-system
+    port: 53
+  vectorStoreEgress:
+    enabled: true
+    namespace: vector
+    port: 6333
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70

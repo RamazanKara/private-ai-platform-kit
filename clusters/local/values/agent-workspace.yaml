@@ -1,0 +1,13 @@
+namespace:
+  name: ai-agents
+
+sandbox:
+  id: agent-lab
+  tenant: coding-agents
+  owner: agent-platform
+  costCenter: research
+  environment: local
+
+workspace:
+  pvc:
+    size: 5Gi

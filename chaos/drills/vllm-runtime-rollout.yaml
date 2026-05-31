@@ -1,0 +1,18 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: vllm-runtime-rollout
+spec:
+  description: Restart the production-style vLLM runtime Deployment and prove gateway traffic recovers through vLLM.
+  target:
+    namespace: vllm
+    kind: Deployment
+    name: vllm
+  action: rollout-restart
+  validation:
+    command: RUNTIME_BACKEND=vllm make smoke
+    expected: vLLM rollout completes and the OpenAI-compatible gateway smoke succeeds through the vLLM backend
+  safety:
+    destructive: false
+    requiresConfirmation: true
+    maxDurationSeconds: 900

@@ -1,0 +1,114 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/ramazankara/ai-platform-ops-lab/inference-gateway
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+runtime:
+  backend: ollama
+  modelId: qwen2.5:0.5b
+  ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
+  vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
+  requestTimeoutSeconds: "120"
+  allowedModels:
+    - qwen2.5:0.5b
+
+admission:
+  maxMessages: 16
+  maxPromptChars: 8192
+  maxCompletionTokens: 1024
+  allowStreaming: false
+
+guardrails:
+  promptSecretDetection:
+    enabled: true
+    patterns:
+      - private_key
+      - github_token
+      - slack_token
+      - bearer_token
+      - generic_api_key_assignment
+
+budget:
+  enabled: true
+  backend: memory
+  requestLimit: 1000
+  promptCharLimit: 2000000
+  estimatedTokenLimit: 750000
+  estimatedCharsPerToken: 4
+  windowSeconds: 86400
+  redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/0
+  redisTimeoutSeconds: "0.5"
+  keyPrefix: ai-platform-ops-lab:sandbox-budget
+
+traceability:
+  auditLogEnabled: true
+  defaultSandboxId: local-lab
+
+auth:
+  enabled: false
+  apiKeyHeader: X-API-Key
+  apiKeyHashes: []
+  existingSecret:
+    name: ""
+    key: api-key-sha256s
+
+service:
+  port: 8080
+
+serviceAccount:
+  create: true
+  name: ""
+  automountServiceAccountToken: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: local-lab
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
+networkPolicy:
+  enabled: true
+  allowedIngressNamespaces:
+    - ai-agents
+    - ai-sandbox
+  allowedIngressNamespaceLabels:
+    - platform.ai/traceable-sandbox: "true"
+  runtimeEgress:
+    - namespace: ollama
+      port: 11434
+    - namespace: vllm
+      port: 8000
+    - namespace: budget
+      port: 6379
+  allowDns: true
+
+keda:
+  enabled: true
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  prometheusServerAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
+  threshold: "10"

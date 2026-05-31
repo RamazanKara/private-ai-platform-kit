@@ -1,0 +1,56 @@
+apiVersion: platform.ai/v1alpha1
+kind: TenantOnboarding
+metadata:
+  name: regulated-offline-coding-agents
+spec:
+  tenant:
+    id: regulated-offline-lab
+    name: regulated-coding-agents
+    namespace: ai-regulated-agents
+    owner: regulated-platform
+    group: regulated-coding-agents
+    costCenter: regulated-research
+    environment: customer
+  compliance:
+    profile: regulated-offline
+    dataClassification: confidential
+    externalEgressAllowed: false
+    requirePrivateRegistry: true
+    evidenceRetentionDays: 730
+  quotas:
+    requestsCpu: "4"
+    requestsMemory: 8Gi
+    limitsCpu: "8"
+    limitsMemory: 16Gi
+    pods: "20"
+    persistentVolumeClaims: "4"
+    secrets: "10"
+    configMaps: "30"
+  limitRange:
+    defaultRequestCpu: 100m
+    defaultRequestMemory: 128Mi
+    defaultCpu: "1"
+    defaultMemory: 1Gi
+  platform:
+    gatewayUrl: http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080
+    ragUrl: http://rag-service-rag-service.rag.svc.cluster.local:8080
+    requiredHeaders: X-Request-ID, X-Sandbox-ID, X-API-Key, traceparent
+  network:
+    allowDns: true
+    gateway:
+      namespace: inference
+      port: 8080
+    rag:
+      namespace: rag
+      port: 8080
+    allowedEgressCidrs: []
+  agentWorkspace:
+    enabled: true
+    namespace: ai-regulated-agents
+    pvcSize: 25Gi
+    storageClassName: ""
+    mountPath: /workspace
+    serviceAccountName: agent-runner
+    rbac:
+      viewerGroup: regulated-coding-agents
+      allowJobManagement: false

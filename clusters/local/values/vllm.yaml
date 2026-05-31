@@ -1,0 +1,9 @@
+fullnameOverride: vllm
+replicaCount: 0
+accelerator:
+  enabled: false
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: local-lab

@@ -1,0 +1,16 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: ai-platform-daily
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedNamespaces:
+      - inference
+      - ollama
+      - vllm
+      - restore-drill
+    ttl: 168h0m0s
+    storageLocation: default
+

@@ -1,0 +1,20 @@
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: restore-drill-velero-smoke
+  namespace: velero
+spec:
+  includedNamespaces:
+    - restore-drill-velero-smoke
+  ttl: 24h0m0s
+---
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: restore-drill-velero-smoke
+  namespace: velero
+spec:
+  backupName: restore-drill-velero-smoke
+  includedNamespaces:
+    - restore-drill-velero-smoke
+

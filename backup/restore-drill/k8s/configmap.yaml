@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restore-drill-config
+  namespace: restore-drill
+  labels:
+    app.kubernetes.io/name: restore-drill
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+    platform.ai/cost-center: platform
+    platform.ai/environment: local
+    platform.ai/owner: platform-team
+    platform.ai/sandbox-id: local-lab
+data:
+  drill.yaml: |
+    drills:
+      - name: ai-platform-kubernetes-redis-aof
+        provider: redis
+        backup:
+          tool: aof
+          source: /fixtures/appendonly.aof
+        restore:
+          timeout: 10m
+          container:
+            image: redis:7-alpine
+            resources:
+              memory: 512Mi
+              cpu: "1"
+        checks:
+          - name: redis-ping
+            type: query
+            sql: "PING"
+            expect: contains "PONG"
+          - name: health-check-key
+            type: key_sample
+            keys: ["session:health-check"]
+            expect: "true"
+          - name: health-key-value
+            type: query
+            sql: "GET session:health-check"
+            expect: "ok"
+          - name: minimum-key-count
+            type: key_count
+            expect: "== 2"
+    metrics:
+      prometheus:
+        enabled: true
+        pushgateway: http://pushgateway.monitoring:9091
+        labels:
+          environment: local
+          team: platform
+    reporting:
+      format: [json, html]
+      output: /reports/
+      retention: 90d
+  appendonly.aof: |
+    *2
+    $6
+    SELECT
+    $1
+    0
+    *3
+    $3
+    SET
+    $20
+    session:health-check
+    $2
+    ok
+    *3
+    $3
+    SET
+    $9
+    cache:hot
+    $4
+    warm

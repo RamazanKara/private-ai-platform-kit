@@ -1,0 +1,61 @@
+replicaCount: 2
+runtime:
+  backend: ollama
+  modelId: qwen2.5:0.5b
+  ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
+  vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
+  allowedModels:
+    - qwen2.5:0.5b
+    - TinyLlama/TinyLlama-1.1B-Chat-v1.0
+admission:
+  maxMessages: 32
+  maxPromptChars: 32768
+  maxCompletionTokens: 4096
+  allowStreaming: false
+guardrails:
+  promptSecretDetection:
+    enabled: true
+    patterns:
+      - private_key
+      - github_token
+      - slack_token
+      - bearer_token
+      - generic_api_key_assignment
+budget:
+  enabled: true
+  backend: redis
+  requestLimit: 10000
+  promptCharLimit: 50000000
+  estimatedTokenLimit: 15000000
+  estimatedCharsPerToken: 4
+  windowSeconds: 86400
+  redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/0
+  redisTimeoutSeconds: "0.5"
+  keyPrefix: ai-platform-ops-lab:customer:sandbox-budget
+networkPolicy:
+  runtimeEgress:
+    - namespace: ollama
+      port: 11434
+    - namespace: vllm
+      port: 8000
+    - namespace: budget
+      port: 6379
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: customer
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: customer-lab
+traceability:
+  auditLogEnabled: true
+  defaultSandboxId: customer-lab
+auth:
+  enabled: true
+  apiKeyHeader: X-API-Key
+  existingSecret:
+    name: inference-gateway-secrets
+    key: api-key-sha256s
+keda:
+  enabled: true
+  minReplicaCount: 2
+  maxReplicaCount: 20
+  threshold: "25"

@@ -1,0 +1,18 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: ollama-rollout
+spec:
+  description: Restart the Ollama StatefulSet and prove health recovers.
+  target:
+    namespace: ollama
+    kind: StatefulSet
+    name: ollama
+  action: rollout-restart
+  validation:
+    command: make smoke RUNTIME_BACKEND=ollama
+    expected: Ollama and gateway health recover; chat completion succeeds when the model is present
+  safety:
+    destructive: false
+    requiresConfirmation: true
+    maxDurationSeconds: 600

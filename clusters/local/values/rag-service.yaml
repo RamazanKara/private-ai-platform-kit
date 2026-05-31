@@ -1,0 +1,34 @@
+image:
+  repository: ai-platform-ops-lab/rag-service
+  tag: "local"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: local-lab
+
+traceability:
+  auditLogEnabled: true
+  defaultSandboxId: local-lab
+
+retrieval:
+  backend: lexical
+  vectorStore:
+    url: ""
+    collection: ai-platform-ops-lab-local
+    timeoutSeconds: 1.0
+    dimensions: 384
+    bootstrapFromKnowledge: true
+
+auth:
+  enabled: true
+  apiKeyHeader: X-API-Key
+  apiKeyHashes:
+    - ed20191044553dac8f9c45e62062dd18e7dc1f898a897240b4179fb84fea3db4
+
+autoscaling:
+  enabled: false

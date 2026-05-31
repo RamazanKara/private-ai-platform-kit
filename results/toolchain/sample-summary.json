@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-05-31T00:00:00Z",
+  "manifest": "tools/validation-toolchain.yaml",
+  "profile": "strict",
+  "project": "AI Platform Ops Lab",
+  "summary": {
+    "missing_optional": [],
+    "missing_required": [],
+    "optional_present": 4,
+    "required_present": 10
+  },
+  "tools": []
+}

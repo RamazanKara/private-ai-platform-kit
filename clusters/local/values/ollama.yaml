@@ -1,0 +1,12 @@
+fullnameOverride: ollama
+model:
+  name: qwen2.5:0.5b
+  pullOnStart: false
+persistence:
+  enabled: true
+  size: 10Gi
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: local-lab

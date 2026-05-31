@@ -1,0 +1,91 @@
+apiVersion: platform.ai/v1alpha1
+kind: DataRetentionPolicy
+metadata:
+  name: ai-platform-ops-lab-retention
+spec:
+  defaults:
+    owner: platform-security
+    reviewCadenceDays: 90
+    generatedEvidenceIgnored: true
+    requirePromptRedaction: true
+    requireQueryRedaction: true
+  classes:
+    auditLogs:
+      description: Gateway and RAG structured audit logs.
+      retentionDays: 30
+      classification: internal
+      storesRawPrompt: false
+      storesRawCompletion: false
+      storesRawQuery: false
+      allowedFields:
+        - request_id
+        - traceparent
+        - sandbox_id
+        - backend
+        - model
+        - status_code
+        - runtime_status_code
+        - latency_ms
+        - usage
+        - error
+        - prompt_chars
+        - prompt_sha256
+        - query_chars
+        - query_sha256
+        - result_ids
+    generatedEvidence:
+      description: Eval, load, restore, release-gate, egress, model, toolchain, and evidence-pack reports.
+      retentionDays: 365
+      classification: internal
+      paths:
+        - results/evals
+        - results/loadtest
+        - results/restore-drill
+        - results/evidence
+        - results/release-gate
+        - results/egress-governance
+        - results/model-catalog
+        - results/toolchain
+      sampleFilesRetained:
+        - results/evals/sample-summary.md
+        - results/evals/sample-summary.json
+        - results/loadtest/sample-summary.md
+        - results/loadtest/sample-summary.json
+        - results/restore-drill/sample-redis-run.json
+        - results/restore-drill/sample-compliance-report.html
+        - results/evidence/sample-summary.md
+        - results/evidence/sample-summary.json
+        - results/release-gate/sample-summary.md
+        - results/egress-governance/sample-summary.md
+        - results/egress-governance/sample-summary.json
+        - results/model-catalog/sample-summary.md
+        - results/toolchain/sample-summary.md
+        - results/toolchain/sample-summary.json
+    ragKnowledge:
+      description: Approved RAG knowledge documents and vector-store collections used by the RAG service.
+      retentionDays: 180
+      classification: internal
+      reviewRequired: true
+      sourcePaths:
+        - charts/rag-service/templates/configmap.yaml
+        - charts/rag-service/values.yaml
+        - charts/qdrant-vector-store/values.yaml
+        - runbooks/rag-service.md
+        - runbooks/vector-rag.md
+    agentWorkspace:
+      description: Tenant and coding-agent workspace PVC data.
+      retentionDays: 14
+      classification: confidential
+      purgeOnTenantOffboarding: true
+      sourcePaths:
+        - charts/agent-workspace/templates/pvc.yaml
+        - tenants/onboarding/coding-agents.yaml
+        - runbooks/agent-workspaces.md
+    modelGovernance:
+      description: Model catalog, promotion requests, and model governance evidence.
+      retentionDays: 730
+      classification: internal
+      sourcePaths:
+        - model-catalog/models.yaml
+        - model-catalog/promotion-requests
+        - runbooks/model-governance.md

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: restore-drill-velero-smoke
+  labels:
+    app.kubernetes.io/name: restore-drill-velero-smoke
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recovery-marker
+  namespace: restore-drill-velero-smoke
+data:
+  marker: "velero-restore-smoke"
+

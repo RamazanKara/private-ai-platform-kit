@@ -1,0 +1,61 @@
+image:
+  repository: ai-platform-ops-lab/inference-gateway
+  tag: "local"
+  pullPolicy: IfNotPresent
+runtime:
+  backend: ollama
+  modelId: qwen2.5:0.5b
+  ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
+  vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
+  allowedModels:
+    - qwen2.5:0.5b
+admission:
+  maxMessages: 16
+  maxPromptChars: 8192
+  maxCompletionTokens: 1024
+  allowStreaming: false
+guardrails:
+  promptSecretDetection:
+    enabled: true
+    patterns:
+      - private_key
+      - github_token
+      - slack_token
+      - bearer_token
+      - generic_api_key_assignment
+budget:
+  enabled: true
+  backend: redis
+  requestLimit: 250
+  promptCharLimit: 500000
+  estimatedTokenLimit: 150000
+  estimatedCharsPerToken: 4
+  windowSeconds: 86400
+  redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/0
+  redisTimeoutSeconds: "0.5"
+  keyPrefix: ai-platform-ops-lab:local:sandbox-budget
+networkPolicy:
+  runtimeEgress:
+    - namespace: ollama
+      port: 11434
+    - namespace: vllm
+      port: 8000
+    - namespace: budget
+      port: 6379
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: local-lab
+traceability:
+  auditLogEnabled: true
+  defaultSandboxId: local-lab
+auth:
+  enabled: true
+  apiKeyHeader: X-API-Key
+  apiKeyHashes:
+    - ed20191044553dac8f9c45e62062dd18e7dc1f898a897240b4179fb84fea3db4
+keda:
+  enabled: true
+  minReplicaCount: 1
+  maxReplicaCount: 3

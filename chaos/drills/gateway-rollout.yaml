@@ -1,0 +1,18 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: gateway-rollout
+spec:
+  description: Restart the inference gateway Deployment and prove chat-completion smoke still passes.
+  target:
+    namespace: inference
+    kind: Deployment
+    name: inference-gateway-inference-gateway
+  action: rollout-restart
+  validation:
+    command: make smoke RUNTIME_BACKEND=ollama
+    expected: gateway health and chat completion succeed after rollout
+  safety:
+    destructive: false
+    requiresConfirmation: false
+    maxDurationSeconds: 300

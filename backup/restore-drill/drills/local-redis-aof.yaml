@@ -1,0 +1,43 @@
+drills:
+  - name: ai-platform-local-redis-aof
+    provider: redis
+    backup:
+      tool: aof
+      source: ${RESTORE_DRILL_REDIS_AOF:-backup/restore-drill/fixtures/redis/appendonly.aof}
+    restore:
+      timeout: 5m
+      container:
+        image: redis:7-alpine
+        resources:
+          memory: 256Mi
+          cpu: "500m"
+    checks:
+      - name: redis-ping
+        type: query
+        sql: "PING"
+        expect: contains "PONG"
+      - name: health-check-key
+        type: key_sample
+        keys:
+          - session:health-check
+        expect: "true"
+      - name: health-key-value
+        type: query
+        sql: "GET session:health-check"
+        expect: "ok"
+      - name: minimum-key-count
+        type: key_count
+        expect: "== 2"
+
+metrics:
+  prometheus:
+    enabled: false
+    pushgateway: http://pushgateway.monitoring:9091
+    labels:
+      environment: local
+      team: platform
+
+reporting:
+  format: [json, html]
+  output: results/restore-drill/
+  retention: 90d

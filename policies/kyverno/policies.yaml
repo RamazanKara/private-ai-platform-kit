@@ -1,0 +1,258 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ai-platform-required-labels
+  annotations:
+    policies.kyverno.io/title: Require AI Platform labels
+    policies.kyverno.io/category: AI Platform Ops Lab
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-platform-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: Pods must include standard ownership and cost labels.
+        pattern:
+          metadata:
+            labels:
+              app.kubernetes.io/name: "?*"
+              app.kubernetes.io/part-of: ai-platform-ops-lab
+              app.kubernetes.io/component: "?*"
+              platform.ai/cost-center: "?*"
+              platform.ai/environment: "?*"
+              platform.ai/owner: "?*"
+              platform.ai/sandbox-id: "?*"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ai-platform-restricted-pods
+  annotations:
+    policies.kyverno.io/title: Restrict pod security context
+    policies.kyverno.io/category: AI Platform Ops Lab
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-non-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: Pods must run as non-root.
+        pattern:
+          spec:
+            securityContext:
+              runAsNonRoot: true
+    - name: drop-all-capabilities
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: Containers must drop all Linux capabilities and block privilege escalation.
+        foreach:
+          - list: request.object.spec.containers[]
+            pattern:
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+    - name: disallow-privileged
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: Privileged containers are not allowed.
+        foreach:
+          - list: request.object.spec.containers[]
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.securityContext.privileged || false }}"
+                    operator: Equals
+                    value: true
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ai-platform-image-and-resources
+  annotations:
+    policies.kyverno.io/title: Require pinned images and resources
+    policies.kyverno.io/category: AI Platform Ops Lab
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: block-latest-tags
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: Images must not use the latest tag.
+        foreach:
+          - list: request.object.spec.containers[]
+            deny:
+              conditions:
+                any:
+                  - key: "{{ contains(element.image, ':latest') }}"
+                    operator: Equals
+                    value: true
+                  - key: "{{ contains(element.image, ':') }}"
+                    operator: Equals
+                    value: false
+    - name: require-requests-and-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: Containers must set CPU and memory requests and limits.
+        foreach:
+          - list: request.object.spec.containers[]
+            pattern:
+              resources:
+                requests:
+                  cpu: "?*"
+                  memory: "?*"
+                limits:
+                  cpu: "?*"
+                  memory: "?*"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ai-platform-verify-project-images
+  annotations:
+    policies.kyverno.io/title: Verify signed AI Platform images
+    policies.kyverno.io/category: AI Platform Ops Lab
+spec:
+  validationFailureAction: Audit
+  background: false
+  rules:
+    - name: verify-ghcr-project-images
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      verifyImages:
+        - imageReferences:
+            - ghcr.io/ramazankara/ai-platform-ops-lab/*
+          attestors:
+            - entries:
+                - keyless:
+                    subject: https://github.com/RamazanKara/ai-platform-ops-lab/.github/workflows/ci.yml@refs/heads/main
+                    issuer: https://token.actions.githubusercontent.com

@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inference-gateway.fullname" . }}
+  labels:
+    {{- include "inference-gateway.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "inference-gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "inference-gateway.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "inference-gateway.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      {{- if .Values.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpread.maxSkew }}
+          topologyKey: {{ .Values.topologySpread.topologyKey | quote }}
+          whenUnsatisfiable: {{ .Values.topologySpread.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "inference-gateway.selectorLabels" . | nindent 14 }}
+      {{- end }}
+      containers:
+        - name: gateway
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: RUNTIME_BACKEND
+              value: {{ .Values.runtime.backend | quote }}
+            - name: MODEL_ID
+              value: {{ .Values.runtime.modelId | quote }}
+            - name: OLLAMA_BASE_URL
+              value: {{ .Values.runtime.ollamaBaseUrl | quote }}
+            - name: VLLM_BASE_URL
+              value: {{ .Values.runtime.vllmBaseUrl | quote }}
+            - name: REQUEST_TIMEOUT_SECONDS
+              value: {{ .Values.runtime.requestTimeoutSeconds | quote }}
+            - name: ALLOWED_MODELS
+              value: {{ join "," .Values.runtime.allowedModels | quote }}
+            - name: MAX_MESSAGES
+              value: {{ .Values.admission.maxMessages | quote }}
+            - name: MAX_PROMPT_CHARS
+              value: {{ .Values.admission.maxPromptChars | quote }}
+            - name: MAX_COMPLETION_TOKENS
+              value: {{ .Values.admission.maxCompletionTokens | quote }}
+            - name: ALLOW_STREAMING
+              value: {{ .Values.admission.allowStreaming | quote }}
+            - name: PROMPT_SECRET_DETECTION_ENABLED
+              value: {{ .Values.guardrails.promptSecretDetection.enabled | quote }}
+            - name: PROMPT_SECRET_PATTERNS
+              value: {{ join "," .Values.guardrails.promptSecretDetection.patterns | quote }}
+            - name: SANDBOX_BUDGET_ENABLED
+              value: {{ .Values.budget.enabled | quote }}
+            - name: SANDBOX_BUDGET_BACKEND
+              value: {{ .Values.budget.backend | quote }}
+            - name: SANDBOX_REQUEST_BUDGET
+              value: {{ .Values.budget.requestLimit | quote }}
+            - name: SANDBOX_PROMPT_CHAR_BUDGET
+              value: {{ .Values.budget.promptCharLimit | quote }}
+            - name: SANDBOX_ESTIMATED_TOKEN_BUDGET
+              value: {{ .Values.budget.estimatedTokenLimit | quote }}
+            - name: BUDGET_ESTIMATED_CHARS_PER_TOKEN
+              value: {{ .Values.budget.estimatedCharsPerToken | quote }}
+            - name: SANDBOX_BUDGET_WINDOW_SECONDS
+              value: {{ .Values.budget.windowSeconds | quote }}
+            - name: SANDBOX_BUDGET_REDIS_URL
+              value: {{ .Values.budget.redisUrl | quote }}
+            - name: SANDBOX_BUDGET_REDIS_TIMEOUT_SECONDS
+              value: {{ .Values.budget.redisTimeoutSeconds | quote }}
+            - name: SANDBOX_BUDGET_KEY_PREFIX
+              value: {{ .Values.budget.keyPrefix | quote }}
+            - name: AUDIT_LOG_ENABLED
+              value: {{ .Values.traceability.auditLogEnabled | quote }}
+            - name: DEFAULT_SANDBOX_ID
+              value: {{ .Values.traceability.defaultSandboxId | quote }}
+            - name: API_KEY_AUTH_ENABLED
+              value: {{ .Values.auth.enabled | quote }}
+            - name: API_KEY_HEADER
+              value: {{ .Values.auth.apiKeyHeader | quote }}
+            - name: API_KEY_SHA256S
+              {{- if .Values.auth.existingSecret.name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecret.name | quote }}
+                  key: {{ .Values.auth.existingSecret.key | quote }}
+              {{- else }}
+              value: {{ join "," .Values.auth.apiKeyHashes | quote }}
+              {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

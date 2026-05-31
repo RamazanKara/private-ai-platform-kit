@@ -1,0 +1,41 @@
+replicaCount: 2
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: customer
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: customer-lab
+
+traceability:
+  auditLogEnabled: true
+  defaultSandboxId: customer-lab
+
+retrieval:
+  backend: qdrant
+  vectorStore:
+    url: http://qdrant-vector-store.vector.svc.cluster.local:6333
+    collection: customer-platform-knowledge
+    timeoutSeconds: 1.0
+    dimensions: 384
+    bootstrapFromKnowledge: true
+
+auth:
+  enabled: true
+  apiKeyHeader: X-API-Key
+  existingSecret:
+    name: rag-service-secrets
+    key: api-key-sha256s
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 750m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70

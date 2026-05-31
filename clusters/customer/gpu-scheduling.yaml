@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-scheduling-contract
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: gpu-scheduling-contract
+    app.kubernetes.io/part-of: ai-platform-ops-lab
+data:
+  README: |
+    This provider-neutral contract documents how AI Platform Ops Lab schedules vLLM.
+    Customer GPU nodes should carry platform.ai/node-pool=gpu and
+    platform.ai/gpu-vendor=<nvidia|amd>. The default customer profile uses
+    NVIDIA and requests nvidia.com/gpu. The AMD profile in
+    clusters/customer/values/vllm-amd.yaml requests amd.com/gpu.
+
+    NVIDIA clusters must expose nvidia.com/gpu, usually through the NVIDIA
+    device plugin. AMD clusters must expose amd.com/gpu, usually through the
+    AMD GPU Device Plugin. If GPU nodes are tainted with nvidia.com/gpu or
+    amd.com/gpu, use the matching toleration from the vLLM profile values.
+
+    To switch vendors, update the Argo CD valueFiles entry for runtime-vllm
+    from clusters/customer/values/vllm.yaml to either vllm-nvidia.yaml or
+    vllm-amd.yaml, then sync Argo CD.

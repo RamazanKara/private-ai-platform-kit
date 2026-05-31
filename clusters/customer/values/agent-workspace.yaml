@@ -1,0 +1,27 @@
+namespace:
+  name: ai-agents
+
+sandbox:
+  id: customer-agent-lab
+  tenant: coding-agents
+  owner: agent-platform
+  costCenter: research
+  environment: customer
+
+resourceQuota:
+  requestsCpu: "8"
+  requestsMemory: 16Gi
+  limitsCpu: "16"
+  limitsMemory: 32Gi
+  pods: "40"
+  persistentVolumeClaims: "8"
+  secrets: "20"
+  configMaps: "60"
+
+workspace:
+  pvc:
+    size: 50Gi
+
+networkPolicy:
+  allowedEgressCidrs: []
+  # External CIDRs must be approved in network/egress-catalog.yaml and include catalogRef.

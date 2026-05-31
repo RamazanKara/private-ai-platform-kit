@@ -1,0 +1,72 @@
+namespace:
+  create: true
+  name: ai-agents
+
+sandbox:
+  id: agent-lab
+  tenant: coding-agents
+  owner: agent-platform
+  costCenter: research
+  environment: local
+  complianceProfile: standard
+  dataClassification: internal
+  externalEgressAllowed: true
+  requirePrivateRegistry: false
+  evidenceRetentionDays: ""
+
+serviceAccount:
+  create: true
+  name: agent-runner
+  automountServiceAccountToken: false
+
+rbac:
+  create: true
+  viewerGroup: coding-agents
+  allowJobManagement: true
+
+resourceQuota:
+  requestsCpu: "4"
+  requestsMemory: 8Gi
+  limitsCpu: "8"
+  limitsMemory: 16Gi
+  pods: "20"
+  persistentVolumeClaims: "4"
+  secrets: "10"
+  configMaps: "30"
+
+limitRange:
+  defaultRequestCpu: 100m
+  defaultRequestMemory: 128Mi
+  defaultCpu: "1"
+  defaultMemory: 1Gi
+
+workspace:
+  pvc:
+    enabled: true
+    name: agent-workspace
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    storageClassName: ""
+  mountPath: /workspace
+
+platform:
+  gatewayUrl: http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080
+  ragUrl: http://rag-service-rag-service.rag.svc.cluster.local:8080
+  requiredHeaders: X-Request-ID, X-Sandbox-ID, X-API-Key, traceparent
+
+networkPolicy:
+  enabled: true
+  allowDns: true
+  gateway:
+    namespace: inference
+    port: 8080
+  rag:
+    namespace: rag
+    port: 8080
+  allowedEgressCidrs: []
+  # Example:
+  # allowedEgressCidrs:
+  #   - catalogRef: customer-git-artifact-mirror-example
+  #     cidr: 203.0.113.0/24
+  #     ports: [443]

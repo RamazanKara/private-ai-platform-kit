@@ -1,0 +1,75 @@
+replicaCount: 1
+
+image:
+  repository: vllm/vllm-openai
+  tag: "v0.7.2"
+  pullPolicy: IfNotPresent
+
+model:
+  name: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+  dtype: auto
+  maxModelLen: "2048"
+
+service:
+  port: 8000
+
+serviceAccount:
+  create: true
+  name: ""
+  automountServiceAccountToken: false
+
+accelerator:
+  enabled: true
+  vendor: nvidia
+  resourceName: nvidia.com/gpu
+  count: 1
+  runtimeClassName: ""
+  nodeSelector:
+    platform.ai/node-pool: gpu
+    platform.ai/gpu-vendor: nvidia
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+
+resources:
+  requests:
+    cpu: "2"
+    memory: 8Gi
+  limits:
+    cpu: "4"
+    memory: 16Gi
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: local
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: local-lab
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+externalSecrets:
+  enabled: false
+  huggingFaceTokenSecretName: hf-token
+  huggingFaceTokenKey: token
+
+extraEnv: []
+extraArgs: []

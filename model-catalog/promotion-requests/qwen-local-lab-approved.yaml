@@ -1,0 +1,29 @@
+apiVersion: platform.ai/v1alpha1
+kind: ModelPromotionRequest
+metadata:
+  name: qwen-local-lab-approved
+spec:
+  modelId: qwen2.5:0.5b
+  targetStatus: approved
+  requestedBy: platform-team
+  approvers:
+    - platform-team
+  businessJustification: Local CPU smoke-test model for workstation validation.
+  runtime: ollama
+  accelerators:
+    - cpu
+  rollout:
+    environments:
+      - local
+    allowedModelFiles:
+      - clusters/local/values/inference-gateway.yaml
+      - clusters/customer/values/inference-gateway.yaml
+  evidence:
+    evalSuite: evals/smoke-suite.yaml
+    evalSummary: results/evals/sample-summary.md
+    loadTestSummary: results/loadtest/sample-summary.md
+    securityWorkflow: .github/workflows/ci.yml
+  conditions:
+    promptLogging: redacted
+    externalNetworkRequired: false
+    requiresGpu: false

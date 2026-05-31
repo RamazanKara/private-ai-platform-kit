@@ -1,0 +1,55 @@
+apiVersion: platform.ai/v1alpha1
+kind: TenantOnboarding
+metadata:
+  name: coding-agents
+spec:
+  tenant:
+    id: coding-agents-lab
+    name: coding-agents
+    namespace: ai-coding-agents
+    owner: agent-platform
+    group: coding-agents
+    costCenter: research
+    environment: customer
+  quotas:
+    requestsCpu: "8"
+    requestsMemory: 16Gi
+    limitsCpu: "16"
+    limitsMemory: 32Gi
+    pods: "40"
+    persistentVolumeClaims: "8"
+    secrets: "20"
+    configMaps: "60"
+  limitRange:
+    defaultRequestCpu: 100m
+    defaultRequestMemory: 128Mi
+    defaultCpu: "1"
+    defaultMemory: 1Gi
+  platform:
+    gatewayUrl: http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080
+    ragUrl: http://rag-service-rag-service.rag.svc.cluster.local:8080
+    requiredHeaders: X-Request-ID, X-Sandbox-ID, X-API-Key, traceparent
+  network:
+    allowDns: true
+    gateway:
+      namespace: inference
+      port: 8080
+    rag:
+      namespace: rag
+      port: 8080
+    allowedEgressCidrs:
+      - catalogRef: customer-git-artifact-mirror-example
+        cidr: 203.0.113.0/24
+        ports:
+          - 443
+        description: customer-approved Git, artifact, or package mirror example
+  agentWorkspace:
+    enabled: true
+    namespace: ai-coding-agents
+    pvcSize: 50Gi
+    storageClassName: ""
+    mountPath: /workspace
+    serviceAccountName: agent-runner
+    rbac:
+      viewerGroup: coding-agents
+      allowJobManagement: true

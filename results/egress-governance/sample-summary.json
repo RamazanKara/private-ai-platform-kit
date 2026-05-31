@@ -1,0 +1,16 @@
+{
+  "catalog": "network/egress-catalog.yaml",
+  "checked_references": [
+    {
+      "catalog_ref": "customer-git-artifact-mirror-example",
+      "cidr": "203.0.113.0/24",
+      "environment": "customer",
+      "ports": [
+        443
+      ],
+      "source": "tenants/onboarding/coding-agents.yaml"
+    }
+  ],
+  "errors": [],
+  "generated_at": "2026-05-31T00:00:00Z"
+}

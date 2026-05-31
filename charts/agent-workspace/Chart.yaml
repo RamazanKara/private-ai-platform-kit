@@ -1,0 +1,6 @@
+apiVersion: v2
+name: agent-workspace
+description: Isolated namespace template for coding agents that use the AI Platform Ops Lab gateway and RAG service.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

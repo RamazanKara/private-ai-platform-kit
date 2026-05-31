@@ -1,0 +1,16 @@
+{
+  "chargeback_labels": [
+    "platform.ai/owner",
+    "platform.ai/cost-center",
+    "platform.ai/environment",
+    "platform.ai/sandbox-id"
+  ],
+  "errors": [],
+  "generated_at": "2026-05-31T00:00:00Z",
+  "plans_checked": [
+    "local-lab",
+    "coding-agents-lab",
+    "customer-shared-runtime"
+  ],
+  "policy": "governance/quota-plans.yaml"
+}

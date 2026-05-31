@@ -1,0 +1,16 @@
+schedule: "*/30 * * * *"
+concurrencyPolicy: Forbid
+activeDeadlineSeconds: 1800
+backoffLimit: 1
+runtime:
+  mode: kubernetes
+  namespace: restore-drill
+config:
+  existingConfigMap: restore-drill-config
+rbac:
+  create: true
+networkPolicy:
+  enabled: true
+reporting:
+  output: /reports/
+

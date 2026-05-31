@@ -1,0 +1,40 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [
+        {
+          "expr": "restore_drill_validation_passed",
+          "legendFormat": "validation passed"
+        }
+      ],
+      "title": "Restore drill validation",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "targets": [
+        {
+          "expr": "restore_drill_backup_age_seconds",
+          "legendFormat": "backup age"
+        }
+      ],
+      "title": "Backup age seconds",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["ai-platform-ops-lab", "restore-drill"],
+  "title": "AI Platform Ops Lab Restore Drill",
+  "uid": "ai-platform-restore-drill",
+  "version": 1
+}
+

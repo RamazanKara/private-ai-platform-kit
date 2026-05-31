@@ -1,0 +1,18 @@
+{{- if .Values.workspace.pvc.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.workspace.pvc.name }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "agent-workspace.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.workspace.pvc.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.workspace.pvc.size }}
+  {{- if .Values.workspace.pvc.storageClassName }}
+  storageClassName: {{ .Values.workspace.pvc.storageClassName | quote }}
+  {{- end }}
+{{- end }}
