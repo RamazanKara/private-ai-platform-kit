@@ -84,9 +84,11 @@ jobs:
       - uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
+          category: trivy-inference-gateway
       - uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-rag-results.sarif
+          category: trivy-rag-service
       - uses: sigstore/cosign-installer@v3
       - name: Sign image
         run: |
