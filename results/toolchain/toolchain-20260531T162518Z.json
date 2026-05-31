@@ -1,0 +1,182 @@
+{
+  "generated_at": "2026-05-31T16:25:18Z",
+  "manifest": "tools/validation-toolchain.yaml",
+  "profile": "strict",
+  "project": "AI Platform Ops Lab",
+  "summary": {
+    "missing_optional": [],
+    "missing_required": [],
+    "optional_present": 4,
+    "required_present": 10
+  },
+  "tools": [
+    {
+      "category": "runtime",
+      "command": "python3",
+      "found": true,
+      "install_hint": "Install Python 3.12 or newer.",
+      "name": "python3",
+      "path": "/usr/bin/python3",
+      "purpose": "Runs service tests, YAML checks, readiness gates, report generators, and local automation.",
+      "role": "required",
+      "version": "Python 3.12.3",
+      "version_error": ""
+    },
+    {
+      "category": "kubernetes",
+      "command": "helm",
+      "found": true,
+      "install_hint": "Install Helm 3.",
+      "name": "helm",
+      "path": "/home/rambo/gopath/bin/helm",
+      "purpose": "Lints and renders all platform charts and customer overlays.",
+      "role": "required",
+      "version": "v4.2.0+g0646808",
+      "version_error": ""
+    },
+    {
+      "category": "kubernetes-validation",
+      "command": "kubeconform",
+      "found": true,
+      "install_hint": "Run `make toolchain-install` or install kubeconform from yannh/kubeconform releases.",
+      "name": "kubeconform",
+      "path": "/mnt/c/users/ramaz/git/ai-platform-ops-lab/.tools/bin/kubeconform",
+      "purpose": "Validates Kubernetes YAML against schemas before customer handoff.",
+      "role": "required",
+      "version": "v0.7.0",
+      "version_error": ""
+    },
+    {
+      "category": "policy",
+      "command": "kyverno",
+      "found": true,
+      "install_hint": "Run `make toolchain-install` or install the Kyverno CLI release asset.",
+      "name": "kyverno",
+      "path": "/mnt/c/users/ramaz/git/ai-platform-ops-lab/.tools/bin/kyverno",
+      "purpose": "Runs policy-as-code tests for labels, pod security, resources, image tags, and signature policy.",
+      "role": "required",
+      "version": "Version: 1.18.1",
+      "version_error": ""
+    },
+    {
+      "category": "backup-restore",
+      "command": "restore-drill",
+      "found": true,
+      "install_hint": "Install `github.com/RamazanKara/restore-drill/cmd/restore-drill` or use the customer's packaged binary.",
+      "name": "restore-drill",
+      "path": "/home/rambo/gopath/bin/restore-drill",
+      "purpose": "Validates restore-drill configuration and runs application-data restore evidence.",
+      "role": "required",
+      "version": "restore-drill dev (commit: none, built: unknown)",
+      "version_error": ""
+    },
+    {
+      "category": "load-test",
+      "command": "k6",
+      "found": true,
+      "install_hint": "Run `make toolchain-install` or install k6 from Grafana release packages.",
+      "name": "k6",
+      "path": "/mnt/c/users/ramaz/git/ai-platform-ops-lab/.tools/bin/k6",
+      "purpose": "Validates and runs gateway load-test scenarios.",
+      "role": "required",
+      "version": "k6 v2.0.0 (commit/8c3be52cc1, go1.26.3, linux/amd64)",
+      "version_error": ""
+    },
+    {
+      "category": "supply-chain",
+      "command": "syft",
+      "found": true,
+      "install_hint": "Run `make toolchain-install` or install Syft from Anchore release packages.",
+      "name": "syft",
+      "path": "/home/rambo/gopath/bin/syft",
+      "purpose": "Generates filesystem and image SBOM evidence.",
+      "role": "required",
+      "version": "Version:       1.44.0",
+      "version_error": ""
+    },
+    {
+      "category": "gitops",
+      "command": "argocd",
+      "found": true,
+      "install_hint": "Run `make toolchain-install` or install the Argo CD CLI release asset.",
+      "name": "argocd",
+      "path": "/mnt/c/users/ramaz/git/ai-platform-ops-lab/.tools/bin/argocd",
+      "purpose": "Validates local GitOps client compatibility for Argo CD workflows.",
+      "role": "required",
+      "version": "argocd: v3.4.3+1801122",
+      "version_error": ""
+    },
+    {
+      "category": "supply-chain",
+      "command": "cosign",
+      "found": true,
+      "install_hint": "Run `make toolchain-install` or install Cosign from Sigstore release packages.",
+      "name": "cosign",
+      "path": "/mnt/c/users/ramaz/git/ai-platform-ops-lab/.tools/bin/cosign",
+      "purpose": "Verifies image-signing workflows and customer promotion gates.",
+      "role": "required",
+      "version": "GitVersion:    v3.0.6",
+      "version_error": ""
+    },
+    {
+      "category": "supply-chain",
+      "command": "trivy",
+      "found": true,
+      "install_hint": "Run `make toolchain-install` or install Trivy from Aqua Security release packages.",
+      "name": "trivy",
+      "path": "/mnt/c/users/ramaz/git/ai-platform-ops-lab/.tools/bin/trivy",
+      "purpose": "Runs filesystem, secret, config, and image vulnerability scans.",
+      "role": "required",
+      "version": "Version: 0.70.0",
+      "version_error": ""
+    },
+    {
+      "category": "local-cluster",
+      "command": "docker",
+      "found": true,
+      "install_hint": "Install Docker Desktop or a compatible Docker Engine.",
+      "name": "docker",
+      "path": "/usr/bin/docker",
+      "purpose": "Builds local service images and runs kind nodes.",
+      "role": "optional",
+      "version": "Docker version 29.5.2, build 79eb04c",
+      "version_error": ""
+    },
+    {
+      "category": "local-cluster",
+      "command": "kind",
+      "found": true,
+      "install_hint": "Install kind from the upstream Kubernetes SIGs release artifacts.",
+      "name": "kind",
+      "path": "/home/rambo/gopath/bin/kind",
+      "purpose": "Creates the local Kubernetes reference cluster.",
+      "role": "optional",
+      "version": "kind v0.31.0 go1.25.10 linux/amd64",
+      "version_error": ""
+    },
+    {
+      "category": "kubernetes",
+      "command": "kubectl",
+      "found": true,
+      "install_hint": "Install kubectl matching the customer's supported Kubernetes minor versions.",
+      "name": "kubectl",
+      "path": "/home/rambo/gopath/bin/kubectl",
+      "purpose": "Applies manifests, inspects local readiness, and runs live evidence checks.",
+      "role": "optional",
+      "version": "Client Version: v1.36.1",
+      "version_error": ""
+    },
+    {
+      "category": "build",
+      "command": "go",
+      "found": true,
+      "install_hint": "Install Go 1.25 or newer for the CI-aligned validation path.",
+      "name": "go",
+      "path": "/usr/local/go/bin/go",
+      "purpose": "Builds or installs Go-based validation utilities such as kubeconform, Kyverno CLI, and restore-drill.",
+      "role": "optional",
+      "version": "go version go1.25.10 linux/amd64",
+      "version_error": ""
+    }
+  ]
+}
