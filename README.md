@@ -9,6 +9,10 @@
 
 AI Platform Ops Lab is a hands-on operations lab for teams that want to run private LLMs and coding agents on Kubernetes. It starts locally on `kind`, then carries the same charts, policies, runbooks, and evidence checks into customer-owned clusters.
 
+## What This Proves
+
+This repo proves a private AI platform can be operated with GitOps, policy as code, traceability, model governance, budget controls, RAG, isolated coding-agent workspaces, evals, SLOs, restore drills, and evidence packs without changing the core operating model between a local lab and customer-owned Kubernetes.
+
 ## Live Demo
 
 <p align="center">
