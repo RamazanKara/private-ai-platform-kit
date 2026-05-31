@@ -26,6 +26,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25"
+          cache: false
       - name: Install validation tools
         run: |
           set -euo pipefail
@@ -68,12 +69,12 @@ jobs:
           image: ghcr.io/${{ github.repository }}/rag-service:${{ github.sha }}
           format: spdx-json
           output-file: rag-service.spdx.json
-      - uses: aquasecurity/trivy-action@0.28.0
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/${{ github.repository }}/inference-gateway:${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
-      - uses: aquasecurity/trivy-action@0.28.0
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/${{ github.repository }}/rag-service:${{ github.sha }}
           format: sarif
