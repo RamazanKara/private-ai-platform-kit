@@ -8,6 +8,9 @@ cd "$ROOT"
 require_cmd python3 "Python 3 is required for gateway tests and YAML checks."
 require_cmd helm "Helm is required to lint and render local charts."
 
+log "bootstrapping Python validation environment"
+./scripts/bootstrap-python.sh
+
 log "checking validation toolchain manifest"
 services/inference-gateway/.venv/bin/python scripts/toolchain-doctor.py --profile validate --check
 

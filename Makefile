@@ -8,8 +8,12 @@ LIVE ?= 0
 TENANT_SPEC ?= tenants/onboarding/coding-agents.yaml
 TENANT_OUTPUT ?= tenants/generated
 TOOLCHAIN_PROFILE ?= validate
+PYTHON := services/inference-gateway/.venv/bin/python
 
-.PHONY: local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated agent-lab-up agent-smoke chaos-drill eval loadtest restore-drill backup-drill evidence release-gate release-report slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+.PHONY: python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated agent-lab-up agent-smoke chaos-drill eval loadtest restore-drill backup-drill evidence release-gate release-report slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+
+python-env:
+	./scripts/bootstrap-python.sh
 
 local-up:
 	./scripts/local-up.sh
@@ -38,11 +42,11 @@ tenant-up:
 tenant-smoke:
 	./scripts/tenant-smoke.sh
 
-tenant-onboard:
-	services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --spec "$(TENANT_SPEC)" --output-dir "$(TENANT_OUTPUT)"
+tenant-onboard: python-env
+	$(PYTHON) scripts/tenant-onboard.py --spec "$(TENANT_SPEC)" --output-dir "$(TENANT_OUTPUT)"
 
-tenant-onboard-regulated:
-	services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --spec tenants/onboarding/regulated-offline-coding-agents.yaml --output-dir "$(TENANT_OUTPUT)"
+tenant-onboard-regulated: python-env
+	$(PYTHON) scripts/tenant-onboard.py --spec tenants/onboarding/regulated-offline-coding-agents.yaml --output-dir "$(TENANT_OUTPUT)"
 
 agent-lab-up:
 	./scripts/agent-lab-up.sh
@@ -65,59 +69,59 @@ restore-drill:
 backup-drill:
 	RUNTIME="$(RUNTIME)" ./scripts/restore-drill.sh --include-velero
 
-evidence:
-	services/inference-gateway/.venv/bin/python scripts/evidence-pack.py $(if $(filter 1 true yes,$(LIVE)),--live,)
+evidence: python-env
+	$(PYTHON) scripts/evidence-pack.py $(if $(filter 1 true yes,$(LIVE)),--live,)
 
-release-gate:
-	services/inference-gateway/.venv/bin/python scripts/release-gate.py --check
+release-gate: python-env
+	$(PYTHON) scripts/release-gate.py --check
 
-release-report:
-	services/inference-gateway/.venv/bin/python scripts/release-gate.py --check --report
+release-report: python-env
+	$(PYTHON) scripts/release-gate.py --check --report
 
-slo-check:
-	services/inference-gateway/.venv/bin/python scripts/slo-report.py --check
+slo-check: python-env
+	$(PYTHON) scripts/slo-report.py --check
 
-slo-report:
-	services/inference-gateway/.venv/bin/python scripts/slo-report.py --check --report
+slo-report: python-env
+	$(PYTHON) scripts/slo-report.py --check --report
 
-quota-check:
-	services/inference-gateway/.venv/bin/python scripts/quota-check.py --check
+quota-check: python-env
+	$(PYTHON) scripts/quota-check.py --check
 
-quota-report:
-	services/inference-gateway/.venv/bin/python scripts/quota-check.py --check --report
+quota-report: python-env
+	$(PYTHON) scripts/quota-check.py --check --report
 
-egress-check:
-	services/inference-gateway/.venv/bin/python scripts/egress-governance.py --check
+egress-check: python-env
+	$(PYTHON) scripts/egress-governance.py --check
 
-egress-report:
-	services/inference-gateway/.venv/bin/python scripts/egress-governance.py --check --report
+egress-report: python-env
+	$(PYTHON) scripts/egress-governance.py --check --report
 
-retention-check:
-	services/inference-gateway/.venv/bin/python scripts/retention-check.py --check
+retention-check: python-env
+	$(PYTHON) scripts/retention-check.py --check
 
-retention-report:
-	services/inference-gateway/.venv/bin/python scripts/retention-check.py --check --report
+retention-report: python-env
+	$(PYTHON) scripts/retention-check.py --check --report
 
-model-check:
-	services/inference-gateway/.venv/bin/python scripts/model-catalog.py --check
+model-check: python-env
+	$(PYTHON) scripts/model-catalog.py --check
 
-model-report:
-	services/inference-gateway/.venv/bin/python scripts/model-catalog.py --report
+model-report: python-env
+	$(PYTHON) scripts/model-catalog.py --report
 
-model-provenance-check:
-	services/inference-gateway/.venv/bin/python scripts/model-provenance.py --check
+model-provenance-check: python-env
+	$(PYTHON) scripts/model-provenance.py --check
 
-model-provenance-report:
-	services/inference-gateway/.venv/bin/python scripts/model-provenance.py --check --report
+model-provenance-report: python-env
+	$(PYTHON) scripts/model-provenance.py --check --report
 
 toolchain-install:
 	./scripts/install-validation-tools.sh
 
-toolchain-doctor:
-	services/inference-gateway/.venv/bin/python scripts/toolchain-doctor.py --profile "$(TOOLCHAIN_PROFILE)" --check
+toolchain-doctor: python-env
+	$(PYTHON) scripts/toolchain-doctor.py --profile "$(TOOLCHAIN_PROFILE)" --check
 
-toolchain-report:
-	services/inference-gateway/.venv/bin/python scripts/toolchain-doctor.py --profile "$(TOOLCHAIN_PROFILE)" --check --report
+toolchain-report: python-env
+	$(PYTHON) scripts/toolchain-doctor.py --profile "$(TOOLCHAIN_PROFILE)" --check --report
 
 policy-test:
 	./scripts/policy-test.sh
@@ -125,13 +129,13 @@ policy-test:
 production-check:
 	./scripts/test-gateway.sh
 	./scripts/test-rag.sh
-	services/inference-gateway/.venv/bin/python scripts/production-check.py
+	$(PYTHON) scripts/production-check.py
 
 validate:
 	./scripts/validate.sh
 
-validate-full:
-	services/inference-gateway/.venv/bin/python scripts/toolchain-doctor.py --profile strict --check
+validate-full: python-env
+	$(PYTHON) scripts/toolchain-doctor.py --profile strict --check
 	REQUIRE_FULL_TOOLCHAIN=1 ./scripts/validate.sh
 
 test-gateway:
