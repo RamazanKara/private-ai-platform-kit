@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/ramazankara/ai-platform-ops-lab/rag-service
+  repository: ghcr.io/ramazankara/private-ai-platform-kit/rag-service
   tag: "0.1.0"
   pullPolicy: IfNotPresent
 
@@ -33,7 +33,7 @@ retrieval:
   maxContextChars: 6000
   vectorStore:
     url: ""
-    collection: ai-platform-ops-lab
+    collection: private-ai-platform-kit
     timeoutSeconds: 1.0
     dimensions: 384
     bootstrapFromKnowledge: true
@@ -42,9 +42,9 @@ knowledge:
   mountPath: /knowledge
   documents:
     platform-overview.md: |
-      # AI Platform Ops Lab
+      # Private AI Platform Kit
 
-      AI Platform Ops Lab is a local-first, provider-neutral Kubernetes platform
+      Private AI Platform Kit is a local-first, provider-neutral Kubernetes platform
       for private LLM and coding-agent workloads. The local stack runs on kind.
       Customer clusters bring their own Kubernetes, ingress, storage, secrets,
       GPU nodes, and enterprise observability.

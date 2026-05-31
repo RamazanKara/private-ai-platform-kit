@@ -239,7 +239,7 @@ def _write_audit_log(
 def create_app(settings: Settings | None = None) -> FastAPI:
     resolved = settings or Settings.from_env()
     app = FastAPI(
-        title="AI Platform Ops Lab Inference Gateway",
+        title="Private AI Platform Kit Inference Gateway",
         version="0.1.0",
         docs_url="/docs",
         redoc_url=None,

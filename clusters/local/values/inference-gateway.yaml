@@ -1,5 +1,5 @@
 image:
-  repository: ai-platform-ops-lab/inference-gateway
+  repository: private-ai-platform-kit/inference-gateway
   tag: "local"
   pullPolicy: IfNotPresent
 runtime:
@@ -33,7 +33,7 @@ budget:
   windowSeconds: 86400
   redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/0
   redisTimeoutSeconds: "0.5"
-  keyPrefix: ai-platform-ops-lab:local:sandbox-budget
+  keyPrefix: private-ai-platform-kit:local:sandbox-budget
 networkPolicy:
   runtimeEgress:
     - namespace: ollama

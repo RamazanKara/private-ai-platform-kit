@@ -493,7 +493,7 @@ def write_markdown(path: Path, generated_at: str, controls: list[Control], artif
     passes = sum(1 for item in controls if item.status == "pass")
     failures = sum(1 for item in controls if item.status == "fail")
     lines = [
-        "# AI Platform Ops Lab Evidence Pack",
+        "# Private AI Platform Kit Evidence Pack",
         "",
         f"Generated: `{generated_at}`",
         f"Mode: `{'static-and-live' if live else 'static'}`",
@@ -565,7 +565,7 @@ def write_markdown(path: Path, generated_at: str, controls: list[Control], artif
 
 def write_json(path: Path, generated_at: str, controls: list[Control], artifacts: list[Artifact], live: bool) -> None:
     payload = {
-        "project": "AI Platform Ops Lab",
+        "project": "Private AI Platform Kit",
         "generated_at": generated_at,
         "mode": "static-and-live" if live else "static",
         "summary": {
@@ -579,7 +579,7 @@ def write_json(path: Path, generated_at: str, controls: list[Control], artifacts
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate or validate an AI Platform Ops Lab customer evidence pack.")
+    parser = argparse.ArgumentParser(description="Generate or validate a Private AI Platform Kit customer evidence pack.")
     parser.add_argument("--output-dir", default="results/evidence")
     parser.add_argument("--check", action="store_true", help="Validate static evidence-pack inputs without writing a report.")
     parser.add_argument("--live", action="store_true", help="Include live Kubernetes readiness checks.")

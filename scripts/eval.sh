@@ -23,7 +23,7 @@ if [[ -z "$GATEWAY_URL" ]]; then
   require_cmd kubectl "kubectl is required when GATEWAY_URL is not set."
   local_port="${GATEWAY_PORT:-18082}"
   log "port-forwarding inference gateway on 127.0.0.1:${local_port}"
-  kubectl -n inference port-forward --address 127.0.0.1 svc/inference-gateway-inference-gateway "${local_port}:8080" >/tmp/ai-platform-ops-lab-eval-port-forward.log 2>&1 &
+  kubectl -n inference port-forward --address 127.0.0.1 svc/inference-gateway-inference-gateway "${local_port}:8080" >/tmp/private-ai-platform-kit-eval-port-forward.log 2>&1 &
   pf_pid="$!"
   trap 'kill "$pf_pid" >/dev/null 2>&1 || true' EXIT
   sleep 2

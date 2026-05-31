@@ -1,7 +1,7 @@
 apiVersion: platform.ai/v1alpha1
 kind: ModelProvenanceSet
 metadata:
-  name: ai-platform-ops-lab-model-provenance
+  name: private-ai-platform-kit-model-provenance
 spec:
   description: Reviewed model artifact provenance for approved local and customer lab models.
   requiredEvidence:

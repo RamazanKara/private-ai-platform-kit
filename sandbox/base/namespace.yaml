@@ -4,7 +4,7 @@ metadata:
   name: ai-sandbox
   labels:
     app.kubernetes.io/name: ai-sandbox
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: platform
     platform.ai/environment: local
     platform.ai/owner: platform-team

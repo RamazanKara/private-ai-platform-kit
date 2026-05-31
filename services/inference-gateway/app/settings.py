@@ -126,7 +126,7 @@ class Settings:
     sandbox_budget_redis_url: str = "redis://budget-redis.budget.svc.cluster.local:6379/0"
     sandbox_budget_redis_timeout_seconds: float = 0.5
     sandbox_budget_window_seconds: int = 86400
-    sandbox_budget_key_prefix: str = "ai-platform-ops-lab:sandbox-budget"
+    sandbox_budget_key_prefix: str = "private-ai-platform-kit:sandbox-budget"
     api_key_auth_enabled: bool = False
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
@@ -215,7 +215,7 @@ class Settings:
             ),
             sandbox_budget_key_prefix=os.getenv(
                 "SANDBOX_BUDGET_KEY_PREFIX",
-                "ai-platform-ops-lab:sandbox-budget",
+                "private-ai-platform-kit:sandbox-budget",
             ),
             api_key_auth_enabled=_bool_from_env("API_KEY_AUTH_ENABLED", False),
             api_key_sha256s=_sha256s_from_env("API_KEY_SHA256S"),

@@ -1,7 +1,7 @@
 apiVersion: platform.ai/v1alpha1
 kind: DataRetentionPolicy
 metadata:
-  name: ai-platform-ops-lab-retention
+  name: private-ai-platform-kit-retention
 spec:
   defaults:
     owner: platform-security

@@ -7,7 +7,7 @@ runtime:
   namespace: restore-drill
   podLabels:
     restore-drill/ephemeral: "true"
-    platform.ai/part-of: ai-platform-ops-lab
+    platform.ai/part-of: private-ai-platform-kit
 config:
   existingConfigMap: restore-drill-config
 rbac:

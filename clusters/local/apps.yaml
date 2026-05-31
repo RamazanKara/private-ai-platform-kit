@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: model-catalog/k8s
   destination:
@@ -27,7 +27,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: sandbox/base
   destination:
@@ -81,7 +81,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: observability
   destination:
@@ -102,7 +102,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: policies/kyverno
   destination:
@@ -121,7 +121,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: charts/ollama
     helm:
@@ -146,7 +146,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: charts/vllm
     helm:
@@ -171,7 +171,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: charts/budget-redis
     helm:
@@ -194,7 +194,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: charts/inference-gateway
     helm:
@@ -219,7 +219,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: charts/qdrant-vector-store
     helm:
@@ -244,7 +244,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: charts/rag-service
     helm:
@@ -269,7 +269,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: charts/agent-workspace
     helm:
@@ -302,7 +302,7 @@ spec:
       values: |
         opencost:
           exporter:
-            defaultClusterId: ai-platform-ops-lab-local
+            defaultClusterId: private-ai-platform-kit-local
   destination:
     server: https://kubernetes.default.svc
     namespace: opencost
@@ -321,7 +321,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: backup/velero
   destination:
@@ -342,7 +342,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: backup/restore-drill
     directory:

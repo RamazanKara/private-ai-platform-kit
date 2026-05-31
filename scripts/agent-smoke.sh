@@ -28,7 +28,7 @@ metadata:
   labels:
     app.kubernetes.io/name: agent-platform-smoke
     app.kubernetes.io/component: agent-validation
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: agent-platform
@@ -41,7 +41,7 @@ spec:
       labels:
         app.kubernetes.io/name: agent-platform-smoke
         app.kubernetes.io/component: agent-validation
-        app.kubernetes.io/part-of: ai-platform-ops-lab
+        app.kubernetes.io/part-of: private-ai-platform-kit
         platform.ai/cost-center: research
         platform.ai/environment: ${ENVIRONMENT}
         platform.ai/owner: agent-platform

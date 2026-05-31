@@ -2,7 +2,7 @@
   "generated_at": "2026-05-31T00:00:00Z",
   "manifest": "tools/validation-toolchain.yaml",
   "profile": "strict",
-  "project": "AI Platform Ops Lab",
+  "project": "Private AI Platform Kit",
   "summary": {
     "missing_optional": [],
     "missing_required": [],

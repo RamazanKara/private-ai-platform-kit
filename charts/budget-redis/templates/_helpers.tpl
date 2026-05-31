@@ -16,7 +16,7 @@ app.kubernetes.io/name: {{ include "budget-redis.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-app.kubernetes.io/part-of: ai-platform-ops-lab
+app.kubernetes.io/part-of: private-ai-platform-kit
 {{- with .Values.podLabels }}
 {{ toYaml . }}
 {{- end }}

@@ -3,7 +3,7 @@ SHELL := /usr/bin/env bash
 
 RUNTIME_BACKEND ?= ollama
 RUNTIME ?= local
-CLUSTER_NAME ?= ai-platform-ops-lab
+CLUSTER_NAME ?= private-ai-platform-kit
 LIVE ?= 0
 TENANT_SPEC ?= tenants/onboarding/coding-agents.yaml
 TENANT_OUTPUT ?= tenants/generated

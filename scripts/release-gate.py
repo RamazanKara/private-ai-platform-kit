@@ -387,7 +387,7 @@ def write_markdown(path: Path, generated_at: str, config_path: Path, results: li
 
 def write_json(path: Path, generated_at: str, config_path: Path, results: list[GateResult]) -> None:
     payload = {
-        "project": "AI Platform Ops Lab",
+        "project": "Private AI Platform Kit",
         "generated_at": generated_at,
         "config": rel(config_path),
         "summary": {
@@ -401,7 +401,7 @@ def write_json(path: Path, generated_at: str, config_path: Path, results: list[G
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check AI Platform Ops Lab release gates against operational evidence.")
+    parser = argparse.ArgumentParser(description="Check Private AI Platform Kit release gates against operational evidence.")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--check", action="store_true", help="Validate and run gates without writing a report.")
     parser.add_argument("--report", action="store_true", help="Write JSON and Markdown release-gate reports.")

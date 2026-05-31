@@ -1,6 +1,6 @@
 # Production Readiness Matrix
 
-This lab is local-first, but the controls are shaped like customer production controls. The local stack is the reference implementation. Customer clusters should keep the same interfaces and replace only the platform services they already operate, such as ingress, storage, secrets, logging, and GPU node pools.
+This kit is local-first, but the controls are shaped like customer production controls. The local stack is the reference implementation. Customer clusters should keep the same interfaces and replace only the platform services they already operate, such as ingress, storage, secrets, logging, and GPU node pools.
 
 ## Required Controls
 

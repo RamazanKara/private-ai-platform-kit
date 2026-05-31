@@ -7,7 +7,7 @@ app.kubernetes.io/name: {{ include "agent-workspace.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/component: agent-workspace
-app.kubernetes.io/part-of: ai-platform-ops-lab
+app.kubernetes.io/part-of: private-ai-platform-kit
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 platform.ai/cost-center: {{ .Values.sandbox.costCenter | quote }}
 platform.ai/environment: {{ .Values.sandbox.environment | quote }}

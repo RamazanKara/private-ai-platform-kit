@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: missing-resources-pod
     app.kubernetes.io/component: test
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: platform
     platform.ai/environment: test
     platform.ai/owner: platform-team

@@ -5,10 +5,10 @@ metadata:
   namespace: kube-system
   labels:
     app.kubernetes.io/name: gpu-scheduling-contract
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
 data:
   README: |
-    This provider-neutral contract documents how AI Platform Ops Lab schedules vLLM.
+    This provider-neutral contract documents how Private AI Platform Kit schedules vLLM.
     Customer GPU nodes should carry platform.ai/node-pool=gpu and
     platform.ai/gpu-vendor=<nvidia|amd>. The default customer profile uses
     NVIDIA and requests nvidia.com/gpu. The AMD profile in

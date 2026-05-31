@@ -28,7 +28,7 @@ Set budgets in Helm values:
       windowSeconds: 86400
       redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/0
       redisTimeoutSeconds: "0.5"
-      keyPrefix: ai-platform-ops-lab:local:sandbox-budget
+      keyPrefix: private-ai-platform-kit:local:sandbox-budget
 
 The rendered gateway Deployment exposes these as:
 

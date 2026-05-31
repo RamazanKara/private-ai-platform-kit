@@ -1,13 +1,13 @@
-# AI Platform Ops Lab: Run Private LLMs and Coding Agents on Kubernetes
+# Private AI Platform Kit: Run Private LLMs and Coding Agents on Kubernetes
 
-[![CI](https://github.com/RamazanKara/ai-platform-ops-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/RamazanKara/ai-platform-ops-lab/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/RamazanKara/ai-platform-ops-lab?include_prereleases)](https://github.com/RamazanKara/ai-platform-ops-lab/releases)
-[![License](https://img.shields.io/github/license/RamazanKara/ai-platform-ops-lab)](LICENSE)
+[![CI](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/RamazanKara/private-ai-platform-kit?include_prereleases)](https://github.com/RamazanKara/private-ai-platform-kit/releases)
+[![License](https://img.shields.io/github/license/RamazanKara/private-ai-platform-kit)](LICENSE)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-GitOps-326CE5)
 ![Helm](https://img.shields.io/badge/Helm-charts-0F1689)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB)
 
-AI Platform Ops Lab is a hands-on operations lab for teams that want to run private LLMs and coding agents on Kubernetes. It starts locally on `kind`, then carries the same charts, policies, runbooks, and evidence checks into customer-owned clusters.
+Private AI Platform Kit is a hands-on reference implementation for teams that want to run private LLMs and coding agents on Kubernetes. It starts locally on `kind`, then carries the same charts, policies, runbooks, and evidence checks into customer-owned clusters.
 
 ## What This Proves
 
@@ -16,12 +16,8 @@ This repo proves a private AI platform can be operated with GitOps, policy as co
 ## Live Demo
 
 <p align="center">
-  <a href="docs/assets/ai-platform-ops-lab-demo.mp4">
-    <img src="docs/assets/ai-platform-ops-lab-demo.gif" alt="Terminal demo showing a private AI assistant saying hello world" width="100%">
-  </a>
+  <img src="docs/assets/private-ai-platform-kit-demo.gif" alt="Terminal demo showing a private AI assistant saying hello world" width="100%">
 </p>
-
-[Watch or download the MP4](docs/assets/ai-platform-ops-lab-demo.mp4)
 
 The demo is a short terminal hello-world cut generated from `scripts/demo-live.sh`.
 
@@ -30,11 +26,11 @@ The demo is a short terminal hello-world cut generated from `scripts/demo-live.s
 - Serve private models behind an OpenAI-compatible gateway using Ollama locally or vLLM on customer GPU clusters.
 - Give coding agents isolated workspaces with storage, RBAC, default-deny networking, approved egress, and RAG access.
 - Trace and govern every request with API keys, request IDs, sandbox IDs, redacted audit logs, metrics, and budget limits.
-- Bring production controls into the lab: model governance, provenance, quotas, retention, SLOs, release gates, restore drills, chaos drills, SBOMs, signing, scanning, and evidence packs.
+- Bring production controls into the local workflow: model governance, provenance, quotas, retention, SLOs, release gates, restore drills, chaos drills, SBOMs, signing, scanning, and evidence packs.
 
 ## Architecture
 
-![AI Platform Ops Lab architecture](docs/assets/architecture.svg)
+![Private AI Platform Kit architecture](docs/assets/architecture.svg)
 
 Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway forwards the request to either Ollama or vLLM based on `RUNTIME_BACKEND`, records Prometheus metrics, and returns an OpenAI-compatible response. Argo CD reconciles platform add-ons and workloads from this repository. The default lab runs fully on `kind` with Ollama. Customers can apply the same charts and policies to their existing Kubernetes clusters and enable vLLM on GPU nodes they already operate.
 
@@ -302,3 +298,7 @@ Key runbooks:
 | Govern customer handoff | [evidence packs](runbooks/evidence-pack.md), [release gates](runbooks/release-gates.md), [SLOs](runbooks/slo-error-budget.md), [validation toolchain](runbooks/validation-toolchain.md) |
 | Prove resilience and recovery | [restore drills](runbooks/restore-drill.md), [chaos drills](runbooks/chaos-drills.md), [runtime incident response](runbooks/incident-inference-runtime.md) |
 | Review security and compliance | [guardrails](runbooks/guardrails.md), [model governance](runbooks/model-governance.md), [model provenance](runbooks/model-provenance.md), [egress governance](runbooks/egress-governance.md), [data retention](runbooks/data-retention.md) |
+
+## Trademark Notice
+
+Kubernetes is a registered trademark of The Linux Foundation. Private AI Platform Kit is not affiliated with or endorsed by The Linux Foundation.

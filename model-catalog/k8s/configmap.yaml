@@ -5,7 +5,7 @@ metadata:
   namespace: inference
   labels:
     app.kubernetes.io/name: ai-model-catalog
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: platform
     platform.ai/environment: local
     platform.ai/owner: platform-team
@@ -15,7 +15,7 @@ data:
     apiVersion: platform.ai/v1alpha1
     kind: ModelCatalog
     metadata:
-      name: ai-platform-ops-lab-models
+      name: private-ai-platform-kit-models
     spec:
       models:
         - id: qwen2.5:0.5b

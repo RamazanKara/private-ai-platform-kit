@@ -1,6 +1,6 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: ai-platform-ops-lab
+name: private-ai-platform-kit
 nodes:
   - role: control-plane
     image: kindest/node:v1.31.4

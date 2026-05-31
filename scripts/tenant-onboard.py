@@ -121,7 +121,7 @@ def validate_spec(spec: dict[str, Any]) -> None:
 def labels(tenant: dict[str, Any], name: str, compliance: dict[str, Any] | None = None) -> dict[str, str]:
     values = {
         "app.kubernetes.io/name": name,
-        "app.kubernetes.io/part-of": "ai-platform-ops-lab",
+        "app.kubernetes.io/part-of": "private-ai-platform-kit",
         "platform.ai/cost-center": str(tenant["costCenter"]),
         "platform.ai/environment": str(tenant["environment"]),
         "platform.ai/owner": str(tenant["owner"]),

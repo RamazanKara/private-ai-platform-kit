@@ -1,7 +1,7 @@
 apiVersion: platform.ai/v1alpha1
 kind: ReleaseGate
 metadata:
-  name: ai-platform-ops-lab-local-release
+  name: private-ai-platform-kit-local-release
 spec:
   profile: local-customer-handoff
   description: Minimum evidence required before using the local lab for a customer demo, release review, restore-drill review, or production-readiness handoff.

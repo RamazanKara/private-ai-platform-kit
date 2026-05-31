@@ -27,7 +27,7 @@ metadata:
   labels:
     app.kubernetes.io/name: tenant-trace-smoke
     app.kubernetes.io/component: tenant-validation
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER:-research}
     platform.ai/environment: ${ENVIRONMENT:-local}
     platform.ai/owner: ${TENANT_OWNER:-${TENANT_ID%-lab}}
@@ -40,7 +40,7 @@ spec:
       labels:
         app.kubernetes.io/name: tenant-trace-smoke
         app.kubernetes.io/component: tenant-validation
-        app.kubernetes.io/part-of: ai-platform-ops-lab
+        app.kubernetes.io/part-of: private-ai-platform-kit
         platform.ai/cost-center: ${COST_CENTER:-research}
         platform.ai/environment: ${ENVIRONMENT:-local}
         platform.ai/owner: ${TENANT_OWNER:-${TENANT_ID%-lab}}

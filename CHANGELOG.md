@@ -2,7 +2,7 @@
 
 ## v0.1.0 - 2026-05-31
 
-First public release of AI Platform Ops Lab.
+First public release of Private AI Platform Kit.
 
 ### Included
 

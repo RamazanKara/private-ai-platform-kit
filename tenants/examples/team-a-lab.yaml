@@ -4,7 +4,7 @@ metadata:
   name: ai-team-a-lab
   labels:
     app.kubernetes.io/name: ai-team-a-lab
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: local
     platform.ai/owner: team-a
@@ -22,7 +22,7 @@ metadata:
   namespace: ai-team-a-lab
   labels:
     app.kubernetes.io/name: tenant-quota
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: local
     platform.ai/owner: team-a
@@ -46,7 +46,7 @@ metadata:
   namespace: ai-team-a-lab
   labels:
     app.kubernetes.io/name: tenant-defaults
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: local
     platform.ai/owner: team-a
@@ -69,7 +69,7 @@ metadata:
   namespace: ai-team-a-lab
   labels:
     app.kubernetes.io/name: tenant-default-deny
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: local
     platform.ai/owner: team-a
@@ -88,7 +88,7 @@ metadata:
   namespace: ai-team-a-lab
   labels:
     app.kubernetes.io/name: tenant-allow-dns-and-gateway
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: local
     platform.ai/owner: team-a
@@ -130,7 +130,7 @@ metadata:
   namespace: ai-team-a-lab
   labels:
     app.kubernetes.io/name: tenant-trace-contract
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: local
     platform.ai/owner: team-a
@@ -149,7 +149,7 @@ metadata:
   namespace: ai-team-a-lab
   labels:
     app.kubernetes.io/name: tenant-lab-viewer
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: local
     platform.ai/owner: team-a
@@ -170,7 +170,7 @@ metadata:
   namespace: ai-team-a-lab
   labels:
     app.kubernetes.io/name: tenant-lab-viewers
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: research
     platform.ai/environment: local
     platform.ai/owner: team-a

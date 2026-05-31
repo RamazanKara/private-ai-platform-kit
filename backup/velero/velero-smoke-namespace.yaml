@@ -4,7 +4,7 @@ metadata:
   name: restore-drill-velero-smoke
   labels:
     app.kubernetes.io/name: restore-drill-velero-smoke
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
 ---
 apiVersion: v1
 kind: ConfigMap

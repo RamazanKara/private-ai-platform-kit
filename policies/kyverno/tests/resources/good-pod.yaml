@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: good-pod
     app.kubernetes.io/component: test
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: platform
     platform.ai/environment: test
     platform.ai/owner: platform-team
@@ -18,7 +18,7 @@ spec:
       type: RuntimeDefault
   containers:
     - name: good
-      image: ghcr.io/ramazankara/ai-platform-ops-lab/good:0.1.0
+      image: ghcr.io/ramazankara/private-ai-platform-kit/good:0.1.0
       command: ["sleep", "3600"]
       securityContext:
         allowPrivilegeEscalation: false

@@ -4,9 +4,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT/scripts/common.sh"
 
-CLUSTER_NAME="${CLUSTER_NAME:-ai-platform-ops-lab}"
-GATEWAY_IMAGE="${GATEWAY_IMAGE:-ai-platform-ops-lab/inference-gateway:local}"
-RAG_IMAGE="${RAG_IMAGE:-ai-platform-ops-lab/rag-service:local}"
+CLUSTER_NAME="${CLUSTER_NAME:-private-ai-platform-kit}"
+GATEWAY_IMAGE="${GATEWAY_IMAGE:-private-ai-platform-kit/inference-gateway:local}"
+RAG_IMAGE="${RAG_IMAGE:-private-ai-platform-kit/rag-service:local}"
 
 require_cmd docker "Docker is required for kind."
 require_cmd kind "Install kind to create the local cluster."

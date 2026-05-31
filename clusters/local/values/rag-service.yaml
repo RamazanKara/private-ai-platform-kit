@@ -1,5 +1,5 @@
 image:
-  repository: ai-platform-ops-lab/rag-service
+  repository: private-ai-platform-kit/rag-service
   tag: "local"
   pullPolicy: IfNotPresent
 
@@ -19,7 +19,7 @@ retrieval:
   backend: lexical
   vectorStore:
     url: ""
-    collection: ai-platform-ops-lab-local
+    collection: private-ai-platform-kit-local
     timeoutSeconds: 1.0
     dimensions: 384
     bootstrapFromKnowledge: true

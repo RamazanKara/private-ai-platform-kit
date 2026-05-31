@@ -14,4 +14,4 @@ if [[ "${ENVIRONMENT:-local}" == "customer" ]]; then
 else
   kubectl apply -f gitops/argocd/root-app.yaml
 fi
-kubectl -n argocd get application ai-platform-ops-lab-root
+kubectl -n argocd get application private-ai-platform-kit-root

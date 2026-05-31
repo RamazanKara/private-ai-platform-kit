@@ -292,7 +292,7 @@ def validate() -> tuple[list[str], dict[str, dict[str, Any]], dict[str, list[str
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate and report on AI Platform Ops Lab model governance.")
+    parser = argparse.ArgumentParser(description="Validate and report on Private AI Platform Kit model governance.")
     parser.add_argument("--check", action="store_true", help="Validate the model catalog without writing a report.")
     parser.add_argument("--report", action="store_true", help="Write JSON and Markdown model governance reports.")
     parser.add_argument("--output-dir", default="results/model-catalog")

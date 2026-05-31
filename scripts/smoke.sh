@@ -23,7 +23,7 @@ cleanup() {
 }
 
 log "port-forwarding ${NAMESPACE}/${SERVICE}"
-kubectl -n "$NAMESPACE" port-forward --address 127.0.0.1 "svc/${SERVICE}" "${LOCAL_PORT}:${SERVICE_PORT}" >/tmp/ai-platform-ops-lab-port-forward.log 2>&1 &
+kubectl -n "$NAMESPACE" port-forward --address 127.0.0.1 "svc/${SERVICE}" "${LOCAL_PORT}:${SERVICE_PORT}" >/tmp/private-ai-platform-kit-port-forward.log 2>&1 &
 PF_PID=$!
 trap cleanup EXIT
 sleep 3
@@ -45,7 +45,7 @@ curl -fsS -D "$CHAT_HEADERS" "http://127.0.0.1:${LOCAL_PORT}/v1/chat/completions
   -H "X-Sandbox-ID: ${SANDBOX_ID}" \
   -H "X-API-Key: ${PLATFORM_API_KEY}" \
   -H "traceparent: ${TRACEPARENT}" \
-  -d '{"messages":[{"role":"user","content":"Say hello from AI Platform Ops Lab"}]}' \
+  -d '{"messages":[{"role":"user","content":"Say hello from Private AI Platform Kit"}]}' \
   | python3 -m json.tool
 grep -qi "^x-request-id: ${REQUEST_ID}-chat" "$CHAT_HEADERS"
 grep -qi "^x-sandbox-id: ${SANDBOX_ID}" "$CHAT_HEADERS"

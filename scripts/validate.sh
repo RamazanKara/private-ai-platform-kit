@@ -160,7 +160,7 @@ if require_optional_or_full trivy "Trivy is needed for filesystem secret and con
     --skip-dirs tenants/generated \
     --skip-dirs services/inference-gateway/.venv \
     --skip-dirs services/rag-service/.venv \
-    . >/tmp/ai-platform-ops-lab-trivy-fs.txt
+    . >/tmp/private-ai-platform-kit-trivy-fs.txt
 fi
 
 log "validation completed"

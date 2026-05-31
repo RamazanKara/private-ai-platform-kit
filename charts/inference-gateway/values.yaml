@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/ramazankara/ai-platform-ops-lab/inference-gateway
+  repository: ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway
   tag: "0.1.0"
   pullPolicy: IfNotPresent
 
@@ -40,7 +40,7 @@ budget:
   windowSeconds: 86400
   redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/0
   redisTimeoutSeconds: "0.5"
-  keyPrefix: ai-platform-ops-lab:sandbox-budget
+  keyPrefix: private-ai-platform-kit:sandbox-budget
 
 traceability:
   auditLogEnabled: true

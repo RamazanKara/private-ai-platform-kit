@@ -4,7 +4,7 @@ metadata:
   name: ai-platform-required-labels
   annotations:
     policies.kyverno.io/title: Require AI Platform labels
-    policies.kyverno.io/category: AI Platform Ops Lab
+    policies.kyverno.io/category: Private AI Platform Kit
 spec:
   validationFailureAction: Enforce
   background: true
@@ -35,7 +35,7 @@ spec:
           metadata:
             labels:
               app.kubernetes.io/name: "?*"
-              app.kubernetes.io/part-of: ai-platform-ops-lab
+              app.kubernetes.io/part-of: private-ai-platform-kit
               app.kubernetes.io/component: "?*"
               platform.ai/cost-center: "?*"
               platform.ai/environment: "?*"
@@ -48,7 +48,7 @@ metadata:
   name: ai-platform-restricted-pods
   annotations:
     policies.kyverno.io/title: Restrict pod security context
-    policies.kyverno.io/category: AI Platform Ops Lab
+    policies.kyverno.io/category: Private AI Platform Kit
 spec:
   validationFailureAction: Enforce
   background: true
@@ -146,7 +146,7 @@ metadata:
   name: ai-platform-image-and-resources
   annotations:
     policies.kyverno.io/title: Require pinned images and resources
-    policies.kyverno.io/category: AI Platform Ops Lab
+    policies.kyverno.io/category: Private AI Platform Kit
 spec:
   validationFailureAction: Enforce
   background: true
@@ -223,7 +223,7 @@ metadata:
   name: ai-platform-verify-project-images
   annotations:
     policies.kyverno.io/title: Verify signed AI Platform images
-    policies.kyverno.io/category: AI Platform Ops Lab
+    policies.kyverno.io/category: Private AI Platform Kit
 spec:
   validationFailureAction: Audit
   background: false
@@ -250,9 +250,9 @@ spec:
                 - local-path-storage
       verifyImages:
         - imageReferences:
-            - ghcr.io/ramazankara/ai-platform-ops-lab/*
+            - ghcr.io/ramazankara/private-ai-platform-kit/*
           attestors:
             - entries:
                 - keyless:
-                    subject: https://github.com/RamazanKara/ai-platform-ops-lab/.github/workflows/ci.yml@refs/heads/main
+                    subject: https://github.com/RamazanKara/private-ai-platform-kit/.github/workflows/ci.yml@refs/heads/main
                     issuer: https://token.actions.githubusercontent.com

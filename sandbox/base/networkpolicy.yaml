@@ -5,7 +5,7 @@ metadata:
   namespace: ai-sandbox
   labels:
     app.kubernetes.io/name: ai-sandbox-default-deny
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: platform
     platform.ai/environment: local
     platform.ai/owner: platform-team
@@ -23,7 +23,7 @@ metadata:
   namespace: ai-sandbox
   labels:
     app.kubernetes.io/name: ai-sandbox-allow-dns-and-gateway
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: platform
     platform.ai/environment: local
     platform.ai/owner: platform-team

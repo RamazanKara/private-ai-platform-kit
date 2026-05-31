@@ -1,7 +1,7 @@
 apiVersion: platform.ai/v1alpha1
 kind: QuotaPlanSet
 metadata:
-  name: ai-platform-ops-lab-quota-plans
+  name: private-ai-platform-kit-quota-plans
 spec:
   description: Reviewed quota and chargeback plans for local labs, coding-agent tenants, and customer-owned runtime profiles.
   chargeback:

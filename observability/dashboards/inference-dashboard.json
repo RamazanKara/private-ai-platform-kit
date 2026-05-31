@@ -88,8 +88,8 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": ["ai-platform-ops-lab"],
-  "title": "AI Platform Ops Lab Inference",
+  "tags": ["private-ai-platform-kit"],
+  "title": "Private AI Platform Kit Inference",
   "uid": "ai-platform-inference",
   "version": 1
 }

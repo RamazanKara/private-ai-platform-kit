@@ -15,7 +15,7 @@ app.kubernetes.io/name: {{ include "vllm.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/component: runtime
-app.kubernetes.io/part-of: ai-platform-ops-lab
+app.kubernetes.io/part-of: private-ai-platform-kit
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 platform.ai/cost-center: {{ index .Values.podLabels "platform.ai/cost-center" | quote }}
 platform.ai/environment: {{ index .Values.podLabels "platform.ai/environment" | quote }}

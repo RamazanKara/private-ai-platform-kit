@@ -91,7 +91,7 @@ class Settings:
     max_context_chars: int = 6000
     retrieval_backend: str = "lexical"
     vector_store_url: str = ""
-    vector_collection: str = "ai-platform-ops-lab"
+    vector_collection: str = "private-ai-platform-kit"
     vector_timeout_seconds: float = 1.0
     vector_dimensions: int = DEFAULT_VECTOR_DIMENSIONS
     vector_bootstrap_enabled: bool = True
@@ -143,7 +143,7 @@ class Settings:
             max_context_chars=_positive_int_from_env("MAX_CONTEXT_CHARS", 6000),
             retrieval_backend=_env_first(("RAG_RETRIEVAL_BACKEND", "RETRIEVAL_BACKEND"), "lexical").strip().lower(),
             vector_store_url=_env_first(("QDRANT_URL", "VECTOR_STORE_URL"), "").strip(),
-            vector_collection=_env_first(("QDRANT_COLLECTION", "VECTOR_COLLECTION"), "ai-platform-ops-lab").strip(),
+            vector_collection=_env_first(("QDRANT_COLLECTION", "VECTOR_COLLECTION"), "private-ai-platform-kit").strip(),
             vector_timeout_seconds=_positive_float_from_env_first(("QDRANT_TIMEOUT_SECONDS", "VECTOR_TIMEOUT_SECONDS"), 1.0),
             vector_dimensions=_positive_int_from_env("QDRANT_VECTOR_DIMENSIONS", DEFAULT_VECTOR_DIMENSIONS),
             vector_bootstrap_enabled=_bool_from_env("QDRANT_BOOTSTRAP_FROM_KNOWLEDGE", True),

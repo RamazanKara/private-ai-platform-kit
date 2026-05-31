@@ -27,7 +27,7 @@ export default function () {
     messages: [
       {
         role: 'user',
-        content: 'Reply with a short greeting from AI Platform Ops Lab.',
+        content: 'Reply with a short greeting from Private AI Platform Kit.',
       },
     ],
   });

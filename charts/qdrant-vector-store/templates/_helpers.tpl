@@ -14,7 +14,7 @@
 app.kubernetes.io/name: {{ include "qdrant-vector-store.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-app.kubernetes.io/part-of: ai-platform-ops-lab
+app.kubernetes.io/part-of: private-ai-platform-kit
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.podLabels }}
 {{ toYaml . }}

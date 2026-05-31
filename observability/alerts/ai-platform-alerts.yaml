@@ -1,11 +1,11 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: ai-platform-ops-lab-alerts
+  name: private-ai-platform-kit-alerts
   namespace: monitoring
   labels:
     app.kubernetes.io/name: ai-platform-alerts
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
 spec:
   groups:
     - name: inference.rules

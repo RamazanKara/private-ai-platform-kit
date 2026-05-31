@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
-  <title id="title">AI Platform Ops Lab architecture</title>
+  <title id="title">Private AI Platform Kit architecture</title>
   <desc id="desc">Architecture diagram showing API clients and coding agents calling an inference gateway, with governed routing to Ollama or vLLM, RAG context, GitOps controls, observability, and evidence workflows.</desc>
   <defs>
     <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
@@ -27,7 +27,7 @@
 
   <rect class="bg" width="1280" height="760"/>
 
-  <text x="60" y="64" class="ink large">AI Platform Ops Lab</text>
+  <text x="60" y="64" class="ink large">Private AI Platform Kit</text>
   <text x="60" y="98" class="muted small">Local-first Kubernetes platform for private LLMs, RAG, and isolated coding-agent workspaces</text>
 
   <rect x="45" y="125" width="260" height="510" class="panel soft"/>

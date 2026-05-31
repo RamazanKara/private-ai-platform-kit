@@ -1,7 +1,7 @@
 apiVersion: platform.ai/v1alpha1
 kind: ValidationToolchain
 metadata:
-  name: ai-platform-ops-lab-validation-toolchain
+  name: private-ai-platform-kit-validation-toolchain
 spec:
   profiles:
     validate:

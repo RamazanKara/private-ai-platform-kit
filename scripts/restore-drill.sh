@@ -11,7 +11,7 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 if [[ "$RUNTIME" == "local" ]]; then
   require_cmd restore-drill "Install with: go install github.com/RamazanKara/restore-drill/cmd/restore-drill@v1.0.1"
-  export RESTORE_DRILL_REDIS_AOF="${RESTORE_DRILL_REDIS_AOF:-/tmp/ai-platform-ops-lab-redis.aof}"
+  export RESTORE_DRILL_REDIS_AOF="${RESTORE_DRILL_REDIS_AOF:-/tmp/private-ai-platform-kit-redis.aof}"
   python3 - <<'PY'
 import os
 from pathlib import Path

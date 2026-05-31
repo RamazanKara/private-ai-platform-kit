@@ -1,6 +1,6 @@
 # Model Governance Runbook
 
-Use this runbook when adding, approving, deprecating, blocking, or reviewing models in the AI Platform Ops Lab catalog.
+Use this runbook when adding, approving, deprecating, blocking, or reviewing models in the Private AI Platform Kit catalog.
 
 ## Required Artifacts
 

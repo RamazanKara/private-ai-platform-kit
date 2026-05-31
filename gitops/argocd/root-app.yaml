@@ -1,15 +1,15 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: ai-platform-ops-lab-root
+  name: private-ai-platform-kit-root
   namespace: argocd
   labels:
-    app.kubernetes.io/name: ai-platform-ops-lab-root
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/name: private-ai-platform-kit-root
+    app.kubernetes.io/part-of: private-ai-platform-kit
 spec:
   project: default
   source:
-    repoURL: https://github.com/RamazanKara/ai-platform-ops-lab.git
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: clusters/local
   destination:

@@ -1,7 +1,7 @@
 apiVersion: platform.ai/v1alpha1
 kind: ModelCatalog
 metadata:
-  name: ai-platform-ops-lab-models
+  name: private-ai-platform-kit-models
 spec:
   models:
     - id: qwen2.5:0.5b

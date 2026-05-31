@@ -26,7 +26,7 @@ cleanup() {
 }
 
 log "port-forwarding ${NAMESPACE}/${SERVICE}"
-kubectl -n "$NAMESPACE" port-forward --address 127.0.0.1 "svc/${SERVICE}" "${LOCAL_PORT}:${SERVICE_PORT}" >/tmp/ai-platform-ops-lab-rag-port-forward.log 2>&1 &
+kubectl -n "$NAMESPACE" port-forward --address 127.0.0.1 "svc/${SERVICE}" "${LOCAL_PORT}:${SERVICE_PORT}" >/tmp/private-ai-platform-kit-rag-port-forward.log 2>&1 &
 PF_PID=$!
 trap cleanup EXIT
 sleep 3

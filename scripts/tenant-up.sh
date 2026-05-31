@@ -31,7 +31,7 @@ metadata:
   name: ${TENANT_NAMESPACE}
   labels:
     app.kubernetes.io/name: ${TENANT_NAMESPACE}
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER}
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: ${TENANT_OWNER}
@@ -49,7 +49,7 @@ metadata:
   namespace: ${TENANT_NAMESPACE}
   labels:
     app.kubernetes.io/name: tenant-quota
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER}
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: ${TENANT_OWNER}
@@ -73,7 +73,7 @@ metadata:
   namespace: ${TENANT_NAMESPACE}
   labels:
     app.kubernetes.io/name: tenant-defaults
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER}
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: ${TENANT_OWNER}
@@ -96,7 +96,7 @@ metadata:
   namespace: ${TENANT_NAMESPACE}
   labels:
     app.kubernetes.io/name: tenant-default-deny
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER}
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: ${TENANT_OWNER}
@@ -115,7 +115,7 @@ metadata:
   namespace: ${TENANT_NAMESPACE}
   labels:
     app.kubernetes.io/name: tenant-allow-dns-and-gateway
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER}
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: ${TENANT_OWNER}
@@ -157,7 +157,7 @@ metadata:
   namespace: ${TENANT_NAMESPACE}
   labels:
     app.kubernetes.io/name: tenant-trace-contract
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER}
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: ${TENANT_OWNER}
@@ -176,7 +176,7 @@ metadata:
   namespace: ${TENANT_NAMESPACE}
   labels:
     app.kubernetes.io/name: tenant-lab-viewer
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER}
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: ${TENANT_OWNER}
@@ -197,7 +197,7 @@ metadata:
   namespace: ${TENANT_NAMESPACE}
   labels:
     app.kubernetes.io/name: tenant-lab-viewers
-    app.kubernetes.io/part-of: ai-platform-ops-lab
+    app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: ${COST_CENTER}
     platform.ai/environment: ${ENVIRONMENT}
     platform.ai/owner: ${TENANT_OWNER}

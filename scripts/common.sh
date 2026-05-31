@@ -6,11 +6,11 @@ repo_root() {
 }
 
 log() {
-  printf '[ai-platform-ops-lab] %s\n' "$*"
+  printf '[private-ai-platform-kit] %s\n' "$*"
 }
 
 die() {
-  printf '[ai-platform-ops-lab] ERROR: %s\n' "$*" >&2
+  printf '[private-ai-platform-kit] ERROR: %s\n' "$*" >&2
   exit 1
 }
 

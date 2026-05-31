@@ -32,8 +32,8 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": ["ai-platform-ops-lab", "restore-drill"],
-  "title": "AI Platform Ops Lab Restore Drill",
+  "tags": ["private-ai-platform-kit", "restore-drill"],
+  "title": "Private AI Platform Kit Restore Drill",
   "uid": "ai-platform-restore-drill",
   "version": 1
 }

@@ -1,7 +1,7 @@
 apiVersion: platform.ai/v1alpha1
 kind: SLOSet
 metadata:
-  name: ai-platform-ops-lab-slos
+  name: private-ai-platform-kit-slos
 spec:
   profile: local-customer-handoff
   description: Customer-facing SLOs and evidence checks for the local AI lab and portable customer stack.

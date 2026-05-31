@@ -49,18 +49,18 @@ direct_apply_local() {
 }
 
 if has_cmd argocd; then
-  argocd app sync ai-platform-ops-lab-root --grpc-web || true
-  argocd app wait ai-platform-ops-lab-root --health --sync --timeout 600 --grpc-web || true
+  argocd app sync private-ai-platform-kit-root --grpc-web || true
+  argocd app wait private-ai-platform-kit-root --health --sync --timeout 600 --grpc-web || true
 else
   log "argocd CLI not found; requesting app refresh through kubectl annotations"
-  kubectl -n argocd annotate application ai-platform-ops-lab-root argocd.argoproj.io/refresh=hard --overwrite
+  kubectl -n argocd annotate application private-ai-platform-kit-root argocd.argoproj.io/refresh=hard --overwrite
 fi
 
 kubectl -n argocd get applications || true
 
 if [[ "${LOCAL_DIRECT_APPLY:-0}" == "1" ]]; then
   direct_apply_local
-elif kubectl -n argocd get application ai-platform-ops-lab-root -o jsonpath='{.status.conditions[*].message}' 2>/dev/null | grep -qi 'Repository not found'; then
+elif kubectl -n argocd get application private-ai-platform-kit-root -o jsonpath='{.status.conditions[*].message}' 2>/dev/null | grep -qi 'Repository not found'; then
   log "GitOps repo is not reachable from Argo CD yet; publish the repo or update gitops/argocd/root-app.yaml. Running local direct-apply fallback."
   direct_apply_local
 fi

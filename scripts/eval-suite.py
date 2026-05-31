@@ -208,7 +208,7 @@ def write_markdown(path: Path, suite_name: str, gateway_url: str, results: list[
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run or validate an AI Platform Ops Lab eval suite.")
+    parser = argparse.ArgumentParser(description="Run or validate a Private AI Platform Kit eval suite.")
     parser.add_argument("--suite", default="evals/smoke-suite.yaml")
     parser.add_argument("--gateway-url", default="http://127.0.0.1:18082")
     parser.add_argument("--output-json")
