@@ -14,21 +14,21 @@ spec:
     - promotionRequest
     - servingProfiles
   artifacts:
-    - modelId: qwen2.5:0.5b
+    - modelId: qwen3:0.6b
       status: approved
       source: ollama-library
-      sourceUri: ollama://qwen2.5:0.5b
-      immutableRef: ollama-library/qwen2.5:0.5b@sha256:c6d5562dc5e8dcd394bb0458f66c39ea5af4a0c144819eaf06fb0dccecf94d53
+      sourceUri: ollama://qwen3:0.6b
+      immutableRef: ollama-library/qwen3:0.6b@sha256:a313de031f772801086dc1f1f074003658864953fd203b8d729ff08d5feba60a
       digest:
         algorithm: sha256
-        value: c6d5562dc5e8dcd394bb0458f66c39ea5af4a0c144819eaf06fb0dccecf94d53
+        value: a313de031f772801086dc1f1f074003658864953fd203b8d729ff08d5feba60a
         scope: source-reference
         verificationMode: source-reference-digest
-        verificationCommand: ollama show qwen2.5:0.5b --modelfile
-      license: model-provider
+        verificationCommand: ollama show qwen3:0.6b --modelfile
+      license: apache-2.0
       dataClassification: internal
       riskTier: low
-      promotionRequest: model-catalog/promotion-requests/qwen-local-lab-approved.yaml
+      promotionRequest: model-catalog/promotion-requests/qwen3-local-lab-approved.yaml
       catalogRef: model-catalog/models.yaml
       servingProfiles:
         - clusters/local/values/ollama.yaml
@@ -38,21 +38,21 @@ spec:
         loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
       notes: Local demo model. Customers should replace source-reference digest with their registry or model-store artifact digest before production use.
-    - modelId: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+    - modelId: Qwen/Qwen3-Coder-Next
       status: approved
       source: huggingface
-      sourceUri: https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0
-      immutableRef: huggingface://TinyLlama/TinyLlama-1.1B-Chat-v1.0@sha256:ba9f781fb445e35fdc72cb7746bc762a799b504e7f8a4f1dc64eceb7d20c573b
+      sourceUri: https://huggingface.co/Qwen/Qwen3-Coder-Next
+      immutableRef: huggingface://Qwen/Qwen3-Coder-Next@sha256:71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06
       digest:
         algorithm: sha256
-        value: ba9f781fb445e35fdc72cb7746bc762a799b504e7f8a4f1dc64eceb7d20c573b
+        value: 71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06
         scope: source-reference
         verificationMode: customer-model-store
         verificationCommand: huggingface-cli scan-cache --dir /models
       license: apache-2.0
       dataClassification: internal
-      riskTier: low
-      promotionRequest: model-catalog/promotion-requests/tinyllama-customer-lab-approved.yaml
+      riskTier: medium
+      promotionRequest: model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml
       catalogRef: model-catalog/models.yaml
       servingProfiles:
         - clusters/customer/values/vllm.yaml
@@ -63,4 +63,4 @@ spec:
         evalSummary: results/evals/sample-summary.md
         loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
-      notes: Customer lab vLLM model. Replace source-reference digest with the customer's pinned model-store artifact revision and checksum.
+      notes: Customer lab vLLM coding-agent model. Replace source-reference digest with the customer's pinned model-store artifact revision and checksum.

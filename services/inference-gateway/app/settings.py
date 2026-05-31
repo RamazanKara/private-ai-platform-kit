@@ -167,7 +167,7 @@ class Settings:
         backend = os.getenv("RUNTIME_BACKEND", "ollama").strip().lower()
         if backend not in {"ollama", "vllm"}:
             raise ValueError("RUNTIME_BACKEND must be either 'ollama' or 'vllm'")
-        model_id = os.getenv("MODEL_ID", "qwen2.5:0.5b")
+        model_id = os.getenv("MODEL_ID", "qwen3:0.6b")
         return cls(
             runtime_backend=backend,
             ollama_base_url=os.getenv(

@@ -1,27 +1,23 @@
 apiVersion: platform.ai/v1alpha1
 kind: ModelPromotionRequest
 metadata:
-  name: tinyllama-customer-lab-approved
+  name: qwen3-local-lab-approved
 spec:
-  modelId: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+  modelId: qwen3:0.6b
   targetStatus: approved
   requestedBy: platform-team
   approvers:
     - platform-team
-  businessJustification: Small OpenAI-compatible vLLM profile for customer GPU cluster validation.
-  runtime: vllm
+  businessJustification: Current small Qwen3 CPU smoke-test model for workstation validation.
+  runtime: ollama
   accelerators:
-    - nvidia
-    - amd
+    - cpu
   rollout:
     environments:
-      - customer
+      - local
     allowedModelFiles:
+      - clusters/local/values/inference-gateway.yaml
       - clusters/customer/values/inference-gateway.yaml
-    runtimeValueFiles:
-      - clusters/customer/values/vllm.yaml
-      - clusters/customer/values/vllm-nvidia.yaml
-      - clusters/customer/values/vllm-amd.yaml
   evidence:
     evalSuite: evals/smoke-suite.yaml
     evalSummary: results/evals/sample-summary.md
@@ -29,5 +25,5 @@ spec:
     securityWorkflow: .github/workflows/ci.yml
   conditions:
     promptLogging: redacted
-    externalNetworkRequired: true
-    requiresGpu: true
+    externalNetworkRequired: false
+    requiresGpu: false

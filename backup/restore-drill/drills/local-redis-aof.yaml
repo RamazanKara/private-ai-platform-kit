@@ -7,7 +7,7 @@ drills:
     restore:
       timeout: 5m
       container:
-        image: redis:7-alpine
+        image: redis:8.0-alpine
         resources:
           memory: 256Mi
           cpu: "500m"

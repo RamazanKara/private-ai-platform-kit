@@ -1,7 +1,7 @@
 fullnameOverride: ollama
 replicaCount: 1
 model:
-  name: qwen2.5:0.5b
+  name: qwen3:0.6b
   pullOnStart: false
 persistence:
   enabled: true

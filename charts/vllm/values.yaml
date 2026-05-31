@@ -2,13 +2,13 @@ replicaCount: 1
 
 image:
   repository: vllm/vllm-openai
-  tag: "v0.7.2"
+  tag: "v0.22.0"
   pullPolicy: IfNotPresent
 
 model:
-  name: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+  name: Qwen/Qwen3-Coder-Next
   dtype: auto
-  maxModelLen: "2048"
+  maxModelLen: "262144"
 
 service:
   port: 8000
@@ -22,7 +22,7 @@ accelerator:
   enabled: true
   vendor: nvidia
   resourceName: nvidia.com/gpu
-  count: 1
+  count: 4
   runtimeClassName: ""
   nodeSelector:
     platform.ai/node-pool: gpu
@@ -51,10 +51,10 @@ autoscaling:
 resources:
   requests:
     cpu: "2"
-    memory: 8Gi
+    memory: 32Gi
   limits:
     cpu: "4"
-    memory: 16Gi
+    memory: 64Gi
 
 podLabels:
   platform.ai/cost-center: platform
@@ -72,4 +72,9 @@ externalSecrets:
   huggingFaceTokenKey: token
 
 extraEnv: []
-extraArgs: []
+extraArgs:
+  - --tensor-parallel-size
+  - "4"
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - qwen3_coder

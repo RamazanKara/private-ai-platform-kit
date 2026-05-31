@@ -55,7 +55,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: curl
-          image: curlimages/curl:8.11.1
+          image: curlimages/curl:8.20.0
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh

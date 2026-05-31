@@ -262,7 +262,7 @@ def static_controls() -> list[Control]:
             "Model lifecycle governance",
             exists("scripts/model-catalog.py", "runbooks/model-governance.md", "results/model-catalog/sample-summary.md")
             and executable("scripts/model-catalog.py")
-            and exists("model-catalog/promotion-requests/qwen-local-lab-approved.yaml", "model-catalog/promotion-requests/tinyllama-customer-lab-approved.yaml"),
+            and exists("model-catalog/promotion-requests/qwen3-local-lab-approved.yaml", "model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml"),
             "Approved models require promotion requests, evidence references, runtime metadata, and approved-only gateway allowlists.",
             ["scripts/model-catalog.py", "model-catalog/promotion-requests/", "runbooks/model-governance.md"],
             "Run `make model-check` before changing model status or gateway allowlists.",

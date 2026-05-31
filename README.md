@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/RamazanKara/private-ai-platform-kit)](LICENSE)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-GitOps-326CE5)
 ![Helm](https://img.shields.io/badge/Helm-charts-0F1689)
-![Python](https://img.shields.io/badge/Python-3.12-3776AB)
+![Python](https://img.shields.io/badge/Python-3.14-3776AB)
 
 Private AI Platform Kit is a hands-on reference implementation for teams that want to run private LLMs and coding agents on Kubernetes. It starts locally on `kind`, then carries the same charts, policies, runbooks, and evidence checks into customer-owned clusters.
 
@@ -115,7 +115,7 @@ Run a smoke test through the gateway:
 
     make smoke RUNTIME_BACKEND=ollama
 
-The default local path uses Ollama with `qwen2.5:0.5b` for smoke testing. The smoke scripts send `PLATFORM_API_KEY`, defaulting to the local demo key `local-development-only`. A real model pull can take time and disk space; set `MODEL_ID` in the gateway values when you want to use a different model.
+The default local path uses Ollama with `qwen3:0.6b` for smoke testing. The smoke scripts send `PLATFORM_API_KEY`, defaulting to the local demo key `local-development-only`. A real model pull can take time and disk space; set `MODEL_ID` in the gateway values when you want to use a different model.
 
 Run the traceable sandbox proof:
 
@@ -162,7 +162,7 @@ For an existing Kubernetes cluster, install Argo CD, update `gitops/argocd/root-
 
 GPU scheduling is standard Kubernetes scheduling. NVIDIA clusters should expose `nvidia.com/gpu`; AMD clusters should expose `amd.com/gpu`. Label GPU nodes with `platform.ai/node-pool=gpu` and `platform.ai/gpu-vendor=<nvidia|amd>`, then use `clusters/customer/values/vllm-nvidia.yaml` or `clusters/customer/values/vllm-amd.yaml`.
 
-The default customer vLLM profile runs multiple replicas with an HPA, PodDisruptionBudget, service-account token automount disabled, and topology spread constraints. The local profile keeps vLLM at zero replicas so CPU-only workstations can run the lab with Ollama.
+The default customer vLLM profile runs `Qwen/Qwen3-Coder-Next` with multiple replicas, an HPA, PodDisruptionBudget, service-account token automount disabled, and topology spread constraints. It requests four GPUs per replica for tensor parallel serving; reduce the model, context length, or GPU count in customer values when targeting smaller clusters. The local profile keeps vLLM at zero replicas so CPU-only workstations can run the lab with Ollama.
 
 Customer RAG values switch `retrieval.backend` to `qdrant` and deploy `charts/qdrant-vector-store` with persistent storage. Customers should size Qdrant storage, vector dimensions, and document ingestion to their own embedding model and approved knowledge pipeline.
 

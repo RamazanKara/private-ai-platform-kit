@@ -1,11 +1,11 @@
 {
   "approved_models_checked": [
-    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-    "qwen2.5:0.5b"
+    "Qwen/Qwen3-Coder-Next",
+    "qwen3:0.6b"
   ],
   "artifacts_checked": [
-    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-    "qwen2.5:0.5b"
+    "Qwen/Qwen3-Coder-Next",
+    "qwen3:0.6b"
   ],
   "errors": [],
   "generated_at": "2026-05-31T00:00:00Z",

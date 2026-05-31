@@ -3,5 +3,4 @@ name: vllm
 description: GPU-backed OpenAI-compatible LLM runtime.
 type: application
 version: 0.1.0
-appVersion: "0.7.2"
-
+appVersion: "0.22.0"

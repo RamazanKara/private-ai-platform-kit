@@ -21,7 +21,7 @@ data:
         restore:
           timeout: 10m
           container:
-            image: redis:7-alpine
+            image: redis:8.0-alpine
             resources:
               memory: 512Mi
               cpu: "1"

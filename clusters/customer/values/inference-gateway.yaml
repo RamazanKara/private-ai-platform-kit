@@ -1,16 +1,16 @@
 replicaCount: 2
 runtime:
   backend: ollama
-  modelId: qwen2.5:0.5b
+  modelId: qwen3:0.6b
   ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
   vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
   allowedModels:
-    - qwen2.5:0.5b
-    - TinyLlama/TinyLlama-1.1B-Chat-v1.0
+    - qwen3:0.6b
+    - Qwen/Qwen3-Coder-Next
 admission:
   maxMessages: 32
-  maxPromptChars: 32768
-  maxCompletionTokens: 4096
+  maxPromptChars: 131072
+  maxCompletionTokens: 8192
   allowStreaming: false
 guardrails:
   promptSecretDetection:

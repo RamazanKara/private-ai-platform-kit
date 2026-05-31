@@ -1,23 +1,27 @@
 apiVersion: platform.ai/v1alpha1
 kind: ModelPromotionRequest
 metadata:
-  name: qwen-local-lab-approved
+  name: qwen3-coder-customer-lab-approved
 spec:
-  modelId: qwen2.5:0.5b
+  modelId: Qwen/Qwen3-Coder-Next
   targetStatus: approved
   requestedBy: platform-team
   approvers:
     - platform-team
-  businessJustification: Local CPU smoke-test model for workstation validation.
-  runtime: ollama
+  businessJustification: Current OpenAI-compatible Qwen3 Coder Next profile for customer GPU coding-agent validation.
+  runtime: vllm
   accelerators:
-    - cpu
+    - nvidia
+    - amd
   rollout:
     environments:
-      - local
+      - customer
     allowedModelFiles:
-      - clusters/local/values/inference-gateway.yaml
       - clusters/customer/values/inference-gateway.yaml
+    runtimeValueFiles:
+      - clusters/customer/values/vllm.yaml
+      - clusters/customer/values/vllm-nvidia.yaml
+      - clusters/customer/values/vllm-amd.yaml
   evidence:
     evalSuite: evals/smoke-suite.yaml
     evalSummary: results/evals/sample-summary.md
@@ -25,5 +29,5 @@ spec:
     securityWorkflow: .github/workflows/ci.yml
   conditions:
     promptLogging: redacted
-    externalNetworkRequired: false
-    requiresGpu: false
+    externalNetworkRequired: true
+    requiresGpu: true

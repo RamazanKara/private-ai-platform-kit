@@ -64,7 +64,7 @@ spec:
       versionCommand: ["python3", "--version"]
       category: runtime
       purpose: Runs service tests, YAML checks, readiness gates, report generators, and local automation.
-      installHint: Install Python 3.12 or newer.
+      installHint: Install Python 3.14 or newer.
     docker:
       command: docker
       versionCommand: ["docker", "--version"]
@@ -94,7 +94,7 @@ spec:
       versionCommand: ["go", "version"]
       category: build
       purpose: Builds or installs Go-based validation utilities such as kubeconform, Kyverno CLI, and restore-drill.
-      installHint: Install Go 1.25 or newer for the CI-aligned validation path.
+      installHint: Install Go 1.26 or newer for the CI-aligned validation path.
     kubeconform:
       command: kubeconform
       versionCommand: ["kubeconform", "-v"]

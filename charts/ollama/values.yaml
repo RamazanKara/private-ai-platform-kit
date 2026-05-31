@@ -2,11 +2,11 @@ replicaCount: 1
 
 image:
   repository: ollama/ollama
-  tag: "0.5.7"
+  tag: "0.24.0"
   pullPolicy: IfNotPresent
 
 model:
-  name: qwen2.5:0.5b
+  name: qwen3:0.6b
   pullOnStart: false
 
 service:

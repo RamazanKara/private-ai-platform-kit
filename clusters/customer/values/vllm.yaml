@@ -1,12 +1,12 @@
 fullnameOverride: vllm
 replicaCount: 2
 model:
-  name: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+  name: Qwen/Qwen3-Coder-Next
 accelerator:
   enabled: true
   vendor: nvidia
   resourceName: nvidia.com/gpu
-  count: 1
+  count: 4
   nodeSelector:
     platform.ai/node-pool: gpu
     platform.ai/gpu-vendor: nvidia
