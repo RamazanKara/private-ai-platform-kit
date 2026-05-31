@@ -59,6 +59,7 @@ Use this map to move from product overview to implementation detail, operational
 | Asset | Path |
 | --- | --- |
 | Architecture diagram | [architecture.svg](assets/architecture.svg) |
+| README animated demo | [ai-platform-ops-lab-demo.gif](assets/ai-platform-ops-lab-demo.gif) |
 | README demo video | [ai-platform-ops-lab-demo.mp4](assets/ai-platform-ops-lab-demo.mp4) |
 | Demo poster image | [ai-platform-ops-lab-demo-poster.png](assets/ai-platform-ops-lab-demo-poster.png) |
 | Live demo command script | [demo-live.sh](../scripts/demo-live.sh) |

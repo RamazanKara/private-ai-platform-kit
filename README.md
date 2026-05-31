@@ -16,12 +16,14 @@ This repo proves a private AI platform can be operated with GitOps, policy as co
 ## Live Demo
 
 <p align="center">
-  <video src="docs/assets/ai-platform-ops-lab-demo.mp4" poster="docs/assets/ai-platform-ops-lab-demo-poster.png" controls muted playsinline width="100%" title="AI Platform Ops Lab live demo"></video>
+  <a href="docs/assets/ai-platform-ops-lab-demo.mp4">
+    <img src="docs/assets/ai-platform-ops-lab-demo.gif" alt="Terminal demo showing a private AI assistant saying hello world" width="100%">
+  </a>
 </p>
 
-[Watch or download the live demo](docs/assets/ai-platform-ops-lab-demo.mp4)
+[Watch or download the MP4](docs/assets/ai-platform-ops-lab-demo.mp4)
 
-The demo video is generated from a real command run with `scripts/demo-live.sh`.
+The demo is a short terminal hello-world cut generated from `scripts/demo-live.sh`.
 
 ## Why It Matters
 
