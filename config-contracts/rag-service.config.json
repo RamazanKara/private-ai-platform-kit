@@ -1,0 +1,211 @@
+{
+  "contract_version": "v1",
+  "environment": [
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "auth.enabled",
+      "description": "Whether business endpoints require API key or bearer-token auth.",
+      "field": "api_key_auth_enabled",
+      "name": "API_KEY_AUTH_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "X-API-Key",
+      "chart_default": "X-API-Key",
+      "chart_value": "auth.apiKeyHeader",
+      "description": "Header name accepted for API key authentication.",
+      "field": "api_key_header",
+      "name": "API_KEY_HEADER",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": [],
+      "chart_default": [],
+      "chart_value": "auth.apiKeyHashes",
+      "description": "Comma-separated SHA-256 API key hashes.",
+      "field": "api_key_sha256s",
+      "name": "API_KEY_SHA256S",
+      "sensitive": true,
+      "type": "csv"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": true,
+      "chart_default": true,
+      "chart_value": "traceability.auditLogEnabled",
+      "description": "Whether redacted RAG audit logging is enabled.",
+      "field": "audit_log_enabled",
+      "name": "AUDIT_LOG_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "local-lab",
+      "chart_default": "local-lab",
+      "chart_value": "traceability.defaultSandboxId",
+      "description": "Fallback sandbox ID when callers do not send X-Sandbox-ID.",
+      "field": "default_sandbox_id",
+      "name": "DEFAULT_SANDBOX_ID",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 3,
+      "chart_default": 3,
+      "chart_value": "retrieval.defaultTopK",
+      "description": "Default number of retrieval results.",
+      "field": "default_top_k",
+      "name": "DEFAULT_TOP_K",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 6000,
+      "chart_default": 6000,
+      "chart_value": "retrieval.maxContextChars",
+      "description": "Maximum context characters returned to callers.",
+      "field": "max_context_chars",
+      "name": "MAX_CONTEXT_CHARS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 2048,
+      "chart_default": 2048,
+      "chart_value": "retrieval.maxQueryChars",
+      "description": "Maximum accepted query length in characters.",
+      "field": "max_query_chars",
+      "name": "MAX_QUERY_CHARS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 8,
+      "chart_default": 8,
+      "chart_value": "retrieval.maxTopK",
+      "description": "Maximum allowed retrieval result count.",
+      "field": "max_top_k",
+      "name": "MAX_TOP_K",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": true,
+      "chart_default": true,
+      "chart_value": "retrieval.vectorStore.bootstrapFromKnowledge",
+      "description": "Whether knowledge documents are bootstrapped into Qdrant on first query.",
+      "field": "vector_bootstrap_enabled",
+      "name": "QDRANT_BOOTSTRAP_FROM_KNOWLEDGE",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [
+        "VECTOR_COLLECTION"
+      ],
+      "allowed_values": [],
+      "app_default": "private-ai-platform-kit",
+      "chart_default": "private-ai-platform-kit",
+      "chart_value": "retrieval.vectorStore.collection",
+      "description": "Qdrant collection name.",
+      "field": "vector_collection",
+      "name": "QDRANT_COLLECTION",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [
+        "VECTOR_TIMEOUT_SECONDS"
+      ],
+      "allowed_values": [],
+      "app_default": 1.0,
+      "chart_default": 1.0,
+      "chart_value": "retrieval.vectorStore.timeoutSeconds",
+      "description": "Qdrant request timeout in seconds.",
+      "field": "vector_timeout_seconds",
+      "name": "QDRANT_TIMEOUT_SECONDS",
+      "sensitive": false,
+      "type": "float"
+    },
+    {
+      "aliases": [
+        "VECTOR_STORE_URL"
+      ],
+      "allowed_values": [],
+      "app_default": "",
+      "chart_default": "",
+      "chart_value": "retrieval.vectorStore.url",
+      "description": "Qdrant base URL when vector retrieval is enabled.",
+      "field": "vector_store_url",
+      "name": "QDRANT_URL",
+      "sensitive": false,
+      "type": "url"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 384,
+      "chart_default": 384,
+      "chart_value": "retrieval.vectorStore.dimensions",
+      "description": "Vector dimension count expected by Qdrant.",
+      "field": "vector_dimensions",
+      "name": "QDRANT_VECTOR_DIMENSIONS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "/knowledge",
+      "chart_default": "/knowledge",
+      "chart_value": "knowledge.mountPath",
+      "description": "Directory containing mounted knowledge documents.",
+      "field": "document_dir",
+      "name": "RAG_DOCUMENT_DIR",
+      "sensitive": false,
+      "type": "path"
+    },
+    {
+      "aliases": [
+        "RETRIEVAL_BACKEND"
+      ],
+      "allowed_values": [
+        "lexical",
+        "qdrant"
+      ],
+      "app_default": "lexical",
+      "chart_default": "lexical",
+      "chart_value": "retrieval.backend",
+      "description": "Retrieval backend used by the service.",
+      "field": "retrieval_backend",
+      "name": "RAG_RETRIEVAL_BACKEND",
+      "sensitive": false,
+      "type": "string"
+    }
+  ],
+  "helm_chart": "charts/rag-service",
+  "service": "rag-service",
+  "service_settings": "services/rag-service/app/settings.py"
+}

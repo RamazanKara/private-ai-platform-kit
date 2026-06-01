@@ -19,7 +19,7 @@ Set every Argo CD `repoURL` to the customer fork or mirror, pin the revision to 
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.3.1 \
+  CUSTOMER_REVISION=v0.3.2 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
@@ -115,7 +115,7 @@ For in-cluster validation after the local lab is synced:
 
 ```bash
 make evidence LIVE=1
-make release-gate
+make release-gate-strict
 ```
 
 ## Handoff Checklist
@@ -127,4 +127,4 @@ make release-gate
 - RAG knowledge and vector collections contain only approved customer content.
 - Agent egress uses reviewed entries from `network/egress-catalog.yaml`.
 - Restore-drill evidence is generated and retained under the customer policy.
-- SLO, quota, retention, egress, model, eval, load, and evidence reports pass for the release.
+- SLO, quota, retention, egress, model, eval, load, and evidence reports pass strict release gates without falling back to checked-in samples.

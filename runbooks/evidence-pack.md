@@ -63,12 +63,16 @@ Run the static gates and live smoke paths first:
     make model-provenance-report
     make egress-report
     make retention-report
-    make release-gate
     make smoke RUNTIME_BACKEND=ollama
     make rag-smoke
     make agent-smoke
     make eval
     make restore-drill RUNTIME=local
+    make api-contract
+    make config-contract
+    make image-scan
     make evidence LIVE=1
+    make release-gate-strict
+    make release-report-strict
 
 Attach the generated Markdown report to the customer handoff notes and retain the JSON report with release or drill evidence.

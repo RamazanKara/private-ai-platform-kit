@@ -547,8 +547,24 @@ def check_release_packaging(errors: list[str]) -> None:
     require(errors, workflow_path.exists(), "CI workflow must exist")
     if workflow_path.exists():
         workflow = workflow_path.read_text()
-        for token in ("GATEWAY_TAGS", "RAG_TAGS", "GITHUB_REF_NAME", ":latest", ":main", "cosign sign --yes"):
-            require(errors, token in workflow, f"CI workflow must publish and sign release image tags with {token}")
+        for token in (
+            "GATEWAY_TAGS",
+            "RAG_TAGS",
+            "GITHUB_REF_NAME",
+            ":latest",
+            ":main",
+            "steps.build_gateway.outputs.digest",
+            "steps.build_rag.outputs.digest",
+            "cosign sign --yes",
+            "supply-chain-checksums.txt",
+            "gh release create",
+            "gh release upload",
+            "--generate-notes",
+            "severity: HIGH,CRITICAL",
+            'exit-code: "1"',
+            "actions/upload-artifact",
+        ):
+            require(errors, token in workflow, f"CI workflow must publish and sign release supply-chain evidence with {token}")
 
     gateway_values = yaml.safe_load((ROOT / "charts/inference-gateway/values.yaml").read_text()) or {}
     rag_values = yaml.safe_load((ROOT / "charts/rag-service/values.yaml").read_text()) or {}
@@ -573,10 +589,30 @@ def check_release_packaging(errors: list[str]) -> None:
 
     for service in ("inference-gateway", "rag-service"):
         dockerignore = ROOT / f"services/{service}/.dockerignore"
+        dockerfile = ROOT / f"services/{service}/Dockerfile"
+        requirements = ROOT / f"services/{service}/requirements.txt"
+        dev_requirements = ROOT / f"services/{service}/requirements-dev.txt"
+        require(errors, dockerfile.exists(), f"{service} Dockerfile must exist")
+        if dockerfile.exists():
+            dockerfile_text = dockerfile.read_text()
+            require(errors, "python:3.14-alpine@sha256:" in dockerfile_text, f"{service} Dockerfile must use a pinned Alpine Python base image")
+            require(errors, "python:3.14-slim" not in dockerfile_text, f"{service} Dockerfile must not use Debian slim runtime base")
+        require(errors, requirements.exists(), f"{service} runtime requirements must exist")
+        if requirements.exists():
+            require(errors, "pytest" not in requirements.read_text(), f"{service} runtime requirements must not include pytest")
+        require(errors, dev_requirements.exists(), f"{service} dev requirements must exist")
+        if dev_requirements.exists():
+            dev_text = dev_requirements.read_text()
+            require(errors, "-r requirements.txt" in dev_text and "pytest" in dev_text, f"{service} dev requirements must extend runtime requirements and include pytest")
         require(errors, dockerignore.exists(), f"{service} Docker context must define .dockerignore")
         if dockerignore.exists():
             text = dockerignore.read_text()
             require(errors, ".venv/" in text and ".pytest_cache/" in text, f"{service} .dockerignore must exclude local test environments")
+
+    image_scan = ROOT / "scripts/image-scan.sh"
+    require(errors, os.access(image_scan, os.X_OK), "scripts/image-scan.sh must be executable")
+    makefile = (ROOT / "Makefile").read_text()
+    require(errors, "image-scan:" in makefile, "Makefile must expose image-scan target")
 
     overlay_script = ROOT / "scripts/configure-customer-overlay.py"
     require(errors, os.access(overlay_script, os.X_OK), "customer overlay configurator must be executable")
@@ -595,6 +631,67 @@ def check_release_packaging(errors: list[str]) -> None:
         require(errors, completed.returncode == 0, f"customer overlay check failed: {completed.stderr or completed.stdout}")
 
 
+def check_repo_hygiene(errors: list[str]) -> None:
+    script = ROOT / "scripts/repo-hygiene.py"
+    require(errors, os.access(script, os.X_OK), "scripts/repo-hygiene.py must be executable")
+    for path in ("CONTRIBUTING.md", "SECURITY.md", ".github/CODEOWNERS"):
+        require(errors, (ROOT / path).exists(), f"repository hygiene requires {path}")
+    makefile = (ROOT / "Makefile").read_text()
+    require(errors, "help:" in makefile and "repo-hygiene:" in makefile, "Makefile must expose help and repo-hygiene targets")
+    if script.exists():
+        completed = subprocess.run(
+            [sys.executable, str(script), "--check"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        require(errors, completed.returncode == 0, f"repo hygiene check failed: {completed.stderr or completed.stdout}")
+
+
+def check_api_contracts(errors: list[str]) -> None:
+    script = ROOT / "scripts/api-contract.py"
+    require(errors, os.access(script, os.X_OK), "scripts/api-contract.py must be executable")
+    for path in (
+        "api-contracts/README.md",
+        "api-contracts/inference-gateway.openapi.json",
+        "api-contracts/rag-service.openapi.json",
+    ):
+        require(errors, (ROOT / path).exists(), f"API contract artifact missing: {path}")
+    makefile = (ROOT / "Makefile").read_text()
+    require(errors, "api-contract:" in makefile, "Makefile must expose api-contract target")
+    require(errors, "api-contract-update:" in makefile, "Makefile must expose api-contract-update target")
+    if script.exists():
+        completed = subprocess.run(
+            [sys.executable, str(script), "--check"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        require(errors, completed.returncode == 0, f"API contract check failed: {completed.stderr or completed.stdout}")
+
+
+def check_config_contracts(errors: list[str]) -> None:
+    script = ROOT / "scripts/config-contract.py"
+    require(errors, os.access(script, os.X_OK), "scripts/config-contract.py must be executable")
+    for path in (
+        "config-contracts/README.md",
+        "config-contracts/inference-gateway.config.json",
+        "config-contracts/rag-service.config.json",
+    ):
+        require(errors, (ROOT / path).exists(), f"configuration contract artifact missing: {path}")
+    makefile = (ROOT / "Makefile").read_text()
+    require(errors, "config-contract:" in makefile, "Makefile must expose config-contract target")
+    require(errors, "config-contract-update:" in makefile, "Makefile must expose config-contract-update target")
+    if script.exists():
+        completed = subprocess.run(
+            [sys.executable, str(script), "--check"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        require(errors, completed.returncode == 0, f"configuration contract check failed: {completed.stderr or completed.stdout}")
+
+
 def check_release_gates(errors: list[str]) -> None:
     config_path = ROOT / "slo/release-gates.yaml"
     script = ROOT / "scripts/release-gate.py"
@@ -602,6 +699,9 @@ def check_release_gates(errors: list[str]) -> None:
     require(errors, os.access(script, os.X_OK), "scripts/release-gate.py must be executable")
     require(errors, (ROOT / "runbooks/release-gates.md").exists(), "release gates runbook must exist")
     require(errors, (ROOT / "results/release-gate/sample-summary.md").exists(), "release gate sample summary must exist")
+    makefile = (ROOT / "Makefile").read_text()
+    require(errors, "release-gate-strict:" in makefile, "Makefile must expose release-gate-strict")
+    require(errors, "release-report-strict:" in makefile, "Makefile must expose release-report-strict")
     for path in [
         ROOT / "results/evals/sample-summary.json",
         ROOT / "results/loadtest/sample-summary.json",
@@ -616,6 +716,9 @@ def check_release_gates(errors: list[str]) -> None:
         expected = {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "evidencePack"}
         require(errors, expected <= gates, f"release gate config missing {sorted(expected - gates)}")
     if script.exists():
+        source = script.read_text()
+        require(errors, "--require-current-evidence" in source, "release gate script must support current-evidence enforcement")
+        require(errors, "--max-evidence-age-hours" in source, "release gate script must support evidence freshness enforcement")
         completed = subprocess.run(
             [sys.executable, str(script), "--check"],
             cwd=ROOT,
@@ -854,7 +957,7 @@ def check_values_and_docs(errors: list[str]) -> None:
     for path in required_docs:
         require(errors, path.exists(), f"missing required production document {path.relative_to(ROOT)}")
     production_doc = (ROOT / "docs/production-readiness.md").read_text()
-    for phrase in ("API authentication", "Traceability", "Model governance", "Model lifecycle", "Model provenance", "Prompt secret detection", "Sandbox budgets", "Shared budget backend", "Quota and chargeback", "RAG service", "Vector RAG profile", "Agent workspaces", "Egress governance", "Data retention", "SLO and error budget", "Tenant labs", "Chaos drills", "Evaluation harness", "Evidence pack", "Validation toolchain", "make toolchain-install", "Release gates", "Sandbox isolation", "Backup and restore", "Supply chain"):
+    for phrase in ("API authentication", "API contracts", "Configuration contracts", "Traceability", "Model governance", "Model lifecycle", "Model provenance", "Prompt secret detection", "Sandbox budgets", "Shared budget backend", "Quota and chargeback", "RAG service", "Vector RAG profile", "Agent workspaces", "Egress governance", "Data retention", "SLO and error budget", "Tenant labs", "Chaos drills", "Evaluation harness", "Evidence pack", "Validation toolchain", "make toolchain-install", "Release gates", "Sandbox isolation", "Backup and restore", "Supply chain"):
         require(errors, phrase in production_doc, f"production readiness matrix missing {phrase}")
     policies = (ROOT / "policies/kyverno/policies.yaml").read_text()
     require(errors, "platform.ai/sandbox-id" in policies, "Kyverno policies must require sandbox id labels")
@@ -934,6 +1037,9 @@ def main() -> int:
     check_validation_toolchain(errors)
     check_release_gates(errors)
     check_release_packaging(errors)
+    check_repo_hygiene(errors)
+    check_api_contracts(errors)
+    check_config_contracts(errors)
     check_slo_governance(errors)
     check_quota_governance(errors)
     check_model_provenance_governance(errors)

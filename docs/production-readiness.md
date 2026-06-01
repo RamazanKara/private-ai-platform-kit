@@ -11,6 +11,8 @@ This kit is local-first, but the controls are shaped like customer production co
 | Runtime high availability | Gateway replicas, vLLM replicas, HPA, PDBs, and topology spread | Size min/max replicas to SLOs and GPU inventory | `helm template` in `make validate` |
 | Traceability | `X-Request-ID`, `X-Sandbox-ID`, optional `traceparent`, JSON audit events | Forward the same headers through ingress and log pipeline | `make smoke`, `make sandbox-smoke`, gateway tests |
 | API authentication | Gateway and RAG business endpoints require API keys in local/customer values | Back hashes with customer secret manager and rotate keys through External Secrets | gateway/RAG auth tests, `make smoke`, `make rag-smoke` |
+| API contracts | `api-contracts/` stores OpenAPI snapshots for gateway and RAG with stable operation IDs and auth declarations | Review contract diffs before changing customer-facing routes, request schemas, or auth semantics | `make api-contract`, `make api-contract-update` |
+| Configuration contracts | `config-contracts/` stores service runtime env snapshots and checks them against Python settings, Helm templates, and chart defaults | Review config diffs before changing customer overlays, secrets, budgets, retrieval settings, or runtime endpoints | `make config-contract`, `make config-contract-update` |
 | Prompt privacy | Audit logs include prompt length and SHA-256 only | Do not log raw prompt text by default | `test_audit_log_redacts_prompt_content` |
 | Data retention | `governance/data-retention.yaml` covers audit logs, generated evidence, RAG knowledge, agent workspace data, and model governance records | Align retention days and classification to customer policy | `make retention-check`, `make retention-report` |
 | Model governance | Gateway `ALLOWED_MODELS` rejects unapproved model IDs | Maintain an approved model catalog per environment | `test_chat_completion_rejects_disallowed_model` |
@@ -34,13 +36,13 @@ This kit is local-first, but the controls are shaped like customer production co
 | Egress governance | `network/egress-catalog.yaml` requires external agent egress to reference approved catalog entries | Review and expire Git, package mirror, artifact, and ticketing egress entries | `make egress-check`, `make egress-report` |
 | Chaos drills | Safe rollout drills for gateway, budget Redis, Ollama, RAG, Qdrant, vLLM, and GPU capacity preflight | Run after platform upgrades and before customer demos or maintenance windows | `make chaos-drill`, `DRILL=gpu-capacity-preflight RUN_SMOKE=0 make chaos-drill` |
 | Evaluation harness | `evals/smoke-suite.yaml`, `evals/coding-agent-suite.yaml`, and `make eval` for repeatable prompt and coding-agent checks | Maintain environment-specific suites and keep summaries as release evidence | `scripts/eval-suite.py --check-config` |
-| Release gates | `slo/release-gates.yaml` enforces eval, load, restore, strict toolchain, SLO, governance, and evidence-pack thresholds | Run before demos, releases, restore reviews, and production-readiness handoff | `make release-gate`, `make release-report` |
+| Release gates | `slo/release-gates.yaml` enforces eval, load, restore, strict toolchain, SLO, governance, and evidence-pack thresholds | Run strict gates before demos, releases, restore reviews, and production-readiness handoff so checked-in sample evidence cannot pass | `make release-gate`, `make release-gate-strict`, `make release-report-strict` |
 | Autoscaling | KEDA ScaledObject from Prometheus request rate | Tune thresholds to customer SLOs and GPU capacity | `helm template` in `make validate` |
 | Observability | Prometheus metrics, Grafana dashboard, Loki-ready structured logs | Centralize metrics, logs, and alerts | `make validate`, dashboards in `observability/` |
 | Policy as code | Kyverno required labels, resources, pod hardening, image signature audit | Enforce on AI namespaces and exclude platform operators | `make policy-test` when Kyverno CLI is installed |
 | Cost controls | Required owner/cost/environment/sandbox labels and OpenCost app | Map labels to chargeback/showback taxonomy | `make validate` YAML checks |
 | Secret handling | External Secrets examples and no committed runtime tokens | Replace local Kubernetes provider with enterprise backend | `clusters/customer/external-secrets.yaml` |
-| Supply chain | SBOM with Syft, Trivy scan, Cosign signing in CI | Promote only signed/scanned images | GitHub Actions image job |
+| Supply chain | Pinned Alpine runtime images, runtime-only Python dependencies, high/critical Trivy failure gates, SBOMs, Cosign digest signing, workflow artifacts, and release asset upload in CI | Promote only immutable signed/scanned image digests with downloadable evidence | `make image-scan`, GitHub Actions image job |
 | Backup and restore | `restore-drill` application-data validation and Velero examples | Run scheduled restore evidence for each critical data store | `make restore-drill`, `make backup-drill` |
 | Load testing | k6 chat-completion scenario with sandbox tags | Store summaries and compare against SLOs | `make loadtest` |
 | Evidence pack | Static customer handoff report plus optional live Kubernetes readiness checks | Attach reports to release, demo, restore drill, or incident review evidence | `make evidence`, `make evidence LIVE=1` |
@@ -51,6 +53,8 @@ This kit is local-first, but the controls are shaped like customer production co
 - Keep `platform.ai/owner`, `platform.ai/cost-center`, `platform.ai/environment`, and `platform.ai/sandbox-id` on every AI workload.
 - Route every request with `X-Request-ID` and `X-Sandbox-ID`; propagate `traceparent` when an upstream trace exists.
 - Require `X-API-Key` or Bearer API keys for gateway and RAG business endpoints; store only SHA-256 hashes in Kubernetes Secrets.
+- Confirm `make api-contract` passes and any OpenAPI snapshot diff is intentional before customer integration or release review.
+- Confirm `make config-contract` passes and any runtime configuration snapshot diff is intentional before customer overlay changes.
 - Confirm audit logs do not contain raw prompt or completion text unless a customer has explicitly approved that behavior.
 - Confirm data retention policy and generated evidence retention match customer requirements.
 - Confirm `ALLOWED_MODELS` contains only approved model IDs for the environment.
@@ -75,9 +79,9 @@ This kit is local-first, but the controls are shaped like customer production co
 - Confirm `make slo-check` passes against current load, eval, restore, and evidence-pack artifacts.
 - Confirm NetworkPolicies allow only expected ingress and egress paths.
 - Confirm restore-drill evidence is generated on schedule and retained according to the customer's audit policy.
-- Confirm CI produces an SBOM, scans the image, and signs the image before promotion.
+- Confirm runtime images exclude test-only dependencies, `make image-scan` passes, and CI produces SBOMs, fails on high/critical image vulnerabilities, signs immutable image digests, and publishes downloadable supply-chain evidence before promotion.
 - Confirm evaluation summaries pass for the selected model and suite.
 - Confirm coding-agent evaluation cases cover change planning, secret handling, prompt-injection boundaries, and incident triage.
 - Confirm load-test results meet customer SLOs for latency, error rate, and throughput.
-- Confirm `make release-gate` passes against current handoff evidence.
+- Confirm `make release-gate-strict` passes against current handoff evidence without falling back to checked-in samples.
 - Confirm an evidence pack has been generated and attached to the customer handoff or release review.

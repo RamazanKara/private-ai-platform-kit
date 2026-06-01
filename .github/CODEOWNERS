@@ -1,0 +1,28 @@
+# Default ownership for platform-wide changes.
+* @RamazanKara
+
+# Runtime services and tests.
+/services/ @RamazanKara
+/tests/ @RamazanKara
+
+# Kubernetes, GitOps, and customer deployment surface.
+/charts/ @RamazanKara
+/clusters/ @RamazanKara
+/gitops/ @RamazanKara
+/policies/ @RamazanKara
+
+# Governance, evidence, and release controls.
+/governance/ @RamazanKara
+/model-catalog/ @RamazanKara
+/network/ @RamazanKara
+/slo/ @RamazanKara
+/scripts/ @RamazanKara
+/.github/workflows/ @RamazanKara
+
+# Customer-facing documentation and runbooks.
+/README.md @RamazanKara
+/CONTRIBUTING.md @RamazanKara
+/SECURITY.md @RamazanKara
+/docs/ @RamazanKara
+/runbooks/ @RamazanKara
+/clusters/customer/README.md @RamazanKara

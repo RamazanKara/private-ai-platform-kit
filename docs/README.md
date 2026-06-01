@@ -7,6 +7,8 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Need | Document |
 | --- | --- |
 | Public overview | [README](../README.md) |
+| Contributor workflow | [Contributing](../CONTRIBUTING.md) |
+| Security policy | [Security](../SECURITY.md) |
 | GitHub Pages landing page | [index.html](index.html) |
 | Local setup and validation flow | [Getting started](getting-started.md) |
 | Production control matrix | [Production readiness](production-readiness.md) |
@@ -26,6 +28,8 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Need | Document |
 | --- | --- |
 | API-key access model | [API access](../runbooks/api-access.md) |
+| API contract snapshots | [API contracts](../api-contracts/README.md) |
+| Configuration contract snapshots | [Configuration contracts](../config-contracts/README.md) |
 | Traceable sandbox controls | [Traceability sandbox](../runbooks/traceability-sandbox.md) |
 | Sandbox budget controls | [Budget controls](../runbooks/budget-controls.md) |
 | Prompt and secret guardrails | [Guardrails](../runbooks/guardrails.md) |

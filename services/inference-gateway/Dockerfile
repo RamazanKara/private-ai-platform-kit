@@ -1,13 +1,12 @@
-FROM python:3.14-slim AS runtime
+FROM python:3.14-alpine@sha256:5a824eb82cc75361f98611f3cfc5091ea33f10a6ccea4d4ebdabbc523b9a1614 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
-    && useradd --create-home --uid 10001 appuser
+RUN python -m pip install --no-cache-dir --disable-pip-version-check -r requirements.txt \
+    && adduser -D -H -u 10001 appuser
 
 COPY app ./app
 USER 10001

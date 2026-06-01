@@ -32,4 +32,4 @@ Reports are written under `results/model-provenance/`.
 
 The bundled local lab uses source-reference digests so the governance workflow is runnable without a private model store. For customer production, replace those with model-artifact digests from the customer's registry, object store, Hugging Face mirror, or model artifact repository.
 
-Keep model provenance changes reviewed with the matching `ModelPromotionRequest`. Do not add a model to gateway allowlists until `make model-check`, `make model-provenance-check`, and `make release-gate` pass.
+Keep model provenance changes reviewed with the matching `ModelPromotionRequest`. Do not add a model to gateway allowlists until `make model-check`, `make model-provenance-check`, and `make release-gate-strict` pass with current evidence.

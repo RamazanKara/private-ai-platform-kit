@@ -43,6 +43,18 @@ Run the default validation set:
 make validate
 ```
 
+Check the public service API snapshots when route or schema behavior changes:
+
+```bash
+make api-contract
+```
+
+Check that service settings, Helm environment variables, and chart defaults remain aligned:
+
+```bash
+make config-contract
+```
+
 Run the stricter check that fails when optional production tools are missing:
 
 ```bash
@@ -163,7 +175,8 @@ Check handoff gates against eval, load, restore, toolchain, SLO, governance, and
 
 ```bash
 make release-gate
-make release-report
+make release-gate-strict
+make release-report-strict
 ```
 
 ## Governance Checks
@@ -186,7 +199,7 @@ For an existing Kubernetes cluster, install Argo CD, configure the customer over
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.3.1 \
+  CUSTOMER_REVISION=v0.3.2 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 

@@ -1,0 +1,354 @@
+{
+  "contract_version": "v1",
+  "environment": [
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": [
+        "qwen3:0.6b"
+      ],
+      "chart_default": [
+        "qwen3:0.6b"
+      ],
+      "chart_value": "runtime.allowedModels",
+      "description": "Comma-separated allowlist of approved model IDs.",
+      "field": "allowed_models",
+      "name": "ALLOWED_MODELS",
+      "sensitive": false,
+      "type": "csv"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "admission.allowStreaming",
+      "description": "Whether streaming chat completions are admitted.",
+      "field": "allow_streaming",
+      "name": "ALLOW_STREAMING",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "auth.enabled",
+      "description": "Whether business endpoints require API key or bearer-token auth.",
+      "field": "api_key_auth_enabled",
+      "name": "API_KEY_AUTH_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "X-API-Key",
+      "chart_default": "X-API-Key",
+      "chart_value": "auth.apiKeyHeader",
+      "description": "Header name accepted for API key authentication.",
+      "field": "api_key_header",
+      "name": "API_KEY_HEADER",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": [],
+      "chart_default": [],
+      "chart_value": "auth.apiKeyHashes",
+      "description": "Comma-separated SHA-256 API key hashes.",
+      "field": "api_key_sha256s",
+      "name": "API_KEY_SHA256S",
+      "sensitive": true,
+      "type": "csv"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": true,
+      "chart_default": true,
+      "chart_value": "traceability.auditLogEnabled",
+      "description": "Whether redacted audit logging is enabled.",
+      "field": "audit_log_enabled",
+      "name": "AUDIT_LOG_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 4,
+      "chart_default": 4,
+      "chart_value": "budget.estimatedCharsPerToken",
+      "description": "Prompt-character to token estimate used for budget accounting.",
+      "field": "budget_estimated_chars_per_token",
+      "name": "BUDGET_ESTIMATED_CHARS_PER_TOKEN",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "local-lab",
+      "chart_default": "local-lab",
+      "chart_value": "traceability.defaultSandboxId",
+      "description": "Fallback sandbox ID when callers do not send X-Sandbox-ID.",
+      "field": "default_sandbox_id",
+      "name": "DEFAULT_SANDBOX_ID",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 1024,
+      "chart_default": 1024,
+      "chart_value": "admission.maxCompletionTokens",
+      "description": "Maximum requested completion tokens.",
+      "field": "max_completion_tokens",
+      "name": "MAX_COMPLETION_TOKENS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 16,
+      "chart_default": 16,
+      "chart_value": "admission.maxMessages",
+      "description": "Maximum messages accepted per chat request.",
+      "field": "max_messages",
+      "name": "MAX_MESSAGES",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 8192,
+      "chart_default": 8192,
+      "chart_value": "admission.maxPromptChars",
+      "description": "Maximum aggregate prompt characters accepted per request.",
+      "field": "max_prompt_chars",
+      "name": "MAX_PROMPT_CHARS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "qwen3:0.6b",
+      "chart_default": "qwen3:0.6b",
+      "chart_value": "runtime.modelId",
+      "description": "Default model used when requests omit a model.",
+      "field": "model_id",
+      "name": "MODEL_ID",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "http://ollama.ollama.svc.cluster.local:11434",
+      "chart_default": "http://ollama.ollama.svc.cluster.local:11434",
+      "chart_value": "runtime.ollamaBaseUrl",
+      "description": "Base URL for the Ollama runtime.",
+      "field": "ollama_base_url",
+      "name": "OLLAMA_BASE_URL",
+      "sensitive": false,
+      "type": "url"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": true,
+      "chart_default": true,
+      "chart_value": "guardrails.promptSecretDetection.enabled",
+      "description": "Whether prompt credential-pattern rejection is enabled.",
+      "field": "prompt_secret_detection_enabled",
+      "name": "PROMPT_SECRET_DETECTION_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": [
+        "private_key",
+        "github_token",
+        "slack_token",
+        "bearer_token",
+        "generic_api_key_assignment"
+      ],
+      "chart_default": [
+        "private_key",
+        "github_token",
+        "slack_token",
+        "bearer_token",
+        "generic_api_key_assignment"
+      ],
+      "chart_value": "guardrails.promptSecretDetection.patterns",
+      "description": "Built-in secret detector names to apply to prompts.",
+      "field": "prompt_secret_patterns",
+      "name": "PROMPT_SECRET_PATTERNS",
+      "sensitive": false,
+      "type": "csv"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 120.0,
+      "chart_default": "120",
+      "chart_value": "runtime.requestTimeoutSeconds",
+      "description": "Runtime request timeout in seconds.",
+      "field": "request_timeout_seconds",
+      "name": "REQUEST_TIMEOUT_SECONDS",
+      "sensitive": false,
+      "type": "float"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [
+        "ollama",
+        "vllm"
+      ],
+      "app_default": "ollama",
+      "chart_default": "ollama",
+      "chart_value": "runtime.backend",
+      "description": "Runtime adapter used by the gateway.",
+      "field": "runtime_backend",
+      "name": "RUNTIME_BACKEND",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [
+        "memory",
+        "redis"
+      ],
+      "app_default": "memory",
+      "chart_default": "memory",
+      "chart_value": "budget.backend",
+      "description": "Budget counter backend.",
+      "field": "sandbox_budget_backend",
+      "name": "SANDBOX_BUDGET_BACKEND",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": false,
+      "chart_default": true,
+      "chart_value": "budget.enabled",
+      "description": "Whether sandbox request and token budgets are enforced.",
+      "field": "sandbox_budget_enabled",
+      "name": "SANDBOX_BUDGET_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "private-ai-platform-kit:sandbox-budget",
+      "chart_default": "private-ai-platform-kit:sandbox-budget",
+      "chart_value": "budget.keyPrefix",
+      "description": "Redis key prefix for sandbox budget counters.",
+      "field": "sandbox_budget_key_prefix",
+      "name": "SANDBOX_BUDGET_KEY_PREFIX",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0.5,
+      "chart_default": "0.5",
+      "chart_value": "budget.redisTimeoutSeconds",
+      "description": "Redis budget operation timeout in seconds.",
+      "field": "sandbox_budget_redis_timeout_seconds",
+      "name": "SANDBOX_BUDGET_REDIS_TIMEOUT_SECONDS",
+      "sensitive": false,
+      "type": "float"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "redis://budget-redis.budget.svc.cluster.local:6379/0",
+      "chart_default": "redis://budget-redis.budget.svc.cluster.local:6379/0",
+      "chart_value": "budget.redisUrl",
+      "description": "Redis URL for shared budget counters.",
+      "field": "sandbox_budget_redis_url",
+      "name": "SANDBOX_BUDGET_REDIS_URL",
+      "sensitive": false,
+      "type": "url"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 86400,
+      "chart_default": 86400,
+      "chart_value": "budget.windowSeconds",
+      "description": "Sandbox budget window in seconds.",
+      "field": "sandbox_budget_window_seconds",
+      "name": "SANDBOX_BUDGET_WINDOW_SECONDS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0,
+      "chart_default": 750000,
+      "chart_value": "budget.estimatedTokenLimit",
+      "description": "Maximum estimated prompt tokens per sandbox budget window; zero means unlimited.",
+      "field": "sandbox_estimated_token_budget",
+      "name": "SANDBOX_ESTIMATED_TOKEN_BUDGET",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0,
+      "chart_default": 2000000,
+      "chart_value": "budget.promptCharLimit",
+      "description": "Maximum prompt characters per sandbox budget window; zero means unlimited.",
+      "field": "sandbox_prompt_char_budget",
+      "name": "SANDBOX_PROMPT_CHAR_BUDGET",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0,
+      "chart_default": 1000,
+      "chart_value": "budget.requestLimit",
+      "description": "Maximum requests per sandbox budget window; zero means unlimited.",
+      "field": "sandbox_request_budget",
+      "name": "SANDBOX_REQUEST_BUDGET",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "http://vllm.vllm.svc.cluster.local:8000",
+      "chart_default": "http://vllm.vllm.svc.cluster.local:8000",
+      "chart_value": "runtime.vllmBaseUrl",
+      "description": "Base URL for the vLLM runtime.",
+      "field": "vllm_base_url",
+      "name": "VLLM_BASE_URL",
+      "sensitive": false,
+      "type": "url"
+    }
+  ],
+  "helm_chart": "charts/inference-gateway",
+  "service": "inference-gateway",
+  "service_settings": "services/inference-gateway/app/settings.py"
+}

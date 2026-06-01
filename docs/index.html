@@ -307,8 +307,16 @@
             <p>SLOs, release gates, quota and chargeback, data retention, egress governance, restore drills, and chaos drills.</p>
           </article>
           <article class="card">
+            <h3>API contracts</h3>
+            <p>Versioned OpenAPI snapshots with stable operation IDs, route coverage checks, and explicit auth declarations.</p>
+          </article>
+          <article class="card">
+            <h3>Config contracts</h3>
+            <p>Runtime settings, Helm environment variables, chart defaults, and secret-sourced values are checked for drift.</p>
+          </article>
+          <article class="card">
             <h3>Supply chain</h3>
-            <p>CI builds images, creates SBOMs, scans with Trivy, uploads SARIF, and signs images with Cosign.</p>
+            <p>Pinned Alpine runtime images, Trivy high/critical gates, SBOMs, SARIF upload, Cosign digest signing, and downloadable release evidence.</p>
           </article>
         </div>
       </div>
@@ -323,6 +331,8 @@
         <div>
           <pre><code>make toolchain-doctor
 make validate
+make api-contract
+make config-contract
 make local-up
 make bootstrap-argocd
 make sync
@@ -353,10 +363,14 @@ make smoke RUNTIME_BACKEND=ollama</code></pre>
         <p class="section-lead">The kit includes repeatable checks for customer demos, restore reviews, incident follow-ups, and production-readiness handoff.</p>
         <pre><code>make evidence
 make release-gate
+make release-gate-strict
 make slo-check
 make quota-check
 make model-check
-make model-provenance-check</code></pre>
+make model-provenance-check
+make api-contract
+make config-contract
+make image-scan</code></pre>
       </div>
     </section>
   </main>

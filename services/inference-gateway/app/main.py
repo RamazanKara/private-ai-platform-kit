@@ -20,6 +20,18 @@ from app.settings import AdmissionPolicyError, Settings, validate_sandbox_id
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
+SERVICE_VERSION = "0.3.2"
+OPENAPI_DESCRIPTION = (
+    "OpenAI-compatible private inference gateway with sandbox traceability, "
+    "admission controls, budget enforcement, redacted audit events, and "
+    "runtime routing to Ollama or vLLM."
+)
+OPENAPI_TAGS = [
+    {"name": "health", "description": "Readiness and liveness checks."},
+    {"name": "observability", "description": "Prometheus metrics endpoints."},
+    {"name": "sandbox", "description": "Sandbox-scoped budget and trace controls."},
+    {"name": "inference", "description": "OpenAI-compatible inference endpoints."},
+]
 
 REQUESTS = Counter(
     "inference_gateway_requests_total",
@@ -111,6 +123,38 @@ def _runtime_headers(request: Request) -> dict[str, str]:
 
 def _auth_required(path: str) -> bool:
     return path not in {"/healthz", "/metrics", "/docs", "/openapi.json"}
+
+
+def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
+    default_openapi = app.openapi
+
+    def custom_openapi() -> dict[str, Any]:
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = default_openapi()
+        components = schema.setdefault("components", {})
+        security_schemes = components.setdefault("securitySchemes", {})
+        security_schemes["BearerAuth"] = {
+            "type": "http",
+            "scheme": "bearer",
+            "description": "Bearer token accepted by gateway middleware when API key authentication is enabled.",
+        }
+        security_schemes["ApiKeyAuth"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": settings.api_key_header,
+            "description": "API key header accepted by gateway middleware when API key authentication is enabled.",
+        }
+        for path, operations in schema.get("paths", {}).items():
+            if not _auth_required(path):
+                continue
+            for method, operation in operations.items():
+                if method.lower() in {"get", "post", "put", "patch", "delete"}:
+                    operation["security"] = [{"BearerAuth": []}, {"ApiKeyAuth": []}]
+        app.openapi_schema = schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi  # type: ignore[method-assign]
 
 
 def _api_key_from_request(request: Request, settings: Settings) -> str | None:
@@ -240,7 +284,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     resolved = settings or Settings.from_env()
     app = FastAPI(
         title="Private AI Platform Kit Inference Gateway",
-        version="0.1.0",
+        version=SERVICE_VERSION,
+        description=OPENAPI_DESCRIPTION,
+        openapi_tags=OPENAPI_TAGS,
         docs_url="/docs",
         redoc_url=None,
     )
@@ -270,7 +316,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             response.headers["traceparent"] = request.state.traceparent
         return response
 
-    @app.get("/healthz")
+    @app.get(
+        "/healthz",
+        tags=["health"],
+        summary="Check gateway readiness",
+        operation_id="getGatewayHealth",
+    )
     async def healthz() -> dict[str, str]:
         REQUESTS.labels("/healthz", resolved.runtime_backend, "200").inc()
         return {
@@ -279,16 +330,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "model": resolved.model_id,
         }
 
-    @app.get("/metrics")
+    @app.get(
+        "/metrics",
+        tags=["observability"],
+        summary="Export Prometheus metrics",
+        operation_id="getGatewayMetrics",
+    )
     async def metrics() -> Response:
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-    @app.get("/v1/sandbox/budget")
+    @app.get(
+        "/v1/sandbox/budget",
+        tags=["sandbox"],
+        summary="Get sandbox budget usage",
+        operation_id="getSandboxBudget",
+    )
     async def sandbox_budget(request: Request) -> dict[str, Any]:
         tracker: SandboxBudgetTracker = request.app.state.budget_tracker
         return tracker.snapshot(request.state.sandbox_id)
 
-    @app.post("/v1/chat/completions")
+    @app.post(
+        "/v1/chat/completions",
+        tags=["inference"],
+        summary="Create a private chat completion",
+        operation_id="createChatCompletion",
+    )
     async def chat_completions(request: Request, payload: ChatCompletionRequest) -> dict[str, Any]:
         route = "/v1/chat/completions"
         backend = resolved.runtime_backend
@@ -377,6 +443,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 error=error,
             )
 
+    _install_openapi_contract(app, resolved)
     return app
 
 

@@ -66,6 +66,15 @@ if errors:
 print("yaml ok")
 PY
 
+log "checking repository hygiene"
+python3 scripts/repo-hygiene.py --check
+
+log "checking API contracts"
+services/inference-gateway/.venv/bin/python scripts/api-contract.py --check
+
+log "checking configuration contracts"
+services/inference-gateway/.venv/bin/python scripts/config-contract.py --check
+
 log "checking production readiness controls"
 services/inference-gateway/.venv/bin/python scripts/production-check.py
 

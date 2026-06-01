@@ -84,6 +84,10 @@ def collect_artifacts() -> list[Artifact]:
         Artifact("Project README", "README.md", "markdown", "tracked"),
         Artifact("Production readiness matrix", "docs/production-readiness.md", "markdown", "tracked"),
         Artifact("API access runbook", "runbooks/api-access.md", "markdown", "tracked"),
+        Artifact("Gateway OpenAPI contract", "api-contracts/inference-gateway.openapi.json", "json", "tracked"),
+        Artifact("RAG OpenAPI contract", "api-contracts/rag-service.openapi.json", "json", "tracked"),
+        Artifact("Gateway configuration contract", "config-contracts/inference-gateway.config.json", "json", "tracked"),
+        Artifact("RAG configuration contract", "config-contracts/rag-service.config.json", "json", "tracked"),
         Artifact("Agent workspaces runbook", "runbooks/agent-workspaces.md", "markdown", "tracked"),
         Artifact("Tenant onboarding spec", "tenants/onboarding/coding-agents.yaml", "yaml", "tracked"),
         Artifact("Regulated offline tenant onboarding spec", "tenants/onboarding/regulated-offline-coding-agents.yaml", "yaml", "tracked"),
@@ -190,6 +194,31 @@ def static_controls() -> list[Control]:
             "The RAG service exposes approved context and grounded messages with the same API-key pattern.",
             ["services/rag-service/app/main.py", "charts/rag-service/", "runbooks/rag-service.md"],
             "Replace or extend the bundled knowledge documents with customer-approved internal context.",
+        ),
+        control(
+            "API contract governance",
+            exists("api-contracts/inference-gateway.openapi.json", "api-contracts/rag-service.openapi.json", "scripts/api-contract.py")
+            and executable("scripts/api-contract.py")
+            and "api-contract:" in read_text("Makefile")
+            and "createChatCompletion" in read_text("api-contracts/inference-gateway.openapi.json")
+            and "queryRagContext" in read_text("api-contracts/rag-service.openapi.json")
+            and "securitySchemes" in read_text("api-contracts/inference-gateway.openapi.json"),
+            "Gateway and RAG OpenAPI snapshots are versioned and checked for route, schema, operation ID, and auth drift.",
+            ["api-contracts/", "scripts/api-contract.py", "docs/production-readiness.md"],
+            "Review contract diffs with customer integrators before changing public routes or request schemas.",
+        ),
+        control(
+            "Configuration contract governance",
+            exists("config-contracts/inference-gateway.config.json", "config-contracts/rag-service.config.json", "scripts/config-contract.py")
+            and executable("scripts/config-contract.py")
+            and "config-contract:" in read_text("Makefile")
+            and "SANDBOX_BUDGET_REDIS_URL" in read_text("config-contracts/inference-gateway.config.json")
+            and "QDRANT_VECTOR_DIMENSIONS" in read_text("config-contracts/rag-service.config.json")
+            and "secretKeyRef" in read_text("charts/inference-gateway/templates/deployment.yaml")
+            and "secretKeyRef" in read_text("charts/rag-service/templates/deployment.yaml"),
+            "Gateway and RAG runtime configuration snapshots are versioned and checked against service settings, Helm env vars, chart defaults, and secret sourcing.",
+            ["config-contracts/", "scripts/config-contract.py", "charts/inference-gateway/templates/deployment.yaml", "charts/rag-service/templates/deployment.yaml"],
+            "Review configuration contract diffs before changing customer overlays, runtime endpoints, budget settings, retrieval settings, or auth secrets.",
         ),
         control(
             "Vector RAG profile",
@@ -303,10 +332,12 @@ def static_controls() -> list[Control]:
             "Release gates and SLO evidence",
             exists("slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md", "results/release-gate/sample-summary.md")
             and executable("scripts/release-gate.py")
+            and "release-gate-strict" in read_text("Makefile")
+            and "--require-current-evidence" in read_text("scripts/release-gate.py")
             and {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "evidencePack"} <= set(nested(release_gates, "spec", "gates", default={})),
-            "Customer handoff gates check eval, load, restore, strict toolchain, SLO, governance, and evidence-pack thresholds.",
+            "Customer handoff gates check eval, load, restore, strict toolchain, SLO, governance, evidence-pack thresholds, and strict current-evidence mode.",
             ["slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md"],
-            "Run `make release-gate` before demos, releases, restore reviews, and production-readiness handoff.",
+            "Run `make release-gate-strict` before demos, releases, restore reviews, and production-readiness handoff.",
         ),
         control(
             "SLO and error budget governance",
@@ -396,10 +427,16 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Supply-chain controls",
-            "anchore/sbom-action" in workflow and "trivy-action" in workflow and "cosign sign" in workflow,
-            "CI builds images, generates SBOMs, scans images, and signs promoted artifacts.",
-            [".github/workflows/ci.yml"],
-            "Promote only signed and scanned images into customer registries.",
+            "anchore/sbom-action" in workflow
+            and "trivy-action" in workflow
+            and "steps.build_gateway.outputs.digest" in workflow
+            and "steps.build_rag.outputs.digest" in workflow
+            and 'exit-code: "1"' in workflow
+            and "image-scan:" in read_text("Makefile")
+            and "supply-chain-checksums.txt" in workflow,
+            "CI builds images, generates SBOMs, fails on high/critical image vulnerabilities, signs immutable image digests, and publishes supply-chain evidence.",
+            [".github/workflows/ci.yml", "scripts/image-scan.sh"],
+            "Promote only signed/scanned image digests with downloadable evidence into customer registries.",
         ),
         control(
             "Restore-drill integration",
@@ -549,15 +586,16 @@ def write_markdown(path: Path, generated_at: str, controls: list[Control], artif
             "    make egress-report",
             "    make retention-report",
             "    make model-provenance-report",
-            "    make release-gate",
             "    make smoke RUNTIME_BACKEND=ollama",
             "    make rag-smoke",
             "    make agent-smoke",
             "    make eval",
             "    make restore-drill RUNTIME=local",
-            "    make evidence",
+            "    make evidence LIVE=1",
+            "    make release-gate-strict",
+            "    make release-report-strict",
             "",
-            "Use `make evidence LIVE=1` after syncing the local lab when the evidence pack should include live Kubernetes readiness checks.",
+            "Use `make release-gate` only for local configuration checks where checked-in sample evidence is acceptable.",
         ]
     )
     path.write_text("\n".join(lines) + "\n")

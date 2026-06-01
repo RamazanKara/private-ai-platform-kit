@@ -76,12 +76,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push gateway image
+        id: build_gateway
         uses: docker/build-push-action@v7.2.0
         with:
           context: services/inference-gateway
           push: true
           tags: ${{ env.GATEWAY_TAGS }}
       - name: Build and push RAG service image
+        id: build_rag
         uses: docker/build-push-action@v7.2.0
         with:
           context: services/rag-service
@@ -100,11 +102,17 @@ jobs:
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway:${{ github.sha }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
           format: sarif
           output: trivy-results.sarif
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/${{ env.IMAGE_REPO }}/rag-service:${{ github.sha }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
           format: sarif
           output: trivy-rag-results.sarif
       - uses: github/codeql-action/upload-sarif@v4.36.0
@@ -116,9 +124,53 @@ jobs:
           sarif_file: trivy-rag-results.sarif
           category: trivy-rag-service
       - uses: sigstore/cosign-installer@v4.1.2
-      - name: Sign image
+      - name: Sign image digests
+        env:
+          GATEWAY_IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway
+          GATEWAY_DIGEST: ${{ steps.build_gateway.outputs.digest }}
+          RAG_IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/rag-service
+          RAG_DIGEST: ${{ steps.build_rag.outputs.digest }}
         run: |
-          printf '%s\n%s\n' "$GATEWAY_TAGS" "$RAG_TAGS" | while read -r image; do
-            [[ -n "$image" ]] || continue
-            cosign sign --yes "$image"
-          done
+          set -euo pipefail
+          cosign sign --yes "${GATEWAY_IMAGE}@${GATEWAY_DIGEST}"
+          cosign sign --yes "${RAG_IMAGE}@${RAG_DIGEST}"
+      - name: Generate supply-chain checksums
+        run: |
+          set -euo pipefail
+          sha256sum \
+            inference-gateway.spdx.json \
+            rag-service.spdx.json \
+            trivy-results.sarif \
+            trivy-rag-results.sarif \
+            > supply-chain-checksums.txt
+      - uses: actions/upload-artifact@v5.0.0
+        with:
+          name: supply-chain-evidence-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            inference-gateway.spdx.json
+            rag-service.spdx.json
+            trivy-results.sarif
+            trivy-rag-results.sarif
+            supply-chain-checksums.txt
+      - name: Attach supply-chain evidence to release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_assets=(
+            inference-gateway.spdx.json
+            rag-service.spdx.json
+            trivy-results.sarif
+            trivy-rag-results.sarif
+            supply-chain-checksums.txt
+          )
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${release_assets[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${release_assets[@]}" \
+              --title "Private AI Platform Kit ${GITHUB_REF_NAME}" \
+              --generate-notes \
+              --verify-tag
+          fi

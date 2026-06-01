@@ -11,7 +11,7 @@ Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs
 
 It is designed for teams that want the operating model of a production AI platform without depending on a specific cloud provider.
 
-[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) | [Getting started](docs/getting-started.md) | [Production readiness](docs/production-readiness.md) | [Runbooks](docs/README.md)
+[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) | [Getting started](docs/getting-started.md) | [Production readiness](docs/production-readiness.md) | [Runbooks](docs/README.md) | [Contributing](CONTRIBUTING.md) | [Security](SECURITY.md)
 
 ## Live Demo
 
@@ -54,6 +54,9 @@ Validate the repo without a live cluster:
 ```bash
 make validate
 make production-check
+make repo-hygiene
+make api-contract
+make config-contract
 ```
 
 Start the local platform and run an Ollama-backed smoke test:
@@ -76,7 +79,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.3.1 \
+  CUSTOMER_REVISION=v0.3.2 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
@@ -93,7 +96,11 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | --- | --- |
 | First local run | [Getting started](docs/getting-started.md) |
 | Production controls | [Production readiness matrix](docs/production-readiness.md) |
+| API contracts | [API contract snapshots](api-contracts/README.md) |
+| Configuration contracts | [Configuration contract snapshots](config-contracts/README.md) |
 | Full documentation map | [Docs index](docs/README.md) |
+| Contributor workflow | [Contributing](CONTRIBUTING.md) |
+| Security policy | [Security](SECURITY.md) |
 | Customer cluster assumptions | [Customer cluster README](clusters/customer/README.md) |
 | Restore verification | [Restore drill runbook](runbooks/restore-drill.md) |
 | Coding-agent workspaces | [Agent workspaces runbook](runbooks/agent-workspaces.md) |
@@ -108,6 +115,8 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | `clusters/local/` | Local `kind` and Argo CD values |
 | `clusters/customer/` | Provider-neutral customer cluster values |
 | `services/` | Gateway and RAG service code |
+| `api-contracts/` | Versioned OpenAPI snapshots for customer-facing services |
+| `config-contracts/` | Versioned runtime configuration snapshots for services and Helm charts |
 | `runbooks/` | Operational procedures and incident drills |
 | `governance/`, `model-catalog/`, `network/`, `slo/` | Reviewed policy and evidence inputs |
 | `results/` | Sample evidence artifacts; generated reports are ignored by default |
@@ -118,13 +127,17 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 ```bash
 make evidence
 make release-gate
+make release-gate-strict
 make slo-check
 make quota-check
 make model-check
 make model-provenance-check
+make api-contract
+make config-contract
+make image-scan
 ```
 
-CI builds and pushes gateway and RAG images, generates SBOMs, runs Trivy, uploads SARIF, and signs images with Cosign.
+Runtime images use a pinned Alpine Python base and exclude test-only dependencies. CI builds and pushes gateway and RAG images, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
 
 ## Trademark Notice
 

@@ -25,7 +25,10 @@ class GateResult:
 
 
 def rel(path: Path) -> str:
-    return path.relative_to(ROOT).as_posix()
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -90,12 +93,39 @@ def pass_result(name: str, evidence: Path, summary: str) -> GateResult:
     return GateResult(name=name, status="pass", summary=summary, evidence=rel(evidence), failures=[])
 
 
+def _sample_artifact(path: Path) -> bool:
+    return path.name.startswith("sample-")
+
+
+def _artifact_policy_failure(name: str, artifact: Path, gate: dict[str, Any]) -> GateResult | None:
+    failures: list[str] = []
+    if gate.get("_require_current_evidence") and _sample_artifact(artifact):
+        failures.append(
+            "selected evidence is a checked-in sample artifact; rerun the gate input and use current evidence"
+        )
+
+    max_age_hours = gate.get("_max_evidence_age_hours")
+    if max_age_hours is not None:
+        max_age = float(max_age_hours)
+        generated_at = datetime.fromtimestamp(artifact.stat().st_mtime, UTC)
+        age_hours = (datetime.now(UTC) - generated_at).total_seconds() / 3600
+        if age_hours > max_age:
+            failures.append(f"selected evidence is {age_hours:.1f}h old; limit is {max_age:.1f}h")
+
+    if failures:
+        return fail_result(name, rel(artifact), failures)
+    return None
+
+
 def artifact_for(name: str, gate: dict[str, Any]) -> tuple[Path | None, GateResult | None]:
     artifact = latest_artifact(list(gate.get("evidence", [])))
     if artifact is None:
         if gate.get("required", True):
             return None, fail_result(name, "", ["missing required evidence artifact"])
         return None, GateResult(name=name, status="skip", summary="gate not required and no evidence found", evidence="", failures=[])
+    policy_failure = _artifact_policy_failure(name, artifact, gate)
+    if policy_failure is not None:
+        return artifact, policy_failure
     return artifact, None
 
 
@@ -355,16 +385,37 @@ CHECKS = {
 }
 
 
-def run_gates(config: dict[str, Any]) -> list[GateResult]:
+def run_gates(
+    config: dict[str, Any],
+    *,
+    require_current_evidence: bool = False,
+    max_evidence_age_hours: float | None = None,
+) -> list[GateResult]:
     gates = nested(config, "spec", "gates", default={})
-    return [CHECKS[name](gates[name]) for name in CHECKS if name in gates]
+    results: list[GateResult] = []
+    for name in CHECKS:
+        if name not in gates:
+            continue
+        gate = dict(gates[name])
+        gate["_require_current_evidence"] = require_current_evidence
+        gate["_max_evidence_age_hours"] = max_evidence_age_hours
+        results.append(CHECKS[name](gate))
+    return results
 
 
 def markdown_escape(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", " ")
 
 
-def write_markdown(path: Path, generated_at: str, config_path: Path, results: list[GateResult]) -> None:
+def write_markdown(
+    path: Path,
+    generated_at: str,
+    config_path: Path,
+    results: list[GateResult],
+    *,
+    require_current_evidence: bool,
+    max_evidence_age_hours: float | None,
+) -> None:
     passed = sum(1 for result in results if result.status == "pass")
     failed = sum(1 for result in results if result.status == "fail")
     lines = [
@@ -372,6 +423,8 @@ def write_markdown(path: Path, generated_at: str, config_path: Path, results: li
         "",
         f"Generated: `{generated_at}`",
         f"Config: `{rel(config_path)}`",
+        f"Require current evidence: `{str(require_current_evidence).lower()}`",
+        f"Max evidence age hours: `{max_evidence_age_hours if max_evidence_age_hours is not None else 'not enforced'}`",
         "",
         f"Summary: {passed} passed, {failed} failed.",
         "",
@@ -385,11 +438,23 @@ def write_markdown(path: Path, generated_at: str, config_path: Path, results: li
     path.write_text("\n".join(lines) + "\n")
 
 
-def write_json(path: Path, generated_at: str, config_path: Path, results: list[GateResult]) -> None:
+def write_json(
+    path: Path,
+    generated_at: str,
+    config_path: Path,
+    results: list[GateResult],
+    *,
+    require_current_evidence: bool,
+    max_evidence_age_hours: float | None,
+) -> None:
     payload = {
         "project": "Private AI Platform Kit",
         "generated_at": generated_at,
         "config": rel(config_path),
+        "evidence_policy": {
+            "require_current_evidence": require_current_evidence,
+            "max_evidence_age_hours": max_evidence_age_hours,
+        },
         "summary": {
             "passed": sum(1 for result in results if result.status == "pass"),
             "failed": sum(1 for result in results if result.status == "fail"),
@@ -406,6 +471,17 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="Validate and run gates without writing a report.")
     parser.add_argument("--report", action="store_true", help="Write JSON and Markdown release-gate reports.")
     parser.add_argument("--output-dir", default="results/release-gate")
+    parser.add_argument(
+        "--require-current-evidence",
+        action="store_true",
+        help="Fail when a required gate falls back to checked-in sample evidence.",
+    )
+    parser.add_argument(
+        "--max-evidence-age-hours",
+        type=float,
+        default=None,
+        help="Fail when selected evidence artifacts are older than this many hours.",
+    )
     args = parser.parse_args()
 
     config_path = (ROOT / args.config).resolve() if not Path(args.config).is_absolute() else Path(args.config)
@@ -421,7 +497,11 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    results = run_gates(config)
+    results = run_gates(
+        config,
+        require_current_evidence=args.require_current_evidence,
+        max_evidence_age_hours=args.max_evidence_age_hours,
+    )
     failed = [result for result in results if result.status == "fail"]
     generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     if args.report:
@@ -430,8 +510,22 @@ def main() -> int:
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         json_path = output_dir / f"release-gate-{stamp}.json"
         md_path = output_dir / f"release-gate-{stamp}.md"
-        write_json(json_path, generated_at, config_path, results)
-        write_markdown(md_path, generated_at, config_path, results)
+        write_json(
+            json_path,
+            generated_at,
+            config_path,
+            results,
+            require_current_evidence=args.require_current_evidence,
+            max_evidence_age_hours=args.max_evidence_age_hours,
+        )
+        write_markdown(
+            md_path,
+            generated_at,
+            config_path,
+            results,
+            require_current_evidence=args.require_current_evidence,
+            max_evidence_age_hours=args.max_evidence_age_hours,
+        )
         print(f"wrote {rel(json_path)} and {rel(md_path)}")
 
     if failed:

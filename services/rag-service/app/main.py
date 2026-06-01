@@ -20,6 +20,17 @@ from app.settings import Settings, validate_sandbox_id
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.rag.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
+SERVICE_VERSION = "0.3.2"
+OPENAPI_DESCRIPTION = (
+    "Private retrieval service for platform and customer knowledge. The service "
+    "returns traceable retrieval results, optional context blocks, and "
+    "OpenAI-compatible grounded messages for downstream chat-completion calls."
+)
+OPENAPI_TAGS = [
+    {"name": "health", "description": "Readiness and liveness checks."},
+    {"name": "observability", "description": "Prometheus metrics endpoints."},
+    {"name": "retrieval", "description": "Knowledge document and RAG query endpoints."},
+]
 
 REQUESTS = Counter(
     "rag_service_requests_total",
@@ -78,6 +89,38 @@ def _hash_query(query: str) -> str:
 
 def _auth_required(path: str) -> bool:
     return path not in {"/healthz", "/metrics", "/docs", "/openapi.json"}
+
+
+def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
+    default_openapi = app.openapi
+
+    def custom_openapi() -> dict[str, Any]:
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = default_openapi()
+        components = schema.setdefault("components", {})
+        security_schemes = components.setdefault("securitySchemes", {})
+        security_schemes["BearerAuth"] = {
+            "type": "http",
+            "scheme": "bearer",
+            "description": "Bearer token accepted by RAG middleware when API key authentication is enabled.",
+        }
+        security_schemes["ApiKeyAuth"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": settings.api_key_header,
+            "description": "API key header accepted by RAG middleware when API key authentication is enabled.",
+        }
+        for path, operations in schema.get("paths", {}).items():
+            if not _auth_required(path):
+                continue
+            for method, operation in operations.items():
+                if method.lower() in {"get", "post", "put", "patch", "delete"}:
+                    operation["security"] = [{"BearerAuth": []}, {"ApiKeyAuth": []}]
+        app.openapi_schema = schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi  # type: ignore[method-assign]
 
 
 def _api_key_from_request(request: Request, settings: Settings) -> str | None:
@@ -156,7 +199,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     resolved = settings or Settings.from_env()
     app = FastAPI(
         title="Private AI Platform Kit RAG Service",
-        version="0.1.0",
+        version=SERVICE_VERSION,
+        description=OPENAPI_DESCRIPTION,
+        openapi_tags=OPENAPI_TAGS,
         docs_url="/docs",
         redoc_url=None,
     )
@@ -195,7 +240,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             response.headers["traceparent"] = request.state.traceparent
         return response
 
-    @app.get("/healthz")
+    @app.get(
+        "/healthz",
+        tags=["health"],
+        summary="Check RAG service readiness",
+        operation_id="getRagHealth",
+    )
     async def healthz() -> dict[str, Any]:
         REQUESTS.labels("/healthz", "200").inc()
         body: dict[str, Any] = {
@@ -209,11 +259,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             body["vector_store"] = status()
         return body
 
-    @app.get("/metrics")
+    @app.get(
+        "/metrics",
+        tags=["observability"],
+        summary="Export Prometheus metrics",
+        operation_id="getRagMetrics",
+    )
     async def metrics() -> Response:
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-    @app.get("/v1/rag/documents")
+    @app.get(
+        "/v1/rag/documents",
+        tags=["retrieval"],
+        summary="List indexed knowledge documents",
+        operation_id="listRagDocuments",
+    )
     async def documents(request: Request) -> dict[str, Any]:
         route = "/v1/rag/documents"
         start = perf_counter()
@@ -232,7 +292,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ],
         }
 
-    @app.post("/v1/rag/query")
+    @app.post(
+        "/v1/rag/query",
+        tags=["retrieval"],
+        summary="Retrieve grounded context for a query",
+        operation_id="queryRagContext",
+    )
     async def query(request: Request, payload: RagQueryRequest) -> dict[str, Any]:
         route = "/v1/rag/query"
         start = perf_counter()
@@ -347,6 +412,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 error=error,
             )
 
+    _install_openapi_contract(app, resolved)
     return app
 
 

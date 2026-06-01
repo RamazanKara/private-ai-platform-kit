@@ -8,12 +8,47 @@ LIVE ?= 0
 TENANT_SPEC ?= tenants/onboarding/coding-agents.yaml
 TENANT_OUTPUT ?= tenants/generated
 TOOLCHAIN_PROFILE ?= validate
+RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS ?= 24
 CUSTOMER_REPO_URL ?= https://github.com/RamazanKara/private-ai-platform-kit.git
 CUSTOMER_REVISION ?= HEAD
 CUSTOMER_GPU_PROFILE ?= nvidia
 PYTHON := services/inference-gateway/.venv/bin/python
 
-.PHONY: python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest restore-drill backup-drill evidence release-gate release-report slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+.PHONY: help python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan repo-hygiene api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+
+help:
+	@printf '%s\n' \
+		'Private AI Platform Kit targets' \
+		'' \
+		'Local platform:' \
+		'  make local-up              Create the local kind cluster' \
+		'  make bootstrap-argocd      Install/bootstrap Argo CD' \
+		'  make sync                  Sync local or customer GitOps apps' \
+		'  make smoke                 Run gateway smoke test' \
+		'  make rag-smoke             Run RAG service smoke test' \
+		'  make agent-smoke           Run coding-agent workspace smoke test' \
+		'' \
+		'Validation:' \
+		'  make validate              Run the default repo validation gate' \
+		'  make validate-full         Require the strict validation toolchain' \
+		'  make production-check      Run static production-readiness checks' \
+		'  make image-scan            Build and Trivy-scan runtime images' \
+		'  make repo-hygiene          Check contributor docs, links, and layout' \
+		'  make api-contract          Check service OpenAPI contracts' \
+		'  make config-contract       Check service runtime config contracts' \
+		'' \
+		'Evidence and governance:' \
+		'  make evidence              Generate customer evidence pack' \
+		'  make release-gate          Check release gates with sample fallback allowed' \
+		'  make release-gate-strict   Check gates with current evidence required' \
+		'  make slo-report            Write SLO report evidence' \
+		'  make quota-report          Write quota and chargeback evidence' \
+		'  make model-provenance-report  Write model provenance evidence' \
+		'' \
+		'Customer handoff:' \
+		'  make customer-overlay      Configure customer GitOps overlay' \
+		'  make tenant-onboard        Generate tenant onboarding artifacts' \
+		'  make tenant-onboard-regulated Generate regulated/offline tenant artifacts'
 
 python-env:
 	./scripts/bootstrap-python.sh
@@ -84,8 +119,14 @@ evidence: python-env
 release-gate: python-env
 	$(PYTHON) scripts/release-gate.py --check
 
+release-gate-strict: python-env
+	$(PYTHON) scripts/release-gate.py --check --require-current-evidence --max-evidence-age-hours "$(RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS)"
+
 release-report: python-env
 	$(PYTHON) scripts/release-gate.py --check --report
+
+release-report-strict: python-env
+	$(PYTHON) scripts/release-gate.py --check --report --require-current-evidence --max-evidence-age-hours "$(RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS)"
 
 slo-check: python-env
 	$(PYTHON) scripts/slo-report.py --check
@@ -122,6 +163,24 @@ model-provenance-check: python-env
 
 model-provenance-report: python-env
 	$(PYTHON) scripts/model-provenance.py --check --report
+
+image-scan:
+	TRIVY_BIN="$(shell command -v trivy || printf '%s' '.tools/bin/trivy')" ./scripts/image-scan.sh
+
+repo-hygiene:
+	python3 scripts/repo-hygiene.py --check
+
+api-contract: python-env
+	$(PYTHON) scripts/api-contract.py --check
+
+api-contract-update: python-env
+	$(PYTHON) scripts/api-contract.py --write
+
+config-contract: python-env
+	$(PYTHON) scripts/config-contract.py --check
+
+config-contract-update: python-env
+	$(PYTHON) scripts/config-contract.py --write
 
 toolchain-install:
 	./scripts/install-validation-tools.sh
