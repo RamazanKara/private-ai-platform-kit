@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.3.1 - 2026-06-01
+
+Customer demo readiness fixes for the local lab and GitOps handoff path.
+
+### Changed
+
+- Updated Helm chart versions to `0.3.1` and gateway/RAG chart image defaults to `v0.3.1`.
+- Updated customer overlay examples to pin `CUSTOMER_REVISION=v0.3.1`.
+- Scoped Argo CD root applications to `apps.yaml` so the app-of-apps path does not try to apply local kind config or values files.
+- Made `LOCAL_DIRECT_APPLY=1 make sync` work without requiring an existing Argo CD root application.
+- Tuned Qwen3 eval suites to request direct responses with enough token budget for reasoning-model behavior.
+
+### Fixed
+
+- Added a writable Qdrant snapshots mount so the local vector-store profile starts under the non-root security context.
+- Redacted runtime `reasoning`, `reasoning_content`, and `thinking` fields from gateway responses.
+- Extended prompt secret detection to reject unquoted API-key assignments such as `API_KEY=...` before prompts reach the runtime.
+
+### Validation
+
+- `make validate`
+- `make release-gate`
+- Live evidence pack: 38 controls passed, 0 failed.
+- GitHub Actions CI passed on `main` before this release prep.
+
 ## v0.3.0 - 2026-06-01
 
 Customer-ready release packaging and documentation cleanup.

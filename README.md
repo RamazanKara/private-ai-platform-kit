@@ -76,7 +76,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.3.0 \
+  CUSTOMER_REVISION=v0.3.1 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
