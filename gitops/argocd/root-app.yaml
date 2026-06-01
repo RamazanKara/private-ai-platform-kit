@@ -12,6 +12,8 @@ spec:
     repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: clusters/local
+    directory:
+      include: apps.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
@@ -21,4 +23,3 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-

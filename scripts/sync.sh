@@ -48,6 +48,11 @@ direct_apply_local() {
   kubectl -n rag rollout status deploy/rag-service-rag-service --timeout=5m
 }
 
+if [[ "${LOCAL_DIRECT_APPLY:-0}" == "1" ]]; then
+  direct_apply_local
+  exit 0
+fi
+
 if has_cmd argocd; then
   argocd app sync private-ai-platform-kit-root --grpc-web || true
   argocd app wait private-ai-platform-kit-root --health --sync --timeout 600 --grpc-web || true
@@ -58,9 +63,7 @@ fi
 
 kubectl -n argocd get applications || true
 
-if [[ "${LOCAL_DIRECT_APPLY:-0}" == "1" ]]; then
-  direct_apply_local
-elif kubectl -n argocd get application private-ai-platform-kit-root -o jsonpath='{.status.conditions[*].message}' 2>/dev/null | grep -qi 'Repository not found'; then
+if kubectl -n argocd get application private-ai-platform-kit-root -o jsonpath='{.status.conditions[*].message}' 2>/dev/null | grep -qi 'Repository not found'; then
   root_app_file="gitops/argocd/root-app.yaml"
   if [[ "${ENVIRONMENT:-local}" == "customer" ]]; then
     root_app_file="gitops/argocd/root-app-customer.yaml and clusters/customer/apps.yaml"

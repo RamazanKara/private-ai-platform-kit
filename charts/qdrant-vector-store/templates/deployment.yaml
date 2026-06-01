@@ -52,6 +52,8 @@ spec:
           volumeMounts:
             - name: storage
               mountPath: {{ .Values.persistence.mountPath | quote }}
+            - name: snapshots
+              mountPath: /qdrant/snapshots
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
@@ -62,3 +64,5 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: snapshots
+          emptyDir: {}

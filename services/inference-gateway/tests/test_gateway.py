@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.budget import RedisSandboxBudgetTracker
 from app.main import create_app
+from app.runtime_client import sanitize_chat_completion
 from app.settings import AdmissionPolicyError, Settings
 
 
@@ -117,6 +118,31 @@ def test_chat_completion_forwards_openai_payload():
     assert response.json()["choices"][0]["message"]["content"] == "hello from vLLM"
     assert fake.payload["model"] == "custom-model"
     assert fake.payload["messages"][0]["content"] == "hello"
+
+
+def test_runtime_response_removes_reasoning_metadata():
+    payload = {
+        "id": "chatcmpl-test",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "hello",
+                    "reasoning": "internal reasoning",
+                    "reasoning_content": "internal reasoning",
+                    "thinking": "internal reasoning",
+                }
+            }
+        ],
+    }
+
+    response = sanitize_chat_completion(payload)
+
+    assert response["choices"][0]["message"] == {
+        "role": "assistant",
+        "content": "hello",
+    }
+    assert "reasoning" in payload["choices"][0]["message"]
 
 
 def test_chat_completion_uses_default_model_when_model_is_omitted():
@@ -428,6 +454,47 @@ def test_prompt_secret_detection_rejects_credential_material_before_runtime():
     assert response.json()["detail"]["reason"] == "prompt_secret_detected"
     assert "private_key" in response.json()["detail"]["message"]
     assert "redacted" not in response.text
+    assert fake.payload is None
+
+
+def test_prompt_secret_detection_rejects_unquoted_api_key_assignment():
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="approved-model",
+        request_timeout_seconds=5,
+        allowed_models=("approved-model",),
+        prompt_secret_detection_enabled=True,
+        prompt_secret_patterns=("generic_api_key_assignment",),
+    )
+    app = create_app(settings)
+    fake = FakeRuntimeClient(
+        response={
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "choices": [{"message": {"role": "assistant", "content": "ok"}}],
+        }
+    )
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "A terminal printed API_KEY=EXAMPLE_SECRET_VALUE_1234567890abcdef.",
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "prompt_secret_detected"
+    assert "generic_api_key_assignment" in response.json()["detail"]["message"]
+    assert "EXAMPLE_SECRET_VALUE" not in response.text
     assert fake.payload is None
 
 

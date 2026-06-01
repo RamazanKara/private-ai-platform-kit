@@ -13,7 +13,7 @@ BUILT_IN_SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
         re.IGNORECASE,
     ),
     "generic_api_key_assignment": re.compile(
-        r"\b(?:api[_-]?key|secret|token|password)\s*[:=]\s*['\"][A-Za-z0-9._~+/=-]{20,}['\"]",
+        r"\b(?:api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?[A-Za-z0-9._~+/=-]{20,}['\"]?",
         re.IGNORECASE,
     ),
 }

@@ -7,14 +7,14 @@ spec:
   defaults:
     sandboxId: eval-lab
     temperature: 0
-    maxTokens: 64
+    maxTokens: 256
     maxLatencyMs: 30000
   cases:
     - id: response-liveness
       description: Verifies the model returns a non-empty assistant message.
       messages:
         - role: system
-          content: You are a concise test assistant.
+          content: You are a concise test assistant. Respond directly without reasoning.
         - role: user
           content: Say hello in one short sentence.
       checks:
@@ -22,6 +22,8 @@ spec:
     - id: arithmetic-smoke
       description: Verifies a basic reasoning response for regression smoke tests.
       messages:
+        - role: system
+          content: You are a concise test assistant. Respond directly without reasoning.
         - role: user
           content: What is 2 + 2? Reply with one short sentence.
       checks:
