@@ -143,7 +143,7 @@ jobs:
             trivy-results.sarif \
             trivy-rag-results.sarif \
             > supply-chain-checksums.txt
-      - uses: actions/upload-artifact@v5.0.0
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: supply-chain-evidence-${{ github.sha }}
           if-no-files-found: error
