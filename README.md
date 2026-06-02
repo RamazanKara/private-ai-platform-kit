@@ -19,7 +19,7 @@ It is designed for teams that want the operating model of a production AI platfo
   <img src="docs/assets/private-ai-platform-kit-demo.gif" alt="Terminal demo showing a private AI assistant saying hello world" width="100%">
 </p>
 
-The demo is generated from [scripts/demo-live.sh](scripts/demo-live.sh). The source MP4 is kept at [docs/assets/private-ai-platform-kit-demo.mp4](docs/assets/private-ai-platform-kit-demo.mp4).
+The demo is generated from [scripts/demo-live.sh](scripts/demo-live.sh).
 
 ## What You Get
 

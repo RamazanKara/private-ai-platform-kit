@@ -61,6 +61,4 @@ Use this map when the README is too high-level and you need a specific setup, op
 | --- | --- |
 | Architecture diagram | [architecture.svg](assets/architecture.svg) |
 | README animated demo | [private-ai-platform-kit-demo.gif](assets/private-ai-platform-kit-demo.gif) |
-| README demo video | [private-ai-platform-kit-demo.mp4](assets/private-ai-platform-kit-demo.mp4) |
-| Demo poster image | [private-ai-platform-kit-demo-poster.png](assets/private-ai-platform-kit-demo-poster.png) |
 | Live demo command script | [demo-live.sh](../scripts/demo-live.sh) |

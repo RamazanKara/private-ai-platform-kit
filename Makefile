@@ -19,7 +19,7 @@ PYTHON := services/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+.PHONY: help clean clean-all python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
 
 help:
 	@printf '%s\n' \
@@ -58,6 +58,18 @@ help:
 		'  make customer-overlay      Configure customer GitOps overlay' \
 		'  make tenant-onboard        Generate tenant onboarding artifacts' \
 		'  make tenant-onboard-regulated Generate regulated/offline tenant artifacts'
+
+clean:
+	rm -rf .coverage htmlcov .pytest_cache
+	rm -rf services/inference-gateway/.venv services/rag-service/.venv
+	find . -path ./.git -prune -o -type d -name __pycache__ -prune -exec rm -rf {} +
+	find . -path ./.git -prune -o -type d -name .pytest_cache -prune -exec rm -rf {} +
+	find . -path ./.git -prune -o -type d -name .ruff_cache -prune -exec rm -rf {} +
+	find results -type f ! -name 'sample-*' -delete
+	find results -mindepth 1 -type d -empty -delete
+
+clean-all: clean
+	rm -rf .tools
 
 python-env:
 	./scripts/bootstrap-python.sh

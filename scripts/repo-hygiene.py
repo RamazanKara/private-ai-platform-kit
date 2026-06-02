@@ -69,6 +69,8 @@ REQUIRED_DIRECTORIES = (
 
 REQUIRED_MAKE_TARGETS = (
     "help",
+    "clean",
+    "clean-all",
     "validate",
     "validate-full",
     "production-check",
