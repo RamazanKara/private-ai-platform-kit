@@ -28,6 +28,7 @@ Do not open public issues containing secrets, exploit details, customer data, or
 - Do not log raw prompts, completions, RAG queries, or retrieved private context by default.
 - Keep prompt secret detection enabled for coding-agent and tenant workflows.
 - Use reviewed egress catalog entries for agent network access.
+- Install Python dependencies from hashed lockfiles in local tests and runtime images.
 - Promote only images that pass high/critical vulnerability scans, have SBOM evidence, and are signed by digest.
 
 ## Validation
@@ -36,6 +37,8 @@ Before security-sensitive handoff or release review, run:
 
 ```bash
 make validate-full
+make repo-security-scan
+make dependency-lock-check
 make image-scan
 make release-gate-strict
 ```

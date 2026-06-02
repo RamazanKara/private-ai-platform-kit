@@ -22,6 +22,7 @@ spec:
       command: ["sleep", "3600"]
       securityContext:
         allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
         capabilities:
           drop:
             - ALL

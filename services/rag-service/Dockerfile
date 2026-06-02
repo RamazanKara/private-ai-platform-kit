@@ -4,8 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
-COPY requirements.txt .
-RUN python -m pip install --no-cache-dir --disable-pip-version-check -r requirements.txt \
+COPY requirements.lock .
+RUN python -m pip install --no-cache-dir --disable-pip-version-check --require-hashes -r requirements.lock \
     && adduser -D -H -u 10001 appuser
 
 COPY app ./app

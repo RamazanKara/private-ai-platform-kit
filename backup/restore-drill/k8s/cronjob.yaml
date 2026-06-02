@@ -58,12 +58,17 @@ spec:
               volumeMounts:
                 - name: config
                   mountPath: /config
+                  readOnly: true
                 - name: reports
                   mountPath: /reports
                 - name: fixtures
                   mountPath: /fixtures
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
               securityContext:
                 allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
                 capabilities:
                   drop:
                     - ALL
@@ -72,6 +77,8 @@ spec:
               configMap:
                 name: restore-drill-config
             - name: reports
+              emptyDir: {}
+            - name: tmp
               emptyDir: {}
             - name: fixtures
               configMap:

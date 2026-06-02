@@ -163,16 +163,22 @@ if require_optional_or_full cosign "Cosign is needed for image signature validat
 fi
 
 if require_optional_or_full trivy "Trivy is needed for filesystem secret and config scanning."; then
-  trivy fs \
+  trivy_output="/tmp/private-ai-platform-kit-trivy-fs.txt"
+  if ! trivy fs \
     --scanners secret,misconfig \
-    --exit-code 0 \
+    --severity HIGH,CRITICAL \
+    --exit-code 1 \
     --timeout 10m \
     --skip-dirs .tools \
     --skip-dirs results \
     --skip-dirs tenants/generated \
+    --skip-dirs policies/kyverno/tests/resources \
     --skip-dirs services/inference-gateway/.venv \
     --skip-dirs services/rag-service/.venv \
-    . >/tmp/private-ai-platform-kit-trivy-fs.txt
+    . >"$trivy_output"; then
+    cat "$trivy_output"
+    exit 1
+  fi
 fi
 
 log "validation completed"

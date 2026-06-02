@@ -46,6 +46,7 @@ spec:
             periodSeconds: 20
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -54,6 +55,8 @@ spec:
               mountPath: {{ .Values.persistence.mountPath | quote }}
             - name: snapshots
               mountPath: /qdrant/snapshots
+            - name: tmp
+              mountPath: /tmp
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
@@ -65,4 +68,6 @@ spec:
           emptyDir: {}
           {{- end }}
         - name: snapshots
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}

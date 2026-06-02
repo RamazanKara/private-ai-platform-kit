@@ -17,6 +17,8 @@ Use focused targets while iterating:
 make test-gateway
 make test-rag
 make production-check
+make repo-security-scan
+make dependency-lock-check
 make repo-hygiene
 make api-contract
 make config-contract
@@ -25,12 +27,15 @@ make config-contract
 Run image scanning before changing Dockerfiles, dependencies, or release workflows:
 
 ```bash
+make dependency-lock-check
 make image-scan
+make repo-security-scan
 ```
 
 ## Change Standards
 
 - Keep runtime dependencies separate from test-only dependencies.
+- Keep `requirements.lock` and `requirements-dev.lock` regenerated with hashes whenever Python requirements change.
 - Keep Docker base images pinned by digest.
 - Keep `.github/dependabot.yml` aligned with runtime package managers, Dockerfiles, and GitHub Actions.
 - Keep generated evidence under `results/` ignored unless it is an intentional `sample-*` artifact.

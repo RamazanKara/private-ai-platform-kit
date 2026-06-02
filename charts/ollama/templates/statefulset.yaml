@@ -46,9 +46,17 @@ spec:
               value: /models
             - name: HOME
               value: /models
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
             - name: data
               mountPath: /models
+            - name: tmp
+              mountPath: /tmp
       {{- end }}
       containers:
         - name: ollama
@@ -70,6 +78,7 @@ spec:
             periodSeconds: 10
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -78,6 +87,11 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /models
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: data

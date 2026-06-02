@@ -109,6 +109,33 @@ spec:
                 capabilities:
                   drop:
                     - ALL
+    - name: require-read-only-root-filesystem
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: Containers must use a read-only root filesystem.
+        foreach:
+          - list: request.object.spec.containers[]
+            pattern:
+              securityContext:
+                readOnlyRootFilesystem: true
     - name: disallow-privileged
       match:
         any:

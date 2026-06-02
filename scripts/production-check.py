@@ -13,6 +13,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CHANGELOG_VERSION_PATTERN = re.compile(r"^## v(?P<version>\d+\.\d+\.\d+) - \d{4}-\d{2}-\d{2}$")
+PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
 
 
 def load_yaml_documents(path: Path) -> list[dict[str, Any]]:
@@ -82,6 +83,30 @@ def nested(mapping: dict[str, Any], *keys: str, default: Any = None) -> Any:
 def require(errors: list[str], condition: bool, message: str) -> None:
     if not condition:
         errors.append(message)
+
+
+def normalized_package_name(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def requirement_pins(path: Path) -> dict[str, str]:
+    pins: dict[str, str] = {}
+    for line in path.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or stripped.startswith("-r "):
+            continue
+        match = PIN_PATTERN.match(stripped)
+        if match:
+            pins[normalized_package_name(match.group(1))] = match.group(2)
+    return pins
+
+
+def require_lock_contains_pins(errors: list[str], requirements: Path, lockfile: Path, expected: dict[str, str]) -> None:
+    if not lockfile.exists():
+        return
+    lock_text = lockfile.read_text().lower()
+    for name, version in expected.items():
+        require(errors, f"{name}=={version}" in lock_text, f"{lockfile.relative_to(ROOT)} must include pinned dependency {name}=={version} from {requirements.relative_to(ROOT)}")
 
 
 def check_gateway_render(name: str, docs: list[dict[str, Any]], errors: list[str]) -> None:
@@ -164,6 +189,39 @@ def check_budget_redis_render(docs: list[dict[str, Any]], errors: list[str]) -> 
     require(errors, bool(find_kind(docs, "PodDisruptionBudget")), "budget-redis: chart must render a PodDisruptionBudget")
 
 
+def check_ollama_render(name: str, docs: list[dict[str, Any]], errors: list[str]) -> None:
+    statefulsets = find_kind(docs, "StatefulSet")
+    require(errors, len(statefulsets) == 1, f"{name}: expected one Ollama StatefulSet")
+    if not statefulsets:
+        return
+    statefulset = statefulsets[0]
+    pod_spec = statefulset["spec"]["template"]["spec"]
+    ollama = container(statefulset)
+    security = ollama.get("securityContext", {})
+    mounts = {mount.get("name"): mount for mount in ollama.get("volumeMounts", [])}
+    volumes = {volume.get("name") for volume in pod_spec.get("volumes", [])}
+
+    require(errors, pod_spec.get("automountServiceAccountToken") is False, f"{name}: Ollama pod must disable service account token automount")
+    require(errors, nested(pod_spec, "securityContext", "runAsNonRoot") is True, f"{name}: Ollama pod must run as non-root")
+    require(errors, "topologySpreadConstraints" in pod_spec, f"{name}: Ollama should render topology spread constraints")
+    require(errors, security.get("allowPrivilegeEscalation") is False, f"{name}: Ollama must block privilege escalation")
+    require(errors, security.get("readOnlyRootFilesystem") is True, f"{name}: Ollama must use a read-only root filesystem")
+    require(errors, "ALL" in nested(security, "capabilities", "drop", default=[]), f"{name}: Ollama must drop all Linux capabilities")
+    require(errors, "data" in mounts and mounts["data"].get("mountPath") == "/models", f"{name}: Ollama must mount writable model storage at /models")
+    require(errors, "tmp" in mounts and mounts["tmp"].get("mountPath") == "/tmp", f"{name}: Ollama must mount writable tmp storage")
+    require(errors, "tmp" in volumes, f"{name}: Ollama must define a tmp emptyDir volume")
+    for init in pod_spec.get("initContainers", []):
+        init_security = init.get("securityContext", {})
+        init_mounts = {mount.get("name"): mount for mount in init.get("volumeMounts", [])}
+        require(errors, init_security.get("allowPrivilegeEscalation") is False, f"{name}: Ollama init container must block privilege escalation")
+        require(errors, init_security.get("readOnlyRootFilesystem") is True, f"{name}: Ollama init container must use a read-only root filesystem")
+        require(errors, "ALL" in nested(init_security, "capabilities", "drop", default=[]), f"{name}: Ollama init container must drop all Linux capabilities")
+        require(errors, "data" in init_mounts and "tmp" in init_mounts, f"{name}: Ollama init container must mount model and tmp storage")
+    require(errors, bool(find_kind(docs, "Service")), f"{name}: Ollama chart must render a Service")
+    require(errors, bool(find_kind(docs, "ServiceAccount")), f"{name}: Ollama chart must render a ServiceAccount")
+    require(errors, bool(find_kind(docs, "PodDisruptionBudget")), f"{name}: Ollama chart must render a PodDisruptionBudget")
+
+
 def check_qdrant_render(name: str, docs: list[dict[str, Any]], expect_pvc: bool, errors: list[str]) -> None:
     deployments = find_kind(docs, "Deployment")
     require(errors, len(deployments) == 1, f"{name}: expected one Qdrant Deployment")
@@ -177,9 +235,14 @@ def check_qdrant_render(name: str, docs: list[dict[str, Any]], expect_pvc: bool,
         require(errors, pod_spec.get("automountServiceAccountToken") is False, f"{name}: Qdrant pod must disable service account token automount")
         require(errors, nested(pod_spec, "securityContext", "runAsNonRoot") is True, f"{name}: Qdrant pod must run as non-root")
         require(errors, security.get("allowPrivilegeEscalation") is False, f"{name}: Qdrant must block privilege escalation")
+        require(errors, security.get("readOnlyRootFilesystem") is True, f"{name}: Qdrant must use a read-only root filesystem")
         require(errors, "ALL" in nested(security, "capabilities", "drop", default=[]), f"{name}: Qdrant must drop all Linux capabilities")
         require(errors, bool(nested(qdrant, "resources", "requests")), f"{name}: Qdrant must set resource requests")
         require(errors, bool(nested(qdrant, "resources", "limits")), f"{name}: Qdrant must set resource limits")
+        mounts = {mount.get("name"): mount for mount in qdrant.get("volumeMounts", [])}
+        require(errors, "storage" in mounts, f"{name}: Qdrant must mount writable storage")
+        require(errors, "snapshots" in mounts, f"{name}: Qdrant must mount writable snapshots storage")
+        require(errors, "tmp" in mounts and mounts["tmp"].get("mountPath") == "/tmp", f"{name}: Qdrant must mount writable tmp storage")
         ports = {port.get("name") for port in qdrant.get("ports", [])}
         require(errors, {"http", "grpc"} <= ports, f"{name}: Qdrant must expose HTTP and gRPC ports")
     require(errors, bool(find_kind(docs, "Service")), f"{name}: Qdrant chart must render a Service")
@@ -189,6 +252,10 @@ def check_qdrant_render(name: str, docs: list[dict[str, Any]], expect_pvc: bool,
         require(errors, service_accounts[0].get("automountServiceAccountToken") is False, f"{name}: Qdrant ServiceAccount must disable token automount")
     require(errors, bool(find_kind(docs, "NetworkPolicy")), f"{name}: Qdrant chart must render a NetworkPolicy")
     require(errors, bool(find_kind(docs, "PodDisruptionBudget")), f"{name}: Qdrant chart must render a PodDisruptionBudget")
+    deployments = find_kind(docs, "Deployment")
+    if deployments:
+        volumes = {volume.get("name") for volume in deployments[0]["spec"]["template"]["spec"].get("volumes", [])}
+        require(errors, {"storage", "snapshots", "tmp"} <= volumes, f"{name}: Qdrant must define storage, snapshots, and tmp volumes")
     if expect_pvc:
         require(errors, bool(find_kind(docs, "PersistentVolumeClaim")), f"{name}: customer Qdrant profile must render a PersistentVolumeClaim")
 
@@ -298,9 +365,19 @@ def check_vllm_render(name: str, docs: list[dict[str, Any]], resource_name: str,
     require(errors, nested(pod_spec, "securityContext", "runAsNonRoot") is True, f"{name}: vLLM pod must run as non-root")
     require(errors, "topologySpreadConstraints" in pod_spec, f"{name}: vLLM should render topology spread constraints for multi-replica placement")
     require(errors, vllm_security.get("allowPrivilegeEscalation") is False, f"{name}: vLLM must block privilege escalation")
+    require(errors, vllm_security.get("readOnlyRootFilesystem") is True, f"{name}: vLLM must use a read-only root filesystem")
     require(errors, "ALL" in nested(vllm_security, "capabilities", "drop", default=[]), f"{name}: vLLM must drop all Linux capabilities")
     require(errors, resource_name in requests, f"{name}: vLLM requests must include {resource_name}")
     require(errors, resource_name in limits, f"{name}: vLLM limits must include {resource_name}")
+    env = {item.get("name"): item.get("value") for item in vllm.get("env", [])}
+    require(errors, env.get("HF_HOME") == "/models", f"{name}: vLLM must redirect HF_HOME to writable model cache")
+    require(errors, env.get("TRANSFORMERS_CACHE") == "/models", f"{name}: vLLM must redirect TRANSFORMERS_CACHE to writable model cache")
+    require(errors, env.get("VLLM_CACHE_ROOT") == "/models", f"{name}: vLLM must redirect VLLM_CACHE_ROOT to writable model cache")
+    mounts = {mount.get("name"): mount for mount in vllm.get("volumeMounts", [])}
+    require(errors, "model-cache" in mounts and mounts["model-cache"].get("mountPath") == "/models", f"{name}: vLLM must mount writable model cache")
+    require(errors, "tmp" in mounts and mounts["tmp"].get("mountPath") == "/tmp", f"{name}: vLLM must mount writable tmp storage")
+    volumes = {volume.get("name") for volume in pod_spec.get("volumes", [])}
+    require(errors, {"model-cache", "tmp"} <= volumes, f"{name}: vLLM must define model-cache and tmp volumes")
     require(errors, bool(find_kind(docs, "ServiceAccount")), f"{name}: vLLM chart must render a ServiceAccount")
     require(errors, bool(find_kind(docs, "PodDisruptionBudget")), f"{name}: vLLM chart must render a PodDisruptionBudget")
     require(errors, bool(find_kind(docs, "HorizontalPodAutoscaler")), f"{name}: vLLM profile must render an HPA")
@@ -518,6 +595,53 @@ def check_chaos_drills(errors: list[str]) -> None:
             require(errors, phrase in source, f"chaos runner missing {phrase}")
 
 
+def check_static_workload_security(errors: list[str]) -> None:
+    restore_cronjobs = find_kind(load_yaml_documents(ROOT / "backup/restore-drill/k8s/cronjob.yaml"), "CronJob")
+    require(errors, len(restore_cronjobs) == 1, "restore-drill CronJob manifest must define one CronJob")
+    if restore_cronjobs:
+        pod_spec = nested(restore_cronjobs[0], "spec", "jobTemplate", "spec", "template", "spec", default={})
+        containers = pod_spec.get("containers", [])
+        require(errors, len(containers) == 1, "restore-drill CronJob must define one container")
+        if containers:
+            restore = containers[0]
+            security = restore.get("securityContext", {})
+            mounts = {mount.get("name"): mount for mount in restore.get("volumeMounts", [])}
+            require(errors, security.get("allowPrivilegeEscalation") is False, "restore-drill CronJob must block privilege escalation")
+            require(errors, security.get("readOnlyRootFilesystem") is True, "restore-drill CronJob must use a read-only root filesystem")
+            require(errors, "ALL" in nested(security, "capabilities", "drop", default=[]), "restore-drill CronJob must drop all Linux capabilities")
+            require(errors, nested(mounts, "config", "readOnly") is True, "restore-drill config mount must be read-only")
+            require(errors, nested(mounts, "fixtures", "readOnly") is True, "restore-drill fixtures mount must be read-only")
+            require(errors, "reports" in mounts, "restore-drill CronJob must mount writable reports storage")
+            require(errors, "tmp" in mounts and mounts["tmp"].get("mountPath") == "/tmp", "restore-drill CronJob must mount writable tmp storage")
+        volumes = {volume.get("name") for volume in pod_spec.get("volumes", [])}
+        require(errors, {"config", "reports", "fixtures", "tmp"} <= volumes, "restore-drill CronJob must define config, reports, fixtures, and tmp volumes")
+
+    restore_rbac = (ROOT / "backup/restore-drill/k8s/rbac.yaml").read_text()
+    require(errors, "pods/exec" not in restore_rbac, "restore-drill RBAC must not grant pods/exec")
+
+    smoke_jobs = find_kind(load_yaml_documents(ROOT / "sandbox/tests/trace-smoke-job.yaml"), "Job")
+    require(errors, len(smoke_jobs) == 1, "sandbox trace smoke manifest must define one Job")
+    if smoke_jobs:
+        pod_spec = nested(smoke_jobs[0], "spec", "template", "spec", default={})
+        containers = pod_spec.get("containers", [])
+        require(errors, len(containers) == 1, "sandbox trace smoke Job must define one container")
+        if containers:
+            smoke = containers[0]
+            security = smoke.get("securityContext", {})
+            mounts = {mount.get("name"): mount for mount in smoke.get("volumeMounts", [])}
+            require(errors, security.get("allowPrivilegeEscalation") is False, "sandbox trace smoke Job must block privilege escalation")
+            require(errors, security.get("readOnlyRootFilesystem") is True, "sandbox trace smoke Job must use a read-only root filesystem")
+            require(errors, "ALL" in nested(security, "capabilities", "drop", default=[]), "sandbox trace smoke Job must drop all Linux capabilities")
+            require(errors, "tmp" in mounts and mounts["tmp"].get("mountPath") == "/tmp", "sandbox trace smoke Job must mount writable tmp storage")
+        volumes = {volume.get("name") for volume in pod_spec.get("volumes", [])}
+        require(errors, "tmp" in volumes, "sandbox trace smoke Job must define a tmp volume")
+
+    policies = (ROOT / "policies/kyverno/policies.yaml").read_text()
+    require(errors, "require-read-only-root-filesystem" in policies, "Kyverno restricted policy must require read-only root filesystems")
+    kyverno_tests = (ROOT / "policies/kyverno/tests/kyverno-test.yaml").read_text()
+    require(errors, "writable-root-pod" in kyverno_tests, "Kyverno tests must cover read-only root filesystem enforcement")
+
+
 def check_evidence_pack(errors: list[str]) -> None:
     require(errors, os.access(ROOT / "scripts/evidence-pack.py", os.X_OK), "scripts/evidence-pack.py must be executable")
     require(errors, (ROOT / "results/evidence/sample-summary.md").exists(), "evidence pack sample summary must exist")
@@ -632,22 +756,48 @@ def check_release_packaging(errors: list[str]) -> None:
         dockerfile = ROOT / f"services/{service}/Dockerfile"
         requirements = ROOT / f"services/{service}/requirements.txt"
         dev_requirements = ROOT / f"services/{service}/requirements-dev.txt"
+        runtime_lock = ROOT / f"services/{service}/requirements.lock"
+        dev_lock = ROOT / f"services/{service}/requirements-dev.lock"
         require(errors, dockerfile.exists(), f"{service} Dockerfile must exist")
         if dockerfile.exists():
             dockerfile_text = dockerfile.read_text()
             require(errors, "python:3.14-alpine@sha256:" in dockerfile_text, f"{service} Dockerfile must use a pinned Alpine Python base image")
             require(errors, "python:3.14-slim" not in dockerfile_text, f"{service} Dockerfile must not use Debian slim runtime base")
+            require(errors, "COPY requirements.lock ." in dockerfile_text, f"{service} Dockerfile must copy the hashed runtime lockfile")
+            require(errors, "--require-hashes -r requirements.lock" in dockerfile_text, f"{service} Dockerfile must install runtime dependencies with hash checking")
         require(errors, requirements.exists(), f"{service} runtime requirements must exist")
+        runtime_pins: dict[str, str] = {}
         if requirements.exists():
-            require(errors, "pytest" not in requirements.read_text(), f"{service} runtime requirements must not include pytest")
+            requirements_text = requirements.read_text()
+            runtime_pins = requirement_pins(requirements)
+            require(errors, "pytest" not in requirements_text, f"{service} runtime requirements must not include pytest")
+            require(errors, runtime_pins, f"{service} runtime requirements must pin dependencies with == versions")
         require(errors, dev_requirements.exists(), f"{service} dev requirements must exist")
         if dev_requirements.exists():
             dev_text = dev_requirements.read_text()
+            dev_pins = requirement_pins(dev_requirements)
             require(errors, "-r requirements.txt" in dev_text and "pytest" in dev_text, f"{service} dev requirements must extend runtime requirements and include pytest")
+            require(errors, dev_pins, f"{service} dev requirements must pin dependencies with == versions")
+        require(errors, runtime_lock.exists(), f"{service} runtime lockfile must exist")
+        if runtime_lock.exists():
+            require(errors, "--hash=sha256:" in runtime_lock.read_text(), f"{service} runtime lockfile must include package hashes")
+            require_lock_contains_pins(errors, requirements, runtime_lock, runtime_pins)
+        require(errors, dev_lock.exists(), f"{service} dev lockfile must exist")
+        if dev_lock.exists():
+            dev_lock_text = dev_lock.read_text()
+            require(errors, "--hash=sha256:" in dev_lock_text, f"{service} dev lockfile must include package hashes")
+            require_lock_contains_pins(errors, requirements, dev_lock, runtime_pins)
+            if dev_requirements.exists():
+                require_lock_contains_pins(errors, dev_requirements, dev_lock, requirement_pins(dev_requirements))
         require(errors, dockerignore.exists(), f"{service} Docker context must define .dockerignore")
         if dockerignore.exists():
             text = dockerignore.read_text()
             require(errors, ".venv/" in text and ".pytest_cache/" in text, f"{service} .dockerignore must exclude local test environments")
+
+    for script in ("scripts/bootstrap-python.sh", "scripts/test-gateway.sh", "scripts/test-rag.sh"):
+        text = (ROOT / script).read_text()
+        require(errors, "--require-hashes -r requirements-dev.lock" in text, f"{script} must install hashed dev dependencies")
+        require(errors, "install --upgrade pip" not in text, f"{script} must not upgrade pip from an unpinned network dependency")
 
     image_scan = ROOT / "scripts/image-scan.sh"
     supply_chain_evidence = ROOT / "scripts/supply-chain-evidence.py"
@@ -1038,6 +1188,12 @@ def main() -> int:
                 errors,
             )
         check_budget_redis_render(render_chart("budget-redis"), errors)
+        check_ollama_render("ollama-defaults", render_chart("ollama"), errors)
+        check_ollama_render(
+            "local-ollama",
+            render_chart("ollama", ROOT / "clusters/local/values/ollama.yaml"),
+            errors,
+        )
         check_qdrant_render("qdrant-defaults", render_chart("qdrant-vector-store"), True, errors)
         check_qdrant_render(
             "local-qdrant-vector-store",
@@ -1093,6 +1249,7 @@ def main() -> int:
     check_tenant_labs(errors)
     check_tenant_onboarding(errors)
     check_chaos_drills(errors)
+    check_static_workload_security(errors)
     check_evidence_pack(errors)
     check_validation_toolchain(errors)
     check_release_gates(errors)

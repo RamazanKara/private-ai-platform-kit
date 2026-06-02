@@ -9,6 +9,7 @@ resources:
   - resources/latest-pod.yaml
   - resources/privileged-pod.yaml
   - resources/missing-resources-pod.yaml
+  - resources/writable-root-pod.yaml
 results:
   - policy: ai-platform-required-labels
     rule: require-platform-labels
@@ -32,5 +33,11 @@ results:
     rule: require-requests-and-limits
     resources:
       - missing-resources-pod
+    kind: Pod
+    result: fail
+  - policy: ai-platform-restricted-pods
+    rule: require-read-only-root-filesystem
+    resources:
+      - writable-root-pod
     kind: Pod
     result: fail

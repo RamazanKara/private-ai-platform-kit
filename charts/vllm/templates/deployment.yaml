@@ -56,6 +56,12 @@ spec:
             {{- end }}
           {{- if .Values.externalSecrets.enabled }}
           env:
+            - name: HF_HOME
+              value: {{ .Values.cache.mountPath | quote }}
+            - name: TRANSFORMERS_CACHE
+              value: {{ .Values.cache.mountPath | quote }}
+            - name: VLLM_CACHE_ROOT
+              value: {{ .Values.cache.mountPath | quote }}
             - name: HUGGING_FACE_HUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -67,10 +73,24 @@ spec:
             {{- end }}
           {{- else if .Values.extraEnv }}
           env:
+            - name: HF_HOME
+              value: {{ .Values.cache.mountPath | quote }}
+            - name: TRANSFORMERS_CACHE
+              value: {{ .Values.cache.mountPath | quote }}
+            - name: VLLM_CACHE_ROOT
+              value: {{ .Values.cache.mountPath | quote }}
             {{- range .Values.extraEnv }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
+          {{- else }}
+          env:
+            - name: HF_HOME
+              value: {{ .Values.cache.mountPath | quote }}
+            - name: TRANSFORMERS_CACHE
+              value: {{ .Values.cache.mountPath | quote }}
+            - name: VLLM_CACHE_ROOT
+              value: {{ .Values.cache.mountPath | quote }}
           {{- end }}
           ports:
             - name: http
@@ -83,6 +103,7 @@ spec:
             periodSeconds: 15
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -99,3 +120,13 @@ spec:
               {{- if .Values.accelerator.enabled }}
               {{ .Values.accelerator.resourceName }}: {{ .Values.accelerator.count }}
               {{- end }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: {{ .Values.cache.mountPath | quote }}
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: model-cache
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

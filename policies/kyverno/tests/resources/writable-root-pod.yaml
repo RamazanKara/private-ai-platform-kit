@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: missing-resources-pod
+  name: writable-root-pod
   labels:
-    app.kubernetes.io/name: missing-resources-pod
+    app.kubernetes.io/name: writable-root-pod
     app.kubernetes.io/component: test
     app.kubernetes.io/part-of: private-ai-platform-kit
     platform.ai/cost-center: platform
@@ -14,11 +14,17 @@ spec:
   securityContext:
     runAsNonRoot: true
   containers:
-    - name: missing
+    - name: writable-root
       image: nginx:1.27.3
       securityContext:
         allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
         capabilities:
           drop:
             - ALL
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi

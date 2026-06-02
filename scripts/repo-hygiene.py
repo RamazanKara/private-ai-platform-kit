@@ -11,6 +11,7 @@ from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
 
 REQUIRED_FILES = (
     ".editorconfig",
@@ -78,6 +79,8 @@ REQUIRED_MAKE_TARGETS = (
     "config-contract-update",
     "image-scan",
     "supply-chain-check",
+    "repo-security-scan",
+    "dependency-lock-check",
     "release-gate",
     "release-gate-strict",
     "customer-overlay",
@@ -176,6 +179,30 @@ def check_toolchain_lookup_policy(errors: list[str]) -> None:
         require(errors, managed_index < fallback_index, "toolchain-doctor must prefer managed tools before PATH")
 
 
+def normalized_package_name(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def requirement_pins(path: Path) -> dict[str, str]:
+    pins: dict[str, str] = {}
+    for line in path.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or stripped.startswith("-r "):
+            continue
+        match = PIN_PATTERN.match(stripped)
+        if match:
+            pins[normalized_package_name(match.group(1))] = match.group(2)
+    return pins
+
+
+def require_lock_contains_pins(errors: list[str], requirements: Path, lockfile: Path, expected: dict[str, str]) -> None:
+    if not lockfile.exists():
+        return
+    lock_text = lockfile.read_text()
+    for name, version in expected.items():
+        require(errors, f"{name}=={version}" in lock_text.lower(), f"{rel(lockfile)} must include pinned dependency {name}=={version} from {rel(requirements)}")
+
+
 def tracked_file_modes(errors: list[str]) -> dict[str, str]:
     try:
         completed = subprocess.run(
@@ -201,21 +228,49 @@ def check_runtime_dependencies(errors: list[str]) -> None:
         base = ROOT / "services" / service
         runtime_requirements = base / "requirements.txt"
         dev_requirements = base / "requirements-dev.txt"
+        runtime_lock = base / "requirements.lock"
+        dev_lock = base / "requirements-dev.lock"
         dockerfile = base / "Dockerfile"
         require(errors, runtime_requirements.exists(), f"{rel(runtime_requirements)} missing")
         require(errors, dev_requirements.exists(), f"{rel(dev_requirements)} missing")
+        require(errors, runtime_lock.exists(), f"{rel(runtime_lock)} missing")
+        require(errors, dev_lock.exists(), f"{rel(dev_lock)} missing")
         require(errors, dockerfile.exists(), f"{rel(dockerfile)} missing")
+        runtime_pins: dict[str, str] = {}
         if runtime_requirements.exists():
             runtime_text = runtime_requirements.read_text()
+            runtime_pins = requirement_pins(runtime_requirements)
             require(errors, "pytest" not in runtime_text, f"{rel(runtime_requirements)} must not include test-only dependencies")
+            require(errors, runtime_pins, f"{rel(runtime_requirements)} must pin runtime dependencies with == versions")
         if dev_requirements.exists():
             dev_text = dev_requirements.read_text()
+            dev_pins = requirement_pins(dev_requirements)
             require(errors, "-r requirements.txt" in dev_text, f"{rel(dev_requirements)} must extend runtime requirements")
             require(errors, "pytest" in dev_text, f"{rel(dev_requirements)} must include pytest for local tests")
+            require(errors, dev_pins, f"{rel(dev_requirements)} must pin dev dependencies with == versions")
+        if runtime_requirements.exists() and runtime_lock.exists():
+            require(errors, "--hash=sha256:" in runtime_lock.read_text(), f"{rel(runtime_lock)} must be generated with hashes")
+            require_lock_contains_pins(errors, runtime_requirements, runtime_lock, runtime_pins)
+        if dev_requirements.exists() and dev_lock.exists():
+            dev_lock_text = dev_lock.read_text()
+            require(errors, "--hash=sha256:" in dev_lock_text, f"{rel(dev_lock)} must be generated with hashes")
+            require_lock_contains_pins(errors, runtime_requirements, dev_lock, runtime_pins)
+            require_lock_contains_pins(errors, dev_requirements, dev_lock, requirement_pins(dev_requirements))
         if dockerfile.exists():
             dockerfile_text = dockerfile.read_text()
             require(errors, "python:3.14-alpine@sha256:" in dockerfile_text, f"{rel(dockerfile)} must use a pinned Alpine base")
             require(errors, "3.14-slim" not in dockerfile_text, f"{rel(dockerfile)} must not use the Debian slim base")
+            require(errors, "COPY requirements.lock ." in dockerfile_text, f"{rel(dockerfile)} must copy the hashed runtime lockfile")
+            require(errors, "--require-hashes -r requirements.lock" in dockerfile_text, f"{rel(dockerfile)} must install runtime dependencies with hash checking")
+
+    for script, service in (
+        ("scripts/bootstrap-python.sh", "inference-gateway"),
+        ("scripts/test-gateway.sh", "inference-gateway"),
+        ("scripts/test-rag.sh", "rag-service"),
+    ):
+        text = (ROOT / script).read_text()
+        require(errors, "--require-hashes -r requirements-dev.lock" in text, f"{script} must install hashed dev dependencies for {service}")
+        require(errors, "install --upgrade pip" not in text, f"{script} must not upgrade pip from an unpinned network dependency")
 
 
 def markdown_files() -> list[Path]:

@@ -19,7 +19,7 @@ PYTHON := services/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-hygiene api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+.PHONY: help python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
 
 help:
 	@printf '%s\n' \
@@ -39,6 +39,8 @@ help:
 		'  make production-check      Run static production-readiness checks' \
 		'  make image-scan            Build and Trivy-scan runtime images' \
 		'  make supply-chain-check    Validate local image scan evidence' \
+		'  make repo-security-scan    Fail on HIGH/CRITICAL repo security findings' \
+		'  make dependency-lock-check Check hashed Python dependency locks' \
 		'  make repo-hygiene          Check contributor docs, links, and layout' \
 		'  make api-contract          Check service OpenAPI contracts' \
 		'  make config-contract       Check service runtime config contracts' \
@@ -179,6 +181,23 @@ image-scan:
 
 supply-chain-check: python-env
 	$(PYTHON) scripts/supply-chain-evidence.py --check
+
+repo-security-scan:
+	trivy fs \
+		--scanners secret,misconfig \
+		--severity HIGH,CRITICAL \
+		--exit-code 1 \
+		--timeout 10m \
+		--skip-dirs .tools \
+		--skip-dirs results \
+		--skip-dirs tenants/generated \
+		--skip-dirs policies/kyverno/tests/resources \
+		--skip-dirs services/inference-gateway/.venv \
+		--skip-dirs services/rag-service/.venv \
+		.
+
+dependency-lock-check:
+	python3 scripts/repo-hygiene.py --check
 
 repo-hygiene:
 	python3 scripts/repo-hygiene.py --check
