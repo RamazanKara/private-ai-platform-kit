@@ -2,7 +2,7 @@
 
 Generated: `2026-05-31T00:00:00Z`
 
-Summary: 10 passed, 0 failed.
+Summary: 11 passed, 0 failed.
 
 | Gate | Status | Summary |
 | --- | --- | --- |
@@ -15,6 +15,7 @@ Summary: 10 passed, 0 failed.
 | slo | pass | 5/5 SLO objectives passed, 0 config errors |
 | quota | pass | 3 quota plans and 4 chargeback labels checked |
 | modelProvenance | pass | 2 model provenance artifacts checked |
+| supplyChain | pass | 2 images have validated SBOM, SARIF, and checksum evidence |
 | evidencePack | pass | evidence pack has 28 passed and 0 failed controls |
 
 Use `make release-gate` to check current evidence and `make release-report` to write a fresh JSON/Markdown report.

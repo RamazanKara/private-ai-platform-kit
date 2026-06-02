@@ -55,7 +55,6 @@ A failed live control usually means the local lab is not fully synced or a workl
 Run the static gates and live smoke paths first:
 
     make toolchain-install
-    export PATH="$PWD/.tools/bin:$PATH"
     make validate-full
     make toolchain-report TOOLCHAIN_PROFILE=strict
     make slo-report
@@ -71,6 +70,7 @@ Run the static gates and live smoke paths first:
     make api-contract
     make config-contract
     make image-scan
+    make supply-chain-check
     make evidence LIVE=1
     make release-gate-strict
     make release-report-strict

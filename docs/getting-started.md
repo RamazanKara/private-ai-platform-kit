@@ -26,8 +26,9 @@ Install the optional validation CLIs into `.tools/bin`:
 
 ```bash
 make toolchain-install
-export PATH="$PWD/.tools/bin:$PATH"
 ```
+
+Make targets and repo scripts automatically prepend `.tools/bin` when it exists.
 
 Generate a toolchain evidence report:
 
@@ -153,11 +154,13 @@ make eval
 SUITE=evals/coding-agent-suite.yaml make eval
 ```
 
-Run k6 load tests against the gateway:
+Run k6 load tests against an ephemeral local gateway and mock runtime:
 
 ```bash
-make loadtest
+make loadtest-local
 ```
+
+When a live local or customer gateway is already running, use `GATEWAY_URL=http://127.0.0.1:8080 make loadtest`.
 
 Generate a customer-facing evidence pack:
 
@@ -199,7 +202,7 @@ For an existing Kubernetes cluster, install Argo CD, configure the customer over
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.3.2 \
+  CUSTOMER_REVISION=v0.4.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 

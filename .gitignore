@@ -14,6 +14,7 @@ htmlcov/
 *.tmp
 tenants/generated/
 results/loadtest/*.json
+results/loadtest/*.md
 results/loadtest/*.html
 results/loadtest/*.log
 results/model-catalog/*.json
@@ -43,6 +44,11 @@ results/slo/*.log
 results/quota/*.json
 results/quota/*.md
 results/quota/*.log
+results/supply-chain/*.json
+results/supply-chain/*.md
+results/supply-chain/*.sarif
+results/supply-chain/*.txt
+results/supply-chain/*.log
 results/release-gate/*.json
 results/release-gate/*.md
 results/release-gate/*.log
@@ -70,6 +76,8 @@ results/restore-drill/*.log
 !results/slo/sample-summary.json
 !results/quota/sample-summary.md
 !results/quota/sample-summary.json
+!results/supply-chain/sample-summary.md
+!results/supply-chain/sample-summary.json
 !results/release-gate/sample-summary.md
 !results/restore-drill/sample-redis-run.json
 !results/restore-drill/sample-compliance-report.html

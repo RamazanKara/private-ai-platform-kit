@@ -12,9 +12,14 @@ RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS ?= 24
 CUSTOMER_REPO_URL ?= https://github.com/RamazanKara/private-ai-platform-kit.git
 CUSTOMER_REVISION ?= HEAD
 CUSTOMER_GPU_PROFILE ?= nvidia
+TOOLCHAIN_BIN_DIR ?= $(CURDIR)/.tools/bin
+PYTHONDONTWRITEBYTECODE ?= 1
 PYTHON := services/inference-gateway/.venv/bin/python
 
-.PHONY: help python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan repo-hygiene api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
+export PYTHONDONTWRITEBYTECODE
+
+.PHONY: help python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-hygiene api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
 
 help:
 	@printf '%s\n' \
@@ -33,9 +38,11 @@ help:
 		'  make validate-full         Require the strict validation toolchain' \
 		'  make production-check      Run static production-readiness checks' \
 		'  make image-scan            Build and Trivy-scan runtime images' \
+		'  make supply-chain-check    Validate local image scan evidence' \
 		'  make repo-hygiene          Check contributor docs, links, and layout' \
 		'  make api-contract          Check service OpenAPI contracts' \
 		'  make config-contract       Check service runtime config contracts' \
+		'  make loadtest-local        Run k6 against an ephemeral local gateway' \
 		'' \
 		'Evidence and governance:' \
 		'  make evidence              Generate customer evidence pack' \
@@ -107,6 +114,9 @@ eval:
 loadtest:
 	./scripts/loadtest.sh
 
+loadtest-local:
+	./scripts/loadtest-local.sh
+
 restore-drill:
 	RUNTIME="$(RUNTIME)" ./scripts/restore-drill.sh
 
@@ -165,7 +175,10 @@ model-provenance-report: python-env
 	$(PYTHON) scripts/model-provenance.py --check --report
 
 image-scan:
-	TRIVY_BIN="$(shell command -v trivy || printf '%s' '.tools/bin/trivy')" ./scripts/image-scan.sh
+	./scripts/image-scan.sh
+
+supply-chain-check: python-env
+	$(PYTHON) scripts/supply-chain-evidence.py --check
 
 repo-hygiene:
 	python3 scripts/repo-hygiene.py --check

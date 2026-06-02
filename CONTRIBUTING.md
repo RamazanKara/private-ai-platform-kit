@@ -32,7 +32,9 @@ make image-scan
 
 - Keep runtime dependencies separate from test-only dependencies.
 - Keep Docker base images pinned by digest.
+- Keep `.github/dependabot.yml` aligned with runtime package managers, Dockerfiles, and GitHub Actions.
 - Keep generated evidence under `results/` ignored unless it is an intentional `sample-*` artifact.
+- Keep every tracked `scripts/*.py` and `scripts/*.sh` file executable in git; use `git update-index --chmod=+x <path>` when a mode-only fix is needed.
 - Update `api-contracts/` with `make api-contract-update` when changing customer-facing service routes or request schemas.
 - Update `config-contracts/` with `make config-contract-update` when changing service settings, Helm env vars, or chart defaults.
 - Keep customer-facing commands documented in README, docs, or runbooks.

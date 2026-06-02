@@ -1,0 +1,66 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: pip
+    directory: /services/inference-gateway
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:15"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      inference-gateway-python:
+        patterns:
+          - "*"
+
+  - package-ecosystem: pip
+    directory: /services/rag-service
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      rag-service-python:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /services/inference-gateway
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:45"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 3
+    groups:
+      inference-gateway-base-image:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /services/rag-service
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 3
+    groups:
+      rag-service-base-image:
+        patterns:
+          - "*"

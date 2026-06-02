@@ -13,6 +13,7 @@ Release gates are declared in `slo/release-gates.yaml`. The default local custom
 - SLO evidence has no failed objectives or config errors
 - quota and chargeback evidence has no errors
 - model provenance evidence covers approved models
+- supply-chain evidence has validated SBOMs, SARIF, and checksums
 - egress and retention governance evidence has no errors
 - evidence-pack controls have no failures
 
@@ -21,7 +22,6 @@ Release gates are declared in `slo/release-gates.yaml`. The default local custom
 Run:
 
     make toolchain-install
-    export PATH="$PWD/.tools/bin:$PATH"
     make validate-full
     make toolchain-report TOOLCHAIN_PROFILE=strict
     make slo-report
@@ -30,9 +30,13 @@ Run:
     make egress-report
     make retention-report
     make eval
-    make loadtest
+    make loadtest-local
+    make image-scan
+    make supply-chain-check
     make restore-drill RUNTIME=local
     make evidence LIVE=1
+
+Use `GATEWAY_URL=<url> make loadtest` when a live local or customer gateway is already running. Use `make loadtest-local` to produce current local gateway-path evidence with an ephemeral mock runtime.
 
 ## Check The Gate
 

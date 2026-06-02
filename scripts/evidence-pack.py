@@ -123,6 +123,7 @@ def collect_artifacts() -> list[Artifact]:
         latest_artifact("Egress governance report", ["results/egress-governance/*.md"], "markdown"),
         latest_artifact("Data retention report", ["results/retention/*.md"], "markdown"),
         latest_artifact("Release gate report", ["results/release-gate/*.md"], "markdown"),
+        latest_artifact("Supply-chain scan summary", ["results/supply-chain/*.md"], "markdown"),
         latest_artifact("Load-test summary", ["results/loadtest/*.md"], "markdown"),
         latest_artifact("Restore-drill JSON evidence", ["results/restore-drill/*run*.json", "results/restore-drill/sample-redis-run.json"], "json"),
         latest_artifact("Restore-drill compliance report", ["results/restore-drill/*compliance*.html", "results/restore-drill/sample-compliance-report.html"], "html"),
@@ -334,8 +335,8 @@ def static_controls() -> list[Control]:
             and executable("scripts/release-gate.py")
             and "release-gate-strict" in read_text("Makefile")
             and "--require-current-evidence" in read_text("scripts/release-gate.py")
-            and {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "evidencePack"} <= set(nested(release_gates, "spec", "gates", default={})),
-            "Customer handoff gates check eval, load, restore, strict toolchain, SLO, governance, evidence-pack thresholds, and strict current-evidence mode.",
+            and {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "supplyChain", "evidencePack"} <= set(nested(release_gates, "spec", "gates", default={})),
+            "Customer handoff gates check eval, load, restore, strict toolchain, SLO, governance, supply-chain, evidence-pack thresholds, and strict current-evidence mode.",
             ["slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md"],
             "Run `make release-gate-strict` before demos, releases, restore reviews, and production-readiness handoff.",
         ),
@@ -433,6 +434,8 @@ def static_controls() -> list[Control]:
             and "steps.build_rag.outputs.digest" in workflow
             and 'exit-code: "1"' in workflow
             and "image-scan:" in read_text("Makefile")
+            and "spdx-json" in read_text("scripts/image-scan.sh")
+            and "--format sarif" in read_text("scripts/image-scan.sh")
             and "supply-chain-checksums.txt" in workflow,
             "CI builds images, generates SBOMs, fails on high/critical image vulnerabilities, signs immutable image digests, and publishes supply-chain evidence.",
             [".github/workflows/ci.yml", "scripts/image-scan.sh"],
@@ -450,9 +453,10 @@ def static_controls() -> list[Control]:
             "Evaluation, load, and incident evidence",
             exists("evals/smoke-suite.yaml", "evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/evals/sample-coding-agent-summary.md", "results/loadtest/sample-summary.md")
             and executable("scripts/eval.sh")
-            and executable("scripts/loadtest.sh"),
+            and executable("scripts/loadtest.sh")
+            and executable("scripts/loadtest-local.sh"),
             "The lab stores smoke and coding-agent evaluation summaries alongside load-test, incident, and chaos evidence.",
-            ["evals/smoke-suite.yaml", "evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/loadtest/sample-summary.md"],
+            ["evals/smoke-suite.yaml", "evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/loadtest/sample-summary.md", "scripts/loadtest-local.sh"],
             "Keep customer-specific evaluation and load results with release evidence.",
         ),
         control(
@@ -578,7 +582,6 @@ def write_markdown(path: Path, generated_at: str, controls: list[Control], artif
             "Run these before a customer demo, release review, or incident drill handoff:",
             "",
             "    make toolchain-install",
-            "    export PATH=\"$PWD/.tools/bin:$PATH\"",
             "    make validate-full",
             "    make toolchain-report TOOLCHAIN_PROFILE=strict",
             "    make slo-report",

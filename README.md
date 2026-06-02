@@ -46,8 +46,9 @@ Install or verify the local toolchain:
 ```bash
 make toolchain-doctor
 make toolchain-install
-export PATH="$PWD/.tools/bin:$PATH"
 ```
+
+Make targets and repo scripts automatically discover tools installed under `.tools/bin`.
 
 Validate the repo without a live cluster:
 
@@ -79,7 +80,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.3.2 \
+  CUSTOMER_REVISION=v0.4.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
@@ -132,12 +133,14 @@ make slo-check
 make quota-check
 make model-check
 make model-provenance-check
+make loadtest-local
 make api-contract
 make config-contract
 make image-scan
+make supply-chain-check
 ```
 
-Runtime images use a pinned Alpine Python base and exclude test-only dependencies. CI builds and pushes gateway and RAG images, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
+Runtime images use a pinned Alpine Python base and exclude test-only dependencies. Local image scans generate SBOM, SARIF, checksum, and summary evidence under `results/supply-chain/`. CI builds and pushes gateway and RAG images, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
 
 ## Trademark Notice
 

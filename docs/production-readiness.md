@@ -36,15 +36,15 @@ This kit is local-first, but the controls are shaped like customer production co
 | Egress governance | `network/egress-catalog.yaml` requires external agent egress to reference approved catalog entries | Review and expire Git, package mirror, artifact, and ticketing egress entries | `make egress-check`, `make egress-report` |
 | Chaos drills | Safe rollout drills for gateway, budget Redis, Ollama, RAG, Qdrant, vLLM, and GPU capacity preflight | Run after platform upgrades and before customer demos or maintenance windows | `make chaos-drill`, `DRILL=gpu-capacity-preflight RUN_SMOKE=0 make chaos-drill` |
 | Evaluation harness | `evals/smoke-suite.yaml`, `evals/coding-agent-suite.yaml`, and `make eval` for repeatable prompt and coding-agent checks | Maintain environment-specific suites and keep summaries as release evidence | `scripts/eval-suite.py --check-config` |
-| Release gates | `slo/release-gates.yaml` enforces eval, load, restore, strict toolchain, SLO, governance, and evidence-pack thresholds | Run strict gates before demos, releases, restore reviews, and production-readiness handoff so checked-in sample evidence cannot pass | `make release-gate`, `make release-gate-strict`, `make release-report-strict` |
+| Release gates | `slo/release-gates.yaml` enforces eval, load, restore, strict toolchain, SLO, governance, supply-chain, and evidence-pack thresholds | Run strict gates before demos, releases, restore reviews, and production-readiness handoff so checked-in sample evidence cannot pass | `make release-gate`, `make release-gate-strict`, `make release-report-strict` |
 | Autoscaling | KEDA ScaledObject from Prometheus request rate | Tune thresholds to customer SLOs and GPU capacity | `helm template` in `make validate` |
 | Observability | Prometheus metrics, Grafana dashboard, Loki-ready structured logs | Centralize metrics, logs, and alerts | `make validate`, dashboards in `observability/` |
 | Policy as code | Kyverno required labels, resources, pod hardening, image signature audit | Enforce on AI namespaces and exclude platform operators | `make policy-test` when Kyverno CLI is installed |
 | Cost controls | Required owner/cost/environment/sandbox labels and OpenCost app | Map labels to chargeback/showback taxonomy | `make validate` YAML checks |
 | Secret handling | External Secrets examples and no committed runtime tokens | Replace local Kubernetes provider with enterprise backend | `clusters/customer/external-secrets.yaml` |
-| Supply chain | Pinned Alpine runtime images, runtime-only Python dependencies, high/critical Trivy failure gates, SBOMs, Cosign digest signing, workflow artifacts, and release asset upload in CI | Promote only immutable signed/scanned image digests with downloadable evidence | `make image-scan`, GitHub Actions image job |
+| Supply chain | Pinned Alpine runtime images, runtime-only Python dependencies, high/critical Trivy failure gates, local SBOM/SARIF/checksum evidence, Cosign digest signing, workflow artifacts, and release asset upload in CI | Promote only immutable signed/scanned image digests with downloadable evidence | `make image-scan`, `make supply-chain-check`, GitHub Actions image job |
 | Backup and restore | `restore-drill` application-data validation and Velero examples | Run scheduled restore evidence for each critical data store | `make restore-drill`, `make backup-drill` |
-| Load testing | k6 chat-completion scenario with sandbox tags | Store summaries and compare against SLOs | `make loadtest` |
+| Load testing | k6 chat-completion scenario with sandbox tags, live-gateway mode, and self-contained local gateway-path mode | Store summaries and compare against SLOs | `make loadtest`, `make loadtest-local` |
 | Evidence pack | Static customer handoff report plus optional live Kubernetes readiness checks | Attach reports to release, demo, restore drill, or incident review evidence | `make evidence`, `make evidence LIVE=1` |
 
 ## Production Promotion Checklist
@@ -79,9 +79,9 @@ This kit is local-first, but the controls are shaped like customer production co
 - Confirm `make slo-check` passes against current load, eval, restore, and evidence-pack artifacts.
 - Confirm NetworkPolicies allow only expected ingress and egress paths.
 - Confirm restore-drill evidence is generated on schedule and retained according to the customer's audit policy.
-- Confirm runtime images exclude test-only dependencies, `make image-scan` passes, and CI produces SBOMs, fails on high/critical image vulnerabilities, signs immutable image digests, and publishes downloadable supply-chain evidence before promotion.
+- Confirm runtime images exclude test-only dependencies, `make image-scan` passes, `make supply-chain-check` verifies local SBOM/SARIF/checksum evidence, and CI produces SBOMs, fails on high/critical image vulnerabilities, signs immutable image digests, and publishes downloadable supply-chain evidence before promotion.
 - Confirm evaluation summaries pass for the selected model and suite.
 - Confirm coding-agent evaluation cases cover change planning, secret handling, prompt-injection boundaries, and incident triage.
-- Confirm load-test results meet customer SLOs for latency, error rate, and throughput.
+- Confirm load-test results meet customer SLOs for latency, error rate, and throughput. Use `make loadtest-local` for local gateway-path evidence and `GATEWAY_URL=<url> make loadtest` for live cluster evidence.
 - Confirm `make release-gate-strict` passes against current handoff evidence without falling back to checked-in samples.
 - Confirm an evidence pack has been generated and attached to the customer handoff or release review.

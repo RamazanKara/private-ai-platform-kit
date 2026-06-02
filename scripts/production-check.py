@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -10,6 +12,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CHANGELOG_VERSION_PATTERN = re.compile(r"^## v(?P<version>\d+\.\d+\.\d+) - \d{4}-\d{2}-\d{2}$")
 
 
 def load_yaml_documents(path: Path) -> list[dict[str, Any]]:
@@ -18,6 +21,23 @@ def load_yaml_documents(path: Path) -> list[dict[str, Any]]:
         if isinstance(item, dict):
             docs.append(item)
     return docs
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text())
+
+
+def latest_changelog_version(errors: list[str]) -> str:
+    changelog = ROOT / "CHANGELOG.md"
+    require(errors, changelog.exists(), "CHANGELOG.md must exist")
+    if not changelog.exists():
+        return ""
+    for line in changelog.read_text().splitlines():
+        match = CHANGELOG_VERSION_PATTERN.fullmatch(line.strip())
+        if match:
+            return match.group("version")
+    errors.append("CHANGELOG.md must start with a version heading like '## v0.0.0 - YYYY-MM-DD'")
+    return ""
 
 
 def render_chart(chart: str, values: Path | None = None) -> list[dict[str, Any]]:
@@ -543,6 +563,8 @@ def check_validation_toolchain(errors: list[str]) -> None:
 
 
 def check_release_packaging(errors: list[str]) -> None:
+    release_version = latest_changelog_version(errors)
+    release_tag = f"v{release_version}" if release_version else ""
     workflow_path = ROOT / ".github/workflows/ci.yml"
     require(errors, workflow_path.exists(), "CI workflow must exist")
     if workflow_path.exists():
@@ -574,10 +596,14 @@ def check_release_packaging(errors: list[str]) -> None:
     rag_tag = str(nested(rag_values, "image", "tag", default=""))
     gateway_version = str(gateway_chart.get("version", ""))
     rag_version = str(rag_chart.get("version", ""))
+    require(errors, gateway_version == release_version, "inference-gateway chart version must match latest CHANGELOG version")
+    require(errors, rag_version == release_version, "rag-service chart version must match latest CHANGELOG version")
     require(errors, gateway_tag.startswith("v"), "inference-gateway chart image tag must be a release tag")
     require(errors, rag_tag.startswith("v"), "rag-service chart image tag must be a release tag")
     require(errors, gateway_tag.lstrip("v") == gateway_version, "inference-gateway chart version must match image tag")
     require(errors, rag_tag.lstrip("v") == rag_version, "rag-service chart version must match image tag")
+    require(errors, gateway_tag == release_tag, "inference-gateway image tag must match latest CHANGELOG release tag")
+    require(errors, rag_tag == release_tag, "rag-service image tag must match latest CHANGELOG release tag")
     require(errors, gateway_tag not in {"latest", "main"}, "inference-gateway chart must not default to floating tags")
     require(errors, rag_tag not in {"latest", "main"}, "rag-service chart must not default to floating tags")
     require(errors, str(nested(gateway_values, "image", "repository", default="")).startswith("ghcr.io/"), "inference-gateway chart must default to a GHCR image")
@@ -586,6 +612,20 @@ def check_release_packaging(errors: list[str]) -> None:
     for chart in ("agent-workspace", "budget-redis", "inference-gateway", "ollama", "qdrant-vector-store", "rag-service", "vllm"):
         metadata = yaml.safe_load((ROOT / f"charts/{chart}/Chart.yaml").read_text()) or {}
         require(errors, metadata.get("version") == gateway_version, f"{chart} chart version must match the release chart version")
+        if chart in {"agent-workspace", "inference-gateway", "rag-service"}:
+            require(errors, str(metadata.get("appVersion")) == release_version, f"{chart} appVersion must match latest CHANGELOG version")
+
+    for path in ("README.md", "docs/getting-started.md", "clusters/customer/README.md"):
+        text = (ROOT / path).read_text()
+        require(errors, f"CUSTOMER_REVISION={release_tag}" in text, f"{path} must show CUSTOMER_REVISION={release_tag}")
+
+    for path in ("services/inference-gateway/app/main.py", "services/rag-service/app/main.py"):
+        text = (ROOT / path).read_text()
+        require(errors, f'SERVICE_VERSION = "{release_version}"' in text, f"{path} SERVICE_VERSION must match latest CHANGELOG version")
+
+    for path in ("api-contracts/inference-gateway.openapi.json", "api-contracts/rag-service.openapi.json"):
+        api = load_json(ROOT / path)
+        require(errors, nested(api, "info", "version") == release_version, f"{path} info.version must match latest CHANGELOG version")
 
     for service in ("inference-gateway", "rag-service"):
         dockerignore = ROOT / f"services/{service}/.dockerignore"
@@ -610,9 +650,21 @@ def check_release_packaging(errors: list[str]) -> None:
             require(errors, ".venv/" in text and ".pytest_cache/" in text, f"{service} .dockerignore must exclude local test environments")
 
     image_scan = ROOT / "scripts/image-scan.sh"
+    supply_chain_evidence = ROOT / "scripts/supply-chain-evidence.py"
     require(errors, os.access(image_scan, os.X_OK), "scripts/image-scan.sh must be executable")
+    require(errors, os.access(supply_chain_evidence, os.X_OK), "scripts/supply-chain-evidence.py must be executable")
+    if image_scan.exists():
+        image_scan_text = image_scan.read_text()
+        for token in ("SYFT_BIN", "spdx-json", "--format sarif", "supply-chain-checksums", "results/supply-chain"):
+            require(errors, token in image_scan_text, f"scripts/image-scan.sh must generate local supply-chain evidence with {token}")
+        require(errors, "scripts/supply-chain-evidence.py --summary" in image_scan_text, "scripts/image-scan.sh must validate generated supply-chain evidence")
+    if supply_chain_evidence.exists():
+        supply_chain_text = supply_chain_evidence.read_text()
+        for token in ("validate_sbom", "validate_sarif", "parse_checksums", "sha256", "strict-current"):
+            require(errors, token in supply_chain_text, f"supply-chain evidence validator must enforce {token}")
     makefile = (ROOT / "Makefile").read_text()
     require(errors, "image-scan:" in makefile, "Makefile must expose image-scan target")
+    require(errors, "supply-chain-check:" in makefile, "Makefile must expose supply-chain-check target")
 
     overlay_script = ROOT / "scripts/configure-customer-overlay.py"
     require(errors, os.access(overlay_script, os.X_OK), "customer overlay configurator must be executable")
@@ -713,12 +765,13 @@ def check_release_gates(errors: list[str]) -> None:
         config = yaml.safe_load(config_path.read_text()) or {}
         require(errors, config.get("kind") == "ReleaseGate", "release gate config kind must be ReleaseGate")
         gates = set(nested(config, "spec", "gates", default={}))
-        expected = {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "evidencePack"}
+        expected = {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "supplyChain", "evidencePack"}
         require(errors, expected <= gates, f"release gate config missing {sorted(expected - gates)}")
     if script.exists():
         source = script.read_text()
         require(errors, "--require-current-evidence" in source, "release gate script must support current-evidence enforcement")
         require(errors, "--max-evidence-age-hours" in source, "release gate script must support evidence freshness enforcement")
+        require(errors, "check_supply_chain" in source and "supply-chain-evidence.py" in source, "release gate script must validate supply-chain evidence")
         completed = subprocess.run(
             [sys.executable, str(script), "--check"],
             cwd=ROOT,
@@ -965,6 +1018,13 @@ def check_values_and_docs(errors: list[str]) -> None:
     require(errors, os.access(ROOT / "scripts/rag-smoke.sh", os.X_OK), "scripts/rag-smoke.sh must be executable")
     require(errors, os.access(ROOT / "scripts/agent-lab-up.sh", os.X_OK), "scripts/agent-lab-up.sh must be executable")
     require(errors, os.access(ROOT / "scripts/agent-smoke.sh", os.X_OK), "scripts/agent-smoke.sh must be executable")
+    require(errors, os.access(ROOT / "scripts/loadtest-local.sh", os.X_OK), "scripts/loadtest-local.sh must be executable")
+    require(errors, (ROOT / "tests/load/mock-runtime.py").exists(), "local load test mock runtime must exist")
+    loadtest = (ROOT / "tests/load/chat-completions.js").read_text()
+    require(errors, "summaryTrendStats" in loadtest and "p(99)" in loadtest, "load test must export p99 latency evidence")
+    loadtest_local = (ROOT / "scripts/loadtest-local.sh").read_text()
+    for phrase in ("tests/load/mock-runtime.py", "uvicorn app.main:app", "API_KEY_AUTH_ENABLED=true", "k6 run --summary-export"):
+        require(errors, phrase in loadtest_local, f"local load test harness missing {phrase}")
 
 
 def main() -> int:

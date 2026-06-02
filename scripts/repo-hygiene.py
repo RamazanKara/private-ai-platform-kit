@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import subprocess
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -14,6 +15,7 @@ LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 REQUIRED_FILES = (
     ".editorconfig",
     ".github/CODEOWNERS",
+    ".github/dependabot.yml",
     ".github/workflows/ci.yml",
     ".gitignore",
     "api-contracts/README.md",
@@ -75,9 +77,11 @@ REQUIRED_MAKE_TARGETS = (
     "config-contract",
     "config-contract-update",
     "image-scan",
+    "supply-chain-check",
     "release-gate",
     "release-gate-strict",
     "customer-overlay",
+    "loadtest-local",
     "tenant-onboard",
 )
 
@@ -113,13 +117,83 @@ def check_makefile(errors: list[str]) -> None:
         require(errors, re.search(rf"^{re.escape(target)}:", text, re.MULTILINE) is not None, f"Makefile missing target: {target}")
     require(errors, ".PHONY:" in text and "repo-hygiene" in text, "Makefile must include repo-hygiene in .PHONY")
     require(errors, "help:" in text and "Private AI Platform Kit targets" in text, "Makefile must expose a useful help target")
+    require(errors, "PYTHONDONTWRITEBYTECODE ?= 1" in text, "Makefile must default PYTHONDONTWRITEBYTECODE=1")
+    require(errors, "export PYTHONDONTWRITEBYTECODE" in text, "Makefile must export PYTHONDONTWRITEBYTECODE")
+    require(errors, "TOOLCHAIN_BIN_DIR ?= $(CURDIR)/.tools/bin" in text, "Makefile must define TOOLCHAIN_BIN_DIR")
+    require(errors, "export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)" in text, "Makefile must prepend TOOLCHAIN_BIN_DIR to PATH")
+
+
+def check_dependency_update_policy(errors: list[str]) -> None:
+    path = ROOT / ".github/dependabot.yml"
+    text = path.read_text()
+    require(errors, re.search(r"^version:\s*2$", text, re.MULTILINE) is not None, ".github/dependabot.yml must use config version 2")
+    for ecosystem in ("github-actions", "pip", "docker"):
+        require(errors, f"package-ecosystem: {ecosystem}" in text, f".github/dependabot.yml must update {ecosystem}")
+    for directory in ("/services/inference-gateway", "/services/rag-service"):
+        require(errors, f"directory: {directory}" in text, f".github/dependabot.yml must cover {directory}")
 
 
 def check_script_modes(errors: list[str]) -> None:
+    tracked_modes = tracked_file_modes(errors)
     for path in sorted((ROOT / "scripts").iterdir()):
         if path.suffix not in {".py", ".sh"}:
             continue
-        require(errors, os.access(path, os.X_OK), f"{rel(path)} must be executable")
+        relative = rel(path)
+        require(errors, os.access(path, os.X_OK), f"{relative} must be executable on disk")
+        mode = tracked_modes.get(relative)
+        require(errors, mode is not None, f"{relative} must be tracked by git")
+        if mode is not None:
+            require(errors, mode == "100755", f"{relative} must be tracked with executable mode 100755")
+
+
+def check_python_bytecode_policy(errors: list[str]) -> None:
+    shell_exports = (
+        "scripts/common.sh",
+        "scripts/bootstrap-python.sh",
+        "scripts/test-gateway.sh",
+        "scripts/test-rag.sh",
+    )
+    for item in shell_exports:
+        text = (ROOT / item).read_text()
+        require(
+            errors,
+            'PYTHONDONTWRITEBYTECODE="${PYTHONDONTWRITEBYTECODE:-1}"' in text,
+            f"{item} must suppress Python bytecode writes",
+        )
+    common = (ROOT / "scripts/common.sh").read_text()
+    require(errors, 'TOOLCHAIN_BIN_DIR="${TOOLCHAIN_BIN_DIR:-$(repo_root)/.tools/bin}"' in common, "scripts/common.sh must default TOOLCHAIN_BIN_DIR")
+    require(errors, 'export PATH="$TOOLCHAIN_BIN_DIR:$PATH"' in common, "scripts/common.sh must prepend TOOLCHAIN_BIN_DIR to PATH")
+
+
+def check_toolchain_lookup_policy(errors: list[str]) -> None:
+    text = (ROOT / "scripts/toolchain-doctor.py").read_text()
+    require(errors, "def toolchain_bin_dirs()" in text, "toolchain-doctor must define managed tool directories")
+    managed_index = text.find("for candidate in [directory / command for directory in toolchain_bin_dirs()]:")
+    fallback_index = text.find("return shutil.which(command) or \"\"")
+    require(errors, managed_index >= 0, "toolchain-doctor must check managed tool directories")
+    require(errors, fallback_index >= 0, "toolchain-doctor must fall back to PATH")
+    if managed_index >= 0 and fallback_index >= 0:
+        require(errors, managed_index < fallback_index, "toolchain-doctor must prefer managed tools before PATH")
+
+
+def tracked_file_modes(errors: list[str]) -> dict[str, str]:
+    try:
+        completed = subprocess.run(
+            ["git", "ls-files", "--stage", "--", "scripts"],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        errors.append(f"failed to inspect tracked script modes with git: {exc}")
+        return {}
+    modes: dict[str, str] = {}
+    for line in completed.stdout.splitlines():
+        parts = line.split(maxsplit=3)
+        if len(parts) == 4:
+            modes[parts[3]] = parts[0]
+    return modes
 
 
 def check_runtime_dependencies(errors: list[str]) -> None:
@@ -188,7 +262,10 @@ def run_checks() -> list[str]:
     errors: list[str] = []
     check_required_paths(errors)
     check_makefile(errors)
+    check_dependency_update_policy(errors)
     check_script_modes(errors)
+    check_python_bytecode_policy(errors)
+    check_toolchain_lookup_policy(errors)
     check_runtime_dependencies(errors)
     check_markdown_links(errors)
     return errors

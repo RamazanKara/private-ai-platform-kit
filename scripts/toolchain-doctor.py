@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import asdict, dataclass
@@ -49,6 +50,29 @@ def nested(mapping: Any, *keys: str, default: Any = None) -> Any:
 
 def rel(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
+
+
+def toolchain_bin_dirs() -> list[Path]:
+    candidates: list[Path] = []
+    env_bin_dir = os.getenv("TOOLCHAIN_BIN_DIR")
+    if env_bin_dir:
+        candidates.append(Path(env_bin_dir).expanduser())
+    candidates.append(ROOT / ".tools/bin")
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate if candidate.is_absolute() else ROOT / candidate
+        if resolved not in seen:
+            unique.append(resolved)
+            seen.add(resolved)
+    return unique
+
+
+def command_path(command: str) -> str:
+    for candidate in [directory / command for directory in toolchain_bin_dirs()]:
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return shutil.which(command) or ""
 
 
 def validate_manifest(manifest: dict[str, Any]) -> list[str]:
@@ -141,19 +165,19 @@ def check_tools(manifest: dict[str, Any], profile_name: str) -> tuple[list[ToolR
         for name in names:
             tool = tools[name]
             command = str(tool["command"])
-            command_path = shutil.which(command) or ""
+            tool_command_path = command_path(command)
             version = ""
             version_error = ""
-            if command_path:
-                version, version_error = version_for(tool, command_path)
+            if tool_command_path:
+                version, version_error = version_for(tool, tool_command_path)
             results.append(
                 ToolResult(
                     name=name,
                     role=role,
                     command=command,
                     category=str(tool.get("category", "")),
-                    found=bool(command_path),
-                    path=command_path,
+                    found=bool(tool_command_path),
+                    path=tool_command_path,
                     version=version,
                     version_error=version_error,
                     purpose=str(tool.get("purpose", "")),

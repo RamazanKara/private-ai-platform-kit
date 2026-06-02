@@ -31,9 +31,8 @@ The command exits non-zero only when a required tool for the selected profile is
 On Linux, WSL, or CI runners, install the pinned strict validation tools locally:
 
     make toolchain-install
-    export PATH="$PWD/.tools/bin:$PATH"
 
-The installer downloads pinned GitHub release assets, verifies published SHA-256 asset digests when available, and installs binaries under `.tools/bin` by default. Override versions with the environment variables listed in `tools/validation-toolchain.yaml` only after reviewing the release.
+The installer downloads pinned GitHub release assets, verifies published SHA-256 asset digests when available, and installs binaries under `.tools/bin` by default. Make targets and repo scripts automatically prefer that managed directory over globally installed tools. Override versions with the environment variables listed in `tools/validation-toolchain.yaml` only after reviewing the release.
 
 ## Generate Evidence
 

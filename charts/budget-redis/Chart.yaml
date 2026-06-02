@@ -2,5 +2,5 @@ apiVersion: v2
 name: budget-redis
 description: Local Redis-compatible store for shared sandbox budget accounting.
 type: application
-version: 0.3.2
+version: 0.4.0
 appVersion: "8.0"

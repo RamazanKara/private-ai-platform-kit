@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -13,6 +14,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "slo/release-gates.yaml"
+SUPPLY_CHAIN_VALIDATOR = ROOT / "scripts/supply-chain-evidence.py"
 
 
 @dataclass(frozen=True)
@@ -61,7 +63,7 @@ def validate_config(config: dict[str, Any]) -> list[str]:
     if not isinstance(gates, dict) or not gates:
         errors.append("spec.gates must be a non-empty mapping")
         return errors
-    expected = {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "evidencePack"}
+    expected = {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "supplyChain", "evidencePack"}
     missing = sorted(expected - set(gates))
     if missing:
         errors.append(f"spec.gates missing required gates: {missing}")
@@ -157,11 +159,21 @@ def check_eval(gate: dict[str, Any]) -> GateResult:
 
 
 def metric(payload: dict[str, Any], name: str, key: str, default: float = 0.0) -> float:
-    value = nested(payload, "metrics", name, key, default=default)
+    metric_payload = nested(payload, "metrics", name, default={})
+    value = metric_payload.get(key, default) if isinstance(metric_payload, dict) else default
+    if value == default and key == "rate" and isinstance(metric_payload, dict):
+        value = metric_payload.get("value", default)
     try:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def has_metric(payload: dict[str, Any], name: str, key: str) -> bool:
+    metric_payload = nested(payload, "metrics", name, default={})
+    if not isinstance(metric_payload, dict):
+        return False
+    return key in metric_payload or (key == "rate" and "value" in metric_payload)
 
 
 def check_load(gate: dict[str, Any]) -> GateResult:
@@ -175,6 +187,14 @@ def check_load(gate: dict[str, Any]) -> GateResult:
     p95 = metric(payload, "http_req_duration", "p(95)")
     p99 = metric(payload, "http_req_duration", "p(99)")
     failures: list[str] = []
+    for metric_name, key in (
+        ("http_reqs", "count"),
+        ("http_req_failed", "rate"),
+        ("http_req_duration", "p(95)"),
+        ("http_req_duration", "p(99)"),
+    ):
+        if not has_metric(payload, metric_name, key):
+            failures.append(f"load evidence missing metric {metric_name}.{key}")
     if requests < float(gate.get("minRequests", 1)):
         failures.append(f"load requests {requests:g} below minRequests {float(gate.get('minRequests', 1)):g}")
     if error_rate > float(gate.get("maxErrorRate", 0.05)):
@@ -357,6 +377,30 @@ def check_model_provenance(gate: dict[str, Any]) -> GateResult:
     return pass_result("modelProvenance", artifact, f"{len(artifacts)} model provenance artifacts checked")
 
 
+def load_supply_chain_validator() -> Any:
+    spec = importlib.util.spec_from_file_location("supply_chain_evidence", SUPPLY_CHAIN_VALIDATOR)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"failed to load {rel(SUPPLY_CHAIN_VALIDATOR)}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def check_supply_chain(gate: dict[str, Any]) -> GateResult:
+    artifact, early = artifact_for("supplyChain", gate)
+    if early:
+        return early
+    assert artifact is not None
+    validator = load_supply_chain_validator()
+    failures = validator.validate_summary(artifact, strict_current=False)
+    if failures:
+        return fail_result("supplyChain", rel(artifact), failures)
+    payload = load_json(artifact)
+    images = payload.get("images", [])
+    image_count = len(images) if isinstance(images, list) else 0
+    return pass_result("supplyChain", artifact, f"{image_count} images have validated SBOM, SARIF, and checksum evidence")
+
+
 def check_evidence_pack(gate: dict[str, Any]) -> GateResult:
     artifact, early = artifact_for("evidencePack", gate)
     if early:
@@ -381,6 +425,7 @@ CHECKS = {
     "slo": check_slo,
     "quota": check_quota,
     "modelProvenance": check_model_provenance,
+    "supplyChain": check_supply_chain,
     "evidencePack": check_evidence_pack,
 }
 

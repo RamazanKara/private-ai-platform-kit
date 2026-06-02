@@ -703,3 +703,52 @@ def test_runtime_http_error_returns_502():
 
     assert response.status_code == 502
     assert response.json()["detail"]["runtime_status"] == 503
+
+
+def test_runtime_network_error_returns_sanitized_502():
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama.internal:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+    )
+    request = httpx.Request("POST", "http://ollama.internal:11434/v1/chat/completions")
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient(
+        error=httpx.ConnectError("connect failed to http://ollama.internal:11434", request=request)
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": "hello"}]},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["message"] == "runtime request failed"
+    assert "ollama.internal" not in response.text
+
+
+def test_runtime_invalid_response_returns_sanitized_502():
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient(
+        error=ValueError("invalid JSON body: customer secret snippet")
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": "hello"}]},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["message"] == "runtime returned an invalid response"
+    assert "customer secret snippet" not in response.text

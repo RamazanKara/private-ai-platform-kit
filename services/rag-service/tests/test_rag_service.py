@@ -224,6 +224,32 @@ def test_rag_query_rejects_oversized_query(tmp_path):
     assert response.json()["detail"]["reason"] == "query_too_large"
 
 
+def test_rag_query_rejects_blank_query_after_trimming(tmp_path):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+    client = TestClient(create_app(Settings(document_dir=tmp_path)))
+
+    response = client.post("/v1/rag/query", json={"query": "   \n\t  "})
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "empty_query"
+
+
+def test_rag_query_rejects_explicit_zero_limits(tmp_path):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+    client = TestClient(create_app(Settings(document_dir=tmp_path)))
+
+    invalid_top_k = client.post("/v1/rag/query", json={"query": "gateway", "top_k": 0})
+    invalid_context = client.post(
+        "/v1/rag/query",
+        json={"query": "gateway", "max_context_chars": 0},
+    )
+
+    assert invalid_top_k.status_code == 400
+    assert invalid_top_k.json()["detail"]["reason"] == "invalid_top_k"
+    assert invalid_context.status_code == 400
+    assert invalid_context.json()["detail"]["reason"] == "invalid_max_context_chars"
+
+
 def test_rag_audit_log_redacts_query_content(tmp_path, caplog):
     caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.rag.audit")
     write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")

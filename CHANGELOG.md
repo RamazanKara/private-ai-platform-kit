@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.4.0 - 2026-06-02
+
+Release-gate, supply-chain, and customer-readiness hardening for the private AI platform kit.
+
+### Added
+
+- Added local supply-chain evidence generation with Syft SBOMs, Trivy HIGH/CRITICAL SARIF scans, checksums, summaries, and strict evidence validation.
+- Added a local gateway load-test harness backed by an OpenAI-compatible mock runtime so strict release gates can verify current latency and error-rate evidence without a production dependency.
+- Added Dependabot policy for GitHub Actions, Docker, and Python dependency updates.
+
+### Changed
+
+- Updated Helm chart versions to `0.4.0` and gateway/RAG chart image defaults to `v0.4.0`.
+- Updated customer overlay examples to pin `CUSTOMER_REVISION=v0.4.0`.
+- Tightened release gates to require supply-chain evidence and complete load-test metrics instead of accepting missing latency data.
+- Hardened validation tooling so managed local tools, script executable modes, bytecode suppression, and dependency update policy are checked consistently.
+
+### Fixed
+
+- Sanitized gateway backend failure responses so runtime URLs and secret-bearing snippets are not exposed through 502 errors.
+- Rejected whitespace-only RAG queries and explicit zero values for RAG retrieval limits.
+
+### Validation
+
+- `make image-scan`
+- `make supply-chain-check`
+- `make loadtest-local`
+- `make release-gate-strict`
+- `make release-report-strict`
+- `make production-check`
+- `make repo-hygiene`
+- `make validate-full`
+
 ## v0.3.2 - 2026-06-01
 
 Release, security, and customer-handoff hardening for the private AI platform kit.

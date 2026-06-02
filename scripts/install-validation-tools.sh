@@ -268,5 +268,5 @@ for tool in $INSTALL_TOOLS; do
 done
 
 if [[ "$DRY_RUN" == "0" ]]; then
-  log "validation tools installed. Add this directory to PATH: ${BIN_DIR}"
+  log "validation tools installed. Repo scripts automatically add this directory to PATH: ${BIN_DIR}"
 fi

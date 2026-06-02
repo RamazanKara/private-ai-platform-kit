@@ -20,7 +20,7 @@ from app.settings import AdmissionPolicyError, Settings, validate_sandbox_id
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.3.2"
+SERVICE_VERSION = "0.4.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
@@ -413,10 +413,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "sandbox_id": request.state.sandbox_id,
                 },
             ) from exc
-        except (httpx.HTTPError, ValueError) as exc:
+        except httpx.HTTPError as exc:
             status = "502"
             status_code = 502
-            error = str(exc)
+            error = "runtime request failed"
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "message": error,
+                    "backend": backend,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+            ) from exc
+        except ValueError as exc:
+            status = "502"
+            status_code = 502
+            error = "runtime returned an invalid response"
             raise HTTPException(
                 status_code=502,
                 detail={

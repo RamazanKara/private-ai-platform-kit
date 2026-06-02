@@ -20,7 +20,7 @@ from app.settings import Settings, validate_sandbox_id
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.rag.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.3.2"
+SERVICE_VERSION = "0.4.0"
 OPENAPI_DESCRIPTION = (
     "Private retrieval service for platform and customer knowledge. The service "
     "returns traceable retrieval results, optional context blocks, and "
@@ -307,6 +307,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         result_ids: list[str] = []
         query_text = payload.query.strip()
         try:
+            if not query_text:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "message": "query must contain non-whitespace text",
+                        "reason": "empty_query",
+                        "request_id": request.state.request_id,
+                        "sandbox_id": request.state.sandbox_id,
+                    },
+                )
             if len(query_text) > resolved.max_query_chars:
                 raise HTTPException(
                     status_code=400,
@@ -317,7 +327,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         "sandbox_id": request.state.sandbox_id,
                     },
                 )
-            top_k = payload.top_k or resolved.default_top_k
+            top_k = resolved.default_top_k if payload.top_k is None else payload.top_k
             if top_k <= 0 or top_k > resolved.max_top_k:
                 raise HTTPException(
                     status_code=400,
@@ -328,7 +338,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         "sandbox_id": request.state.sandbox_id,
                     },
                 )
-            max_context_chars = payload.max_context_chars or resolved.max_context_chars
+            max_context_chars = (
+                resolved.max_context_chars
+                if payload.max_context_chars is None
+                else payload.max_context_chars
+            )
             if max_context_chars <= 0 or max_context_chars > resolved.max_context_chars:
                 raise HTTPException(
                     status_code=400,

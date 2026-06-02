@@ -7,8 +7,13 @@ from pathlib import Path
 
 def metric_value(summary: dict, name: str, key: str, default: str = "n/a") -> str:
     try:
-        value = summary["metrics"][name][key]
+        metric = summary["metrics"][name]
     except KeyError:
+        return default
+    value = metric.get(key)
+    if value is None and key == "rate":
+        value = metric.get("value")
+    if value is None:
         return default
     if isinstance(value, float):
         return f"{value:.2f}"
@@ -42,4 +47,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

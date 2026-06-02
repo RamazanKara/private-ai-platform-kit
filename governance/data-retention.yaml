@@ -34,7 +34,7 @@ spec:
         - query_sha256
         - result_ids
     generatedEvidence:
-      description: Eval, load, restore, release-gate, egress, model, toolchain, and evidence-pack reports.
+      description: Eval, load, restore, release-gate, egress, model, toolchain, supply-chain, and evidence-pack reports.
       retentionDays: 365
       classification: internal
       paths:
@@ -46,6 +46,7 @@ spec:
         - results/egress-governance
         - results/model-catalog
         - results/toolchain
+        - results/supply-chain
       sampleFilesRetained:
         - results/evals/sample-summary.md
         - results/evals/sample-summary.json
@@ -61,6 +62,8 @@ spec:
         - results/model-catalog/sample-summary.md
         - results/toolchain/sample-summary.md
         - results/toolchain/sample-summary.json
+        - results/supply-chain/sample-summary.md
+        - results/supply-chain/sample-summary.json
     ragKnowledge:
       description: Approved RAG knowledge documents and vector-store collections used by the RAG service.
       retentionDays: 180

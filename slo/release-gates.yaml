@@ -72,6 +72,13 @@ spec:
         - results/model-provenance/sample-summary.json
       maxErrors: 0
       minArtifacts: 2
+    supplyChain:
+      required: true
+      evidence:
+        - results/supply-chain/supply-chain-summary-*.json
+        - results/supply-chain/sample-summary.json
+      requireZeroHighCriticalFindings: true
+      requireChecksums: true
     evidencePack:
       required: true
       evidence:

@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PYTHONDONTWRITEBYTECODE="${PYTHONDONTWRITEBYTECODE:-1}"
+
 repo_root() {
   cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd
 }
+
+TOOLCHAIN_BIN_DIR="${TOOLCHAIN_BIN_DIR:-$(repo_root)/.tools/bin}"
+if [[ -d "$TOOLCHAIN_BIN_DIR" && ":$PATH:" != *":$TOOLCHAIN_BIN_DIR:"* ]]; then
+  export PATH="$TOOLCHAIN_BIN_DIR:$PATH"
+fi
 
 log() {
   printf '[private-ai-platform-kit] %s\n' "$*"
