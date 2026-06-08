@@ -15,7 +15,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
       - uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.14"
@@ -44,7 +44,7 @@ jobs:
       id-token: write
       security-events: write
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
       - name: Normalize image repository
         run: echo "IMAGE_REPO=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
       - name: Compute image tags
@@ -115,11 +115,11 @@ jobs:
           exit-code: "1"
           format: sarif
           output: trivy-rag-results.sarif
-      - uses: github/codeql-action/upload-sarif@v4.36.0
+      - uses: github/codeql-action/upload-sarif@v4.36.2
         with:
           sarif_file: trivy-results.sarif
           category: trivy-inference-gateway
-      - uses: github/codeql-action/upload-sarif@v4.36.0
+      - uses: github/codeql-action/upload-sarif@v4.36.2
         with:
           sarif_file: trivy-rag-results.sarif
           category: trivy-rag-service
@@ -143,7 +143,7 @@ jobs:
             trivy-results.sarif \
             trivy-rag-results.sarif \
             > supply-chain-checksums.txt
-      - uses: actions/upload-artifact@v5.0.0
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: supply-chain-evidence-${{ github.sha }}
           if-no-files-found: error
