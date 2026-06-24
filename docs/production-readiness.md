@@ -47,41 +47,14 @@ This kit is local-first, but the controls are shaped like customer production co
 | Load testing | k6 chat-completion scenario with sandbox tags, live-gateway mode, and self-contained local gateway-path mode | Store summaries and compare against SLOs | `make loadtest`, `make loadtest-local` |
 | Evidence pack | Static customer handoff report plus optional live Kubernetes readiness checks | Attach reports to release, demo, restore drill, or incident review evidence | `make evidence`, `make evidence LIVE=1` |
 
-## Production Promotion Checklist
+## Promotion Review
 
-- Keep one namespace per runtime or tenant boundary.
-- Keep `platform.ai/owner`, `platform.ai/cost-center`, `platform.ai/environment`, and `platform.ai/sandbox-id` on every AI workload.
-- Route every request with `X-Request-ID` and `X-Sandbox-ID`; propagate `traceparent` when an upstream trace exists.
-- Require `X-API-Key` or Bearer API keys for gateway and RAG business endpoints; store only SHA-256 hashes in Kubernetes Secrets.
-- Confirm `make api-contract` passes and any OpenAPI snapshot diff is intentional before customer integration or release review.
-- Confirm `make config-contract` passes and any runtime configuration snapshot diff is intentional before customer overlay changes.
-- Confirm audit logs do not contain raw prompt or completion text unless a customer has explicitly approved that behavior.
-- Confirm data retention policy and generated evidence retention match customer requirements.
-- Confirm `ALLOWED_MODELS` contains only approved model IDs for the environment.
-- Confirm each approved model has a promotion request and evidence references.
-- Confirm each approved model has reviewed artifact provenance and customer-pinned digests before production use.
-- Confirm sandbox budget limits are enabled and sized for each lab or tenant.
-- Confirm the gateway budget backend is shared when running more than one gateway replica.
-- Confirm reviewed quota plans match tenant ResourceQuota, gateway budget ceilings, and chargeback labels.
-- Confirm each tenant namespace has quota, LimitRange, default-deny NetworkPolicy, trace contract, and required labels.
-- Confirm generated tenant onboarding artifacts have been reviewed before applying them to a customer cluster.
-- Confirm regulated/offline tenant profiles have no external CIDR egress and carry compliance/data-classification labels.
-- Confirm each coding-agent workspace has quota, workspace storage, default-deny networking, gateway/RAG access, and no cluster-wide RBAC.
-- Confirm any external coding-agent egress has an approved, non-expired `catalogRef`.
-- Confirm RAG knowledge is approved for the environment and RAG audit logs contain query hashes, not raw private context.
-- Confirm vector RAG collections use approved embeddings, matching dimensions, persistent storage, and customer backup/retention controls.
-- Confirm chaos drills pass for gateway, RAG, vector store, runtime backend, budget backend, and GPU capacity before demos or releases.
-- Confirm NVIDIA or AMD accelerator profiles match the customer's exposed GPU resource names.
-- Confirm vLLM replica, HPA, PDB, and topology spread settings match GPU capacity.
-- Confirm admission limits are set for each environment and match expected model capacity.
-- Confirm prompt secret detection is enabled for coding-agent and tenant workspaces.
-- Confirm `make toolchain-install` has run and `make toolchain-doctor TOOLCHAIN_PROFILE=strict` passes before strict customer handoff.
-- Confirm `make slo-check` passes against current load, eval, restore, and evidence-pack artifacts.
-- Confirm NetworkPolicies allow only expected ingress and egress paths.
-- Confirm restore-drill evidence is generated on schedule and retained according to the customer's audit policy.
-- Confirm runtime images install from hashed dependency locks, exclude test-only dependencies, `make repo-security-scan` has no high/critical repo findings, `make image-scan` passes, `make supply-chain-check` verifies local SBOM/SARIF/checksum evidence, and CI produces SBOMs, fails on high/critical image vulnerabilities, signs immutable image digests, and publishes downloadable supply-chain evidence before promotion.
-- Confirm evaluation summaries pass for the selected model and suite.
-- Confirm coding-agent evaluation cases cover change planning, secret handling, prompt-injection boundaries, and incident triage.
-- Confirm load-test results meet customer SLOs for latency, error rate, and throughput. Use `make loadtest-local` for local gateway-path evidence and `GATEWAY_URL=<url> make loadtest` for live cluster evidence.
-- Confirm `make release-gate-strict` passes against current handoff evidence without falling back to checked-in samples.
-- Confirm an evidence pack has been generated and attached to the customer handoff or release review.
+Use the matrix above as the source of truth, then review this shorter sequence before a customer handoff or production-style demo:
+
+- Run `make validate-full`, `make api-contract`, `make config-contract`, and `make release-gate-strict` against current evidence.
+- Confirm auth, prompt redaction, model allowlists, sandbox budgets, quota labels, and NetworkPolicies match the target environment.
+- Review tenant onboarding output before applying it; regulated/offline tenants must keep external CIDR egress disabled.
+- Verify RAG knowledge, vector-store dimensions, GPU resource names, runtime replicas, HPA/PDB settings, and topology spread against customer capacity.
+- Run smoke, RAG, agent, eval, load, restore, and chaos evidence paths that are relevant to the handoff.
+- Confirm image scan, SBOM, checksum, signature, and repo security evidence exists for the images being promoted.
+- Generate an Evidence pack and attach the Markdown report to the handoff notes; retain JSON evidence with the release or drill record.

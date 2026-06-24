@@ -92,15 +92,17 @@ def check_generated_evidence(policy: dict[str, Any], errors: list[str]) -> None:
         pattern = f"{path}/*.json"
         html_pattern = f"{path}/*.html"
         md_pattern = f"{path}/*.md"
+        generic_result_pattern = str(path).startswith("results/") and any(
+            item in gitignore for item in ("results/**/*.json", "results/**/*.html", "results/**/*.md")
+        )
         require(
             errors,
-            pattern in gitignore or md_pattern in gitignore or html_pattern in gitignore,
+            generic_result_pattern or pattern in gitignore or md_pattern in gitignore or html_pattern in gitignore,
             f".gitignore must ignore generated artifacts under {path}",
         )
-    for sample in evidence.get("sampleFilesRetained", []):
-        sample_path = ROOT / str(sample)
-        require(errors, sample_path.exists(), f"retained sample file {sample} must exist")
-        require(errors, f"!{sample}" in gitignore, f".gitignore must retain sample file {sample}")
+    sample_pattern = evidence.get("sampleFilePattern")
+    require(errors, sample_pattern == "results/**/sample-*", "generatedEvidence.sampleFilePattern must be results/**/sample-*")
+    require(errors, "!results/**/sample-*" in gitignore, ".gitignore must retain sample result artifacts by convention")
 
 
 def check_source_paths(policy: dict[str, Any], class_name: str, errors: list[str]) -> None:

@@ -45,25 +45,13 @@ spec:
         - results/release-gate
         - results/egress-governance
         - results/model-catalog
+        - results/model-provenance
+        - results/retention
+        - results/slo
+        - results/quota
         - results/toolchain
         - results/supply-chain
-      sampleFilesRetained:
-        - results/evals/sample-summary.md
-        - results/evals/sample-summary.json
-        - results/loadtest/sample-summary.md
-        - results/loadtest/sample-summary.json
-        - results/restore-drill/sample-redis-run.json
-        - results/restore-drill/sample-compliance-report.html
-        - results/evidence/sample-summary.md
-        - results/evidence/sample-summary.json
-        - results/release-gate/sample-summary.md
-        - results/egress-governance/sample-summary.md
-        - results/egress-governance/sample-summary.json
-        - results/model-catalog/sample-summary.md
-        - results/toolchain/sample-summary.md
-        - results/toolchain/sample-summary.json
-        - results/supply-chain/sample-summary.md
-        - results/supply-chain/sample-summary.json
+      sampleFilePattern: results/**/sample-*
     ragKnowledge:
       description: Approved RAG knowledge documents and vector-store collections used by the RAG service.
       retentionDays: 180

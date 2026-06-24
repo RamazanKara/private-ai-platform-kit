@@ -413,7 +413,7 @@ def static_controls() -> list[Control]:
         control(
             "Observability and cost labels",
             exists("observability/alerts/ai-platform-alerts.yaml", "observability/dashboards/inference-dashboard.json")
-            and "platform.ai/cost-center" in production_doc,
+            and "platform.ai/cost-center" in set(nested(quota_plans, "spec", "chargeback", "requiredLabels", default=[])),
             "Metrics, alerts, dashboards, and cost-label expectations are documented and versioned.",
             ["observability/", "docs/production-readiness.md"],
             "Connect these signals to the customer's Prometheus, logs, dashboard, and chargeback systems.",

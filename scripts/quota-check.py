@@ -165,7 +165,6 @@ def check_chargeback_label_coverage(labels: list[str], errors: list[str]) -> Non
     files = [
         ROOT / "policies/kyverno/policies.yaml",
         ROOT / "tenants/examples/team-a-lab.yaml",
-        ROOT / "docs/production-readiness.md",
         ROOT / "runbooks/budget-controls.md",
     ]
     for label in labels:
