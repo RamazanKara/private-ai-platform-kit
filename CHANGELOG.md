@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.2 - 2026-06-24
+
+Dependency and image security follow-up for the private AI platform kit.
+
+### Changed
+
+- Updated Helm chart versions to `0.4.2` and gateway/RAG chart image defaults to `v0.4.2`.
+- Updated customer overlay examples to pin `CUSTOMER_REVISION=v0.4.2`.
+- Bumped gateway and RAG runtime dependencies to FastAPI `0.138.0` and Starlette `1.3.1`.
+- Repinned the Python Alpine base image to the current `python:3.14-alpine` digest.
+
+### Fixed
+
+- Cleared the Trivy HIGH findings from the `v0.4.1` image release scan for Starlette and Alpine OpenSSL.
+
+### Validation
+
+- `make validate`
+- `trivy image --scanners vuln --severity HIGH,CRITICAL`
+
 ## v0.4.1 - 2026-06-24
 
 Validation and repository bloat cleanup for the private AI platform kit.

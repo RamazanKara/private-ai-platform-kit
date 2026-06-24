@@ -20,7 +20,7 @@ from app.settings import Settings, validate_sandbox_id
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.rag.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.4.1"
+SERVICE_VERSION = "0.4.2"
 OPENAPI_DESCRIPTION = (
     "Private retrieval service for platform and customer knowledge. The service "
     "returns traceable retrieval results, optional context blocks, and "
