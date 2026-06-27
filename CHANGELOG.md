@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No unreleased changes.
+
+## v0.5.0 - 2026-06-27
+
 Feature-completeness work for gateway policy, RAG ingestion, chart documentation, and public verification.
 
 ### Added
@@ -19,7 +23,15 @@ Feature-completeness work for gateway policy, RAG ingestion, chart documentation
 
 ### Validation
 
-- Pending: `make validate`
+- `make validate-full`
+- `make eval-local`
+- `make loadtest-local`
+- `make image-scan`
+- `make supply-chain-check`
+- `make restore-drill`
+- `make evidence LIVE=1`
+- `make release-gate-strict`
+- GitHub Actions manual proof run: `validate`, `scheduled-proof`, and `local-e2e`
 
 ## v0.4.2 - 2026-06-24
 

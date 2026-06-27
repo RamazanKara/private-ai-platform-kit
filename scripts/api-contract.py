@@ -37,7 +37,7 @@ CONTRACTS = {
     "inference-gateway": ServiceContract(
         service_dir=ROOT / "services/inference-gateway",
         title="Private AI Platform Kit Inference Gateway",
-        version="0.4.2",
+        version="0.5.0",
         snapshot=ROOT / "api-contracts/inference-gateway.openapi.json",
         routes={
             "/healthz": RouteContract("get"),
@@ -70,7 +70,7 @@ CONTRACTS = {
     "rag-service": ServiceContract(
         service_dir=ROOT / "services/rag-service",
         title="Private AI Platform Kit RAG Service",
-        version="0.4.2",
+        version="0.5.0",
         snapshot=ROOT / "api-contracts/rag-service.openapi.json",
         routes={
             "/healthz": RouteContract("get"),
