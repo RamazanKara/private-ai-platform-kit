@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway
-  tag: "v0.4.2"
+  tag: "v0.5.0"
   pullPolicy: IfNotPresent
 
 runtime:
@@ -11,8 +11,24 @@ runtime:
   ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
   vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
   requestTimeoutSeconds: "120"
+  maxRetries: 0
+  retryBackoffSeconds: "0.1"
+  circuitFailureThreshold: 0
+  circuitResetSeconds: "30"
   allowedModels:
     - qwen3:0.6b
+
+routing:
+  policyPath: ""
+  policy:
+    enabled: false
+    models: []
+
+sandboxPolicy:
+  policyPath: ""
+  policy:
+    enabled: false
+    policies: []
 
 admission:
   maxMessages: 16
@@ -34,7 +50,7 @@ budget:
   enabled: true
   backend: memory
   requestLimit: 1000
-  promptCharLimit: 2000000
+  promptCharLimit: "2000000"
   estimatedTokenLimit: 750000
   estimatedCharsPerToken: 4
   windowSeconds: 86400
@@ -53,6 +69,13 @@ auth:
   existingSecret:
     name: ""
     key: api-key-sha256s
+  jwt:
+    enabled: false
+    jwksUrl: ""
+    issuer: ""
+    audience: ""
+    requiredScopes: []
+    cacheSeconds: 300
 
 service:
   port: 8080

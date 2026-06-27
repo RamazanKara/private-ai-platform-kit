@@ -45,10 +45,15 @@ class BudgetReservation:
 class SandboxBudgetTracker(Protocol):
     settings: Settings
 
-    def snapshot(self, sandbox_id: str) -> dict[str, Any]:
+    def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]:
         ...
 
-    def reserve(self, sandbox_id: str, payload: dict[str, Any]) -> BudgetReservation | None:
+    def reserve(
+        self,
+        sandbox_id: str,
+        payload: dict[str, Any],
+        settings: Settings | None = None,
+    ) -> BudgetReservation | None:
         ...
 
 
@@ -80,11 +85,12 @@ class InMemorySandboxBudgetTracker:
         self._usage: dict[str, BudgetUsage] = {}
         self._window_started_at: dict[str, float] = {}
 
-    def _limits(self) -> dict[str, int]:
+    def _limits(self, settings: Settings | None = None) -> dict[str, int]:
+        resolved = settings or self.settings
         return {
-            "requests": self.settings.sandbox_request_budget,
-            "prompt_chars": self.settings.sandbox_prompt_char_budget,
-            "estimated_tokens": self.settings.sandbox_estimated_token_budget,
+            "requests": resolved.sandbox_request_budget,
+            "prompt_chars": resolved.sandbox_prompt_char_budget,
+            "estimated_tokens": resolved.sandbox_estimated_token_budget,
         }
 
     def _current_usage(self, sandbox_id: str) -> BudgetUsage:
@@ -100,26 +106,33 @@ class InMemorySandboxBudgetTracker:
             self._window_started_at[sandbox_id] = now
         return self._usage.get(sandbox_id, BudgetUsage())
 
-    def snapshot(self, sandbox_id: str) -> dict[str, Any]:
+    def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]:
+        resolved = settings or self.settings
         with self._lock:
             usage = self._current_usage(sandbox_id)
             window_started_at = self._window_started_at.get(sandbox_id)
         return {
-            "enabled": self.settings.sandbox_budget_enabled,
+            "enabled": resolved.sandbox_budget_enabled,
             "backend": self.backend,
             "sandbox_id": sandbox_id,
             "usage": asdict(usage),
-            "limits": self._limits(),
-            "window_seconds": self.settings.sandbox_budget_window_seconds,
+            "limits": self._limits(resolved),
+            "window_seconds": resolved.sandbox_budget_window_seconds,
             "window_started_at": window_started_at,
-            "estimated_chars_per_token": self.settings.budget_estimated_chars_per_token,
+            "estimated_chars_per_token": resolved.budget_estimated_chars_per_token,
         }
 
-    def reserve(self, sandbox_id: str, payload: dict[str, Any]) -> BudgetReservation | None:
-        if not self.settings.sandbox_budget_enabled:
+    def reserve(
+        self,
+        sandbox_id: str,
+        payload: dict[str, Any],
+        settings: Settings | None = None,
+    ) -> BudgetReservation | None:
+        resolved = settings or self.settings
+        if not resolved.sandbox_budget_enabled:
             return None
 
-        delta = budget_delta(self.settings, payload)
+        delta = budget_delta(resolved, payload)
         with self._lock:
             current = self._current_usage(sandbox_id)
             proposed = BudgetUsage(
@@ -127,7 +140,7 @@ class InMemorySandboxBudgetTracker:
                 prompt_chars=current.prompt_chars + delta.prompt_chars,
                 estimated_tokens=current.estimated_tokens + delta.estimated_tokens,
             )
-            check_budget_limits(self.settings, proposed)
+            check_budget_limits(resolved, proposed)
             self._usage[sandbox_id] = proposed
 
         return BudgetReservation(
@@ -198,17 +211,19 @@ class RedisSandboxBudgetTracker:
             )
         self.client = client
 
-    def _limits(self) -> dict[str, int]:
+    def _limits(self, settings: Settings | None = None) -> dict[str, int]:
+        resolved = settings or self.settings
         return {
-            "requests": self.settings.sandbox_request_budget,
-            "prompt_chars": self.settings.sandbox_prompt_char_budget,
-            "estimated_tokens": self.settings.sandbox_estimated_token_budget,
+            "requests": resolved.sandbox_request_budget,
+            "prompt_chars": resolved.sandbox_prompt_char_budget,
+            "estimated_tokens": resolved.sandbox_estimated_token_budget,
         }
 
     def _key(self, sandbox_id: str) -> str:
         return f"{self.settings.sandbox_budget_key_prefix}:{sandbox_id}"
 
-    def snapshot(self, sandbox_id: str) -> dict[str, Any]:
+    def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]:
+        resolved = settings or self.settings
         raw = self.client.hgetall(self._key(sandbox_id)) or {}
         ttl = None
         if hasattr(self.client, "ttl"):
@@ -216,7 +231,7 @@ class RedisSandboxBudgetTracker:
             if isinstance(ttl_value, int) and ttl_value >= 0:
                 ttl = ttl_value
         return {
-            "enabled": self.settings.sandbox_budget_enabled,
+            "enabled": resolved.sandbox_budget_enabled,
             "backend": self.backend,
             "sandbox_id": sandbox_id,
             "usage": {
@@ -224,28 +239,34 @@ class RedisSandboxBudgetTracker:
                 "prompt_chars": int(raw.get("prompt_chars", 0)),
                 "estimated_tokens": int(raw.get("estimated_tokens", 0)),
             },
-            "limits": self._limits(),
-            "window_seconds": self.settings.sandbox_budget_window_seconds,
+            "limits": self._limits(resolved),
+            "window_seconds": resolved.sandbox_budget_window_seconds,
             "window_ttl_seconds": ttl,
-            "estimated_chars_per_token": self.settings.budget_estimated_chars_per_token,
+            "estimated_chars_per_token": resolved.budget_estimated_chars_per_token,
         }
 
-    def reserve(self, sandbox_id: str, payload: dict[str, Any]) -> BudgetReservation | None:
-        if not self.settings.sandbox_budget_enabled:
+    def reserve(
+        self,
+        sandbox_id: str,
+        payload: dict[str, Any],
+        settings: Settings | None = None,
+    ) -> BudgetReservation | None:
+        resolved = settings or self.settings
+        if not resolved.sandbox_budget_enabled:
             return None
 
-        delta = budget_delta(self.settings, payload)
+        delta = budget_delta(resolved, payload)
         result = self.client.eval(
             REDIS_RESERVE_SCRIPT,
             1,
             self._key(sandbox_id),
-            self.settings.sandbox_budget_window_seconds,
+            resolved.sandbox_budget_window_seconds,
             delta.requests,
             delta.prompt_chars,
             delta.estimated_tokens,
-            self.settings.sandbox_request_budget,
-            self.settings.sandbox_prompt_char_budget,
-            self.settings.sandbox_estimated_token_budget,
+            resolved.sandbox_request_budget,
+            resolved.sandbox_prompt_char_budget,
+            resolved.sandbox_estimated_token_budget,
         )
         success = int(result[0])
         if not success:

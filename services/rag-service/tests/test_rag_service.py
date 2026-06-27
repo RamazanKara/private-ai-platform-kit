@@ -5,6 +5,8 @@ import logging
 import httpx
 from fastapi.testclient import TestClient
 
+from app.embeddings import HashEmbeddingProvider, OpenAICompatibleEmbeddingProvider
+from app.ingest import build_chunks, load_manifest
 from app.main import create_app
 from app.retriever import QdrantRetriever
 from app.settings import Settings
@@ -28,6 +30,7 @@ def test_healthz_reports_loaded_documents(tmp_path):
         "documents": 1,
         "retrieval_backend": "lexical",
         "vector_store_configured": False,
+        "source_manifest_configured": False,
     }
 
 
@@ -47,6 +50,9 @@ def test_healthz_reports_qdrant_backend_without_network_call(tmp_path):
     assert response.json()["retrieval_backend"] == "qdrant"
     assert response.json()["vector_store_configured"] is True
     assert response.json()["vector_store"]["collection"] == "customer-platform-knowledge"
+    assert response.json()["vector_store"]["collection_version"] == "v1"
+    assert response.json()["vector_store"]["vector_dimensions"] == 384
+    assert response.json()["vector_store"]["embedding_provider"] == "hash"
 
 
 def test_settings_load_qdrant_environment_contract(tmp_path, monkeypatch):
@@ -54,18 +60,109 @@ def test_settings_load_qdrant_environment_contract(tmp_path, monkeypatch):
     monkeypatch.setenv("RAG_RETRIEVAL_BACKEND", "qdrant")
     monkeypatch.setenv("QDRANT_URL", "http://qdrant-vector-store.vector.svc.cluster.local:6333")
     monkeypatch.setenv("QDRANT_COLLECTION", "customer-platform-knowledge")
+    monkeypatch.setenv("QDRANT_COLLECTION_VERSION", "v2026-06")
     monkeypatch.setenv("QDRANT_TIMEOUT_SECONDS", "2.5")
     monkeypatch.setenv("QDRANT_VECTOR_DIMENSIONS", "512")
     monkeypatch.setenv("QDRANT_BOOTSTRAP_FROM_KNOWLEDGE", "false")
+    monkeypatch.setenv("RAG_EMBEDDING_PROVIDER", "openai-compatible")
+    monkeypatch.setenv("RAG_EMBEDDING_BASE_URL", "http://embeddings.local:8080")
+    monkeypatch.setenv("RAG_EMBEDDING_MODEL", "bge-small-private")
+    monkeypatch.setenv("RAG_SOURCE_MANIFEST", str(tmp_path / "sources.yaml"))
 
     settings = Settings.from_env()
 
     assert settings.retrieval_backend == "qdrant"
     assert settings.vector_store_url.endswith(":6333")
     assert settings.vector_collection == "customer-platform-knowledge"
+    assert settings.vector_collection_version == "v2026-06"
     assert settings.vector_timeout_seconds == 2.5
     assert settings.vector_dimensions == 512
     assert settings.vector_bootstrap_enabled is False
+    assert settings.embedding_provider == "openai-compatible"
+    assert settings.embedding_base_url == "http://embeddings.local:8080"
+    assert settings.embedding_model == "bge-small-private"
+    assert settings.rag_source_manifest == tmp_path / "sources.yaml"
+
+
+def test_hash_embedding_provider_is_deterministic():
+    provider = HashEmbeddingProvider(dimensions=16)
+
+    first = provider.embed("gateway budget controls")
+    second = provider.embed("gateway budget controls")
+
+    assert first == second
+    assert len(first) == 16
+    assert any(value != 0 for value in first)
+
+
+def test_openai_compatible_embedding_provider_validates_dimensions(monkeypatch):
+    class FakeClient:
+        def __init__(self, timeout):
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def post(self, url, json):
+            assert url == "http://embeddings.local/v1/embeddings"
+            assert json["model"] == "private-embedding"
+            request = httpx.Request("POST", url)
+            return httpx.Response(
+                200,
+                request=request,
+                json={"data": [{"embedding": [0.1, 0.2, 0.3]}]},
+            )
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    provider = OpenAICompatibleEmbeddingProvider(
+        "http://embeddings.local",
+        "private-embedding",
+        dimensions=3,
+        timeout_seconds=1,
+    )
+
+    assert provider.embed("hello") == [0.1, 0.2, 0.3]
+
+
+def test_rag_source_manifest_builds_metadata_chunks(tmp_path):
+    source_dir = tmp_path / "docs"
+    source_dir.mkdir()
+    write_doc(source_dir, "controls.md", "# Controls\nBudgets and routing are enforced.")
+    manifest = tmp_path / "sources.yaml"
+    manifest.write_text(
+        json.dumps(
+            {
+                "apiVersion": "platform.ai/v1alpha1",
+                "kind": "RagSourceManifest",
+                "metadata": {"name": "local-docs"},
+                "spec": {
+                    "sources": [
+                        {
+                            "id": "controls",
+                            "source": "docs",
+                            "classification": "confidential",
+                            "retentionClass": "platform-docs",
+                            "owner": "platform-team",
+                            "embeddingModel": "hash-text-v1",
+                        }
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    sources = load_manifest(manifest)
+    chunks = build_chunks(sources, chunk_chars=80, overlap_chars=10)
+
+    assert len(sources) == 1
+    assert len(chunks) == 1
+    assert chunks[0].payload()["classification"] == "confidential"
+    assert chunks[0].payload()["retentionClass"] == "platform-docs"
+    assert chunks[0].payload()["collection_version"] == "v1"
 
 
 def test_qdrant_retriever_bootstraps_and_queries_with_rest_api(tmp_path, monkeypatch):
@@ -84,6 +181,7 @@ def test_qdrant_retriever_bootstraps_and_queries_with_rest_api(tmp_path, monkeyp
         if request.method == "PUT" and request.url.path == "/collections/lab/points":
             body = json.loads(request.content)
             assert body["points"][0]["payload"]["document_id"] == "agents"
+            assert body["points"][0]["payload"]["collection_version"] == "v1"
             assert len(body["points"][0]["vector"]) == 16
             return httpx.Response(200, json={"status": "ok", "result": {"status": "acknowledged"}})
         if request.method == "POST" and request.url.path == "/collections/lab/points/query":
@@ -91,6 +189,8 @@ def test_qdrant_retriever_bootstraps_and_queries_with_rest_api(tmp_path, monkeyp
             assert body["limit"] == 1
             assert body["with_payload"] is True
             assert len(body["query"]) == 16
+            assert body["filter"]["must"][0]["key"] == "collection_version"
+            assert body["filter"]["must"][0]["match"]["value"] == "v1"
             return httpx.Response(
                 200,
                 json={
@@ -117,6 +217,7 @@ def test_qdrant_retriever_bootstraps_and_queries_with_rest_api(tmp_path, monkeyp
         tmp_path,
         "http://qdrant.local:6333",
         "lab",
+        "v1",
         timeout_seconds=1.0,
         vector_dimensions=16,
         bootstrap_from_knowledge=True,

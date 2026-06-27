@@ -137,6 +137,20 @@
     },
     {
       "aliases": [
+        "VECTOR_COLLECTION_VERSION"
+      ],
+      "allowed_values": [],
+      "app_default": "v1",
+      "chart_default": "v1",
+      "chart_value": "retrieval.vectorStore.collectionVersion",
+      "description": "Logical Qdrant collection version used for ingestion payloads and retrieval filters.",
+      "field": "vector_collection_version",
+      "name": "QDRANT_COLLECTION_VERSION",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [
         "VECTOR_TIMEOUT_SECONDS"
       ],
       "allowed_values": [],
@@ -188,6 +202,45 @@
       "type": "path"
     },
     {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "",
+      "chart_default": "",
+      "chart_value": "retrieval.embedding.baseUrl",
+      "description": "OpenAI-compatible embedding endpoint base URL.",
+      "field": "embedding_base_url",
+      "name": "RAG_EMBEDDING_BASE_URL",
+      "sensitive": false,
+      "type": "url"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "hash-text-v1",
+      "chart_default": "hash-text-v1",
+      "chart_value": "retrieval.embedding.model",
+      "description": "Embedding model identifier sent to the provider.",
+      "field": "embedding_model",
+      "name": "RAG_EMBEDDING_MODEL",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [
+        "hash",
+        "openai-compatible"
+      ],
+      "app_default": "hash",
+      "chart_default": "hash",
+      "chart_value": "retrieval.embedding.provider",
+      "description": "Embedding provider for Qdrant vectors.",
+      "field": "embedding_provider",
+      "name": "RAG_EMBEDDING_PROVIDER",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
       "aliases": [
         "RETRIEVAL_BACKEND"
       ],
@@ -203,6 +256,18 @@
       "name": "RAG_RETRIEVAL_BACKEND",
       "sensitive": false,
       "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": null,
+      "chart_default": "",
+      "chart_value": "sourceManifest.path",
+      "description": "Optional path to a platform.ai/v1alpha1 RagSourceManifest YAML file.",
+      "field": "rag_source_manifest",
+      "name": "RAG_SOURCE_MANIFEST",
+      "sensitive": false,
+      "type": "path"
     }
   ],
   "helm_chart": "charts/rag-service",

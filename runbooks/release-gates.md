@@ -2,6 +2,8 @@
 
 Use this runbook before a customer demo, release review, restore-drill review, or production-readiness handoff.
 
+For the public proof model and the difference between sample and current evidence, see [Project proof](../docs/proof.md).
+
 ## Gate Definition
 
 Release gates are declared in `slo/release-gates.yaml`. The default local customer-handoff gate checks:
@@ -29,14 +31,14 @@ Run:
     make model-provenance-report
     make egress-report
     make retention-report
-    make eval
+    make eval-local
     make loadtest-local
     make image-scan
     make supply-chain-check
     make restore-drill RUNTIME=local
     make evidence LIVE=1
 
-Use `GATEWAY_URL=<url> make loadtest` when a live local or customer gateway is already running. Use `make loadtest-local` to produce current local gateway-path evidence with an ephemeral mock runtime.
+Use `GATEWAY_URL=<url> make eval` and `GATEWAY_URL=<url> make loadtest` when a live local or customer gateway is already running. Use `make eval-local` and `make loadtest-local` to produce current local gateway-path evidence with an ephemeral mock runtime.
 
 ## Check The Gate
 

@@ -1,0 +1,51 @@
+# Customer Handoff Example
+
+This example uses a fake customer organization, `acme-ai`, to show the expected handoff flow without assuming a cloud provider.
+
+## Inputs
+
+- Customer Git mirror: `https://github.com/acme-ai/private-ai-platform-kit.git`
+- Target revision: `v0.5.0`
+- GPU profile: `nvidia`
+- Runtime model: `Qwen/Qwen3-Coder-Next`
+- API key hashes: stored in the customer secret backend and surfaced through External Secrets
+
+## Configure The Overlay
+
+```bash
+make customer-overlay \
+  CUSTOMER_REPO_URL=https://github.com/acme-ai/private-ai-platform-kit.git \
+  CUSTOMER_REVISION=v0.5.0 \
+  CUSTOMER_GPU_PROFILE=nvidia
+```
+
+Review the generated changes in:
+
+- `gitops/argocd/root-app-customer.yaml`
+- `clusters/customer/apps.yaml`
+- `clusters/customer/values/inference-gateway.yaml`
+- `clusters/customer/values/vllm-nvidia.yaml`
+- `clusters/customer/values/rag-service.yaml`
+
+## Customer Decisions
+
+- Confirm GPU nodes expose `nvidia.com/gpu` and have `platform.ai/node-pool=gpu`.
+- Confirm API-key hashes are sourced from the customer secret backend.
+- Replace model provenance source-reference digests with customer model-store artifact digests.
+- Replace sample RAG knowledge with approved customer documents and matching Qdrant dimensions.
+- Review agent workspace egress against `network/egress-catalog.yaml`.
+
+## Handoff Proof
+
+After sync, capture:
+
+```bash
+make smoke RUNTIME_BACKEND=vllm
+make rag-smoke
+make eval
+make loadtest
+make evidence LIVE=1
+make release-gate-strict
+```
+
+Attach the generated Markdown reports and keep JSON evidence with the release or handoff record.

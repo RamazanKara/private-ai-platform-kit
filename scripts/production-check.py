@@ -665,6 +665,10 @@ def check_release_packaging(errors: list[str]) -> None:
             "steps.build_gateway.outputs.digest",
             "steps.build_rag.outputs.digest",
             "cosign sign --yes",
+            "actions/attest-build-provenance@v4.1.1",
+            "actions/attest@v4.1.1",
+            "attestations: write",
+            "push-to-registry: true",
             "supply-chain-checksums.txt",
             "gh release create",
             "gh release upload",
@@ -674,6 +678,19 @@ def check_release_packaging(errors: list[str]) -> None:
             "actions/upload-artifact",
         ):
             require(errors, token in workflow, f"CI workflow must publish and sign release supply-chain evidence with {token}")
+    scorecard_path = ROOT / ".github/workflows/scorecard.yml"
+    require(errors, scorecard_path.exists(), "OpenSSF Scorecard workflow must exist")
+    if scorecard_path.exists():
+        scorecard = scorecard_path.read_text()
+        for token in (
+            "ossf/scorecard-action@v2.4.3",
+            "results_format: sarif",
+            "publish_results: true",
+            "github/codeql-action/upload-sarif",
+            "security-events: write",
+            "id-token: write",
+        ):
+            require(errors, token in scorecard, f"OpenSSF Scorecard workflow missing {token}")
 
     gateway_values = yaml.safe_load((ROOT / "charts/inference-gateway/values.yaml").read_text()) or {}
     rag_values = yaml.safe_load((ROOT / "charts/rag-service/values.yaml").read_text()) or {}
@@ -959,6 +976,7 @@ def check_values_and_docs(errors: list[str]) -> None:
             expected_backend = "lexical" if environment == "local" else "qdrant"
             require(errors, nested(rag_values, "retrieval", "backend") == expected_backend, f"{environment}: RAG retrieval.backend should be {expected_backend}")
             require(errors, nested(rag_values, "retrieval", "vectorStore", "collection") is not None, f"{environment}: RAG vectorStore.collection must be set")
+            require(errors, nested(rag_values, "retrieval", "vectorStore", "collectionVersion") is not None, f"{environment}: RAG vectorStore.collectionVersion must be set")
             require(errors, nested(rag_values, "retrieval", "vectorStore", "dimensions", default=0) > 0, f"{environment}: RAG vectorStore.dimensions must be positive")
             if environment == "customer":
                 require(errors, str(nested(rag_values, "retrieval", "vectorStore", "url", default="")).startswith("http://qdrant-vector-store.vector.svc"), f"{environment}: RAG vectorStore.url should point at the vector namespace service")

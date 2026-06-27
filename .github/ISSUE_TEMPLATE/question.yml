@@ -1,0 +1,24 @@
+name: Question
+description: Ask a usage or evaluation question.
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Include what you tried and which docs you followed.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Local lab or customer profile, runtime backend, and relevant commands.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checks
+      options:
+        - label: I did not include secrets, raw prompts, customer data, or private context.
+          required: true

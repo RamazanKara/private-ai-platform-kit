@@ -1,0 +1,29 @@
+{{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "inference-gateway.fullname" . }}-policies
+  labels:
+    {{- include "inference-gateway.labels" . | nindent 4 }}
+data:
+  {{- if .Values.routing.policy.enabled }}
+  model-routing-policy.yaml: |
+    apiVersion: platform.ai/v1alpha1
+    kind: ModelRoutingPolicy
+    metadata:
+      name: {{ include "inference-gateway.fullname" . }}-model-routing
+    spec:
+      models:
+        {{- toYaml .Values.routing.policy.models | nindent 8 }}
+  {{- end }}
+  {{- if .Values.sandboxPolicy.policy.enabled }}
+  sandbox-policy.yaml: |
+    apiVersion: platform.ai/v1alpha1
+    kind: SandboxPolicySet
+    metadata:
+      name: {{ include "inference-gateway.fullname" . }}-sandbox-policy
+    spec:
+      policies:
+        {{- toYaml .Values.sandboxPolicy.policy.policies | nindent 8 }}
+  {{- end }}
+{{- end }}

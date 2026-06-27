@@ -28,3 +28,21 @@ spec:
           ports:
             - 443
           protocol: TCP
+    - id: customer-model-cache-example
+      status: approved
+      owner: platform-security
+      environments:
+        - customer
+      expiresOn: "2027-05-31"
+      description: Customer-approved model and package cache example for GPU-backed coding-agent workspaces.
+      allowedUseCases:
+        - model-cache
+        - package-restore
+        - artifact-download
+      dataClassification:
+        maxOutbound: internal
+      destinations:
+        - cidr: 198.51.100.0/24
+          ports:
+            - 443
+          protocol: TCP

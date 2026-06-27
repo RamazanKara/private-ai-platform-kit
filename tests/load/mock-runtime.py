@@ -32,6 +32,15 @@ class MockRuntimeHandler(BaseHTTPRequestHandler):
         if isinstance(messages, list):
             prompt_chars = sum(len(str(message.get("content", ""))) for message in messages if isinstance(message, dict))
         model = str(payload.get("model") or "mock-model")
+        prompt_text = " ".join(
+            str(message.get("content", ""))
+            for message in messages
+            if isinstance(message, dict)
+        )
+        content = "Hello from the local load-test runtime."
+        if "2 + 2" in prompt_text or "2+2" in prompt_text:
+            content = "2 + 2 = 4."
+
         response = {
             "id": f"chatcmpl-loadtest-{int(time() * 1000)}",
             "object": "chat.completion",
@@ -41,7 +50,7 @@ class MockRuntimeHandler(BaseHTTPRequestHandler):
                     "index": 0,
                     "message": {
                         "role": "assistant",
-                        "content": "Hello from the local load-test runtime.",
+                        "content": content,
                     },
                     "finish_reason": "stop",
                 }

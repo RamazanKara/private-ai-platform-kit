@@ -37,6 +37,41 @@ Edit `charts/rag-service/values.yaml` or an environment-specific values file:
 
 For customer clusters, prefer environment-specific values or a chart override sourced from the customer's internal Git repository.
 
+## Source Metadata And Ingestion
+
+Customer document ingestion starts with a `platform.ai/v1alpha1` `RagSourceManifest`:
+
+    apiVersion: platform.ai/v1alpha1
+    kind: RagSourceManifest
+    spec:
+      sources:
+        - id: platform-docs
+          source: docs
+          classification: internal
+          retentionClass: project-documentation
+          owner: platform-team
+          embeddingModel: hash-text-v1
+
+Validate a source manifest locally without writing vectors:
+
+    services/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
+      --source rag/sources/platform-knowledge.yaml \
+      --backend qdrant \
+      --collection-version v1 \
+      --check
+
+Write to Qdrant only after source ownership, classification, retention class, and embedding model have been approved:
+
+    QDRANT_URL=http://qdrant-vector-store.vector.svc.cluster.local:6333 \
+    services/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
+      --source rag/sources/platform-knowledge.yaml \
+      --backend qdrant \
+      --collection-version v1 \
+      --write
+
+The Helm chart can run an optional ingestion Job when `sourceManifest.enabled=true` and `ingestion.enabled=true`.
+The service stores `collection_version` in each Qdrant point and filters queries by `retrieval.vectorStore.collectionVersion`, which lets operators stage re-ingestion or embedding-model migrations in the same collection without mixing old and new vectors.
+
 ## Troubleshooting
 
 Check service health:
@@ -55,4 +90,4 @@ Check a query:
 
 If results are empty, confirm the knowledge ConfigMap contains relevant `.md` or `.txt` documents and the deployment has rolled out.
 
-If the backend is `qdrant`, also confirm the `vector` namespace service is reachable, the collection name and vector dimensions match the RAG values, and the Qdrant PVC is bound.
+If the backend is `qdrant`, also confirm the `vector` namespace service is reachable, the collection name, collection version, and vector dimensions match the RAG values, and the Qdrant PVC is bound.

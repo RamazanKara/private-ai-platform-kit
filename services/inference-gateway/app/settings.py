@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import os
+from pathlib import Path
 import re
 
 
@@ -44,6 +45,13 @@ def _int_from_env(name: str, default: int) -> int:
 
 def _positive_int_from_env(name: str, default: int) -> int:
     value = _int_from_env(name, default)
+    if value <= 0:
+        raise ValueError(f"{name} must be greater than zero")
+    return value
+
+
+def _positive_float_from_env(name: str, default: float) -> float:
+    value = _float_from_env(name, default)
     if value <= 0:
         raise ValueError(f"{name} must be greater than zero")
     return value
@@ -132,6 +140,18 @@ class Settings:
     api_key_header: str = "X-API-Key"
     prompt_secret_detection_enabled: bool = True
     prompt_secret_patterns: tuple[str, ...] = tuple(BUILT_IN_SECRET_PATTERNS)
+    model_routing_policy_path: Path | None = None
+    sandbox_policy_path: Path | None = None
+    jwt_auth_enabled: bool = False
+    jwt_jwks_url: str = ""
+    jwt_issuer: str = ""
+    jwt_audience: str = ""
+    jwt_required_scopes: tuple[str, ...] = ()
+    jwt_cache_seconds: int = 300
+    runtime_max_retries: int = 0
+    runtime_retry_backoff_seconds: float = 0.1
+    runtime_circuit_failure_threshold: int = 0
+    runtime_circuit_reset_seconds: float = 30.0
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -158,6 +178,18 @@ class Settings:
                 raise ValueError("api_key_sha256s must contain SHA-256 hex digests")
         if not self.api_key_header.strip():
             raise ValueError("api_key_header must not be empty")
+        if self.jwt_auth_enabled and not self.jwt_jwks_url:
+            raise ValueError("jwt_jwks_url must be set when JWT auth is enabled")
+        if self.jwt_cache_seconds <= 0:
+            raise ValueError("jwt_cache_seconds must be greater than zero")
+        if self.runtime_max_retries < 0:
+            raise ValueError("runtime_max_retries must be zero or greater")
+        if self.runtime_retry_backoff_seconds <= 0:
+            raise ValueError("runtime_retry_backoff_seconds must be greater than zero")
+        if self.runtime_circuit_failure_threshold < 0:
+            raise ValueError("runtime_circuit_failure_threshold must be zero or greater")
+        if self.runtime_circuit_reset_seconds <= 0:
+            raise ValueError("runtime_circuit_reset_seconds must be greater than zero")
         unknown_patterns = sorted(set(self.prompt_secret_patterns) - set(BUILT_IN_SECRET_PATTERNS))
         if unknown_patterns:
             raise ValueError(f"prompt_secret_patterns contains unknown patterns: {unknown_patterns}")
@@ -225,6 +257,27 @@ class Settings:
                 True,
             ),
             prompt_secret_patterns=_secret_pattern_names_from_env("PROMPT_SECRET_PATTERNS"),
+            model_routing_policy_path=_path_from_env("MODEL_ROUTING_POLICY_PATH"),
+            sandbox_policy_path=_path_from_env("SANDBOX_POLICY_PATH"),
+            jwt_auth_enabled=_bool_from_env("JWT_AUTH_ENABLED", False),
+            jwt_jwks_url=os.getenv("JWT_JWKS_URL", "").strip(),
+            jwt_issuer=os.getenv("JWT_ISSUER", "").strip(),
+            jwt_audience=os.getenv("JWT_AUDIENCE", "").strip(),
+            jwt_required_scopes=_csv_from_env("JWT_REQUIRED_SCOPES", ()),
+            jwt_cache_seconds=_positive_int_from_env("JWT_CACHE_SECONDS", 300),
+            runtime_max_retries=_int_from_env("RUNTIME_MAX_RETRIES", 0),
+            runtime_retry_backoff_seconds=_positive_float_from_env(
+                "RUNTIME_RETRY_BACKOFF_SECONDS",
+                0.1,
+            ),
+            runtime_circuit_failure_threshold=_int_from_env(
+                "RUNTIME_CIRCUIT_FAILURE_THRESHOLD",
+                0,
+            ),
+            runtime_circuit_reset_seconds=_positive_float_from_env(
+                "RUNTIME_CIRCUIT_RESET_SECONDS",
+                30.0,
+            ),
         )
 
     @property
@@ -301,3 +354,10 @@ class Settings:
                 "streaming_disabled",
                 "streaming responses are disabled for this gateway",
             )
+
+
+def _path_from_env(name: str) -> Path | None:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return None
+    return Path(raw.strip())

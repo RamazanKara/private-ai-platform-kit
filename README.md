@@ -11,7 +11,9 @@ Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs
 
 It is designed for teams that want the operating model of a production AI platform without depending on a specific cloud provider.
 
-[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) | [Getting started](docs/getting-started.md) | [Production readiness](docs/production-readiness.md) | [Runbooks](docs/README.md) | [Contributing](CONTRIBUTING.md) | [Security](SECURITY.md)
+Current release: `v0.5.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
+
+[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) | [Quickstart](docs/quickstart.md) | [Decision guide](docs/decision-guide.md) | [Production readiness](docs/production-readiness.md) | [Proof](docs/proof.md) | [Runbooks](docs/README.md) | [Contributing](CONTRIBUTING.md) | [Security](SECURITY.md)
 
 ## Live Demo
 
@@ -29,7 +31,7 @@ The demo is generated from [scripts/demo-live.sh](scripts/demo-live.sh).
 - Locked-down coding-agent workspaces with namespace isolation, PVC storage, RBAC, quotas, default-deny networking, approved egress, and RAG access.
 - RAG service with local lexical retrieval and an optional Qdrant vector-store profile for customer knowledge bases.
 - Model governance with approved-only gateway allowlists, promotion requests, provenance records, and eval suites.
-- Operational controls for SLOs, release gates, quota and chargeback, data retention, egress governance, restore drills, chaos drills, evidence packs, SBOMs, scans, and signed images.
+- Operational controls for SLOs, release gates, quota and chargeback, data retention, egress governance, restore drills, chaos drills, evidence packs, SBOMs, scans, signed images, provenance attestations, and OpenSSF Scorecard.
 
 ## How It Works
 
@@ -40,6 +42,14 @@ Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway
 The local lab runs fully on `kind`. Customer clusters keep the same repo structure and replace only the platform services they already operate: ingress, storage classes, secret backends, logging, observability, and GPU node pools.
 
 ## Run It Locally
+
+For a guided first run:
+
+```bash
+make quickstart
+```
+
+Use `QUICKSTART_INSTALL_TOOLS=1 make quickstart` to install optional validation CLIs into `.tools/bin`, or `QUICKSTART_DIRECT_APPLY=1 make quickstart` to use direct Helm apply instead of Argo CD for a workstation check.
 
 Install or verify the local toolchain:
 
@@ -71,7 +81,13 @@ make smoke RUNTIME_BACKEND=ollama
 
 The default local model is `qwen3:0.6b`. A real model pull can take time and disk space on the first run.
 
-For the full local path, including sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates, follow [docs/getting-started.md](docs/getting-started.md).
+For expected output, timing, disk requirements, and troubleshooting, follow [docs/quickstart.md](docs/quickstart.md). For the full local path, including sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates, follow [docs/getting-started.md](docs/getting-started.md).
+
+## Support Boundaries
+
+This project provides Kubernetes manifests, Helm charts, service code, validation tooling, and operational runbooks. It does not provision cloud infrastructure, operate your Kubernetes cluster, host customer models, or replace your identity provider, secret manager, logging stack, backup platform, or incident process.
+
+Use [docs/decision-guide.md](docs/decision-guide.md) to decide whether the kit is a fit before adopting it.
 
 ## Customer-Owned Kubernetes
 
@@ -80,7 +96,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.4.2 \
+  CUSTOMER_REVISION=v0.5.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
@@ -95,14 +111,22 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 
 | Need | Start here |
 | --- | --- |
-| First local run | [Getting started](docs/getting-started.md) |
+| First local run | [Quickstart](docs/quickstart.md) |
+| Full local workflow | [Getting started](docs/getting-started.md) |
+| Project fit | [Decision guide](docs/decision-guide.md) |
 | Production controls | [Production readiness matrix](docs/production-readiness.md) |
+| Current proof and strict evidence | [Project proof](docs/proof.md) |
+| Threat model | [Threat model](docs/threat-model.md) |
+| Benchmarks and evals | [Benchmarks and evals](docs/benchmarks-and-evals.md) |
 | API contracts | [API contract snapshots](api-contracts/README.md) |
 | Configuration contracts | [Configuration contract snapshots](config-contracts/README.md) |
 | Full documentation map | [Docs index](docs/README.md) |
 | Contributor workflow | [Contributing](CONTRIBUTING.md) |
 | Security policy | [Security](SECURITY.md) |
+| Governance | [Governance](GOVERNANCE.md) |
+| Roadmap | [Roadmap](ROADMAP.md) |
 | Customer cluster assumptions | [Customer cluster README](clusters/customer/README.md) |
+| Customer handoff example | [Customer handoff example](docs/customer-handoff-example.md) |
 | Restore verification | [Restore drill runbook](runbooks/restore-drill.md) |
 | Coding-agent workspaces | [Agent workspaces runbook](runbooks/agent-workspaces.md) |
 | Model governance | [Model governance runbook](runbooks/model-governance.md) |
@@ -134,13 +158,14 @@ make quota-check
 make model-check
 make model-provenance-check
 make loadtest-local
+make toolchain-report TOOLCHAIN_PROFILE=strict
 make api-contract
 make config-contract
 make image-scan
 make supply-chain-check
 ```
 
-Runtime images use a pinned Alpine Python base and exclude test-only dependencies. Local image scans generate SBOM, SARIF, checksum, and summary evidence under `results/supply-chain/`. CI builds and pushes gateway and RAG images, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
+Runtime images use a pinned Alpine Python base and exclude test-only dependencies. Local image scans generate SBOM, SARIF, checksum, and summary evidence under `results/supply-chain/`. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
 
 ## Trademark Notice
 

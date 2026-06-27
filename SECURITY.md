@@ -31,6 +31,8 @@ Do not open public issues containing secrets, exploit details, customer data, or
 - Install Python dependencies from hashed lockfiles in local tests and runtime images.
 - Promote only images that pass high/critical vulnerability scans, have SBOM evidence, and are signed by digest.
 
+The public threat model is maintained in [docs/threat-model.md](docs/threat-model.md).
+
 ## Validation
 
 Before security-sensitive handoff or release review, run:

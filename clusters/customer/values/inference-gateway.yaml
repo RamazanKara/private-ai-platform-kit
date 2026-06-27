@@ -7,6 +7,14 @@ runtime:
   allowedModels:
     - qwen3:0.6b
     - Qwen/Qwen3-Coder-Next
+routing:
+  policy:
+    enabled: true
+    models:
+      - id: qwen3:0.6b
+        backend: ollama
+      - id: Qwen/Qwen3-Coder-Next
+        backend: vllm
 admission:
   maxMessages: 32
   maxPromptChars: 131072

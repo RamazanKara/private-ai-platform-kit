@@ -20,6 +20,7 @@ retrieval:
   vectorStore:
     url: ""
     collection: private-ai-platform-kit-local
+    collectionVersion: v1
     timeoutSeconds: 1.0
     dimensions: 384
     bootstrapFromKnowledge: true

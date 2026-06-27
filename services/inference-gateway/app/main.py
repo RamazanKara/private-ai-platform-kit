@@ -9,18 +9,20 @@ from uuid import uuid4
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from pydantic import BaseModel
 
 from app.budget import BudgetReservation, SandboxBudgetTracker, build_sandbox_budget_tracker
+from app.jwt_auth import JwtAuthError, JwtVerifier
+from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.runtime_client import RuntimeClient
 from app.settings import AdmissionPolicyError, Settings, validate_sandbox_id
 
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.4.2"
+SERVICE_VERSION = "0.5.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
@@ -177,6 +179,20 @@ def _valid_api_key(request: Request, settings: Settings) -> bool:
     return any(hmac.compare_digest(digest, expected) for expected in settings.api_key_sha256s)
 
 
+def _valid_jwt(request: Request, verifier: JwtVerifier) -> bool:
+    authorization = request.headers.get("authorization", "").strip()
+    if not authorization.lower().startswith("bearer "):
+        return False
+    token = authorization[7:].strip()
+    if not token or token.count(".") != 2:
+        return False
+    try:
+        verifier.verify(token)
+        return True
+    except (JwtAuthError, httpx.HTTPError):
+        return False
+
+
 def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
     AUTH_FAILURES.labels(request.url.path, reason).inc()
     response = JSONResponse(
@@ -248,12 +264,22 @@ def _record_budget_reservation(reservation: BudgetReservation | None, settings: 
         )
 
 
+def _admission_status(reason: str, settings: Settings) -> tuple[int, dict[str, str] | None]:
+    if reason.startswith("sandbox_") and reason.endswith("_exceeded"):
+        headers = None
+        if settings.sandbox_budget_window_seconds > 0:
+            headers = {"Retry-After": str(settings.sandbox_budget_window_seconds)}
+        return 429, headers
+    return 400, None
+
+
 def _write_audit_log(
     settings: Settings,
     request: Request,
     payload: dict[str, Any],
     status_code: int,
     latency_seconds: float,
+    backend: str,
     runtime_response: dict[str, Any] | None = None,
     runtime_status_code: int | None = None,
     error: str | None = None,
@@ -265,7 +291,7 @@ def _write_audit_log(
         "request_id": request.state.request_id,
         "traceparent": request.state.traceparent,
         "sandbox_id": request.state.sandbox_id,
-        "backend": settings.runtime_backend,
+        "backend": backend,
         "model": payload.get("model") or settings.model_id,
         "status_code": status_code,
         "runtime_status_code": runtime_status_code,
@@ -293,6 +319,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = resolved
     app.state.runtime_client = RuntimeClient(resolved)
     app.state.budget_tracker = build_sandbox_budget_tracker(resolved)
+    app.state.model_routing_policy = (
+        ModelRoutingPolicy.from_path(resolved.model_routing_policy_path, resolved)
+        if resolved.model_routing_policy_path
+        else ModelRoutingPolicy.default(resolved)
+    )
+    app.state.sandbox_policy_set = SandboxPolicySet.from_path(resolved.sandbox_policy_path)
+    app.state.jwt_verifier = JwtVerifier(resolved)
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
@@ -305,8 +338,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-        if resolved.api_key_auth_enabled and _auth_required(request.url.path):
-            if not _valid_api_key(request, resolved):
+        if (resolved.api_key_auth_enabled or resolved.jwt_auth_enabled) and _auth_required(request.url.path):
+            api_key_ok = resolved.api_key_auth_enabled and _valid_api_key(request, resolved)
+            jwt_ok = resolved.jwt_auth_enabled and _valid_jwt(request, request.app.state.jwt_verifier)
+            if not api_key_ok and not jwt_ok:
                 return _auth_failure_response(request, "invalid_or_missing_api_key")
 
         response = await call_next(request)
@@ -331,6 +366,36 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         }
 
     @app.get(
+        "/readyz",
+        tags=["health"],
+        summary="Check gateway and configured runtime readiness",
+        operation_id="getGatewayReadiness",
+    )
+    async def readyz(response: Response) -> dict[str, Any]:
+        client: RuntimeClient = app.state.runtime_client
+        policy: ModelRoutingPolicy = app.state.model_routing_policy
+        backends = sorted({route.backend for route in policy.routes} or {resolved.runtime_backend})
+        runtime_status: dict[str, Any] = {}
+        ready = True
+        for backend in backends:
+            try:
+                runtime_health = await client.health(backend)
+                runtime_status[backend] = {
+                    "status": "ok",
+                    "detail": runtime_health.get("status", "ok"),
+                }
+            except Exception:
+                ready = False
+                runtime_status[backend] = {"status": "unavailable"}
+        response.status_code = 200 if ready else 503
+        REQUESTS.labels("/readyz", resolved.runtime_backend, str(response.status_code)).inc()
+        return {
+            "status": "ready" if ready else "not_ready",
+            "models": policy.model_ids(),
+            "runtimes": runtime_status,
+        }
+
+    @app.get(
         "/metrics",
         tags=["observability"],
         summary="Export Prometheus metrics",
@@ -347,7 +412,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def sandbox_budget(request: Request) -> dict[str, Any]:
         tracker: SandboxBudgetTracker = request.app.state.budget_tracker
-        return tracker.snapshot(request.state.sandbox_id)
+        policy_set: SandboxPolicySet = request.app.state.sandbox_policy_set
+        effective = policy_set.effective_settings(resolved, request.state.sandbox_id)
+        return tracker.snapshot(request.state.sandbox_id, effective)
+
+    @app.get(
+        "/v1/models",
+        tags=["inference"],
+        summary="List approved private models",
+        operation_id="listModels",
+    )
+    async def models() -> dict[str, Any]:
+        REQUESTS.labels("/v1/models", resolved.runtime_backend, "200").inc()
+        policy: ModelRoutingPolicy = app.state.model_routing_policy
+        return {"object": "list", "data": policy.openai_models()}
 
     @app.post(
         "/v1/chat/completions",
@@ -367,22 +445,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         payload_dict = payload.model_dump(exclude_none=True)
         request.state.budget_reservation = None
         try:
-            resolved.validate_admission(payload_dict)
+            policy: ModelRoutingPolicy = request.app.state.model_routing_policy
+            sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
+            effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
+            try:
+                route = policy.resolve(payload_dict.get("model"), effective.model_id)
+            except ValueError as exc:
+                raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
+            backend = route.backend
+            payload_dict["model"] = route.model_id
+            effective.validate_admission(payload_dict)
             tracker: SandboxBudgetTracker = request.app.state.budget_tracker
-            reservation = tracker.reserve(request.state.sandbox_id, payload_dict)
+            reservation = tracker.reserve(request.state.sandbox_id, payload_dict, effective)
             request.state.budget_reservation = (
                 reservation.audit_dict() if reservation is not None else None
             )
-            _record_budget_reservation(reservation, resolved)
+            _record_budget_reservation(reservation, effective)
             client: RuntimeClient = request.app.state.runtime_client
+            if payload_dict.get("stream"):
+                stream = client.stream_chat_completions(
+                    payload_dict,
+                    headers=_runtime_headers(request),
+                    backend=backend,
+                )
+                return StreamingResponse(stream, media_type="text/event-stream")
             runtime_response = await client.chat_completions(
                 payload_dict,
                 headers=_runtime_headers(request),
+                backend=backend,
             )
             return runtime_response
         except AdmissionPolicyError as exc:
-            status = "400"
-            status_code = 400
+            status_code, headers = _admission_status(exc.reason, resolved)
+            status = str(status_code)
             error = str(exc)
             ADMISSION_REJECTIONS.labels(
                 exc.reason,
@@ -390,13 +485,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 request.state.sandbox_id,
             ).inc()
             raise HTTPException(
-                status_code=400,
+                status_code=status_code,
                 detail={
                     "message": error,
                     "reason": exc.reason,
                     "request_id": request.state.request_id,
                     "sandbox_id": request.state.sandbox_id,
                 },
+                headers=headers,
             ) from exc
         except httpx.HTTPStatusError as exc:
             status = "502"
@@ -451,6 +547,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 payload_dict,
                 status_code=status_code,
                 latency_seconds=latency_seconds,
+                backend=backend,
                 runtime_response=runtime_response,
                 runtime_status_code=runtime_status_code,
                 error=error,

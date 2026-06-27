@@ -2,6 +2,8 @@
 
 Use this runbook when running repeatable prompt checks against the local lab or a customer-owned gateway.
 
+For benchmark and eval interpretation, including what the included suites do and do not prove, see [Benchmarks and evals](../docs/benchmarks-and-evals.md).
+
 ## What The Harness Checks
 
 The evaluation harness reads an `EvalSuite`, sends each case to `POST /v1/chat/completions`, and records:

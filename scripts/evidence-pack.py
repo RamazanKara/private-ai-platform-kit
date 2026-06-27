@@ -430,6 +430,8 @@ def static_controls() -> list[Control]:
             "Supply-chain controls",
             "anchore/sbom-action" in workflow
             and "trivy-action" in workflow
+            and "actions/attest-build-provenance@v4.1.1" in workflow
+            and "actions/attest@v4.1.1" in workflow
             and "steps.build_gateway.outputs.digest" in workflow
             and "steps.build_rag.outputs.digest" in workflow
             and 'exit-code: "1"' in workflow
@@ -437,7 +439,7 @@ def static_controls() -> list[Control]:
             and "spdx-json" in read_text("scripts/image-scan.sh")
             and "--format sarif" in read_text("scripts/image-scan.sh")
             and "supply-chain-checksums.txt" in workflow,
-            "CI builds images, generates SBOMs, fails on high/critical image vulnerabilities, signs immutable image digests, and publishes supply-chain evidence.",
+            "CI builds images, generates SBOMs, fails on high/critical image vulnerabilities, signs immutable image digests, publishes SLSA/SBOM attestations, and uploads supply-chain evidence.",
             [".github/workflows/ci.yml", "scripts/image-scan.sh"],
             "Promote only signed/scanned image digests with downloadable evidence into customer registries.",
         ),

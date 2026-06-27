@@ -2,6 +2,12 @@
 
 This guide runs the local lab first, then points to the customer-owned Kubernetes path. The local path is intentionally close to the customer path: the same charts, policies, runbooks, and validation checks are used in both places.
 
+For a shorter first evaluation path, start with [Quickstart](quickstart.md):
+
+```bash
+make quickstart
+```
+
 ## Prerequisites
 
 Local validation needs:
@@ -202,7 +208,7 @@ For an existing Kubernetes cluster, install Argo CD, configure the customer over
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.4.2 \
+  CUSTOMER_REVISION=v0.5.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 

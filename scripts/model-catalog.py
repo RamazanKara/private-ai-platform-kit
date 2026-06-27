@@ -131,6 +131,38 @@ def validate_allowlists(models: dict[str, dict[str, Any]], errors: list[str]) ->
     return allowlists
 
 
+def routing_models_for_allowlist(models: dict[str, dict[str, Any]], allowlist: list[str]) -> list[dict[str, str]]:
+    routing: list[dict[str, str]] = []
+    for model_id in allowlist:
+        model = models.get(model_id)
+        if not model:
+            continue
+        routing.append({"id": model_id, "backend": str(model.get("runtime"))})
+    return routing
+
+
+def validate_gateway_routing_policies(
+    models: dict[str, dict[str, Any]],
+    allowlists: dict[str, list[str]],
+    errors: list[str],
+) -> None:
+    for environment, allowlist in sorted(allowlists.items()):
+        values_path = ROOT / f"clusters/{environment}/values/inference-gateway.yaml"
+        values = load_yaml(values_path)
+        routing = nested(values, "routing", "policy", default={})
+        expected = routing_models_for_allowlist(models, allowlist)
+        require(
+            errors,
+            nested(routing, "enabled", default=False) is True,
+            f"{environment}: routing.policy.enabled must be true so ModelRoutingPolicy is mounted",
+        )
+        require(
+            errors,
+            nested(routing, "models", default=[]) == expected,
+            f"{environment}: routing.policy.models must match approved model catalog runtimes",
+        )
+
+
 def validate_vllm_profiles(models: dict[str, dict[str, Any]], errors: list[str]) -> None:
     for profile, expected_accelerator in (("vllm", "nvidia"), ("vllm-nvidia", "nvidia"), ("vllm-amd", "amd")):
         path = ROOT / f"clusters/customer/values/{profile}.yaml"
@@ -285,6 +317,7 @@ def validate() -> tuple[list[str], dict[str, dict[str, Any]], dict[str, list[str
     for model_id, model in models.items():
         validate_model_entry(model_id, model, errors)
     allowlists = validate_allowlists(models, errors)
+    validate_gateway_routing_policies(models, allowlists, errors)
     validate_vllm_profiles(models, errors)
     validate_configmap_matches_catalog(catalog, errors)
     validate_promotion_requests(models, allowlists, errors)
