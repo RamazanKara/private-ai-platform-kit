@@ -44,8 +44,28 @@ spec:
               value: {{ .Values.runtime.vllmBaseUrl | quote }}
             - name: REQUEST_TIMEOUT_SECONDS
               value: {{ .Values.runtime.requestTimeoutSeconds | quote }}
+            - name: RUNTIME_MAX_RETRIES
+              value: {{ .Values.runtime.maxRetries | quote }}
+            - name: RUNTIME_RETRY_BACKOFF_SECONDS
+              value: {{ .Values.runtime.retryBackoffSeconds | quote }}
+            - name: RUNTIME_CIRCUIT_FAILURE_THRESHOLD
+              value: {{ .Values.runtime.circuitFailureThreshold | quote }}
+            - name: RUNTIME_CIRCUIT_RESET_SECONDS
+              value: {{ .Values.runtime.circuitResetSeconds | quote }}
             - name: ALLOWED_MODELS
               value: {{ join "," .Values.runtime.allowedModels | quote }}
+            - name: MODEL_ROUTING_POLICY_PATH
+              {{- if .Values.routing.policy.enabled }}
+              value: "/etc/private-ai-platform-kit/model-routing-policy.yaml"
+              {{- else }}
+              value: {{ .Values.routing.policyPath | quote }}
+              {{- end }}
+            - name: SANDBOX_POLICY_PATH
+              {{- if .Values.sandboxPolicy.policy.enabled }}
+              value: "/etc/private-ai-platform-kit/sandbox-policy.yaml"
+              {{- else }}
+              value: {{ .Values.sandboxPolicy.policyPath | quote }}
+              {{- end }}
             - name: MAX_MESSAGES
               value: {{ .Values.admission.maxMessages | quote }}
             - name: MAX_PROMPT_CHARS
@@ -86,6 +106,18 @@ spec:
               value: {{ .Values.auth.enabled | quote }}
             - name: API_KEY_HEADER
               value: {{ .Values.auth.apiKeyHeader | quote }}
+            - name: JWT_AUTH_ENABLED
+              value: {{ .Values.auth.jwt.enabled | quote }}
+            - name: JWT_JWKS_URL
+              value: {{ .Values.auth.jwt.jwksUrl | quote }}
+            - name: JWT_ISSUER
+              value: {{ .Values.auth.jwt.issuer | quote }}
+            - name: JWT_AUDIENCE
+              value: {{ .Values.auth.jwt.audience | quote }}
+            - name: JWT_REQUIRED_SCOPES
+              value: {{ join "," .Values.auth.jwt.requiredScopes | quote }}
+            - name: JWT_CACHE_SECONDS
+              value: {{ .Values.auth.jwt.cacheSeconds | quote }}
             - name: API_KEY_SHA256S
               {{- if .Values.auth.existingSecret.name }}
               valueFrom:
@@ -116,5 +148,17 @@ spec:
               drop:
                 - ALL
             readOnlyRootFilesystem: true
+          {{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled }}
+          volumeMounts:
+            - name: gateway-policies
+              mountPath: /etc/private-ai-platform-kit
+              readOnly: true
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled }}
+      volumes:
+        - name: gateway-policies
+          configMap:
+            name: {{ include "inference-gateway.fullname" . }}-policies
+      {{- end }}

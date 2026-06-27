@@ -1,7 +1,7 @@
 fullnameOverride: ollama
 model:
   name: qwen3:0.6b
-  pullOnStart: false
+  pullOnStart: true
 persistence:
   enabled: true
   size: 10Gi

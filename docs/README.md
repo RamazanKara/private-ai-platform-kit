@@ -9,9 +9,18 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Public overview | [README](../README.md) |
 | Contributor workflow | [Contributing](../CONTRIBUTING.md) |
 | Security policy | [Security](../SECURITY.md) |
+| Governance | [Governance](../GOVERNANCE.md) |
+| Maintainers | [Maintainers](../MAINTAINERS.md) |
+| Roadmap | [Roadmap](../ROADMAP.md) |
+| Adopters | [Adopters](../ADOPTERS.md) |
 | GitHub Pages landing page | [index.html](index.html) |
+| 15-30 minute local quickstart | [Quickstart](quickstart.md) |
 | Local setup and validation flow | [Getting started](getting-started.md) |
+| Project fit and alternatives | [Decision guide](decision-guide.md) |
 | Production control matrix | [Production readiness](production-readiness.md) |
+| Project proof and strict evidence | [Proof](proof.md) |
+| Release artifact verification | [Release verification](release-verification.md) |
+| Threat model | [Threat model](threat-model.md) |
 | Upstream reference links | [References](references.md) |
 
 ## Setup
@@ -19,6 +28,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Need | Document |
 | --- | --- |
 | Customer-owned Kubernetes deployment | [Customer cluster README](../clusters/customer/README.md) |
+| Customer handoff walkthrough | [Customer handoff example](customer-handoff-example.md) |
 | Validation prerequisites | [Validation toolchain](../runbooks/validation-toolchain.md) |
 | GPU scheduling and capacity | [GPU capacity](../runbooks/gpu-capacity.md) |
 | Policy troubleshooting | [Policy blocked deploy](../runbooks/policy-blocked-deploy.md) |
@@ -28,6 +38,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Need | Document |
 | --- | --- |
 | API-key access model | [API access](../runbooks/api-access.md) |
+| Benchmark and eval interpretation | [Benchmarks and evals](benchmarks-and-evals.md) |
 | API contract snapshots | [API contracts](../api-contracts/README.md) |
 | Configuration contract snapshots | [Configuration contracts](../config-contracts/README.md) |
 | Traceable sandbox controls | [Traceability sandbox](../runbooks/traceability-sandbox.md) |

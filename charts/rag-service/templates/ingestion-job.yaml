@@ -1,0 +1,86 @@
+{{- if and .Values.ingestion.enabled .Values.sourceManifest.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "rag-service.fullname" . }}-ingest
+  labels:
+    {{- include "rag-service.labels" . | nindent 4 }}
+  {{- if .Values.ingestion.annotations }}
+  annotations:
+    {{- toYaml .Values.ingestion.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  backoffLimit: {{ .Values.ingestion.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "rag-service.labels" . | nindent 8 }}
+        platform.ai/job: rag-ingestion
+    spec:
+      restartPolicy: {{ .Values.ingestion.restartPolicy }}
+      serviceAccountName: {{ include "rag-service.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: rag-ingest
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - -m
+            - app.ingest
+          args:
+            - --source
+            - {{ .Values.sourceManifest.mountPath | quote }}
+            - --backend
+            - qdrant
+            - --write
+            - --qdrant-url
+            - {{ .Values.retrieval.vectorStore.url | quote }}
+            - --collection
+            - {{ .Values.retrieval.vectorStore.collection | quote }}
+            - --collection-version
+            - {{ .Values.retrieval.vectorStore.collectionVersion | quote }}
+            - --dimensions
+            - {{ .Values.retrieval.vectorStore.dimensions | quote }}
+            - --timeout-seconds
+            - {{ .Values.retrieval.vectorStore.timeoutSeconds | quote }}
+            - --embedding-provider
+            - {{ .Values.retrieval.embedding.provider | quote }}
+            - --embedding-base-url
+            - {{ .Values.retrieval.embedding.baseUrl | quote }}
+            - --embedding-model
+            - {{ .Values.retrieval.embedding.model | quote }}
+            - --chunk-chars
+            - {{ .Values.ingestion.chunkChars | quote }}
+            - --overlap-chars
+            - {{ .Values.ingestion.overlapChars | quote }}
+          volumeMounts:
+            - name: knowledge
+              mountPath: {{ .Values.knowledge.mountPath | quote }}
+              readOnly: true
+            - name: rag-source-manifest
+              mountPath: {{ .Values.sourceManifest.mountPath | quote }}
+              subPath: source-manifest.yaml
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: knowledge
+          configMap:
+            name: {{ include "rag-service.fullname" . }}-knowledge
+        - name: rag-source-manifest
+          configMap:
+            name: {{ include "rag-service.fullname" . }}-source-manifest
+{{- end }}

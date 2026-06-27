@@ -63,9 +63,6 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-      volumes:
-        - name: tmp
-          emptyDir: {}
           resources:
             requests:
               cpu: 20m
@@ -73,3 +70,6 @@ spec:
             limits:
               cpu: 100m
               memory: 128Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}

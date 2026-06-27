@@ -1,0 +1,66 @@
+apiVersion: platform.ai/v1alpha1
+kind: TenantOnboarding
+metadata:
+  name: gpu-coding-agents
+spec:
+  tenant:
+    id: gpu-coding-agents-lab
+    name: gpu-coding-agents
+    namespace: ai-gpu-coding-agents
+    owner: agent-platform
+    group: gpu-coding-agents
+    costCenter: applied-ai
+    environment: customer
+  compliance:
+    profile: gpu-agent
+    dataClassification: internal
+    externalEgressAllowed: true
+    requirePrivateRegistry: true
+    evidenceRetentionDays: 180
+  quotas:
+    requestsCpu: "16"
+    requestsMemory: 64Gi
+    limitsCpu: "32"
+    limitsMemory: 128Gi
+    pods: "60"
+    persistentVolumeClaims: "12"
+    secrets: "30"
+    configMaps: "80"
+  limitRange:
+    defaultRequestCpu: 250m
+    defaultRequestMemory: 512Mi
+    defaultCpu: "2"
+    defaultMemory: 4Gi
+  platform:
+    gatewayUrl: http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080
+    ragUrl: http://rag-service-rag-service.rag.svc.cluster.local:8080
+    requiredHeaders: X-Request-ID, X-Sandbox-ID, X-API-Key, traceparent
+  network:
+    allowDns: true
+    gateway:
+      namespace: inference
+      port: 8080
+    rag:
+      namespace: rag
+      port: 8080
+    allowedEgressCidrs:
+      - catalogRef: customer-git-artifact-mirror-example
+        cidr: 203.0.113.0/24
+        ports:
+          - 443
+        description: customer-approved Git, artifact, or package mirror example
+      - catalogRef: customer-model-cache-example
+        cidr: 198.51.100.0/24
+        ports:
+          - 443
+        description: customer-approved model and package cache example
+  agentWorkspace:
+    enabled: true
+    namespace: ai-gpu-coding-agents
+    pvcSize: 100Gi
+    storageClassName: ""
+    mountPath: /workspace
+    serviceAccountName: agent-runner
+    rbac:
+      viewerGroup: gpu-coding-agents
+      allowJobManagement: true

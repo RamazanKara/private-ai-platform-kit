@@ -9,6 +9,12 @@ runtime:
   vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
   allowedModels:
     - qwen3:0.6b
+routing:
+  policy:
+    enabled: true
+    models:
+      - id: qwen3:0.6b
+        backend: ollama
 admission:
   maxMessages: 16
   maxPromptChars: 8192

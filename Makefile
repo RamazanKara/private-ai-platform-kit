@@ -19,13 +19,14 @@ PYTHON := services/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help clean clean-all python-env local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval eval-local loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
 
 help:
 	@printf '%s\n' \
 		'Private AI Platform Kit targets' \
 		'' \
 		'Local platform:' \
+		'  make quickstart            Guided local lab path with validation and smoke tests' \
 		'  make local-up              Create the local kind cluster' \
 		'  make bootstrap-argocd      Install/bootstrap Argo CD' \
 		'  make sync                  Sync local or customer GitOps apps' \
@@ -42,6 +43,7 @@ help:
 		'  make repo-security-scan    Fail on HIGH/CRITICAL repo security findings' \
 		'  make dependency-lock-check Check hashed Python dependency locks' \
 		'  make repo-hygiene          Check contributor docs, links, and layout' \
+		'  make chart-docs            Check generated Helm chart value tables' \
 		'  make api-contract          Check service OpenAPI contracts' \
 		'  make config-contract       Check service runtime config contracts' \
 		'  make loadtest-local        Run k6 against an ephemeral local gateway' \
@@ -50,6 +52,7 @@ help:
 		'  make evidence              Generate customer evidence pack' \
 		'  make release-gate          Check release gates with sample fallback allowed' \
 		'  make release-gate-strict   Check gates with current evidence required' \
+		'  make eval-local            Run evals against an ephemeral local mock runtime' \
 		'  make slo-report            Write SLO report evidence' \
 		'  make quota-report          Write quota and chargeback evidence' \
 		'  make model-provenance-report  Write model provenance evidence' \
@@ -57,7 +60,8 @@ help:
 		'Customer handoff:' \
 		'  make customer-overlay      Configure customer GitOps overlay' \
 		'  make tenant-onboard        Generate tenant onboarding artifacts' \
-		'  make tenant-onboard-regulated Generate regulated/offline tenant artifacts'
+		'  make tenant-onboard-regulated Generate regulated/offline tenant artifacts' \
+		'  make tenant-onboard-gpu    Generate GPU coding-agent tenant artifacts'
 
 clean:
 	rm -rf .coverage htmlcov .pytest_cache
@@ -73,6 +77,9 @@ clean-all: clean
 
 python-env:
 	./scripts/bootstrap-python.sh
+
+quickstart:
+	./scripts/quickstart.sh
 
 local-up:
 	./scripts/local-up.sh
@@ -107,6 +114,9 @@ tenant-onboard: python-env
 tenant-onboard-regulated: python-env
 	$(PYTHON) scripts/tenant-onboard.py --spec tenants/onboarding/regulated-offline-coding-agents.yaml --output-dir "$(TENANT_OUTPUT)"
 
+tenant-onboard-gpu: python-env
+	$(PYTHON) scripts/tenant-onboard.py --spec tenants/onboarding/gpu-coding-agents.yaml --output-dir "$(TENANT_OUTPUT)"
+
 customer-overlay: python-env
 	$(PYTHON) scripts/configure-customer-overlay.py --repo-url "$(CUSTOMER_REPO_URL)" --target-revision "$(CUSTOMER_REVISION)" --gpu-profile "$(CUSTOMER_GPU_PROFILE)"
 
@@ -124,6 +134,9 @@ chaos-drill:
 
 eval:
 	./scripts/eval.sh
+
+eval-local:
+	./scripts/eval-local.sh
 
 loadtest:
 	./scripts/loadtest.sh
@@ -213,6 +226,12 @@ dependency-lock-check:
 
 repo-hygiene:
 	python3 scripts/repo-hygiene.py --check
+
+chart-docs: python-env
+	$(PYTHON) scripts/chart-docs.py --check
+
+chart-docs-update: python-env
+	$(PYTHON) scripts/chart-docs.py --write
 
 api-contract: python-env
 	$(PYTHON) scripts/api-contract.py --check

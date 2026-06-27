@@ -4,7 +4,13 @@ Private AI Platform Kit is maintained as an operational platform, not a collecti
 
 ## Working Locally
 
-Start with the default validation gate:
+For a first local run, use the guided quickstart:
+
+```bash
+make quickstart
+```
+
+Start normal development with the default validation gate:
 
 ```bash
 make help
@@ -68,3 +74,10 @@ Reviewers should check:
 - Security controls remain enforceable by tests, policy, or validation scripts.
 - New runbooks name the owner action, validation command, and rollback or escalation path.
 - Customer-facing values avoid cloud-specific assumptions unless they are behind a named profile.
+
+## Community Workflow
+
+- Use the issue templates for bugs, feature requests, and questions.
+- Open larger design changes as issues before implementing them.
+- Follow [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [GOVERNANCE.md](GOVERNANCE.md), and [ROADMAP.md](ROADMAP.md).
+- Keep public issues free of secrets, raw prompts, customer data, and private context.

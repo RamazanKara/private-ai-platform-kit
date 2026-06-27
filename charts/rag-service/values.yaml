@@ -34,9 +34,14 @@ retrieval:
   vectorStore:
     url: ""
     collection: private-ai-platform-kit
+    collectionVersion: v1
     timeoutSeconds: 1.0
     dimensions: 384
     bootstrapFromKnowledge: true
+  embedding:
+    provider: hash
+    baseUrl: ""
+    model: hash-text-v1
 
 knowledge:
   mountPath: /knowledge
@@ -68,6 +73,26 @@ knowledge:
       Ollama is the default local runtime. vLLM is the production-style runtime
       for customer clusters. NVIDIA profiles request nvidia.com/gpu and AMD ROCm
       profiles request amd.com/gpu.
+
+sourceManifest:
+  enabled: false
+  path: ""
+  mountPath: /rag-sources/source-manifest.yaml
+  manifest:
+    apiVersion: platform.ai/v1alpha1
+    kind: RagSourceManifest
+    metadata:
+      name: platform-knowledge
+    spec:
+      sources: []
+
+ingestion:
+  enabled: false
+  backoffLimit: 1
+  restartPolicy: Never
+  chunkChars: 1200
+  overlapChars: 120
+  annotations: {}
 
 resources:
   requests:

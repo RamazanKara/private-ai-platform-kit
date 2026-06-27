@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 
+from app.embeddings import build_embedding_provider
 from app.retriever import LexicalRetriever, QdrantRetriever, VectorStoreError, build_context
 from app.settings import Settings, validate_sandbox_id
 
@@ -207,13 +208,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved
     if resolved.retrieval_backend == "qdrant":
+        embedding_provider = build_embedding_provider(
+            resolved.embedding_provider,
+            resolved.vector_dimensions,
+            resolved.embedding_model,
+            resolved.embedding_base_url,
+            resolved.vector_timeout_seconds,
+        )
         app.state.retriever = QdrantRetriever.from_directory(
             resolved.document_dir,
             resolved.vector_store_url,
             resolved.vector_collection,
+            resolved.vector_collection_version,
             resolved.vector_timeout_seconds,
             resolved.vector_dimensions,
             resolved.vector_bootstrap_enabled,
+            embedding_provider,
         )
     else:
         app.state.retriever = LexicalRetriever.from_directory(resolved.document_dir)
@@ -253,7 +263,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "documents": len(app.state.retriever.documents),
             "retrieval_backend": resolved.retrieval_backend,
             "vector_store_configured": bool(resolved.vector_store_url),
+            "source_manifest_configured": resolved.rag_source_manifest is not None,
         }
+        if resolved.rag_source_manifest is not None:
+            body["source_manifest"] = str(resolved.rag_source_manifest)
         status = getattr(app.state.retriever, "status", None)
         if callable(status):
             body["vector_store"] = status()

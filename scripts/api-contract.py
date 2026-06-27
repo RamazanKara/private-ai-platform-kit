@@ -41,14 +41,21 @@ CONTRACTS = {
         snapshot=ROOT / "api-contracts/inference-gateway.openapi.json",
         routes={
             "/healthz": RouteContract("get"),
+            "/readyz": RouteContract("get"),
             "/metrics": RouteContract("get"),
             "/v1/sandbox/budget": RouteContract("get"),
+            "/v1/models": RouteContract("get"),
             "/v1/chat/completions": RouteContract(
                 "post",
                 request_schema="ChatCompletionRequest",
             ),
         },
-        protected_paths=frozenset({"/v1/sandbox/budget", "/v1/chat/completions"}),
+        protected_paths=frozenset({
+            "/readyz",
+            "/v1/models",
+            "/v1/sandbox/budget",
+            "/v1/chat/completions",
+        }),
         required_schemas={
             "ChatCompletionRequest": {
                 "properties": {"model", "messages", "temperature", "max_tokens", "stream"},

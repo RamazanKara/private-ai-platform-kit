@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+Feature-completeness work for gateway policy, RAG ingestion, chart documentation, and public verification.
+
+### Added
+
+- Added optional gateway JWT/JWKS bearer-token validation for HS256, RS256, and ES256, `GET /readyz`, `GET /v1/models`, YAML-backed `ModelRoutingPolicy`, YAML-backed `SandboxPolicySet`, and bounded runtime retry/circuit-breaker controls.
+- Added RAG embedding providers for deterministic local hash vectors and customer-owned OpenAI-compatible embedding endpoints.
+- Added RAG source metadata manifests, local `scripts/rag-ingest.py`, and an optional RAG chart ingestion Job for Qdrant upserts with classification, retention, owner, and embedding metadata.
+- Added generated Helm chart README value tables for all charts and `make chart-docs`.
+- Added release verification docs for Helm OCI charts, Cosign image signatures, SBOM checksums, Trivy SARIF, and strict evidence.
+
+### Changed
+
+- RAG health output now reports source-manifest configuration and richer Qdrant vector metadata.
+- Gateway audit events now record the routed runtime backend instead of only the default backend.
+
+### Validation
+
+- Pending: `make validate`
+
 ## v0.4.2 - 2026-06-24
 
 Dependency and image security follow-up for the private AI platform kit.

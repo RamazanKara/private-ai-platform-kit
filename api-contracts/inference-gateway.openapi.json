@@ -205,6 +205,37 @@
         ]
       }
     },
+    "/readyz": {
+      "get": {
+        "operationId": "getGatewayReadiness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Getgatewayreadiness",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Check gateway and configured runtime readiness",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/v1/chat/completions": {
       "post": {
         "operationId": "createChatCompletion",
@@ -251,6 +282,37 @@
           }
         ],
         "summary": "Create a private chat completion",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "operationId": "listModels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Listmodels",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "List approved private models",
         "tags": [
           "inference"
         ]

@@ -6,6 +6,7 @@ import re
 
 SANDBOX_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 VALID_RETRIEVAL_BACKENDS = {"lexical", "qdrant"}
+VALID_EMBEDDING_PROVIDERS = {"hash", "openai-compatible"}
 DEFAULT_VECTOR_DIMENSIONS = 384
 
 
@@ -92,9 +93,14 @@ class Settings:
     retrieval_backend: str = "lexical"
     vector_store_url: str = ""
     vector_collection: str = "private-ai-platform-kit"
+    vector_collection_version: str = "v1"
     vector_timeout_seconds: float = 1.0
     vector_dimensions: int = DEFAULT_VECTOR_DIMENSIONS
     vector_bootstrap_enabled: bool = True
+    embedding_provider: str = "hash"
+    embedding_base_url: str = ""
+    embedding_model: str = "hash-text-v1"
+    rag_source_manifest: Path | None = None
     api_key_auth_enabled: bool = False
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
@@ -117,10 +123,18 @@ class Settings:
             raise ValueError("vector_store_url must be set when retrieval_backend is qdrant")
         if not self.vector_collection.strip():
             raise ValueError("vector_collection must not be empty")
+        if not self.vector_collection_version.strip():
+            raise ValueError("vector_collection_version must not be empty")
         if self.vector_timeout_seconds <= 0:
             raise ValueError("vector_timeout_seconds must be greater than zero")
         if self.vector_dimensions <= 0:
             raise ValueError("vector_dimensions must be greater than zero")
+        if self.embedding_provider not in VALID_EMBEDDING_PROVIDERS:
+            raise ValueError(f"embedding_provider must be one of {sorted(VALID_EMBEDDING_PROVIDERS)}")
+        if self.embedding_provider == "openai-compatible" and not self.embedding_base_url:
+            raise ValueError("embedding_base_url must be set when embedding_provider is openai-compatible")
+        if self.embedding_provider == "openai-compatible" and not self.embedding_model:
+            raise ValueError("embedding_model must be set when embedding_provider is openai-compatible")
         if self.api_key_auth_enabled and not self.api_key_sha256s:
             raise ValueError("api_key_sha256s must be set when API key auth is enabled")
         for item in self.api_key_sha256s:
@@ -144,10 +158,22 @@ class Settings:
             retrieval_backend=_env_first(("RAG_RETRIEVAL_BACKEND", "RETRIEVAL_BACKEND"), "lexical").strip().lower(),
             vector_store_url=_env_first(("QDRANT_URL", "VECTOR_STORE_URL"), "").strip(),
             vector_collection=_env_first(("QDRANT_COLLECTION", "VECTOR_COLLECTION"), "private-ai-platform-kit").strip(),
+            vector_collection_version=_env_first(("QDRANT_COLLECTION_VERSION", "VECTOR_COLLECTION_VERSION"), "v1").strip(),
             vector_timeout_seconds=_positive_float_from_env_first(("QDRANT_TIMEOUT_SECONDS", "VECTOR_TIMEOUT_SECONDS"), 1.0),
             vector_dimensions=_positive_int_from_env("QDRANT_VECTOR_DIMENSIONS", DEFAULT_VECTOR_DIMENSIONS),
             vector_bootstrap_enabled=_bool_from_env("QDRANT_BOOTSTRAP_FROM_KNOWLEDGE", True),
+            embedding_provider=os.getenv("RAG_EMBEDDING_PROVIDER", "hash").strip().lower(),
+            embedding_base_url=os.getenv("RAG_EMBEDDING_BASE_URL", "").strip(),
+            embedding_model=os.getenv("RAG_EMBEDDING_MODEL", "hash-text-v1").strip(),
+            rag_source_manifest=_path_from_env("RAG_SOURCE_MANIFEST"),
             api_key_auth_enabled=_bool_from_env("API_KEY_AUTH_ENABLED", False),
             api_key_sha256s=_sha256s_from_env("API_KEY_SHA256S"),
             api_key_header=os.getenv("API_KEY_HEADER", "X-API-Key"),
         )
+
+
+def _path_from_env(name: str) -> Path | None:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return None
+    return Path(raw.strip())

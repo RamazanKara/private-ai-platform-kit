@@ -58,12 +58,26 @@ spec:
               value: {{ .Values.retrieval.vectorStore.url | quote }}
             - name: QDRANT_COLLECTION
               value: {{ .Values.retrieval.vectorStore.collection | quote }}
+            - name: QDRANT_COLLECTION_VERSION
+              value: {{ .Values.retrieval.vectorStore.collectionVersion | quote }}
             - name: QDRANT_TIMEOUT_SECONDS
               value: {{ .Values.retrieval.vectorStore.timeoutSeconds | quote }}
             - name: QDRANT_VECTOR_DIMENSIONS
               value: {{ .Values.retrieval.vectorStore.dimensions | quote }}
             - name: QDRANT_BOOTSTRAP_FROM_KNOWLEDGE
               value: {{ .Values.retrieval.vectorStore.bootstrapFromKnowledge | quote }}
+            - name: RAG_EMBEDDING_PROVIDER
+              value: {{ .Values.retrieval.embedding.provider | quote }}
+            - name: RAG_EMBEDDING_BASE_URL
+              value: {{ .Values.retrieval.embedding.baseUrl | quote }}
+            - name: RAG_EMBEDDING_MODEL
+              value: {{ .Values.retrieval.embedding.model | quote }}
+            - name: RAG_SOURCE_MANIFEST
+              {{- if .Values.sourceManifest.enabled }}
+              value: {{ .Values.sourceManifest.mountPath | quote }}
+              {{- else }}
+              value: {{ .Values.sourceManifest.path | quote }}
+              {{- end }}
             - name: API_KEY_AUTH_ENABLED
               value: {{ .Values.auth.enabled | quote }}
             - name: API_KEY_HEADER
@@ -102,9 +116,20 @@ spec:
             - name: knowledge
               mountPath: {{ .Values.knowledge.mountPath | quote }}
               readOnly: true
+            {{- if .Values.sourceManifest.enabled }}
+            - name: rag-source-manifest
+              mountPath: {{ .Values.sourceManifest.mountPath | quote }}
+              subPath: source-manifest.yaml
+              readOnly: true
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: knowledge
           configMap:
             name: {{ include "rag-service.fullname" . }}-knowledge
+        {{- if .Values.sourceManifest.enabled }}
+        - name: rag-source-manifest
+          configMap:
+            name: {{ include "rag-service.fullname" . }}-source-manifest
+        {{- end }}

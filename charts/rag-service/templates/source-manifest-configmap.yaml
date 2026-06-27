@@ -1,0 +1,11 @@
+{{- if .Values.sourceManifest.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rag-service.fullname" . }}-source-manifest
+  labels:
+    {{- include "rag-service.labels" . | nindent 4 }}
+data:
+  source-manifest.yaml: |
+{{ toJson .Values.sourceManifest.manifest | nindent 4 }}
+{{- end }}

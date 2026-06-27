@@ -2,16 +2,12 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-import hashlib
-import math
 from pathlib import Path
-import re
 from uuid import NAMESPACE_URL, uuid5
 
 import httpx
 
-
-TOKEN_PATTERN = re.compile(r"[a-z0-9][a-z0-9_.:/-]*")
+from app.embeddings import EmbeddingProvider, HashEmbeddingProvider, tokenize
 
 
 @dataclass(frozen=True)
@@ -32,10 +28,6 @@ class RetrievalResult:
 
 class VectorStoreError(RuntimeError):
     pass
-
-
-def tokenize(value: str) -> list[str]:
-    return TOKEN_PATTERN.findall(value.lower())
 
 
 def _title_from_content(path: Path, content: str) -> str:
@@ -123,38 +115,26 @@ class LexicalRetriever:
         return sorted(ranked, key=lambda result: (-result.score, result.document.id))[:top_k]
 
 
-def hashed_text_embedding(value: str, dimensions: int) -> list[float]:
-    terms = tokenize(value)
-    if not terms:
-        return [0.0] * dimensions
-    vector = [0.0] * dimensions
-    for term, count in Counter(terms).items():
-        digest = hashlib.sha256(term.encode("utf-8")).digest()
-        index = int.from_bytes(digest[:4], "big") % dimensions
-        sign = 1.0 if digest[4] % 2 == 0 else -1.0
-        vector[index] += sign * (1.0 + math.log(count))
-    norm = math.sqrt(sum(item * item for item in vector))
-    if norm == 0:
-        return vector
-    return [item / norm for item in vector]
-
-
 class QdrantRetriever:
     def __init__(
         self,
         documents: list[KnowledgeDocument],
         base_url: str,
         collection: str,
+        collection_version: str,
         timeout_seconds: float,
         vector_dimensions: int,
         bootstrap_from_knowledge: bool,
+        embedding_provider: EmbeddingProvider | None = None,
     ) -> None:
         self.documents = documents
         self.base_url = base_url.rstrip("/")
         self.collection = collection
+        self.collection_version = collection_version
         self.timeout_seconds = timeout_seconds
         self.vector_dimensions = vector_dimensions
         self.bootstrap_from_knowledge = bootstrap_from_knowledge
+        self.embedding_provider = embedding_provider or HashEmbeddingProvider(vector_dimensions)
         self._bootstrapped = False
         self.last_sync_status = "pending" if bootstrap_from_knowledge else "disabled"
         self.last_sync_error = ""
@@ -165,24 +145,31 @@ class QdrantRetriever:
         document_dir: Path,
         base_url: str,
         collection: str,
+        collection_version: str,
         timeout_seconds: float,
         vector_dimensions: int,
         bootstrap_from_knowledge: bool,
+        embedding_provider: EmbeddingProvider | None = None,
     ) -> "QdrantRetriever":
         return cls(
             documents=load_documents(document_dir),
             base_url=base_url,
             collection=collection,
+            collection_version=collection_version,
             timeout_seconds=timeout_seconds,
             vector_dimensions=vector_dimensions,
             bootstrap_from_knowledge=bootstrap_from_knowledge,
+            embedding_provider=embedding_provider,
         )
 
     def status(self) -> dict[str, str | int | bool]:
         return {
             "collection": self.collection,
+            "collection_version": self.collection_version,
             "documents": len(self.documents),
             "vector_dimensions": self.vector_dimensions,
+            "embedding_provider": self.embedding_provider.name,
+            "embedding_model": self.embedding_provider.model,
             "bootstrap_from_knowledge": self.bootstrap_from_knowledge,
             "last_sync_status": self.last_sync_status,
             "last_sync_error": self.last_sync_error,
@@ -214,9 +201,10 @@ class QdrantRetriever:
         for document in self.documents:
             points.append(
                 {
-                    "id": str(uuid5(NAMESPACE_URL, f"{document.source}:{document.id}")),
-                    "vector": hashed_text_embedding(document.content, self.vector_dimensions),
+                    "id": str(uuid5(NAMESPACE_URL, f"{self.collection_version}:{document.source}:{document.id}")),
+                    "vector": self.embedding_provider.embed(document.content),
                     "payload": {
+                        "collection_version": self.collection_version,
                         "document_id": document.id,
                         "title": document.title,
                         "source": document.source,
@@ -250,7 +238,7 @@ class QdrantRetriever:
         if not tokenize(query):
             return []
         self._ensure_bootstrapped()
-        vector = hashed_text_embedding(query, self.vector_dimensions)
+        vector = self.embedding_provider.embed(query)
         try:
             with self._client() as client:
                 response = client.post(
@@ -259,6 +247,14 @@ class QdrantRetriever:
                         "query": vector,
                         "limit": top_k,
                         "with_payload": True,
+                        "filter": {
+                            "must": [
+                                {
+                                    "key": "collection_version",
+                                    "match": {"value": self.collection_version},
+                                }
+                            ]
+                        },
                     },
                 )
                 response.raise_for_status()

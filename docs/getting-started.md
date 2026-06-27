@@ -2,6 +2,12 @@
 
 This guide runs the local lab first, then points to the customer-owned Kubernetes path. The local path is intentionally close to the customer path: the same charts, policies, runbooks, and validation checks are used in both places.
 
+For a shorter first evaluation path, start with [Quickstart](quickstart.md):
+
+```bash
+make quickstart
+```
+
 ## Prerequisites
 
 Local validation needs:

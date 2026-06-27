@@ -15,6 +15,7 @@ retrieval:
   vectorStore:
     url: http://qdrant-vector-store.vector.svc.cluster.local:6333
     collection: customer-platform-knowledge
+    collectionVersion: v1
     timeoutSeconds: 1.0
     dimensions: 384
     bootstrapFromKnowledge: true

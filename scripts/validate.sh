@@ -69,6 +69,9 @@ PY
 log "checking repository hygiene"
 python3 scripts/repo-hygiene.py --check
 
+log "checking generated chart docs"
+services/inference-gateway/.venv/bin/python scripts/chart-docs.py --check
+
 log "checking API contracts"
 services/inference-gateway/.venv/bin/python scripts/api-contract.py --check
 
@@ -98,6 +101,8 @@ services/inference-gateway/.venv/bin/python scripts/release-gate.py --check
 
 log "checking tenant onboarding spec"
 services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check
+services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check --spec tenants/onboarding/regulated-offline-coding-agents.yaml
+services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check --spec tenants/onboarding/gpu-coding-agents.yaml
 
 log "checking customer overlay configuration"
 services/inference-gateway/.venv/bin/python scripts/configure-customer-overlay.py --check
