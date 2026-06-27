@@ -685,7 +685,7 @@ def check_release_packaging(errors: list[str]) -> None:
         for token in (
             "ossf/scorecard-action@v2.4.3",
             "results_format: sarif",
-            "publish_results: true",
+            "publish_results: false",
             "github/codeql-action/upload-sarif",
             "security-events: write",
             "id-token: write",
