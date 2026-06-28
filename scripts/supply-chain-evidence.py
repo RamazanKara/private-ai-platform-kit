@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT / "results/supply-chain"
 EXPECTED_IMAGES = {"inference-gateway", "rag-service"}

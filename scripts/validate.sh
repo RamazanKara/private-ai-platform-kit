@@ -20,6 +20,9 @@ log "running inference gateway tests"
 log "running RAG service tests"
 ./scripts/test-rag.sh
 
+log "running Python lint, format, and type checks"
+./scripts/quality.sh
+
 log "linting and rendering local Helm charts"
 rendered_manifests=()
 for chart in charts/agent-workspace charts/budget-redis charts/inference-gateway charts/ollama charts/qdrant-vector-store charts/rag-service charts/vllm; do

@@ -30,7 +30,9 @@ class MockRuntimeHandler(BaseHTTPRequestHandler):
         messages = payload.get("messages") if isinstance(payload, dict) else []
         prompt_chars = 0
         if isinstance(messages, list):
-            prompt_chars = sum(len(str(message.get("content", ""))) for message in messages if isinstance(message, dict))
+            prompt_chars = sum(
+                len(str(message.get("content", ""))) for message in messages if isinstance(message, dict)
+            )
         model = str(payload.get("model") or "mock-model")
         prompt_text = " ".join(
             str(message.get("content", ""))

@@ -18,10 +18,9 @@ from app.embeddings import build_embedding_provider
 from app.retriever import LexicalRetriever, QdrantRetriever, VectorStoreError, build_context
 from app.settings import Settings, validate_sandbox_id
 
-
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.rag.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.5.0"
+SERVICE_VERSION = "0.6.0"
 OPENAPI_DESCRIPTION = (
     "Private retrieval service for platform and customer knowledge. The service "
     "returns traceable retrieval results, optional context blocks, and "
@@ -239,9 +238,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-        if resolved.api_key_auth_enabled and _auth_required(request.url.path):
-            if not _valid_api_key(request, resolved):
-                return _auth_failure_response(request, "invalid_or_missing_api_key")
+        if resolved.api_key_auth_enabled and _auth_required(request.url.path) and not _valid_api_key(request, resolved):
+            return _auth_failure_response(request, "invalid_or_missing_api_key")
 
         response = await call_next(request)
         response.headers["X-Request-ID"] = request.state.request_id
@@ -352,9 +350,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     },
                 )
             max_context_chars = (
-                resolved.max_context_chars
-                if payload.max_context_chars is None
-                else payload.max_context_chars
+                resolved.max_context_chars if payload.max_context_chars is None else payload.max_context_chars
             )
             if max_context_chars <= 0 or max_context_chars > resolved.max_context_chars:
                 raise HTTPException(

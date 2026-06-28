@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
@@ -11,7 +11,6 @@ import httpx
 import yaml
 
 from app.embeddings import EmbeddingProvider, build_embedding_provider
-
 
 REQUIRED_SOURCE_FIELDS = {
     "id",
@@ -199,9 +198,7 @@ def ensure_collection(
     response.raise_for_status()
     existing_dimensions = _collection_dimensions(response.json())
     if existing_dimensions is not None and existing_dimensions != dimensions:
-        raise ValueError(
-            f"collection {collection} has {existing_dimensions} dimensions; expected {dimensions}"
-        )
+        raise ValueError(f"collection {collection} has {existing_dimensions} dimensions; expected {dimensions}")
     return "ready"
 
 

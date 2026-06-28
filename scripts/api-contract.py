@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager
-from dataclasses import dataclass
 import json
 import os
-from pathlib import Path
 import sys
 import tempfile
-from typing import Any, Iterator
-
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head"}
@@ -37,7 +37,7 @@ CONTRACTS = {
     "inference-gateway": ServiceContract(
         service_dir=ROOT / "services/inference-gateway",
         title="Private AI Platform Kit Inference Gateway",
-        version="0.5.0",
+        version="0.6.0",
         snapshot=ROOT / "api-contracts/inference-gateway.openapi.json",
         routes={
             "/healthz": RouteContract("get"),
@@ -70,7 +70,7 @@ CONTRACTS = {
     "rag-service": ServiceContract(
         service_dir=ROOT / "services/rag-service",
         title="Private AI Platform Kit RAG Service",
-        version="0.5.0",
+        version="0.6.0",
         snapshot=ROOT / "api-contracts/rag-service.openapi.json",
         routes={
             "/healthz": RouteContract("get"),

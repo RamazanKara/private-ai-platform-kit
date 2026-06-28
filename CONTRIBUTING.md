@@ -20,6 +20,11 @@ make validate
 Use focused targets while iterating:
 
 ```bash
+make quality        # Ruff lint, Ruff format check, and mypy (also run by make validate)
+make lint
+make typecheck
+make format         # apply Ruff format and safe autofixes
+make coverage       # pytest coverage with enforced floors
 make test-gateway
 make test-rag
 make production-check
@@ -29,6 +34,11 @@ make repo-hygiene
 make api-contract
 make config-contract
 ```
+
+Lint, format, and type-check tools run from an isolated, hash-pinned `.venv-quality`
+(see [requirements-quality.lock](requirements-quality.lock)) so they never touch the
+runtime or dev dependency locks. Configuration lives in [pyproject.toml](pyproject.toml).
+The optional [pre-commit](.pre-commit-config.yaml) hooks mirror `make quality`.
 
 Run image scanning before changing Dockerfiles, dependencies, or release workflows:
 
@@ -42,6 +52,7 @@ make repo-security-scan
 
 - Keep runtime dependencies separate from test-only dependencies.
 - Keep `requirements.lock` and `requirements-dev.lock` regenerated with hashes whenever Python requirements change.
+- Keep `make quality` green: Ruff lint and `ruff format`-clean services, and mypy passing for both services. Regenerate `requirements-quality.lock` with hashes when tool versions change.
 - Keep Docker base images pinned by digest.
 - Keep `.github/dependabot.yml` aligned with runtime package managers, Dockerfiles, and GitHub Actions.
 - Keep generated evidence under `results/` ignored unless it is an intentional `sample-*` artifact.

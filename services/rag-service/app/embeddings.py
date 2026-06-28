@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from collections import Counter
 import hashlib
 import math
 import re
+from collections import Counter
 from typing import Protocol
 
 import httpx
-
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9][a-z0-9_.:/-]*")
 
@@ -17,8 +16,7 @@ class EmbeddingProvider(Protocol):
     model: str
     dimensions: int
 
-    def embed(self, value: str) -> list[float]:
-        ...
+    def embed(self, value: str) -> list[float]: ...
 
 
 def tokenize(value: str) -> list[str]:

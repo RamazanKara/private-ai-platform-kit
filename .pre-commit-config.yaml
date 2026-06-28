@@ -1,0 +1,21 @@
+# Optional local pre-commit hooks mirroring `make quality`.
+# Install with: pip install pre-commit && pre-commit install
+# Ruff configuration is read from pyproject.toml so hooks match CI exactly.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.2
+    hooks:
+      - id: ruff
+        name: ruff (lint)
+        args: [--fix]
+      - id: ruff-format
+        name: ruff (format)
+        files: ^services/
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (services)
+        entry: scripts/quality.sh typecheck
+        language: script
+        pass_filenames: false
+        types: [python]

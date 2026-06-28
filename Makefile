@@ -19,7 +19,7 @@ PYTHON := services/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval eval-local loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag
+.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval eval-local loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag lint format format-check typecheck quality coverage
 
 help:
 	@printf '%s\n' \
@@ -37,6 +37,11 @@ help:
 		'Validation:' \
 		'  make validate              Run the default repo validation gate' \
 		'  make validate-full         Require the strict validation toolchain' \
+		'  make quality               Run Ruff lint, format check, and mypy' \
+		'  make lint                  Ruff lint services and scripts' \
+		'  make format                Apply Ruff format and autofixes' \
+		'  make typecheck             Run mypy on both services' \
+		'  make coverage              Report test coverage with enforced floors' \
 		'  make production-check      Run static production-readiness checks' \
 		'  make image-scan            Build and Trivy-scan runtime images' \
 		'  make supply-chain-check    Validate local image scan evidence' \
@@ -274,3 +279,21 @@ test-gateway:
 
 test-rag:
 	./scripts/test-rag.sh
+
+lint:
+	./scripts/quality.sh lint
+
+format:
+	./scripts/quality.sh format
+
+format-check:
+	./scripts/quality.sh format-check
+
+typecheck:
+	./scripts/quality.sh typecheck
+
+quality:
+	./scripts/quality.sh
+
+coverage:
+	./scripts/coverage.sh

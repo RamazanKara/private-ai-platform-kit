@@ -2,24 +2,22 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 import json
 import os
-from pathlib import Path
 import sys
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 import httpx
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 RAG_SERVICE_DIR = ROOT / "services/rag-service"
 sys.path.insert(0, str(RAG_SERVICE_DIR))
 
 from app.embeddings import EmbeddingProvider, build_embedding_provider  # noqa: E402
-
 
 REQUIRED_SOURCE_FIELDS = {
     "id",

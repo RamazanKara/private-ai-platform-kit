@@ -1,0 +1,8 @@
+# Static code-quality tools (lint, format, type checks). Installed into an isolated
+# .venv-quality by scripts/quality.sh so they never touch the runtime or dev locks.
+# Regenerate the hashed lock with:
+#   pip-compile --allow-unsafe --generate-hashes --no-strip-extras \
+#     --output-file=requirements-quality.lock requirements-quality.txt
+ruff==0.14.2
+mypy==1.18.2
+types-PyYAML==6.0.12.20250915

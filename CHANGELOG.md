@@ -4,6 +4,23 @@
 
 No unreleased changes.
 
+## v0.6.0 - 2026-06-28
+
+### Added
+
+- Added an enforced Python code-quality gate: Ruff lint, Ruff format check, and mypy type checks for both services, wired into `make validate` / `make validate-full` and exposed as `make quality`, `make lint`, `make typecheck`, `make format`, and `make coverage`. Tooling is hash-pinned in `requirements-quality.lock` and runs from an isolated `.venv-quality`, leaving the runtime and dev locks untouched.
+- Added a `CodeQL` workflow for Python static analysis (SAST) on pushes, pull requests, and a weekly schedule.
+- Added an optional `pre-commit` configuration mirroring the quality gate.
+
+### Fixed
+
+- Fixed the inference gateway recording the resolved `ModelRoute` object instead of the request path in the `route` label of the `inference_gateway_requests_total` and `inference_gateway_request_duration_seconds` metrics after a successful chat completion (surfaced by the new mypy gate). Added a regression test.
+
+### Validation
+
+- `make quality`
+- `make validate-full`
+
 ## v0.5.0 - 2026-06-27
 
 Feature-completeness work for gateway policy, RAG ingestion, chart documentation, and public verification.

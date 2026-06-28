@@ -19,10 +19,9 @@ from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.runtime_client import RuntimeClient
 from app.settings import AdmissionPolicyError, Settings, validate_sandbox_id
 
-
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.5.0"
+SERVICE_VERSION = "0.6.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
@@ -259,9 +258,7 @@ def _record_budget_reservation(reservation: BudgetReservation | None, settings: 
     }
     for budget_type, value in usage.items():
         SANDBOX_BUDGET_USAGE.labels(reservation.sandbox_id, budget_type).set(value)
-        SANDBOX_BUDGET_LIMIT.labels(reservation.sandbox_id, budget_type).set(
-            limits[budget_type]
-        )
+        SANDBOX_BUDGET_LIMIT.labels(reservation.sandbox_id, budget_type).set(limits[budget_type])
 
 
 def _admission_status(reason: str, settings: Settings) -> tuple[int, dict[str, str] | None]:
@@ -449,17 +446,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
             effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
             try:
-                route = policy.resolve(payload_dict.get("model"), effective.model_id)
+                model_route = policy.resolve(payload_dict.get("model"), effective.model_id)
             except ValueError as exc:
                 raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
-            backend = route.backend
-            payload_dict["model"] = route.model_id
+            backend = model_route.backend
+            payload_dict["model"] = model_route.model_id
             effective.validate_admission(payload_dict)
             tracker: SandboxBudgetTracker = request.app.state.budget_tracker
             reservation = tracker.reserve(request.state.sandbox_id, payload_dict, effective)
-            request.state.budget_reservation = (
-                reservation.audit_dict() if reservation is not None else None
-            )
+            request.state.budget_reservation = reservation.audit_dict() if reservation is not None else None
             _record_budget_reservation(reservation, effective)
             client: RuntimeClient = request.app.state.runtime_client
             if payload_dict.get("stream"):
@@ -468,13 +463,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     headers=_runtime_headers(request),
                     backend=backend,
                 )
-                return StreamingResponse(stream, media_type="text/event-stream")
+                # FastAPI streams this Response object directly; the dict[str, Any] return
+                # annotation describes the JSON path and drives the OpenAPI response schema.
+                return StreamingResponse(stream, media_type="text/event-stream")  # type: ignore[return-value]
             runtime_response = await client.chat_completions(
                 payload_dict,
                 headers=_runtime_headers(request),
                 backend=backend,
             )
-            return runtime_response
+            # Bind before returning: the finally block reads runtime_response for token
+            # usage metrics and the audit log, so this assignment is not redundant.
+            return runtime_response  # noqa: RET504
         except AdmissionPolicyError as exc:
             status_code, headers = _admission_status(exc.reason, resolved)
             status = str(status_code)

@@ -11,7 +11,6 @@ from typing import Any
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POLICY = ROOT / "governance/model-provenance.yaml"
 HEX_SHA256 = re.compile(r"^[a-f0-9]{64}$")
