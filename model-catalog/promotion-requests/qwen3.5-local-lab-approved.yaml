@@ -1,14 +1,14 @@
 apiVersion: platform.ai/v1alpha1
 kind: ModelPromotionRequest
 metadata:
-  name: qwen3-local-lab-approved
+  name: qwen3.5-local-lab-approved
 spec:
-  modelId: qwen3:0.6b
+  modelId: qwen3.5:0.8b
   targetStatus: approved
   requestedBy: platform-team
   approvers:
     - platform-team
-  businessJustification: Current small Qwen3 CPU smoke-test model for workstation validation.
+  businessJustification: Latest small Qwen3.5 CPU smoke-test model; promoted as the default local model in place of qwen3:0.6b, which is retained as a smaller fallback.
   runtime: ollama
   accelerators:
     - cpu

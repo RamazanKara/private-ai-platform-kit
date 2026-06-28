@@ -1,13 +1,13 @@
 {
   "approved_models_checked": [
     "Qwen/Qwen3-Coder-Next",
-    "qwen3:0.6b"
+    "qwen3.5:0.8b"
   ],
   "artifacts_checked": [
     "Qwen/Qwen3-Coder-Next",
-    "qwen3:0.6b"
+    "qwen3.5:0.8b"
   ],
   "errors": [],
-  "generated_at": "2026-05-31T00:00:00Z",
+  "generated_at": "2026-06-28T21:48:23Z",
   "policy": "governance/model-provenance.yaml"
 }

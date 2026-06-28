@@ -4,22 +4,6 @@ metadata:
   name: private-ai-platform-kit-models
 spec:
   models:
-    - id: qwen3:0.6b
-      runtime: ollama
-      owner: platform-team
-      status: approved
-      stage: local-lab
-      riskTier: low
-      dataClassification: internal
-      license: apache-2.0
-      source: ollama-library
-      accelerators:
-        - cpu
-      contextWindow: 32768
-      maxPromptChars: 8192
-      maxCompletionTokens: 1024
-      promotionRequest: model-catalog/promotion-requests/qwen3-local-lab-approved.yaml
-      notes: Current small Qwen3 smoke-test model for CPU-only workstations.
     - id: Qwen/Qwen3-Coder-Next
       runtime: vllm
       owner: platform-team
@@ -37,13 +21,10 @@ spec:
       maxCompletionTokens: 8192
       promotionRequest: model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml
       notes: Current Qwen3 Coder Next profile for customer GPU coding-agent clusters.
-    # Proposed newer models. Promote to `approved` only after capturing a real provenance
-    # digest (governance/model-provenance.yaml) and a promotion request, then add to the
-    # relevant runtime.allowedModels. See runbooks/model-governance.md.
     - id: qwen3.5:0.8b
       runtime: ollama
       owner: platform-team
-      status: proposed
+      status: approved
       stage: local-lab
       riskTier: low
       dataClassification: internal
@@ -54,7 +35,11 @@ spec:
       contextWindow: 32768
       maxPromptChars: 8192
       maxCompletionTokens: 1024
-      notes: Proposed latest small Qwen3.5 smoke model (replaces qwen3:0.6b on promotion).
+      promotionRequest: model-catalog/promotion-requests/qwen3.5-local-lab-approved.yaml
+      notes: Latest small Qwen3.5 CPU smoke model; the default local model.
+    # Proposed newer models. Promote to `approved` only after capturing a real provenance
+    # digest (governance/model-provenance.yaml) and a promotion request, then add to the
+    # relevant runtime.allowedModels. See runbooks/model-governance.md.
     - id: Qwen/Qwen3.6-35B-A3B
       runtime: vllm
       owner: platform-team

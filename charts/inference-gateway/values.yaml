@@ -7,7 +7,7 @@ image:
 
 runtime:
   backend: ollama
-  modelId: qwen3:0.6b
+  modelId: qwen3.5:0.8b
   ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
   vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
   requestTimeoutSeconds: "120"
@@ -16,7 +16,7 @@ runtime:
   circuitFailureThreshold: 0
   circuitResetSeconds: "30"
   allowedModels:
-    - qwen3:0.6b
+    - qwen3.5:0.8b
 
 routing:
   policyPath: ""

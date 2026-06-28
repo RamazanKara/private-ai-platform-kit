@@ -2,7 +2,7 @@
 
 This path is for a first evaluator who wants to prove the local lab works before reading the full operations docs.
 
-Expected time is 15-30 minutes after Docker images and the default Ollama model are cached. The first run can take longer because `kind`, platform images, and `qwen3:0.6b` may need to be pulled. Plan for several GB of free disk space.
+Expected time is 15-30 minutes after Docker images and the default Ollama model are cached. The first run can take longer because `kind`, platform images, and `qwen3.5:0.8b` may need to be pulled. Plan for several GB of free disk space.
 
 ## Prerequisites
 
@@ -90,7 +90,7 @@ Helm: run `helm version --short`; `make validate` lints and renders every chart 
 
 Argo CD: if bootstrap or sync is blocked by a local CLI issue, retry with `QUICKSTART_DIRECT_APPLY=1 make quickstart`.
 
-Model pull: the first Ollama pull of `qwen3:0.6b` can dominate runtime. Check `kubectl -n ollama logs statefulset/ollama` for progress.
+Model pull: the first Ollama pull of `qwen3.5:0.8b` can dominate runtime. Check `kubectl -n ollama logs statefulset/ollama` for progress.
 
 API keys: local smoke scripts send `X-API-Key: local-development-only`. Customer overlays should source SHA-256 API-key hashes from External Secrets instead of committing plaintext keys.
 

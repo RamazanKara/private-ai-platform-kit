@@ -4,7 +4,11 @@
 
 ### Added
 
-- Added proposed model-catalog entries for newer self-hostable models: `qwen3.5:0.8b` (latest small Ollama smoke model), `Qwen/Qwen3.6-35B-A3B`, `zai-org/GLM-5.2`, and `deepseek-ai/DeepSeek-V4-Flash`. They are tracked as `proposed` pending a real provenance digest and promotion request, per `runbooks/model-governance.md`; the dedicated coding default `Qwen/Qwen3-Coder-Next` remains current and approved.
+- Added proposed model-catalog entries for newer self-hostable vLLM models: `Qwen/Qwen3.6-35B-A3B`, `zai-org/GLM-5.2`, and `deepseek-ai/DeepSeek-V4-Flash`, pending provenance and promotion (see `runbooks/model-governance.md`).
+
+### Changed
+
+- Promoted `qwen3.5:0.8b` to the default local Ollama smoke model, replacing `qwen3:0.6b`, with a reproducible Ollama-registry model-layer provenance digest, a promotion request, and refreshed catalog and provenance evidence. The customer coding-agent default `Qwen/Qwen3-Coder-Next` is unchanged (still the latest dedicated Qwen coder).
 
 ### Removed
 

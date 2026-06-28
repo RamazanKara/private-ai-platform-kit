@@ -84,12 +84,12 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `routing.policy.enabled` | `false` |
 | `routing.policy.models` | `[]` |
 | `routing.policyPath` | `""` |
-| `runtime.allowedModels` | `["qwen3:0.6b"]` |
+| `runtime.allowedModels` | `["qwen3.5:0.8b"]` |
 | `runtime.backend` | `ollama` |
 | `runtime.circuitFailureThreshold` | `0` |
 | `runtime.circuitResetSeconds` | `30` |
 | `runtime.maxRetries` | `0` |
-| `runtime.modelId` | `qwen3:0.6b` |
+| `runtime.modelId` | `qwen3.5:0.8b` |
 | `runtime.ollamaBaseUrl` | `http://ollama.ollama.svc.cluster.local:11434` |
 | `runtime.requestTimeoutSeconds` | `120` |
 | `runtime.retryBackoffSeconds` | `0.1` |

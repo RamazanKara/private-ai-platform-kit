@@ -14,21 +14,23 @@ spec:
     - promotionRequest
     - servingProfiles
   artifacts:
-    - modelId: qwen3:0.6b
+    - modelId: qwen3.5:0.8b
       status: approved
       source: ollama-library
-      sourceUri: ollama://qwen3:0.6b
-      immutableRef: ollama-library/qwen3:0.6b@sha256:a313de031f772801086dc1f1f074003658864953fd203b8d729ff08d5feba60a
+      sourceUri: ollama://qwen3.5:0.8b
+      immutableRef: ollama-library/qwen3.5:0.8b@sha256:afb707b6b8fac6e475acc42bc8380fc0b8d2e0e4190be5a969fbf62fcc897db5
       digest:
         algorithm: sha256
-        value: a313de031f772801086dc1f1f074003658864953fd203b8d729ff08d5feba60a
-        scope: source-reference
-        verificationMode: source-reference-digest
-        verificationCommand: ollama show qwen3:0.6b --modelfile
+        value: afb707b6b8fac6e475acc42bc8380fc0b8d2e0e4190be5a969fbf62fcc897db5
+        scope: model-artifact
+        verificationMode: ollama-registry-model-layer
+        verificationCommand: >-
+          curl -fsSL https://registry.ollama.ai/v2/library/qwen3.5/manifests/0.8b |
+          jq -r '.layers[] | select(.mediaType=="application/vnd.ollama.image.model").digest'
       license: apache-2.0
       dataClassification: internal
       riskTier: low
-      promotionRequest: model-catalog/promotion-requests/qwen3-local-lab-approved.yaml
+      promotionRequest: model-catalog/promotion-requests/qwen3.5-local-lab-approved.yaml
       catalogRef: model-catalog/models.yaml
       servingProfiles:
         - clusters/local/values/ollama.yaml
@@ -37,7 +39,7 @@ spec:
         evalSummary: results/evals/sample-summary.md
         loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
-      notes: Local demo model. Customers should replace source-reference digest with their registry or model-store artifact digest before production use.
+      notes: Source digest is the Ollama registry model-weights layer (reproducible via verificationCommand). Re-verify against your own model store before production use.
     - modelId: Qwen/Qwen3-Coder-Next
       status: approved
       source: huggingface

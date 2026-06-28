@@ -55,10 +55,11 @@ The catalog tracks these `proposed` newer models. Each still needs a real proven
 promotion request before it can move to `approved` and into a gateway allowlist (see the Promotion
 Workflow above) — the gates intentionally block promoting a model without verifiable provenance:
 
-- `qwen3.5:0.8b` (Ollama) — latest small CPU smoke model; intended replacement for `qwen3:0.6b`.
 - `Qwen/Qwen3.6-35B-A3B` (vLLM) — newer Qwen MoE for general and coding workloads.
 - `zai-org/GLM-5.2` (vLLM) — strong open agentic-coding MoE (multi-GPU).
 - `deepseek-ai/DeepSeek-V4-Flash` (vLLM) — 1M-context MoE (multi-GPU).
 
-The customer coding-agent default `Qwen/Qwen3-Coder-Next` stays approved: it is still Qwen's latest
-dedicated coder, so it remains the recommended coding profile.
+The local smoke default `qwen3.5:0.8b` was promoted from this list with a reproducible
+Ollama-registry model-layer provenance digest. The customer coding-agent default
+`Qwen/Qwen3-Coder-Next` stays approved: it is still Qwen's latest dedicated coder, so it remains the
+recommended coding profile.

@@ -44,7 +44,7 @@ class ServiceContract:
 
 GATEWAY_VARS = (
     ConfigVar("RUNTIME_BACKEND", "runtime_backend", "string", "ollama", "runtime.backend", "ollama", "Runtime adapter used by the gateway.", allowed_values=("ollama", "vllm")),
-    ConfigVar("MODEL_ID", "model_id", "string", "qwen3:0.6b", "runtime.modelId", "qwen3:0.6b", "Default model used when requests omit a model."),
+    ConfigVar("MODEL_ID", "model_id", "string", "qwen3.5:0.8b", "runtime.modelId", "qwen3.5:0.8b", "Default model used when requests omit a model."),
     ConfigVar("OLLAMA_BASE_URL", "ollama_base_url", "url", "http://ollama.ollama.svc.cluster.local:11434", "runtime.ollamaBaseUrl", "http://ollama.ollama.svc.cluster.local:11434", "Base URL for the Ollama runtime."),
     ConfigVar("VLLM_BASE_URL", "vllm_base_url", "url", "http://vllm.vllm.svc.cluster.local:8000", "runtime.vllmBaseUrl", "http://vllm.vllm.svc.cluster.local:8000", "Base URL for the vLLM runtime."),
     ConfigVar("REQUEST_TIMEOUT_SECONDS", "request_timeout_seconds", "float", 120.0, "runtime.requestTimeoutSeconds", "120", "Runtime request timeout in seconds."),
@@ -52,7 +52,7 @@ GATEWAY_VARS = (
     ConfigVar("RUNTIME_RETRY_BACKOFF_SECONDS", "runtime_retry_backoff_seconds", "float", 0.1, "runtime.retryBackoffSeconds", "0.1", "Linear retry backoff base in seconds."),
     ConfigVar("RUNTIME_CIRCUIT_FAILURE_THRESHOLD", "runtime_circuit_failure_threshold", "integer", 0, "runtime.circuitFailureThreshold", 0, "Consecutive runtime failures before opening the circuit; zero disables circuit breaking."),
     ConfigVar("RUNTIME_CIRCUIT_RESET_SECONDS", "runtime_circuit_reset_seconds", "float", 30.0, "runtime.circuitResetSeconds", "30", "Seconds before an opened runtime circuit is retried."),
-    ConfigVar("ALLOWED_MODELS", "allowed_models", "csv", ["qwen3:0.6b"], "runtime.allowedModels", ["qwen3:0.6b"], "Comma-separated allowlist of approved model IDs."),
+    ConfigVar("ALLOWED_MODELS", "allowed_models", "csv", ["qwen3.5:0.8b"], "runtime.allowedModels", ["qwen3.5:0.8b"], "Comma-separated allowlist of approved model IDs."),
     ConfigVar("MODEL_ROUTING_POLICY_PATH", "model_routing_policy_path", "path", None, "routing.policyPath", "", "Optional path to a platform.ai/v1alpha1 ModelRoutingPolicy YAML file."),
     ConfigVar("SANDBOX_POLICY_PATH", "sandbox_policy_path", "path", None, "sandboxPolicy.policyPath", "", "Optional path to a platform.ai/v1alpha1 SandboxPolicySet YAML file."),
     ConfigVar("MAX_MESSAGES", "max_messages", "integer", 16, "admission.maxMessages", 16, "Maximum messages accepted per chat request."),

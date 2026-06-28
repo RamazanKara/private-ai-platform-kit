@@ -3,7 +3,7 @@ kind: EvalSuite
 metadata:
   name: coding-agent-readiness
 spec:
-  model: qwen3:0.6b
+  model: qwen3.5:0.8b
   defaults:
     sandboxId: coding-agent-eval
     temperature: 0

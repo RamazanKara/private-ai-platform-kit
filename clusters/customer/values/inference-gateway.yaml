@@ -1,17 +1,17 @@
 replicaCount: 2
 runtime:
   backend: ollama
-  modelId: qwen3:0.6b
+  modelId: qwen3.5:0.8b
   ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
   vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
   allowedModels:
-    - qwen3:0.6b
+    - qwen3.5:0.8b
     - Qwen/Qwen3-Coder-Next
 routing:
   policy:
     enabled: true
     models:
-      - id: qwen3:0.6b
+      - id: qwen3.5:0.8b
         backend: ollama
       - id: Qwen/Qwen3-Coder-Next
         backend: vllm

@@ -10,7 +10,7 @@ Local-first private LLM runtime.
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ollama/ollama` |
 | `image.tag` | `0.24.0` |
-| `model.name` | `qwen3:0.6b` |
+| `model.name` | `qwen3.5:0.8b` |
 | `model.pullOnStart` | `false` |
 | `persistence.enabled` | `true` |
 | `persistence.size` | `20Gi` |

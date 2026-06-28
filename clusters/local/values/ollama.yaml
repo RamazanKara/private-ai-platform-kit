@@ -1,6 +1,6 @@
 fullnameOverride: ollama
 model:
-  name: qwen3:0.6b
+  name: qwen3.5:0.8b
   pullOnStart: true
 persistence:
   enabled: true

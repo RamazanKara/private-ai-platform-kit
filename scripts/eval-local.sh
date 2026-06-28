@@ -41,7 +41,7 @@ PY
 
 MOCK_RUNTIME_PORT="${MOCK_RUNTIME_PORT:-$(choose_port)}"
 GATEWAY_PORT="${GATEWAY_PORT:-$(choose_port)}"
-EVAL_MODEL="${MODEL_ID:-qwen3:0.6b}"
+EVAL_MODEL="${MODEL_ID:-qwen3.5:0.8b}"
 SUITE="${SUITE:-evals/smoke-suite.yaml}"
 PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}"
 LOCAL_API_KEY_SHA256="ed20191044553dac8f9c45e62062dd18e7dc1f898a897240b4179fb84fea3db4"

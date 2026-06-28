@@ -5,10 +5,10 @@
       "aliases": [],
       "allowed_values": [],
       "app_default": [
-        "qwen3:0.6b"
+        "qwen3.5:0.8b"
       ],
       "chart_default": [
-        "qwen3:0.6b"
+        "qwen3.5:0.8b"
       ],
       "chart_value": "runtime.allowedModels",
       "description": "Comma-separated allowlist of approved model IDs.",
@@ -212,8 +212,8 @@
     {
       "aliases": [],
       "allowed_values": [],
-      "app_default": "qwen3:0.6b",
-      "chart_default": "qwen3:0.6b",
+      "app_default": "qwen3.5:0.8b",
+      "chart_default": "qwen3.5:0.8b",
       "chart_value": "runtime.modelId",
       "description": "Default model used when requests omit a model.",
       "field": "model_id",

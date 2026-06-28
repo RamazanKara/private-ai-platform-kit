@@ -131,8 +131,8 @@ def load_gateway_schema(contract: ServiceContract) -> dict[str, Any]:
         "RUNTIME_BACKEND": "ollama",
         "OLLAMA_BASE_URL": "http://ollama.local:11434",
         "VLLM_BASE_URL": "http://vllm.local:8000",
-        "MODEL_ID": "qwen3:0.6b",
-        "ALLOWED_MODELS": "qwen3:0.6b",
+        "MODEL_ID": "qwen3.5:0.8b",
+        "ALLOWED_MODELS": "qwen3.5:0.8b",
         "API_KEY_AUTH_ENABLED": "false",
     }
     with patched_env(env), service_import_path(contract.service_dir):
@@ -144,9 +144,9 @@ def load_gateway_schema(contract: ServiceContract) -> dict[str, Any]:
                 runtime_backend="ollama",
                 ollama_base_url="http://ollama.local:11434",
                 vllm_base_url="http://vllm.local:8000",
-                model_id="qwen3:0.6b",
+                model_id="qwen3.5:0.8b",
                 request_timeout_seconds=30.0,
-                allowed_models=("qwen3:0.6b",),
+                allowed_models=("qwen3.5:0.8b",),
             )
         )
         return app.openapi()

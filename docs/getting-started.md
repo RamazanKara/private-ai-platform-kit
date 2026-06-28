@@ -90,7 +90,7 @@ Run a smoke test through the gateway:
 make smoke RUNTIME_BACKEND=ollama
 ```
 
-The default local runtime is Ollama with `qwen3:0.6b`. The smoke scripts send `PLATFORM_API_KEY`, defaulting to the local demo key `local-development-only`.
+The default local runtime is Ollama with `qwen3.5:0.8b`. The smoke scripts send `PLATFORM_API_KEY`, defaulting to the local demo key `local-development-only`.
 
 ## Platform Checks
 

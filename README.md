@@ -80,7 +80,7 @@ make sync
 make smoke RUNTIME_BACKEND=ollama
 ```
 
-The default local model is `qwen3:0.6b`. A real model pull can take time and disk space on the first run.
+The default local model is `qwen3.5:0.8b`. A real model pull can take time and disk space on the first run.
 
 For expected output, timing, disk requirements, and troubleshooting, follow [docs/quickstart.md](docs/quickstart.md). For the full local path, including sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates, follow [docs/getting-started.md](docs/getting-started.md).
 

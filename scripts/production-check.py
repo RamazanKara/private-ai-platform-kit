@@ -396,7 +396,7 @@ def check_model_catalog(errors: list[str]) -> None:
     catalog = yaml.safe_load(catalog_path.read_text())
     models = nested(catalog, "spec", "models", default=[])
     model_ids = {model.get("id") for model in models}
-    require(errors, "qwen3:0.6b" in model_ids, "model catalog must include the local Ollama smoke model")
+    require(errors, "qwen3.5:0.8b" in model_ids, "model catalog must include the local Ollama smoke model")
     require(errors, "Qwen/Qwen3-Coder-Next" in model_ids, "model catalog must include the vLLM customer lab model")
     for model in models:
         model_id = model.get("id", "<unknown>")
@@ -419,7 +419,7 @@ def check_model_governance(errors: list[str]) -> None:
     require(errors, os.access(script, os.X_OK), "scripts/model-catalog.py must be executable")
     require(errors, (ROOT / "runbooks/model-governance.md").exists(), "model governance runbook must exist")
     require(errors, (ROOT / "results/model-catalog/sample-summary.md").exists(), "model catalog sample summary must exist")
-    require(errors, (ROOT / "model-catalog/promotion-requests/qwen3-local-lab-approved.yaml").exists(), "Qwen3 local model promotion request must exist")
+    require(errors, (ROOT / "model-catalog/promotion-requests/qwen3.5-local-lab-approved.yaml").exists(), "Qwen3 local model promotion request must exist")
     require(errors, (ROOT / "model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml").exists(), "Qwen3 Coder model promotion request must exist")
 
 
@@ -893,7 +893,7 @@ def check_model_provenance_governance(errors: list[str]) -> None:
         require(errors, policy.get("kind") == "ModelProvenanceSet", "model provenance policy kind must be ModelProvenanceSet")
         artifacts = nested(policy, "spec", "artifacts", default=[])
         model_ids = {item.get("modelId") for item in artifacts if isinstance(item, dict)}
-        expected = {"qwen3:0.6b", "Qwen/Qwen3-Coder-Next"}
+        expected = {"qwen3.5:0.8b", "Qwen/Qwen3-Coder-Next"}
         require(errors, expected <= model_ids, f"model provenance policy missing {sorted(expected - model_ids)}")
         required = set(nested(policy, "spec", "requiredEvidence", default=[]))
         required_fields = {"sourceUri", "immutableRef", "digest", "license", "dataClassification", "riskTier", "promotionRequest", "servingProfiles"}
