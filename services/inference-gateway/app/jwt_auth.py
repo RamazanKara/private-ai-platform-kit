@@ -1,3 +1,5 @@
+"""JWT bearer authentication with JWKS-backed HS256, RS256, and ES256 verification."""
+
 from __future__ import annotations
 
 import base64
@@ -17,7 +19,7 @@ from app.settings import Settings
 
 
 class JwtAuthError(ValueError):
-    pass
+    """Raised when a JWT is malformed, unsupported, or fails verification."""
 
 
 def _b64url_decode(value: str) -> bytes:
@@ -40,12 +42,15 @@ def _b64url_int(value: str) -> int:
 
 
 class JwksCache:
+    """Fetch and time-cache the JWKS document from the configured issuer."""
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self._expires_at = 0.0
         self._keys: list[dict[str, Any]] = []
 
     def keys(self) -> list[dict[str, Any]]:
+        """Return cached JWKS keys, refreshing from the JWKS URL when expired."""
         if not self.settings.jwt_auth_enabled:
             return []
         if self._keys and time() < self._expires_at:
@@ -63,11 +68,14 @@ class JwksCache:
 
 
 class JwtVerifier:
+    """Verify JWT signatures and claims against JWKS keys and settings policy."""
+
     def __init__(self, settings: Settings, jwks_cache: JwksCache | None = None) -> None:
         self.settings = settings
         self.jwks_cache = jwks_cache or JwksCache(settings)
 
     def verify(self, token: str) -> dict[str, Any]:
+        """Verify the token signature and claims, returning the decoded claims."""
         parts = token.split(".")
         if len(parts) != 3:
             raise JwtAuthError("jwt must have three segments")
@@ -93,6 +101,7 @@ class JwtVerifier:
         return claims
 
     def _matching_keys(self, header: dict[str, Any], kty: str) -> list[dict[str, Any]]:
+        """Return JWKS keys matching the header kid and the given key type."""
         kid = header.get("kid")
         keys: list[dict[str, Any]] = []
         # JwksCache.keys() is a domain accessor returning the JWK list, not Mapping.keys().
@@ -107,6 +116,7 @@ class JwtVerifier:
         return keys
 
     def _oct_key_for(self, header: dict[str, Any]) -> bytes:
+        """Return the symmetric (oct) key bytes for HS256 verification."""
         for key in self._matching_keys(header, "oct"):
             material = key.get("k")
             if not isinstance(material, str):
@@ -115,6 +125,7 @@ class JwtVerifier:
         raise JwtAuthError("matching JWKS oct key was not found")
 
     def _rsa_key_for(self, header: dict[str, Any]):
+        """Return the RSA public key for RS256 verification."""
         for key in self._matching_keys(header, "RSA"):
             if key.get("alg") not in {None, "RS256"}:
                 continue
@@ -127,6 +138,7 @@ class JwtVerifier:
         raise JwtAuthError("matching JWKS RSA key was not found")
 
     def _ec_key_for(self, header: dict[str, Any]):
+        """Return the P-256 elliptic-curve public key for ES256 verification."""
         for key in self._matching_keys(header, "EC"):
             if key.get("alg") not in {None, "ES256"}:
                 continue
@@ -174,6 +186,7 @@ class JwtVerifier:
             raise JwtAuthError("jwt signature verification failed") from exc
 
     def _validate_claims(self, claims: dict[str, Any]) -> None:
+        """Validate expiry, not-before, issuer, audience, and required scopes."""
         now = int(time())
         exp = claims.get("exp")
         if not isinstance(exp, (int, float)) or exp <= now:

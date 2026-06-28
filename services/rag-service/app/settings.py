@@ -1,3 +1,5 @@
+"""RAG service settings and environment configuration loading with validation."""
+
 import os
 import re
 from dataclasses import dataclass
@@ -72,6 +74,7 @@ def _sha256s_from_env(name: str) -> tuple[str, ...]:
 
 
 def validate_sandbox_id(value: str) -> str:
+    """Normalize and validate a sandbox id, raising ValueError when malformed."""
     sandbox_id = value.strip().lower()
     if not SANDBOX_ID_PATTERN.fullmatch(sandbox_id):
         raise ValueError("sandbox id must be 1-63 characters of lowercase letters, numbers, or hyphens")
@@ -80,6 +83,8 @@ def validate_sandbox_id(value: str) -> str:
 
 @dataclass(frozen=True)
 class Settings:
+    """Immutable RAG service configuration for retrieval, embeddings, and auth."""
+
     document_dir: Path
     default_sandbox_id: str = "local-lab"
     audit_log_enabled: bool = True
@@ -103,6 +108,7 @@ class Settings:
     api_key_header: str = "X-API-Key"
 
     def __post_init__(self) -> None:
+        """Validate retrieval, vector store, embedding, and auth fields after init."""
         validate_sandbox_id(self.default_sandbox_id)
         for name, value in (
             ("max_query_chars", self.max_query_chars),
@@ -142,6 +148,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        """Construct settings from environment variables with validated defaults."""
         return cls(
             document_dir=Path(os.getenv("RAG_DOCUMENT_DIR", "/knowledge")),
             default_sandbox_id=validate_sandbox_id(os.getenv("DEFAULT_SANDBOX_ID", "local-lab")),

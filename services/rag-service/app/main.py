@@ -1,3 +1,5 @@
+"""FastAPI RAG service exposing traceable, auth-gated knowledge retrieval endpoints."""
+
 from __future__ import annotations
 
 import hashlib
@@ -20,7 +22,7 @@ from app.settings import Settings, validate_sandbox_id
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.rag.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.6.0"
+SERVICE_VERSION = "0.7.0"
 OPENAPI_DESCRIPTION = (
     "Private retrieval service for platform and customer knowledge. The service "
     "returns traceable retrieval results, optional context blocks, and "
@@ -57,6 +59,8 @@ AUTH_FAILURES = Counter(
 
 
 class RagQueryRequest(BaseModel):
+    """Request body for a RAG retrieval query with context and message options."""
+
     query: str = Field(..., min_length=1)
     top_k: int | None = None
     include_context: bool = True
@@ -65,6 +69,7 @@ class RagQueryRequest(BaseModel):
 
 
 def _request_id_from_header(request: Request) -> str:
+    """Return a validated X-Request-ID header value, generating a UUID when absent."""
     request_id = request.headers.get("x-request-id", "").strip()
     if not request_id:
         return str(uuid4())
@@ -74,6 +79,7 @@ def _request_id_from_header(request: Request) -> str:
 
 
 def _traceparent_from_header(request: Request) -> str | None:
+    """Return the validated W3C ``traceparent`` header, or None when not provided."""
     traceparent = request.headers.get("traceparent")
     if traceparent is None:
         return None
@@ -84,14 +90,17 @@ def _traceparent_from_header(request: Request) -> str | None:
 
 
 def _hash_query(query: str) -> str:
+    """Return the SHA-256 hex digest of the query for redacted audit logging."""
     return hashlib.sha256(query.encode("utf-8")).hexdigest()
 
 
 def _auth_required(path: str) -> bool:
+    """Return whether the given request path requires authentication."""
     return path not in {"/healthz", "/metrics", "/docs", "/openapi.json"}
 
 
 def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
+    """Attach bearer/API-key security schemes to the app's generated OpenAPI schema."""
     default_openapi = app.openapi
 
     def custom_openapi() -> dict[str, Any]:
@@ -124,6 +133,7 @@ def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
 
 
 def _api_key_from_request(request: Request, settings: Settings) -> str | None:
+    """Extract the API key from the bearer token or configured API-key header."""
     authorization = request.headers.get("authorization", "").strip()
     if authorization.lower().startswith("bearer "):
         token = authorization[7:].strip()
@@ -136,6 +146,7 @@ def _api_key_from_request(request: Request, settings: Settings) -> str | None:
 
 
 def _valid_api_key(request: Request, settings: Settings) -> bool:
+    """Return whether the request carries an API key matching a configured digest."""
     api_key = _api_key_from_request(request, settings)
     if not api_key:
         return False
@@ -144,6 +155,7 @@ def _valid_api_key(request: Request, settings: Settings) -> bool:
 
 
 def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
+    """Record the failure metric and build the 401 response with trace headers."""
     AUTH_FAILURES.labels(request.url.path, reason).inc()
     response = JSONResponse(
         status_code=401,
@@ -174,6 +186,7 @@ def _write_audit_log(
     result_ids: list[str] | None = None,
     error: str | None = None,
 ) -> None:
+    """Emit a redacted JSON audit event for the request when auditing is enabled."""
     if not settings.audit_log_enabled:
         return
     event: dict[str, Any] = {
@@ -196,6 +209,7 @@ def _write_audit_log(
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
+    """Build and configure the RAG service FastAPI application with its retriever."""
     resolved = settings or Settings.from_env()
     app = FastAPI(
         title="Private AI Platform Kit RAG Service",

@@ -1,3 +1,5 @@
+"""Text embedding providers: deterministic hashing and OpenAI-compatible HTTP backends."""
+
 from __future__ import annotations
 
 import hashlib
@@ -12,6 +14,8 @@ TOKEN_PATTERN = re.compile(r"[a-z0-9][a-z0-9_.:/-]*")
 
 
 class EmbeddingProvider(Protocol):
+    """Protocol for embedding providers that map text to a fixed-size vector."""
+
     name: str
     model: str
     dimensions: int
@@ -20,10 +24,12 @@ class EmbeddingProvider(Protocol):
 
 
 def tokenize(value: str) -> list[str]:
+    """Lowercase the text and return its alphanumeric token sequence."""
     return TOKEN_PATTERN.findall(value.lower())
 
 
 def hashed_text_embedding(value: str, dimensions: int) -> list[float]:
+    """Return a deterministic, L2-normalized hashed bag-of-words embedding."""
     terms = tokenize(value)
     if not terms:
         return [0.0] * dimensions
@@ -40,6 +46,8 @@ def hashed_text_embedding(value: str, dimensions: int) -> list[float]:
 
 
 class HashEmbeddingProvider:
+    """Offline embedding provider backed by deterministic hashing of tokens."""
+
     name = "hash"
 
     def __init__(self, dimensions: int, model: str = "hash-text-v1") -> None:
@@ -47,10 +55,13 @@ class HashEmbeddingProvider:
         self.model = model
 
     def embed(self, value: str) -> list[float]:
+        """Return the hashed embedding vector for the given text."""
         return hashed_text_embedding(value, self.dimensions)
 
 
 class OpenAICompatibleEmbeddingProvider:
+    """Embedding provider that calls an OpenAI-compatible ``/v1/embeddings`` API."""
+
     name = "openai-compatible"
 
     def __init__(
@@ -66,6 +77,7 @@ class OpenAICompatibleEmbeddingProvider:
         self.timeout_seconds = timeout_seconds
 
     def embed(self, value: str) -> list[float]:
+        """Request an embedding from the API and validate its dimensionality."""
         with httpx.Client(timeout=self.timeout_seconds) as client:
             response = client.post(
                 f"{self.base_url}/v1/embeddings",
@@ -89,6 +101,7 @@ def build_embedding_provider(
     base_url: str,
     timeout_seconds: float,
 ) -> EmbeddingProvider:
+    """Construct the configured embedding provider, validating required options."""
     if provider == "hash":
         return HashEmbeddingProvider(dimensions=dimensions, model=model or "hash-text-v1")
     if provider == "openai-compatible":

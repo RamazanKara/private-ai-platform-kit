@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use Private AI Platform Kit in your work, please cite it as below."
+title: "Private AI Platform Kit"
+abstract: >-
+  A runnable Kubernetes platform stack for private LLMs, RAG, and coding-agent
+  workspaces. It starts on a local kind cluster with Ollama and uses the same
+  Helm charts, GitOps layout, policies, runbooks, and evidence checks on
+  customer-owned clusters with vLLM and GPU nodes.
+type: software
+authors:
+  - family-names: Kara
+    given-names: Ramazan
+repository-code: "https://github.com/RamazanKara/private-ai-platform-kit"
+url: "https://github.com/RamazanKara/private-ai-platform-kit"
+license: Apache-2.0
+version: 0.7.0
+date-released: "2026-06-28"
+keywords:
+  - kubernetes
+  - gitops
+  - llm
+  - rag
+  - private-ai
+  - vllm
+  - ollama
+  - helm

@@ -1,3 +1,5 @@
+"""Model routing and per-sandbox admission policies loaded from YAML manifests."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
@@ -13,6 +15,8 @@ VALID_BACKENDS = {"ollama", "vllm"}
 
 @dataclass(frozen=True)
 class ModelRoute:
+    """An approved model mapped to a runtime backend with optional aliases."""
+
     model_id: str
     backend: str
     aliases: tuple[str, ...] = ()
@@ -20,11 +24,14 @@ class ModelRoute:
 
 @dataclass(frozen=True)
 class ModelRoutingPolicy:
+    """A set of model routes used to approve and route inference requests."""
+
     routes: tuple[ModelRoute, ...]
     allow_unlisted: bool = False
 
     @classmethod
     def default(cls, settings: Settings) -> ModelRoutingPolicy:
+        """Build a routing policy from the settings' allowed models or default model."""
         models = settings.allowed_models or (settings.model_id,)
         return cls(
             tuple(ModelRoute(model, settings.runtime_backend) for model in models),
@@ -33,6 +40,7 @@ class ModelRoutingPolicy:
 
     @classmethod
     def from_path(cls, path: Path, settings: Settings) -> ModelRoutingPolicy:
+        """Load and validate a ModelRoutingPolicy manifest from the given path."""
         if not path:
             return cls.default(settings)
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -65,9 +73,11 @@ class ModelRoutingPolicy:
         return cls(tuple(routes))
 
     def model_ids(self) -> tuple[str, ...]:
+        """Return the canonical model ids of every configured route."""
         return tuple(route.model_id for route in self.routes)
 
     def resolve(self, requested_model: str | None, default_model: str) -> ModelRoute:
+        """Resolve a requested model or default to its route, raising if unapproved."""
         model = requested_model or default_model
         for route in self.routes:
             if model == route.model_id or model in route.aliases:
@@ -79,6 +89,7 @@ class ModelRoutingPolicy:
         raise ValueError(f"model '{model}' is not approved by ModelRoutingPolicy; allowed models: {allowed}")
 
     def openai_models(self) -> list[dict[str, Any]]:
+        """Return the routes formatted as OpenAI ``/v1/models`` list entries."""
         return [
             {
                 "id": route.model_id,
@@ -92,6 +103,8 @@ class ModelRoutingPolicy:
 
 @dataclass(frozen=True)
 class SandboxPolicy:
+    """Per-sandbox overrides for admission limits and budget allowances."""
+
     sandbox_id: str
     allowed_models: tuple[str, ...] = ()
     max_messages: int | None = None
@@ -105,14 +118,18 @@ class SandboxPolicy:
 
 @dataclass(frozen=True)
 class SandboxPolicySet:
+    """A collection of sandbox policies keyed by sandbox id."""
+
     policies: dict[str, SandboxPolicy]
 
     @classmethod
     def empty(cls) -> SandboxPolicySet:
+        """Return a policy set with no sandbox overrides."""
         return cls({})
 
     @classmethod
     def from_path(cls, path: Path | None) -> SandboxPolicySet:
+        """Load and validate a SandboxPolicySet manifest from the given path."""
         if not path:
             return cls.empty()
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -149,6 +166,7 @@ class SandboxPolicySet:
         return cls(policies)
 
     def effective_settings(self, settings: Settings, sandbox_id: str) -> Settings:
+        """Return settings with the sandbox's policy overrides applied, if any."""
         policy = self.policies.get(sandbox_id)
         if policy is None:
             return settings

@@ -37,7 +37,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `autoscaling.targetCPUUtilizationPercentage` | `70` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/rag-service` |
-| `image.tag` | `v0.6.0` |
+| `image.tag` | `v0.7.0` |
 | `ingestion.annotations` | `{}` |
 | `ingestion.backoffLimit` | `1` |
 | `ingestion.chunkChars` | `1200` |
@@ -95,6 +95,9 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `sourceManifest.manifest.spec.sources` | `[]` |
 | `sourceManifest.mountPath` | `/rag-sources/source-manifest.yaml` |
 | `sourceManifest.path` | `""` |
+| `tests.enabled` | `true` |
+| `tests.image.repository` | `busybox` |
+| `tests.image.tag` | `1.37.0` |
 | `topologySpread.enabled` | `true` |
 | `topologySpread.maxSkew` | `1` |
 | `topologySpread.topologyKey` | `kubernetes.io/hostname` |

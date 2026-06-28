@@ -1,3 +1,5 @@
+"""CLI to validate RAG source manifests and ingest chunked documents into Qdrant."""
+
 from __future__ import annotations
 
 import argparse
@@ -25,6 +27,8 @@ TEXT_SUFFIXES = {".md", ".markdown", ".txt"}
 
 @dataclass(frozen=True)
 class SourceRecord:
+    """A validated RAG manifest source entry with its governance metadata."""
+
     id: str
     source: str
     classification: str
@@ -35,6 +39,7 @@ class SourceRecord:
 
     @property
     def resolved_source(self) -> Path:
+        """Return the source path resolved against the manifest's base directory."""
         path = Path(self.source)
         if path.is_absolute():
             return path
@@ -43,6 +48,8 @@ class SourceRecord:
 
 @dataclass(frozen=True)
 class ChunkRecord:
+    """A single text chunk of a source document destined for the vector store."""
+
     source: SourceRecord
     document_path: Path
     chunk_index: int
@@ -51,10 +58,12 @@ class ChunkRecord:
 
     @property
     def point_id(self) -> str:
+        """Return a stable UUID5 point id derived from version, source, path, and index."""
         key = f"{self.collection_version}:{self.source.id}:{self.document_path.as_posix()}:{self.chunk_index}"
         return str(uuid5(NAMESPACE_URL, key))
 
     def payload(self) -> dict[str, Any]:
+        """Return the Qdrant point payload with content and governance metadata."""
         return {
             "collection_version": self.collection_version,
             "source_id": self.source.id,
@@ -70,6 +79,7 @@ class ChunkRecord:
 
 
 def load_manifest(path: Path) -> list[SourceRecord]:
+    """Load and validate a RagSourceManifest, returning its source records."""
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("RAG source manifest must be a YAML mapping")
@@ -110,6 +120,7 @@ def load_manifest(path: Path) -> list[SourceRecord]:
 
 
 def iter_document_paths(source: SourceRecord) -> list[Path]:
+    """Return the sorted text document paths contained in a source location."""
     root = source.resolved_source
     if root.is_file():
         return [root]
@@ -125,6 +136,7 @@ def iter_document_paths(source: SourceRecord) -> list[Path]:
 
 
 def chunk_text(value: str, chunk_chars: int, overlap_chars: int) -> list[str]:
+    """Split text into overlapping chunks, preferring paragraph boundaries."""
     compact = "\n".join(line.rstrip() for line in value.splitlines()).strip()
     if not compact:
         return []
@@ -151,6 +163,7 @@ def build_chunks(
     overlap_chars: int,
     collection_version: str = "v1",
 ) -> list[ChunkRecord]:
+    """Read every source document and return its chunk records for ingestion."""
     chunks: list[ChunkRecord] = []
     for source in sources:
         root = source.resolved_source
@@ -186,6 +199,7 @@ def ensure_collection(
     collection: str,
     dimensions: int,
 ) -> str:
+    """Create the Qdrant collection if absent and verify its vector dimensions."""
     url = f"{base_url.rstrip('/')}/collections/{collection}"
     response = client.get(url)
     if response.status_code == 404:
@@ -209,6 +223,7 @@ def upsert_chunks(
     collection: str,
     timeout_seconds: float,
 ) -> dict[str, Any]:
+    """Embed and upsert chunk points into Qdrant, returning an ingestion summary."""
     with httpx.Client(timeout=timeout_seconds) as client:
         collection_status = ensure_collection(client, base_url, collection, provider.dimensions)
         if chunks:
@@ -235,6 +250,7 @@ def upsert_chunks(
 
 
 def main() -> int:
+    """Parse CLI arguments, then check or write manifest chunks to Qdrant."""
     parser = argparse.ArgumentParser(
         description="Validate and ingest platform.ai/v1alpha1 RAG source manifests into Qdrant.",
     )

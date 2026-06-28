@@ -1,3 +1,5 @@
+"""Inference gateway settings, admission policy, and environment configuration loading."""
+
 import os
 import re
 from dataclasses import dataclass
@@ -69,6 +71,7 @@ def _bool_from_env(name: str, default: bool) -> bool:
 
 
 def validate_sandbox_id(value: str) -> str:
+    """Normalize and validate a sandbox id, raising ValueError when malformed."""
     sandbox_id = value.strip().lower()
     if not SANDBOX_ID_PATTERN.fullmatch(sandbox_id):
         raise ValueError("sandbox id must be 1-63 characters of lowercase letters, numbers, or hyphens")
@@ -99,17 +102,21 @@ def _secret_pattern_names_from_env(name: str) -> tuple[str, ...]:
 
 
 class AdmissionPolicyError(ValueError):
+    """Raised when a request violates an admission policy, carrying a machine reason."""
+
     def __init__(self, reason: str, message: str) -> None:
         super().__init__(message)
         self.reason = reason
 
 
 class ModelPolicyError(AdmissionPolicyError):
-    pass
+    """Raised when a requested model is not approved by policy."""
 
 
 @dataclass(frozen=True)
 class Settings:
+    """Immutable gateway configuration with admission and runtime policy parameters."""
+
     runtime_backend: str
     ollama_base_url: str
     vllm_base_url: str
@@ -151,6 +158,7 @@ class Settings:
     runtime_circuit_reset_seconds: float = 30.0
 
     def __post_init__(self) -> None:
+        """Validate budget, auth, JWT, and runtime resilience fields after init."""
         for name, value in (
             ("sandbox_request_budget", self.sandbox_request_budget),
             ("sandbox_prompt_char_budget", self.sandbox_prompt_char_budget),
@@ -193,6 +201,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        """Construct settings from environment variables with validated defaults."""
         backend = os.getenv("RUNTIME_BACKEND", "ollama").strip().lower()
         if backend not in {"ollama", "vllm"}:
             raise ValueError("RUNTIME_BACKEND must be either 'ollama' or 'vllm'")
@@ -277,11 +286,13 @@ class Settings:
 
     @property
     def runtime_base_url(self) -> str:
+        """Return the base URL of the currently configured runtime backend."""
         if self.runtime_backend == "vllm":
             return self.vllm_base_url
         return self.ollama_base_url
 
     def validate_model(self, requested_model: str | None) -> str:
+        """Return the model to use, raising ModelPolicyError if it is not allowed."""
         model = requested_model or self.model_id
         if self.allowed_models and model not in self.allowed_models:
             raise ModelPolicyError(
@@ -291,6 +302,7 @@ class Settings:
         return model
 
     def validate_admission(self, payload: dict) -> None:
+        """Enforce model, message, prompt, secret, token, and streaming admission rules."""
         self.validate_model(payload.get("model"))
         messages = payload.get("messages") or []
         if not messages:

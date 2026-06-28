@@ -33,11 +33,13 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 - Keep chart READMEs and values tables current.
 - Add minimal, local, and customer profile examples for each major chart.
 
-## 6. Code Quality
+## 6. Code Quality And Observability
 
 - Enforced: Ruff lint, Ruff format, and mypy run in `make validate` and CI; CodeQL provides Python SAST.
-- Ratchet `make coverage` floors upward as gateway and RAG test coverage grows.
-- Expand mypy strictness (typed public APIs, stricter optional handling) once the baseline holds across releases.
+- In place: public-API docstrings across both services, `helm test` connection probes for the gateway and RAG charts, per-service Grafana dashboards, and a `make dashboard-check` gate that fails when a dashboard references a metric the service does not emit.
+- Ratchet `make coverage` floors upward as gateway and RAG test coverage grows (currently 84% gateway, 78% RAG).
+- Expand mypy strictness (stricter optional handling) once the baseline holds across releases.
+- Expand runtime streaming and circuit-breaker fault-injection coverage for Ollama and vLLM.
 
 ## Seed Issue List
 

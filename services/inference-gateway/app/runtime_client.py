@@ -1,3 +1,5 @@
+"""Async HTTP client for Ollama/vLLM runtimes with retries and a circuit breaker."""
+
 from asyncio import sleep
 from time import time
 from typing import Any
@@ -10,6 +12,7 @@ REDACTED_MESSAGE_FIELDS = {"reasoning", "reasoning_content", "thinking"}
 
 
 def sanitize_chat_completion(data: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy of the response with reasoning/thinking message fields removed."""
     sanitized = dict(data)
     choices = sanitized.get("choices")
     if not isinstance(choices, list):
@@ -31,6 +34,8 @@ def sanitize_chat_completion(data: dict[str, Any]) -> dict[str, Any]:
 
 
 class RuntimeClient:
+    """Routes chat-completion calls to a runtime backend with resilience controls."""
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self._failures: dict[str, int] = {}
@@ -74,6 +79,7 @@ class RuntimeClient:
         headers: dict[str, str] | None = None,
         backend: str | None = None,
     ) -> dict[str, Any]:
+        """Send a chat-completion request, retrying transient errors, and sanitize the result."""
         body = self._chat_completion_body(payload)
         timeout = httpx.Timeout(self.settings.request_timeout_seconds)
         resolved_backend = backend or self.settings.runtime_backend
@@ -113,6 +119,7 @@ class RuntimeClient:
         headers: dict[str, str] | None = None,
         backend: str | None = None,
     ):
+        """Yield raw streamed response chunks from the runtime chat-completions endpoint."""
         body = self._chat_completion_body(payload)
         timeout = httpx.Timeout(self.settings.request_timeout_seconds)
         resolved_backend = backend or self.settings.runtime_backend
@@ -132,6 +139,7 @@ class RuntimeClient:
                 yield chunk
 
     async def health(self, backend: str | None = None) -> dict[str, Any]:
+        """Probe the backend health endpoint and return its status payload."""
         resolved_backend = backend or self.settings.runtime_backend
         timeout = httpx.Timeout(min(self.settings.request_timeout_seconds, 10.0))
         self._check_circuit(resolved_backend)

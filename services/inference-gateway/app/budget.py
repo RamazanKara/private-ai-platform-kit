@@ -1,3 +1,5 @@
+"""Per-sandbox request budget tracking with in-memory and Redis-backed enforcement."""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -11,6 +13,8 @@ from app.settings import AdmissionPolicyError, Settings
 
 @dataclass
 class BudgetUsage:
+    """Accumulated sandbox usage counters within the current budget window."""
+
     requests: int = 0
     prompt_chars: int = 0
     estimated_tokens: int = 0
@@ -18,6 +22,8 @@ class BudgetUsage:
 
 @dataclass(frozen=True)
 class BudgetDelta:
+    """The usage increment a single request would add to a sandbox budget."""
+
     requests: int
     prompt_chars: int
     estimated_tokens: int
@@ -25,6 +31,8 @@ class BudgetDelta:
 
 @dataclass(frozen=True)
 class BudgetReservation:
+    """A successful budget reservation recording the request's cost and new usage."""
+
     sandbox_id: str
     request_count: int
     prompt_chars: int
@@ -33,6 +41,7 @@ class BudgetReservation:
     backend: str
 
     def audit_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable summary of this reservation for audit logs."""
         return {
             "backend": self.backend,
             "request_count": self.request_count,
@@ -43,6 +52,8 @@ class BudgetReservation:
 
 
 class SandboxBudgetTracker(Protocol):
+    """Protocol for sandbox budget trackers that snapshot and reserve usage."""
+
     settings: Settings
 
     def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]: ...
@@ -56,6 +67,7 @@ class SandboxBudgetTracker(Protocol):
 
 
 def budget_delta(settings: Settings, payload: dict[str, Any]) -> BudgetDelta:
+    """Compute the request, prompt-char, and estimated-token cost of a payload."""
     prompt_chars = sum(len(str(message.get("content", ""))) for message in payload.get("messages", []))
     requested_completion_tokens = payload.get("max_tokens")
     if not isinstance(requested_completion_tokens, int):
@@ -69,6 +81,8 @@ def budget_delta(settings: Settings, payload: dict[str, Any]) -> BudgetDelta:
 
 
 class InMemorySandboxBudgetTracker:
+    """Process-local budget tracker using a lock and a sliding time window."""
+
     backend = "memory"
 
     def __init__(self, settings: Settings) -> None:
@@ -99,6 +113,7 @@ class InMemorySandboxBudgetTracker:
         return self._usage.get(sandbox_id, BudgetUsage())
 
     def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]:
+        """Return the sandbox's current usage, limits, and window metadata."""
         resolved = settings or self.settings
         with self._lock:
             usage = self._current_usage(sandbox_id)
@@ -120,6 +135,7 @@ class InMemorySandboxBudgetTracker:
         payload: dict[str, Any],
         settings: Settings | None = None,
     ) -> BudgetReservation | None:
+        """Reserve budget for the payload, raising when a limit would be exceeded."""
         resolved = settings or self.settings
         if not resolved.sandbox_budget_enabled:
             return None
@@ -184,6 +200,8 @@ return {1, proposed_requests, proposed_prompt_chars, proposed_estimated_tokens}
 
 
 class RedisSandboxBudgetTracker:
+    """Distributed budget tracker enforcing limits atomically via a Redis Lua script."""
+
     backend = "redis"
 
     def __init__(self, settings: Settings, client: Any | None = None) -> None:
@@ -213,6 +231,7 @@ class RedisSandboxBudgetTracker:
         return f"{self.settings.sandbox_budget_key_prefix}:{sandbox_id}"
 
     def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]:
+        """Return the sandbox's current usage, limits, and window TTL from Redis."""
         resolved = settings or self.settings
         raw = self.client.hgetall(self._key(sandbox_id)) or {}
         ttl = None
@@ -241,6 +260,7 @@ class RedisSandboxBudgetTracker:
         payload: dict[str, Any],
         settings: Settings | None = None,
     ) -> BudgetReservation | None:
+        """Reserve budget atomically in Redis, raising when a limit would be exceeded."""
         resolved = settings or self.settings
         if not resolved.sandbox_budget_enabled:
             return None
@@ -284,6 +304,7 @@ class RedisSandboxBudgetTracker:
 
 
 def check_budget_limits(settings: Settings, usage: BudgetUsage) -> None:
+    """Raise AdmissionPolicyError if any usage counter exceeds its configured limit."""
     check_budget_limit(
         "sandbox_request_budget_exceeded",
         "request",
@@ -305,6 +326,7 @@ def check_budget_limits(settings: Settings, usage: BudgetUsage) -> None:
 
 
 def check_budget_limit(reason: str, label: str, value: int, limit: int) -> None:
+    """Raise AdmissionPolicyError when a positive limit is exceeded by the value."""
     if limit > 0 and value > limit:
         raise AdmissionPolicyError(
             reason,
@@ -313,6 +335,7 @@ def check_budget_limit(reason: str, label: str, value: int, limit: int) -> None:
 
 
 def build_sandbox_budget_tracker(settings: Settings) -> SandboxBudgetTracker:
+    """Return a Redis or in-memory budget tracker per the configured backend."""
     if settings.sandbox_budget_backend == "redis":
         return RedisSandboxBudgetTracker(settings)
     return InMemorySandboxBudgetTracker(settings)
