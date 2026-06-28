@@ -82,6 +82,9 @@ GATEWAY_VARS = (
     ConfigVar("JWT_AUDIENCE", "jwt_audience", "string", "", "auth.jwt.audience", "", "Expected JWT audience when set."),
     ConfigVar("JWT_REQUIRED_SCOPES", "jwt_required_scopes", "csv", [], "auth.jwt.requiredScopes", [], "Scopes required in JWT scope or scp claims."),
     ConfigVar("JWT_CACHE_SECONDS", "jwt_cache_seconds", "integer", 300, "auth.jwt.cacheSeconds", 300, "JWKS cache TTL in seconds."),
+    ConfigVar("OTEL_TRACING_ENABLED", "otel_tracing_enabled", "boolean", False, "observability.tracing.enabled", False, "Whether OpenTelemetry span export is enabled."),
+    ConfigVar("OTEL_EXPORTER_OTLP_ENDPOINT", "otel_exporter_otlp_endpoint", "url", "", "observability.tracing.otlpEndpoint", "", "OTLP/HTTP endpoint for span export when tracing is enabled."),
+    ConfigVar("OTEL_SERVICE_NAME", "otel_service_name", "string", "inference-gateway", "observability.tracing.serviceName", "inference-gateway", "Service name attribute attached to exported spans."),
 )
 
 RAG_VARS = (
@@ -106,6 +109,9 @@ RAG_VARS = (
     ConfigVar("API_KEY_AUTH_ENABLED", "api_key_auth_enabled", "boolean", False, "auth.enabled", False, "Whether business endpoints require API key or bearer-token auth."),
     ConfigVar("API_KEY_HEADER", "api_key_header", "string", "X-API-Key", "auth.apiKeyHeader", "X-API-Key", "Header name accepted for API key authentication."),
     ConfigVar("API_KEY_SHA256S", "api_key_sha256s", "csv", [], "auth.apiKeyHashes", [], "Comma-separated SHA-256 API key hashes.", sensitive=True),
+    ConfigVar("OTEL_TRACING_ENABLED", "otel_tracing_enabled", "boolean", False, "observability.tracing.enabled", False, "Whether OpenTelemetry span export is enabled."),
+    ConfigVar("OTEL_EXPORTER_OTLP_ENDPOINT", "otel_exporter_otlp_endpoint", "url", "", "observability.tracing.otlpEndpoint", "", "OTLP/HTTP endpoint for span export when tracing is enabled."),
+    ConfigVar("OTEL_SERVICE_NAME", "otel_service_name", "string", "rag-service", "observability.tracing.serviceName", "rag-service", "Service name attribute attached to exported spans."),
 )
 
 CONTRACTS = {

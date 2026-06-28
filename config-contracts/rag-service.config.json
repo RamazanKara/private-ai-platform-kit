@@ -112,6 +112,42 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": "",
+      "chart_default": "",
+      "chart_value": "observability.tracing.otlpEndpoint",
+      "description": "OTLP/HTTP endpoint for span export when tracing is enabled.",
+      "field": "otel_exporter_otlp_endpoint",
+      "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+      "sensitive": false,
+      "type": "url"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "rag-service",
+      "chart_default": "rag-service",
+      "chart_value": "observability.tracing.serviceName",
+      "description": "Service name attribute attached to exported spans.",
+      "field": "otel_service_name",
+      "name": "OTEL_SERVICE_NAME",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "observability.tracing.enabled",
+      "description": "Whether OpenTelemetry span export is enabled.",
+      "field": "otel_tracing_enabled",
+      "name": "OTEL_TRACING_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": true,
       "chart_default": true,
       "chart_value": "retrieval.vectorStore.bootstrapFromKnowledge",

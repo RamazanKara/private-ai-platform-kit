@@ -20,10 +20,11 @@ from app.jwt_auth import JwtAuthError, JwtVerifier
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.runtime_client import RuntimeClient
 from app.settings import AdmissionPolicyError, Settings, validate_sandbox_id
+from app.tracing import configure_tracing, trace_request
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.7.0"
+SERVICE_VERSION = "0.8.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
@@ -339,6 +340,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.sandbox_policy_set = SandboxPolicySet.from_path(resolved.sandbox_policy_path)
     app.state.jwt_verifier = JwtVerifier(resolved)
+    tracing = configure_tracing(resolved)
+    app.state.tracer = tracing[0] if tracing else None
+    app.state.tracer_provider = tracing[1] if tracing else None
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
@@ -351,18 +355,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-        if (resolved.api_key_auth_enabled or resolved.jwt_auth_enabled) and _auth_required(request.url.path):
-            api_key_ok = resolved.api_key_auth_enabled and _valid_api_key(request, resolved)
-            jwt_ok = resolved.jwt_auth_enabled and _valid_jwt(request, request.app.state.jwt_verifier)
-            if not api_key_ok and not jwt_ok:
-                return _auth_failure_response(request, "invalid_or_missing_api_key")
+        async def dispatch() -> Response:
+            if (resolved.api_key_auth_enabled or resolved.jwt_auth_enabled) and _auth_required(request.url.path):
+                api_key_ok = resolved.api_key_auth_enabled and _valid_api_key(request, resolved)
+                jwt_ok = resolved.jwt_auth_enabled and _valid_jwt(request, request.app.state.jwt_verifier)
+                if not api_key_ok and not jwt_ok:
+                    return _auth_failure_response(request, "invalid_or_missing_api_key")
 
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request.state.request_id
-        response.headers["X-Sandbox-ID"] = request.state.sandbox_id
-        if request.state.traceparent:
-            response.headers["traceparent"] = request.state.traceparent
-        return response
+            response = await call_next(request)
+            response.headers["X-Request-ID"] = request.state.request_id
+            response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+            if request.state.traceparent:
+                response.headers["traceparent"] = request.state.traceparent
+            return response
+
+        tracer = request.app.state.tracer
+        if tracer is None:
+            return await dispatch()
+        return await trace_request(tracer, request, dispatch)
 
     @app.get(
         "/healthz",

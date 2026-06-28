@@ -4,6 +4,25 @@
 
 No unreleased changes.
 
+## v0.8.0 - 2026-06-28
+
+### Added
+
+- Added optional OpenTelemetry distributed tracing to the gateway and RAG service: when `OTEL_TRACING_ENABLED` is set, each request emits a SERVER span linked to the inbound W3C `traceparent` and exports it over OTLP/HTTP to `OTEL_EXPORTER_OTLP_ENDPOINT`. Tracing is disabled by default and configured via the `observability.tracing.*` chart values.
+- Added Grafana dashboard provisioning: `make dashboard-update` renders sidecar-loadable ConfigMaps (labelled `grafana_dashboard: "1"`) from the canonical dashboard JSON, and `make dashboard-check` fails when the generated ConfigMaps drift from their sources.
+- Added an OIDC/JWKS rotation runbook with IdP-specific endpoint examples (Keycloak, Auth0, Okta, Microsoft Entra ID) and a key-rotation drill.
+
+### Changed
+
+- Raised the enforced `make coverage` floors to 85% (gateway) and 84% (RAG) on the back of new JWT claim-validation and JWKS-rotation tests, runtime-client streaming/health tests, a RAG ingestion CLI test suite, and tracing tests.
+
+### Validation
+
+- `make validate-full`
+- `make quality`
+- `make coverage`
+- `make image-scan`
+
 ## v0.7.0 - 2026-06-28
 
 ### Added
