@@ -15,7 +15,6 @@ PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
 REQUIRED_FILES = (
     ".editorconfig",
     ".github/CODEOWNERS",
-    ".github/dependabot.yml",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
     ".github/ISSUE_TEMPLATE/feature_request.yml",
     ".github/ISSUE_TEMPLATE/question.yml",
@@ -146,16 +145,6 @@ def check_makefile(errors: list[str]) -> None:
     require(errors, "export PYTHONDONTWRITEBYTECODE" in text, "Makefile must export PYTHONDONTWRITEBYTECODE")
     require(errors, "TOOLCHAIN_BIN_DIR ?= $(CURDIR)/.tools/bin" in text, "Makefile must define TOOLCHAIN_BIN_DIR")
     require(errors, "export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)" in text, "Makefile must prepend TOOLCHAIN_BIN_DIR to PATH")
-
-
-def check_dependency_update_policy(errors: list[str]) -> None:
-    path = ROOT / ".github/dependabot.yml"
-    text = path.read_text()
-    require(errors, re.search(r"^version:\s*2$", text, re.MULTILINE) is not None, ".github/dependabot.yml must use config version 2")
-    for ecosystem in ("github-actions", "pip", "docker"):
-        require(errors, f"package-ecosystem: {ecosystem}" in text, f".github/dependabot.yml must update {ecosystem}")
-    for directory in ("/services/inference-gateway", "/services/rag-service"):
-        require(errors, f"directory: {directory}" in text, f".github/dependabot.yml must cover {directory}")
 
 
 def check_script_modes(errors: list[str]) -> None:
@@ -338,7 +327,6 @@ def run_checks() -> list[str]:
     errors: list[str] = []
     check_required_paths(errors)
     check_makefile(errors)
-    check_dependency_update_policy(errors)
     check_script_modes(errors)
     check_python_bytecode_policy(errors)
     check_toolchain_lookup_policy(errors)

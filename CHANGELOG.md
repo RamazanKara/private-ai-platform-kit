@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-No unreleased changes.
+### Removed
+
+- Removed the Dependabot configuration and its repository-hygiene checks. Dependabot's single-package bumps could not satisfy the strict `make validate-full` gate (hashed lockfiles plus regenerated API, chart, and config snapshots), so dependency updates are handled manually with `pip-compile`.
 
 ## v0.8.0 - 2026-06-28
 
