@@ -45,30 +45,22 @@ class BudgetReservation:
 class SandboxBudgetTracker(Protocol):
     settings: Settings
 
-    def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]:
-        ...
+    def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]: ...
 
     def reserve(
         self,
         sandbox_id: str,
         payload: dict[str, Any],
         settings: Settings | None = None,
-    ) -> BudgetReservation | None:
-        ...
+    ) -> BudgetReservation | None: ...
 
 
 def budget_delta(settings: Settings, payload: dict[str, Any]) -> BudgetDelta:
-    prompt_chars = sum(
-        len(str(message.get("content", "")))
-        for message in payload.get("messages", [])
-    )
+    prompt_chars = sum(len(str(message.get("content", ""))) for message in payload.get("messages", []))
     requested_completion_tokens = payload.get("max_tokens")
     if not isinstance(requested_completion_tokens, int):
         requested_completion_tokens = settings.max_completion_tokens
-    estimated_tokens = (
-        ceil(prompt_chars / settings.budget_estimated_chars_per_token)
-        + requested_completion_tokens
-    )
+    estimated_tokens = ceil(prompt_chars / settings.budget_estimated_chars_per_token) + requested_completion_tokens
     return BudgetDelta(
         requests=1,
         prompt_chars=prompt_chars,
@@ -200,9 +192,7 @@ class RedisSandboxBudgetTracker:
             try:
                 import redis
             except ImportError as exc:
-                raise RuntimeError(
-                    "redis package is required when SANDBOX_BUDGET_BACKEND=redis"
-                ) from exc
+                raise RuntimeError("redis package is required when SANDBOX_BUDGET_BACKEND=redis") from exc
             client = redis.Redis.from_url(
                 settings.sandbox_budget_redis_url,
                 decode_responses=True,

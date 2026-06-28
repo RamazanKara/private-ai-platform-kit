@@ -1,32 +1,29 @@
-import hashlib
-import base64
 import asyncio
-import logging
+import base64
+import hashlib
 import hmac
 import json
+import logging
 import time
-from pathlib import Path
 
 import httpx
 import pytest
-from fastapi.testclient import TestClient
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
-from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
-
 from app.budget import RedisSandboxBudgetTracker
 from app.jwt_auth import JwksCache
 from app.main import create_app
-from app.runtime_client import RuntimeClient
-from app.runtime_client import sanitize_chat_completion
+from app.runtime_client import RuntimeClient, sanitize_chat_completion
 from app.settings import AdmissionPolicyError, Settings
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+from fastapi.testclient import TestClient
 
 
 class FakeRuntimeClient:
     def __init__(self, response=None, error=None):
         self.response = response
         self.error = error
-        self.stream_chunks = [b"data: {\"choices\":[]}\n\n"]
+        self.stream_chunks = [b'data: {"choices":[]}\n\n']
         self.payload = None
         self.headers = None
         self.backend = None
@@ -69,7 +66,19 @@ class FakeRedisBudgetStore:
     def ttl(self, key):
         return 86400 if key in self.data else -2
 
-    def eval(self, script, numkeys, key, ttl, add_requests, add_prompt_chars, add_estimated_tokens, limit_requests, limit_prompt_chars, limit_estimated_tokens):
+    def eval(
+        self,
+        script,
+        numkeys,
+        key,
+        ttl,
+        add_requests,
+        add_prompt_chars,
+        add_estimated_tokens,
+        limit_requests,
+        limit_prompt_chars,
+        limit_estimated_tokens,
+    ):
         current = self.data.get(
             key,
             {"requests": 0, "prompt_chars": 0, "estimated_tokens": 0},
@@ -262,9 +271,7 @@ def test_chat_completion_forwards_openai_payload():
         response={
             "id": "chatcmpl-test",
             "object": "chat.completion",
-            "choices": [
-                {"message": {"role": "assistant", "content": "hello from vLLM"}}
-            ],
+            "choices": [{"message": {"role": "assistant", "content": "hello from vLLM"}}],
         }
     )
     app.state.runtime_client = fake
@@ -282,6 +289,38 @@ def test_chat_completion_forwards_openai_payload():
     assert response.json()["choices"][0]["message"]["content"] == "hello from vLLM"
     assert fake.payload["model"] == "custom-model"
     assert fake.payload["messages"][0]["content"] == "hello"
+
+
+def test_chat_completion_metrics_use_endpoint_route_label():
+    # Regression: the handler reused the `route` variable for both the Prometheus label
+    # ("/v1/chat/completions") and the resolved ModelRoute, so a successful request
+    # recorded the ModelRoute repr as the `route` label instead of the request path.
+    settings = Settings(
+        runtime_backend="vllm",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient(
+        response={
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "choices": [{"message": {"role": "assistant", "content": "hello"}}],
+        }
+    )
+    client = TestClient(app)
+
+    completion = client.post(
+        "/v1/chat/completions",
+        json={"model": "custom-model", "messages": [{"role": "user", "content": "hello"}]},
+    )
+    assert completion.status_code == 200
+
+    metrics = client.get("/metrics").text
+    assert 'route="/v1/chat/completions"' in metrics
+    assert "ModelRoute(" not in metrics
 
 
 def test_runtime_response_removes_reasoning_metadata():
@@ -359,9 +398,7 @@ def test_chat_completion_uses_default_model_when_model_is_omitted():
         response={
             "id": "chatcmpl-test",
             "object": "chat.completion",
-            "choices": [
-                {"message": {"role": "assistant", "content": "hello from Ollama"}}
-            ],
+            "choices": [{"message": {"role": "assistant", "content": "hello from Ollama"}}],
         }
     )
     app.state.runtime_client = fake
@@ -390,9 +427,7 @@ def test_chat_completion_propagates_trace_headers_and_returns_request_context():
         response={
             "id": "chatcmpl-test",
             "object": "chat.completion",
-            "choices": [
-                {"message": {"role": "assistant", "content": "traceable response"}}
-            ],
+            "choices": [{"message": {"role": "assistant", "content": "traceable response"}}],
             "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
         }
     )
@@ -1175,9 +1210,7 @@ def test_runtime_client_retries_non_streaming_requests(monkeypatch):
     )
     client = RuntimeClient(settings)
 
-    response = asyncio.run(
-        client.chat_completions({"messages": [{"role": "user", "content": "hello"}]})
-    )
+    response = asyncio.run(client.chat_completions({"messages": [{"role": "user", "content": "hello"}]}))
 
     assert response["choices"][0]["message"]["content"] == "ok"
     assert calls["count"] == 2
@@ -1213,13 +1246,9 @@ def test_runtime_client_opens_circuit_after_failures(monkeypatch):
     client = RuntimeClient(settings)
 
     with pytest.raises(httpx.ConnectError):
-        asyncio.run(
-            client.chat_completions({"messages": [{"role": "user", "content": "hello"}]})
-        )
+        asyncio.run(client.chat_completions({"messages": [{"role": "user", "content": "hello"}]}))
     with pytest.raises(httpx.ConnectError, match="circuit is open"):
-        asyncio.run(
-            client.chat_completions({"messages": [{"role": "user", "content": "hello"}]})
-        )
+        asyncio.run(client.chat_completions({"messages": [{"role": "user", "content": "hello"}]}))
 
     assert calls["count"] == 1
 
@@ -1283,9 +1312,7 @@ def test_runtime_invalid_response_returns_sanitized_502():
         request_timeout_seconds=5,
     )
     app = create_app(settings)
-    app.state.runtime_client = FakeRuntimeClient(
-        error=ValueError("invalid JSON body: customer secret snippet")
-    )
+    app.state.runtime_client = FakeRuntimeClient(error=ValueError("invalid JSON body: customer secret snippet"))
     client = TestClient(app)
 
     response = client.post(

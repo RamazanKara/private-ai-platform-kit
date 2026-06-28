@@ -1,11 +1,10 @@
-from typing import Any
 from asyncio import sleep
 from time import time
+from typing import Any
 
 import httpx
 
 from app.settings import Settings
-
 
 REDACTED_MESSAGE_FIELDS = {"reasoning", "reasoning_content", "thinking"}
 
@@ -24,9 +23,7 @@ def sanitize_chat_completion(data: dict[str, Any]) -> dict[str, Any]:
         message = sanitized_choice.get("message")
         if isinstance(message, dict):
             sanitized_choice["message"] = {
-                key: value
-                for key, value in message.items()
-                if key not in REDACTED_MESSAGE_FIELDS
+                key: value for key, value in message.items() if key not in REDACTED_MESSAGE_FIELDS
             }
         sanitized_choices.append(sanitized_choice)
     sanitized["choices"] = sanitized_choices
@@ -120,17 +117,19 @@ class RuntimeClient:
         timeout = httpx.Timeout(self.settings.request_timeout_seconds)
         resolved_backend = backend or self.settings.runtime_backend
         self._check_circuit(resolved_backend)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            async with client.stream(
+        async with (
+            httpx.AsyncClient(timeout=timeout) as client,
+            client.stream(
                 "POST",
                 self._chat_completions_url(resolved_backend),
                 json=body,
                 headers=headers,
-            ) as response:
-                response.raise_for_status()
-                self._record_success(resolved_backend)
-                async for chunk in response.aiter_bytes():
-                    yield chunk
+            ) as response,
+        ):
+            response.raise_for_status()
+            self._record_success(resolved_backend)
+            async for chunk in response.aiter_bytes():
+                yield chunk
 
     async def health(self, backend: str | None = None) -> dict[str, Any]:
         resolved_backend = backend or self.settings.runtime_backend

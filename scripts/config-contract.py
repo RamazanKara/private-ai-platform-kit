@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import argparse
 import ast
-from dataclasses import dataclass, field
 import json
-from pathlib import Path
 import re
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import yaml
-
 
 ROOT = Path(__file__).resolve().parents[1]
 ENV_NAME_PATTERN = re.compile(r"- name:\s+([A-Z0-9_]+)")
@@ -153,9 +152,12 @@ def extract_settings_env_names(path: Path) -> set[str]:
                     names.add(arg.value)
             elif isinstance(arg, ast.Tuple):
                 for item in arg.elts:
-                    if isinstance(item, ast.Constant) and isinstance(item.value, str):
-                        if re.fullmatch(r"[A-Z][A-Z0-9_]+", item.value):
-                            names.add(item.value)
+                    if (
+                        isinstance(item, ast.Constant)
+                        and isinstance(item.value, str)
+                        and re.fullmatch(r"[A-Z][A-Z0-9_]+", item.value)
+                    ):
+                        names.add(item.value)
     return names
 
 

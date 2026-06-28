@@ -3,13 +3,12 @@ import json
 import logging
 
 import httpx
-from fastapi.testclient import TestClient
-
 from app.embeddings import HashEmbeddingProvider, OpenAICompatibleEmbeddingProvider
 from app.ingest import build_chunks, load_manifest
 from app.main import create_app
 from app.retriever import QdrantRetriever
 from app.settings import Settings
+from fastapi.testclient import TestClient
 
 
 def write_doc(tmp_path, name, content):

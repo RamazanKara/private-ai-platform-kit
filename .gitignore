@@ -5,10 +5,12 @@ __pycache__/
 .ruff_cache/
 .venv/
 **/.venv/
+.venv-quality/
 .tools/
 dist/
 build/
 .coverage
+coverage.xml
 htmlcov/
 .tmp-*
 *.tmp

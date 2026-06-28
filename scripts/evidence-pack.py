@@ -12,7 +12,6 @@ from typing import Any
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -168,7 +167,7 @@ def static_controls() -> list[Control]:
     allowed.update(nested(customer_gateway, "runtime", "allowedModels", default=[]))
     catalog_ids = {model.get("id") for model in nested(model_catalog, "spec", "models", default=[]) if isinstance(model, dict)}
 
-    controls = [
+    return [
         control(
             "Local-first customer-owned Kubernetes",
             "local" in readme and "customer-owned clusters" in readme and exists("clusters/local/kind-config.yaml", "clusters/customer/README.md"),
@@ -469,7 +468,6 @@ def static_controls() -> list[Control]:
             "Run static validation before demos, upgrades, and handoff reviews.",
         ),
     ]
-    return controls
 
 
 def kubectl_json(args: list[str]) -> tuple[bool, Any, str]:

@@ -10,7 +10,6 @@ from typing import Any
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 VALID_STATUSES = {"proposed", "approved", "deprecated", "blocked"}
 VALID_RUNTIMES = {"ollama", "vllm"}

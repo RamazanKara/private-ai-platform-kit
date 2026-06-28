@@ -84,7 +84,7 @@ class LexicalRetriever:
         self.documents = documents
 
     @classmethod
-    def from_directory(cls, document_dir: Path) -> "LexicalRetriever":
+    def from_directory(cls, document_dir: Path) -> LexicalRetriever:
         return cls(load_documents(document_dir))
 
     def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
@@ -150,7 +150,7 @@ class QdrantRetriever:
         vector_dimensions: int,
         bootstrap_from_knowledge: bool,
         embedding_provider: EmbeddingProvider | None = None,
-    ) -> "QdrantRetriever":
+    ) -> QdrantRetriever:
         return cls(
             documents=load_documents(document_dir),
             base_url=base_url,

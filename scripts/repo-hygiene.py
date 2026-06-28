@@ -8,7 +8,6 @@ import subprocess
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-
 ROOT = Path(__file__).resolve().parents[1]
 LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
@@ -209,7 +208,7 @@ def requirement_pins(path: Path) -> dict[str, str]:
     pins: dict[str, str] = {}
     for line in path.read_text().splitlines():
         stripped = line.strip()
-        if not stripped or stripped.startswith("#") or stripped.startswith("-r "):
+        if not stripped or stripped.startswith(("#", "-r ")):
             continue
         match = PIN_PATTERN.match(stripped)
         if match:
@@ -351,7 +350,7 @@ def run_checks() -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check repository hygiene, contributor docs, executable bits, dependencies, and markdown links.")
     parser.add_argument("--check", action="store_true", help="Run checks and exit non-zero on failures.")
-    args = parser.parse_args()
+    parser.parse_args()
 
     errors = run_checks()
     if errors:

@@ -1,8 +1,7 @@
-from dataclasses import dataclass
 import os
-from pathlib import Path
 import re
-
+from dataclasses import dataclass
+from pathlib import Path
 
 SANDBOX_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 VALID_RETRIEVAL_BACKENDS = {"lexical", "qdrant"}
@@ -75,9 +74,7 @@ def _sha256s_from_env(name: str) -> tuple[str, ...]:
 def validate_sandbox_id(value: str) -> str:
     sandbox_id = value.strip().lower()
     if not SANDBOX_ID_PATTERN.fullmatch(sandbox_id):
-        raise ValueError(
-            "sandbox id must be 1-63 characters of lowercase letters, numbers, or hyphens"
-        )
+        raise ValueError("sandbox id must be 1-63 characters of lowercase letters, numbers, or hyphens")
     return sandbox_id
 
 
@@ -147,9 +144,7 @@ class Settings:
     def from_env(cls) -> "Settings":
         return cls(
             document_dir=Path(os.getenv("RAG_DOCUMENT_DIR", "/knowledge")),
-            default_sandbox_id=validate_sandbox_id(
-                os.getenv("DEFAULT_SANDBOX_ID", "local-lab")
-            ),
+            default_sandbox_id=validate_sandbox_id(os.getenv("DEFAULT_SANDBOX_ID", "local-lab")),
             audit_log_enabled=_bool_from_env("AUDIT_LOG_ENABLED", True),
             max_query_chars=_positive_int_from_env("MAX_QUERY_CHARS", 2048),
             default_top_k=_positive_int_from_env("DEFAULT_TOP_K", 3),
@@ -158,8 +153,12 @@ class Settings:
             retrieval_backend=_env_first(("RAG_RETRIEVAL_BACKEND", "RETRIEVAL_BACKEND"), "lexical").strip().lower(),
             vector_store_url=_env_first(("QDRANT_URL", "VECTOR_STORE_URL"), "").strip(),
             vector_collection=_env_first(("QDRANT_COLLECTION", "VECTOR_COLLECTION"), "private-ai-platform-kit").strip(),
-            vector_collection_version=_env_first(("QDRANT_COLLECTION_VERSION", "VECTOR_COLLECTION_VERSION"), "v1").strip(),
-            vector_timeout_seconds=_positive_float_from_env_first(("QDRANT_TIMEOUT_SECONDS", "VECTOR_TIMEOUT_SECONDS"), 1.0),
+            vector_collection_version=_env_first(
+                ("QDRANT_COLLECTION_VERSION", "VECTOR_COLLECTION_VERSION"), "v1"
+            ).strip(),
+            vector_timeout_seconds=_positive_float_from_env_first(
+                ("QDRANT_TIMEOUT_SECONDS", "VECTOR_TIMEOUT_SECONDS"), 1.0
+            ),
             vector_dimensions=_positive_int_from_env("QDRANT_VECTOR_DIMENSIONS", DEFAULT_VECTOR_DIMENSIONS),
             vector_bootstrap_enabled=_bool_from_env("QDRANT_BOOTSTRAP_FROM_KNOWLEDGE", True),
             embedding_provider=os.getenv("RAG_EMBEDDING_PROVIDER", "hash").strip().lower(),

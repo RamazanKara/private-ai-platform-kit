@@ -10,7 +10,6 @@ from typing import Any
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CHANGELOG_VERSION_PATTERN = re.compile(r"^## v(?P<version>\d+\.\d+\.\d+) - \d{4}-\d{2}-\d{2}$")
 PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
@@ -93,7 +92,7 @@ def requirement_pins(path: Path) -> dict[str, str]:
     pins: dict[str, str] = {}
     for line in path.read_text().splitlines():
         stripped = line.strip()
-        if not stripped or stripped.startswith("#") or stripped.startswith("-r "):
+        if not stripped or stripped.startswith(("#", "-r ")):
             continue
         match = PIN_PATTERN.match(stripped)
         if match:

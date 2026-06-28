@@ -8,7 +8,6 @@ import yaml
 
 from app.settings import Settings, validate_sandbox_id
 
-
 VALID_BACKENDS = {"ollama", "vllm"}
 
 
@@ -25,7 +24,7 @@ class ModelRoutingPolicy:
     allow_unlisted: bool = False
 
     @classmethod
-    def default(cls, settings: Settings) -> "ModelRoutingPolicy":
+    def default(cls, settings: Settings) -> ModelRoutingPolicy:
         models = settings.allowed_models or (settings.model_id,)
         return cls(
             tuple(ModelRoute(model, settings.runtime_backend) for model in models),
@@ -33,7 +32,7 @@ class ModelRoutingPolicy:
         )
 
     @classmethod
-    def from_path(cls, path: Path, settings: Settings) -> "ModelRoutingPolicy":
+    def from_path(cls, path: Path, settings: Settings) -> ModelRoutingPolicy:
         if not path:
             return cls.default(settings)
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -109,11 +108,11 @@ class SandboxPolicySet:
     policies: dict[str, SandboxPolicy]
 
     @classmethod
-    def empty(cls) -> "SandboxPolicySet":
+    def empty(cls) -> SandboxPolicySet:
         return cls({})
 
     @classmethod
-    def from_path(cls, path: Path | None) -> "SandboxPolicySet":
+    def from_path(cls, path: Path | None) -> SandboxPolicySet:
         if not path:
             return cls.empty()
         data = yaml.safe_load(path.read_text(encoding="utf-8"))

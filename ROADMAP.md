@@ -33,6 +33,12 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 - Keep chart READMEs and values tables current.
 - Add minimal, local, and customer profile examples for each major chart.
 
+## 6. Code Quality
+
+- Enforced: Ruff lint, Ruff format, and mypy run in `make validate` and CI; CodeQL provides Python SAST.
+- Ratchet `make coverage` floors upward as gateway and RAG test coverage grows.
+- Expand mypy strictness (typed public APIs, stricter optional handling) once the baseline holds across releases.
+
 ## Seed Issue List
 
 Use these labels when opening public issues: `good first issue`, `help wanted`, `security`, `docs`, `helm`, `runtime`, `rag`, `tenant`.

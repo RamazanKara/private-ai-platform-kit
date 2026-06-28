@@ -1,0 +1,44 @@
+# Tooling configuration for the Private AI Platform Kit Python services and scripts.
+#
+# Lint and format are handled by Ruff; static type checking by mypy. The tools run
+# from an isolated, hash-pinned environment (see requirements-quality.lock and
+# scripts/quality.sh) so they do not perturb the runtime or dev dependency locks.
+#
+# Entry points:
+#   make lint        Ruff lint (services + scripts)
+#   make format      Ruff format (services)
+#   make typecheck   mypy (both services)
+#   make quality     All of the above; also run by `make validate`
+#   make coverage    pytest coverage report with enforced floors
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = [
+    ".venv",
+    ".venv-quality",
+    ".tools",
+    "results",
+    "tenants/generated",
+]
+
+[tool.ruff.lint]
+# Pragmatic, high-signal rule set: pyflakes/pycodestyle, import sorting, bugbear,
+# pyupgrade, comprehensions, simplify, flake8-pie, flake8-return, and Ruff's own rules.
+select = ["E", "F", "W", "I", "B", "UP", "C4", "SIM", "PIE", "RET", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Operational scripts embed long contract snapshots and generated data literals;
+# line length is not a useful signal there. All other rules still apply.
+"scripts/*" = ["E501"]
+
+[tool.ruff.format]
+# Default Ruff style (double quotes, 4-space indent) matches the existing code;
+# formatting only normalizes incidental drift.
+
+[tool.mypy]
+python_version = "3.12"
+# Several runtime libraries (prometheus_client, PyYAML, uvicorn, qdrant-client)
+# ship without inline types or stubs; ignore those rather than vendor stub packages.
+ignore_missing_imports = true
+warn_unused_configs = true

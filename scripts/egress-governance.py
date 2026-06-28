@@ -11,7 +11,6 @@ from typing import Any
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CATALOG = ROOT / "network/egress-catalog.yaml"
 VALID_STATUSES = {"proposed", "approved", "deprecated", "blocked"}

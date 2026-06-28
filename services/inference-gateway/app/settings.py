@@ -1,8 +1,7 @@
-from dataclasses import dataclass
 import os
-from pathlib import Path
 import re
-
+from dataclasses import dataclass
+from pathlib import Path
 
 SANDBOX_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 BUILT_IN_SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
@@ -72,9 +71,7 @@ def _bool_from_env(name: str, default: bool) -> bool:
 def validate_sandbox_id(value: str) -> str:
     sandbox_id = value.strip().lower()
     if not SANDBOX_ID_PATTERN.fullmatch(sandbox_id):
-        raise ValueError(
-            "sandbox id must be 1-63 characters of lowercase letters, numbers, or hyphens"
-        )
+        raise ValueError("sandbox id must be 1-63 characters of lowercase letters, numbers, or hyphens")
     return sandbox_id
 
 
@@ -213,9 +210,7 @@ class Settings:
             model_id=model_id,
             request_timeout_seconds=_float_from_env("REQUEST_TIMEOUT_SECONDS", 120.0),
             audit_log_enabled=_bool_from_env("AUDIT_LOG_ENABLED", True),
-            default_sandbox_id=validate_sandbox_id(
-                os.getenv("DEFAULT_SANDBOX_ID", "local-lab")
-            ),
+            default_sandbox_id=validate_sandbox_id(os.getenv("DEFAULT_SANDBOX_ID", "local-lab")),
             allowed_models=_csv_from_env("ALLOWED_MODELS", (model_id,)),
             max_messages=_int_from_env("MAX_MESSAGES", 16),
             max_prompt_chars=_int_from_env("MAX_PROMPT_CHARS", 8192),

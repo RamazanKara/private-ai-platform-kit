@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import base64
-import hmac
 import hashlib
+import hmac
 import json
 from time import time
 from typing import Any
@@ -95,7 +95,8 @@ class JwtVerifier:
     def _matching_keys(self, header: dict[str, Any], kty: str) -> list[dict[str, Any]]:
         kid = header.get("kid")
         keys: list[dict[str, Any]] = []
-        for key in self.jwks_cache.keys():
+        # JwksCache.keys() is a domain accessor returning the JWK list, not Mapping.keys().
+        for key in self.jwks_cache.keys():  # noqa: SIM118
             if key.get("kty") != kty:
                 continue
             if kid is not None and key.get("kid") != kid:
