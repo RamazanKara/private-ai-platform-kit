@@ -48,3 +48,17 @@ For a new model:
 9. Run `make model-check`, `make model-provenance-check`, and `make validate`.
 
 For a deprecated or blocked model, remove it from all gateway allowlists before changing the status.
+
+## Proposed Newer Models
+
+The catalog tracks these `proposed` newer models. Each still needs a real provenance digest and a
+promotion request before it can move to `approved` and into a gateway allowlist (see the Promotion
+Workflow above) — the gates intentionally block promoting a model without verifiable provenance:
+
+- `qwen3.5:0.8b` (Ollama) — latest small CPU smoke model; intended replacement for `qwen3:0.6b`.
+- `Qwen/Qwen3.6-35B-A3B` (vLLM) — newer Qwen MoE for general and coding workloads.
+- `zai-org/GLM-5.2` (vLLM) — strong open agentic-coding MoE (multi-GPU).
+- `deepseek-ai/DeepSeek-V4-Flash` (vLLM) — 1M-context MoE (multi-GPU).
+
+The customer coding-agent default `Qwen/Qwen3-Coder-Next` stays approved: it is still Qwen's latest
+dedicated coder, so it remains the recommended coding profile.

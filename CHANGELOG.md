@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Added proposed model-catalog entries for newer self-hostable models: `qwen3.5:0.8b` (latest small Ollama smoke model), `Qwen/Qwen3.6-35B-A3B`, `zai-org/GLM-5.2`, and `deepseek-ai/DeepSeek-V4-Flash`. They are tracked as `proposed` pending a real provenance digest and promotion request, per `runbooks/model-governance.md`; the dedicated coding default `Qwen/Qwen3-Coder-Next` remains current and approved.
+
 ### Removed
 
 - Removed the Dependabot configuration and its repository-hygiene checks. Dependabot's single-package bumps could not satisfy the strict `make validate-full` gate (hashed lockfiles plus regenerated API, chart, and config snapshots), so dependency updates are handled manually with `pip-compile`.

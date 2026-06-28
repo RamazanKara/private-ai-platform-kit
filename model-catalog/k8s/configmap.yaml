@@ -51,3 +51,67 @@ data:
           maxCompletionTokens: 8192
           promotionRequest: model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml
           notes: Current Qwen3 Coder Next profile for customer GPU coding-agent clusters.
+        # Proposed newer models. Promote to `approved` only after capturing a real provenance
+        # digest (governance/model-provenance.yaml) and a promotion request, then add to the
+        # relevant runtime.allowedModels. See runbooks/model-governance.md.
+        - id: qwen3.5:0.8b
+          runtime: ollama
+          owner: platform-team
+          status: proposed
+          stage: local-lab
+          riskTier: low
+          dataClassification: internal
+          license: apache-2.0
+          source: ollama-library
+          accelerators:
+            - cpu
+          contextWindow: 32768
+          maxPromptChars: 8192
+          maxCompletionTokens: 1024
+          notes: Proposed latest small Qwen3.5 smoke model (replaces qwen3:0.6b on promotion).
+        - id: Qwen/Qwen3.6-35B-A3B
+          runtime: vllm
+          owner: platform-team
+          status: proposed
+          stage: customer-lab
+          riskTier: medium
+          dataClassification: internal
+          license: apache-2.0
+          source: huggingface
+          accelerators:
+            - nvidia
+            - amd
+          contextWindow: 262144
+          maxPromptChars: 131072
+          maxCompletionTokens: 8192
+          notes: Proposed Qwen3.6 MoE (35B total / 3B active) general+coding alternative. Confirm context window before promotion.
+        - id: zai-org/GLM-5.2
+          runtime: vllm
+          owner: platform-team
+          status: proposed
+          stage: customer-lab
+          riskTier: medium
+          dataClassification: internal
+          license: mit
+          source: huggingface
+          accelerators:
+            - nvidia
+          contextWindow: 200000
+          maxPromptChars: 131072
+          maxCompletionTokens: 8192
+          notes: Proposed GLM-5.2 MoE agentic-coding alternative (multi-GPU). Verify license and context window before promotion.
+        - id: deepseek-ai/DeepSeek-V4-Flash
+          runtime: vllm
+          owner: platform-team
+          status: proposed
+          stage: customer-lab
+          riskTier: medium
+          dataClassification: internal
+          license: mit
+          source: huggingface
+          accelerators:
+            - nvidia
+          contextWindow: 1048576
+          maxPromptChars: 131072
+          maxCompletionTokens: 8192
+          notes: Proposed DeepSeek-V4-Flash MoE (284B total / 13B active, 1M context) alternative (multi-GPU). Verify license before promotion.
