@@ -105,3 +105,53 @@ def test_record_failure_is_noop_when_threshold_disabled():
 
     # With the breaker disabled, failures never latch the circuit open.
     assert "ollama" not in client._opened_until
+
+
+def test_stream_chat_completions_targets_vllm_backend(monkeypatch):
+    seen = {}
+
+    def handler(request):
+        seen["url"] = str(request.url)
+        return httpx.Response(200, content=b'data: {"choices":[]}\n\n')
+
+    _mock_async_client(monkeypatch, handler)
+    client = RuntimeClient(_settings(runtime_backend="vllm"))
+
+    async def collect():
+        return [chunk async for chunk in client.stream_chat_completions({"messages": []}, backend="vllm")]
+
+    assert asyncio.run(collect())
+    assert "vllm:8000" in seen["url"]
+
+
+def test_stream_chat_completions_passes_through_malformed_events(monkeypatch):
+    # The runtime client streams bytes verbatim; malformed SSE must pass through, not crash.
+    body = b"data: {not-valid-json\n\n:: broken event\n\ndata: [DONE]\n\n"
+
+    def handler(request):
+        return httpx.Response(200, content=body)
+
+    _mock_async_client(monkeypatch, handler)
+    client = RuntimeClient(_settings())
+
+    async def collect():
+        return b"".join([chunk async for chunk in client.stream_chat_completions({"messages": []}, backend="ollama")])
+
+    assert asyncio.run(collect()) == body
+
+
+def test_stream_chat_completions_can_be_cancelled_mid_stream(monkeypatch):
+    def handler(request):
+        return httpx.Response(200, content=b'data: {"choices":[{"delta":{"content":"hi"}}]}\n\n')
+
+    _mock_async_client(monkeypatch, handler)
+    client = RuntimeClient(_settings())
+
+    async def cancel_after_first_chunk():
+        stream = client.stream_chat_completions({"messages": []}, backend="ollama")
+        first = await stream.__anext__()
+        # Consumer cancels early (e.g. client disconnect); aclose must unwind the runtime stream cleanly.
+        await stream.aclose()
+        return first
+
+    assert asyncio.run(cancel_after_first_chunk())
