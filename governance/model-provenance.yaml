@@ -14,6 +14,32 @@ spec:
     - promotionRequest
     - servingProfiles
   artifacts:
+    - modelId: qwen2.5:0.5b
+      status: approved
+      source: ollama-library
+      sourceUri: ollama://qwen2.5:0.5b
+      immutableRef: ollama-library/qwen2.5:0.5b@sha256:c5396e06af294bd101b30dce59131a76d2b773e76950acc870eda801d3ab0515
+      digest:
+        algorithm: sha256
+        value: c5396e06af294bd101b30dce59131a76d2b773e76950acc870eda801d3ab0515
+        scope: model-artifact
+        verificationMode: ollama-registry-model-layer
+        verificationCommand: >-
+          curl -fsSL https://registry.ollama.ai/v2/library/qwen2.5/manifests/0.5b |
+          jq -r '.layers[] | select(.mediaType=="application/vnd.ollama.image.model").digest'
+      license: apache-2.0
+      dataClassification: internal
+      riskTier: low
+      promotionRequest: model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml
+      catalogRef: model-catalog/models.yaml
+      servingProfiles:
+        - clusters/local/values/ollama.yaml
+        - clusters/local/values/inference-gateway.yaml
+      evidenceRefs:
+        evalSummary: results/evals/sample-summary.md
+        loadTestSummary: results/loadtest/sample-summary.md
+        securityWorkflow: .github/workflows/ci.yml
+      notes: Source digest is the Ollama registry model-weights layer (reproducible via verificationCommand). Re-verify against your own model store before production use.
     - modelId: qwen3.5:0.8b
       status: approved
       source: ollama-library
@@ -30,11 +56,11 @@ spec:
       license: apache-2.0
       dataClassification: internal
       riskTier: low
-      promotionRequest: model-catalog/promotion-requests/qwen3.5-local-lab-approved.yaml
+      promotionRequest: model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml
       catalogRef: model-catalog/models.yaml
       servingProfiles:
-        - clusters/local/values/ollama.yaml
-        - clusters/local/values/inference-gateway.yaml
+        - clusters/customer/values/ollama.yaml
+        - clusters/customer/values/inference-gateway.yaml
       evidenceRefs:
         evalSummary: results/evals/sample-summary.md
         loadTestSummary: results/loadtest/sample-summary.md

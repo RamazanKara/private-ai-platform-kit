@@ -80,7 +80,7 @@ make sync
 make smoke RUNTIME_BACKEND=ollama
 ```
 
-The default local model is `qwen3.5:0.8b`. A real model pull can take time and disk space on the first run.
+The default local model is `qwen2.5:0.5b`, a fast non-reasoning model that keeps the laptop CPU smoke quick; the larger `qwen3.5:0.8b` reasoning model is the customer Ollama profile default. A real model pull can take time and disk space on the first run.
 
 For expected output, timing, disk requirements, and troubleshooting, follow [docs/quickstart.md](docs/quickstart.md). For the full local path, including sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates, follow [docs/getting-started.md](docs/getting-started.md).
 

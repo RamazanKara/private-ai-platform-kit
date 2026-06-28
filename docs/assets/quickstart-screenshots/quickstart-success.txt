@@ -14,12 +14,13 @@ make[1]: Leaving directory '/home/rambo/git/private-ai-platform-kit'
 make[1]: Entering directory '/home/rambo/git/private-ai-platform-kit'
 ./scripts/local-up.sh
 [private-ai-platform-kit] Docker is using cgroup v1; using compatible kind node image kindest/node:v1.31.4
-[private-ai-platform-kit] creating kind cluster private-ai-platform-kit with gateway host port 18090 and node image kindest/node:v1.31.4
+No kind clusters found.
+[private-ai-platform-kit] creating kind cluster private-ai-platform-kit with gateway host port 8080 and node image kindest/node:v1.31.4
 Creating cluster "private-ai-platform-kit" ...
  • Ensuring node image (kindest/node:v1.31.4) 🖼  ...
  ✓ Ensuring node image (kindest/node:v1.31.4) 🖼
  • Preparing nodes 📦   ...
- ✓ Preparing nodes 📦
+ ✓ Preparing nodes 📦 
  • Writing configuration 📜  ...
  ✓ Writing configuration 📜
  • Starting control-plane 🕹️  ...
@@ -33,12 +34,12 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-private-ai-platform-kit
 
-Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+Thanks for using kind! 😊
 [private-ai-platform-kit] building gateway image private-ai-platform-kit/inference-gateway:local
 #0 building with "default" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile: 499B 0.0s done
+#1 transferring dockerfile: 499B done
 #1 DONE 0.0s
 
 #2 [internal] load metadata for docker.io/library/python:3.14-alpine@sha256:26730869004e2b9c4b9ad09cab8625e81d256d1ce97e72df5520e806b1709f92
@@ -49,7 +50,7 @@ Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/qui
 #3 DONE 0.0s
 
 #4 [internal] load build context
-#4 transferring context: 761B done
+#4 transferring context: 1.27kB done
 #4 DONE 0.0s
 
 #5 [1/5] FROM docker.io/library/python:3.14-alpine@sha256:26730869004e2b9c4b9ad09cab8625e81d256d1ce97e72df5520e806b1709f92
@@ -70,15 +71,15 @@ Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/qui
 
 #10 exporting to image
 #10 exporting layers done
-#10 exporting manifest sha256:f3e6d2f276da113c20c36eb07b365e8a4b412a910725cb94923eec43283ac289 done
-#10 exporting config sha256:8674cf76a0f7b5d4df8d830f06a13c886ea3c56815ec02ae05b0cd6993d7a375
-#10 exporting config sha256:8674cf76a0f7b5d4df8d830f06a13c886ea3c56815ec02ae05b0cd6993d7a375 done
-#10 exporting attestation manifest sha256:f76c7155d668e5d7215f6e0aa5f93ba23f435ed34d8a690cf4f0456b36bfe58b 0.0s done
-#10 exporting manifest list sha256:2e596649570aafd11c551ba5527f48a1068a2f1cb18e3d1f946de8620293c68f 0.0s done
+#10 exporting manifest sha256:5a9d6130eb34c5d45981860de805ead4abc312ef9695c8df301310f2008f2f63 done
+#10 exporting config sha256:99d1b4884104363b9fb0544d27689edec17ced1d35bb0d1e6c768909e43f850b done
+#10 exporting attestation manifest sha256:ddd805c9d5f597b1b91bc56a9c3a1057ce1b6dfdb003d971196ae05004fba8b7 0.0s done
+#10 exporting manifest list sha256:12de489cd9e7b1fc5ed64414bfd1f9606f53a72df422c5fd26b459e5e7f3ae16 0.0s done
+#10 naming to docker.io/private-ai-platform-kit/inference-gateway:local
 #10 naming to docker.io/private-ai-platform-kit/inference-gateway:local done
 #10 unpacking to docker.io/private-ai-platform-kit/inference-gateway:local 0.0s done
 #10 DONE 0.1s
-Image: "private-ai-platform-kit/inference-gateway:local" with ID "sha256:2e596649570aafd11c551ba5527f48a1068a2f1cb18e3d1f946de8620293c68f" not yet present on node "private-ai-platform-kit-control-plane", loading...
+Image: "private-ai-platform-kit/inference-gateway:local" with ID "sha256:12de489cd9e7b1fc5ed64414bfd1f9606f53a72df422c5fd26b459e5e7f3ae16" not yet present on node "private-ai-platform-kit-control-plane", loading...
 [private-ai-platform-kit] building RAG service image private-ai-platform-kit/rag-service:local
 #0 building with "default" instance using docker driver
 
@@ -94,20 +95,20 @@ Image: "private-ai-platform-kit/inference-gateway:local" with ID "sha256:2e59664
 #3 DONE 0.0s
 
 #4 [internal] load build context
-#4 transferring context: 663B done
+#4 transferring context: 1.11kB done
 #4 DONE 0.0s
 
 #5 [1/5] FROM docker.io/library/python:3.14-alpine@sha256:26730869004e2b9c4b9ad09cab8625e81d256d1ce97e72df5520e806b1709f92
 #5 resolve docker.io/library/python:3.14-alpine@sha256:26730869004e2b9c4b9ad09cab8625e81d256d1ce97e72df5520e806b1709f92 0.0s done
 #5 DONE 0.0s
 
-#6 [2/5] WORKDIR /app
+#6 [4/5] RUN python -m pip install --no-cache-dir --disable-pip-version-check --require-hashes -r requirements.lock     && adduser -D -H -u 10001 appuser
 #6 CACHED
 
 #7 [3/5] COPY requirements.lock .
 #7 CACHED
 
-#8 [4/5] RUN python -m pip install --no-cache-dir --disable-pip-version-check --require-hashes -r requirements.lock     && adduser -D -H -u 10001 appuser
+#8 [2/5] WORKDIR /app
 #8 CACHED
 
 #9 [5/5] COPY app ./app
@@ -115,14 +116,14 @@ Image: "private-ai-platform-kit/inference-gateway:local" with ID "sha256:2e59664
 
 #10 exporting to image
 #10 exporting layers done
-#10 exporting manifest sha256:cf71411d4b1557505b5c29c3fc5cc6aacad64dfc0a8bb345638fb5b69405adbb done
-#10 exporting config sha256:393731c4557366d5ec683e21d9094b8bd76b1c44ac780b7e888c59ca7c94440f done
-#10 exporting attestation manifest sha256:f452f00261cf5ee5f365e29cd4203273334158cfc3e1d0f769fa003d3f0946e9 0.0s done
-#10 exporting manifest list sha256:e4d1a2c4cac0be9b07373d8e4c12c4b7490bc15dafc12ddc26826681f238ea19 0.0s done
+#10 exporting manifest sha256:eafcf6d08d389f0b89602c7f5c8827692aa74bd1f7d299e052f02541b9412a3f done
+#10 exporting config sha256:127b1cff1b33db26a0b43074a7af2ff1cce98495747ac7208bd50fdb98dc2576 done
+#10 exporting attestation manifest sha256:7ebfa41b05bf47b0d08cb08ce79eaf8a4dd790f9d75aab060151a5b5576372c9 0.0s done
+#10 exporting manifest list sha256:6ced87a0dd80ee899b57fd520f1084a9a75b79d9161c8716a27281364a3cce8d 0.0s done
 #10 naming to docker.io/private-ai-platform-kit/rag-service:local done
 #10 unpacking to docker.io/private-ai-platform-kit/rag-service:local 0.0s done
 #10 DONE 0.1s
-Image: "private-ai-platform-kit/rag-service:local" with ID "sha256:e4d1a2c4cac0be9b07373d8e4c12c4b7490bc15dafc12ddc26826681f238ea19" not yet present on node "private-ai-platform-kit-control-plane", loading...
+Image: "private-ai-platform-kit/rag-service:local" with ID "sha256:6ced87a0dd80ee899b57fd520f1084a9a75b79d9161c8716a27281364a3cce8d" not yet present on node "private-ai-platform-kit-control-plane", loading...
 [private-ai-platform-kit] ensuring Argo CD namespace exists
 namespace/argocd created
 [private-ai-platform-kit] local cluster is ready; run make bootstrap-argocd next
@@ -145,7 +146,7 @@ namespace/vector created
 configmap/ai-model-catalog created
 Release "budget-redis" does not exist. Installing it now.
 NAME: budget-redis
-LAST DEPLOYED: Sat Jun 27 10:30:33 2026
+LAST DEPLOYED: Mon Jun 29 01:32:41 2026
 NAMESPACE: budget
 STATUS: deployed
 REVISION: 1
@@ -153,7 +154,7 @@ DESCRIPTION: Install complete
 TEST SUITE: None
 Release "ollama" does not exist. Installing it now.
 NAME: ollama
-LAST DEPLOYED: Sat Jun 27 10:30:33 2026
+LAST DEPLOYED: Mon Jun 29 01:32:43 2026
 NAMESPACE: ollama
 STATUS: deployed
 REVISION: 1
@@ -161,15 +162,14 @@ DESCRIPTION: Install complete
 TEST SUITE: None
 Release "inference-gateway" does not exist. Installing it now.
 NAME: inference-gateway
-LAST DEPLOYED: Sat Jun 27 10:30:34 2026
+LAST DEPLOYED: Mon Jun 29 01:32:44 2026
 NAMESPACE: inference
 STATUS: deployed
 REVISION: 1
 DESCRIPTION: Install complete
-TEST SUITE: None
 Release "qdrant-vector-store" does not exist. Installing it now.
 NAME: qdrant-vector-store
-LAST DEPLOYED: Sat Jun 27 10:30:34 2026
+LAST DEPLOYED: Mon Jun 29 01:32:44 2026
 NAMESPACE: vector
 STATUS: deployed
 REVISION: 1
@@ -177,15 +177,14 @@ DESCRIPTION: Install complete
 TEST SUITE: None
 Release "rag-service" does not exist. Installing it now.
 NAME: rag-service
-LAST DEPLOYED: Sat Jun 27 10:30:35 2026
+LAST DEPLOYED: Mon Jun 29 01:32:45 2026
 NAMESPACE: rag
 STATUS: deployed
 REVISION: 1
 DESCRIPTION: Install complete
-TEST SUITE: None
 Release "agent-workspace" does not exist. Installing it now.
 NAME: agent-workspace
-LAST DEPLOYED: Sat Jun 27 10:30:35 2026
+LAST DEPLOYED: Mon Jun 29 01:32:45 2026
 NAMESPACE: ai-agents
 STATUS: deployed
 REVISION: 1
@@ -203,27 +202,27 @@ make[1]: Leaving directory '/home/rambo/git/private-ai-platform-kit'
 make[1]: Entering directory '/home/rambo/git/private-ai-platform-kit'
 RUNTIME_BACKEND="ollama" ./scripts/smoke.sh
 [private-ai-platform-kit] port-forwarding inference/inference-gateway-inference-gateway
-{"status":"ok","backend":"ollama","model":"qwen3:0.6b"}
+{"status":"ok","backend":"ollama","model":"qwen2.5:0.5b"}
 {
-    "id": "chatcmpl-870",
+    "id": "chatcmpl-577",
     "object": "chat.completion",
-    "created": 1782549217,
-    "model": "qwen3:0.6b",
+    "created": 1782689695,
+    "model": "qwen2.5:0.5b",
     "system_fingerprint": "fp_ollama",
     "choices": [
         {
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": "Hello! How can I assist you today? \ud83d\ude0a"
+                "content": "Hello! Welcome to my world. Is there anything in particular that you would like to discuss or learn about? I'm here to help answer your questions or provide insights into a variety of topics, including algorithms, language processing, data analysis, and more. What would you like to know today?"
             },
             "finish_reason": "stop"
         }
     ],
     "usage": {
-        "prompt_tokens": 17,
-        "completion_tokens": 157,
-        "total_tokens": 174
+        "prompt_tokens": 36,
+        "completion_tokens": 60,
+        "total_tokens": 96
     }
 }
 [private-ai-platform-kit] smoke test completed for ollama
@@ -241,7 +240,7 @@ make[1]: Entering directory '/home/rambo/git/private-ai-platform-kit'
 }
 
 {
-    "request_id": "rag-smoke-20260627T083337Z-query",
+    "request_id": "rag-smoke-20260628T233455Z-query",
     "sandbox_id": "agent-lab",
     "retrieval_backend": "lexical",
     "query_sha256": "bd5d3df3b90acd1c8e02b49b02346f9d9473d4676c66403f29d0e71cd71bd17f",

@@ -59,7 +59,8 @@ Workflow above) — the gates intentionally block promoting a model without veri
 - `zai-org/GLM-5.2` (vLLM) — strong open agentic-coding MoE (multi-GPU).
 - `deepseek-ai/DeepSeek-V4-Flash` (vLLM) — 1M-context MoE (multi-GPU).
 
-The local smoke default `qwen3.5:0.8b` was promoted from this list with a reproducible
-Ollama-registry model-layer provenance digest. The customer coding-agent default
-`Qwen/Qwen3-Coder-Next` stays approved: it is still Qwen's latest dedicated coder, so it remains the
-recommended coding profile.
+The local smoke default `qwen2.5:0.5b` (fast, non-reasoning) and the customer Ollama default
+`qwen3.5:0.8b` (higher-quality reasoning, but slow to complete on a CPU-only laptop) were each
+promoted with a reproducible Ollama-registry model-layer provenance digest. The customer coding-agent
+default `Qwen/Qwen3-Coder-Next` stays approved: it is still Qwen's latest dedicated coder, so it
+remains the recommended coding profile.

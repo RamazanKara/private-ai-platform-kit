@@ -3,7 +3,7 @@ kind: EvalSuite
 metadata:
   name: local-smoke
 spec:
-  model: qwen3.5:0.8b
+  model: qwen2.5:0.5b
   defaults:
     sandboxId: eval-lab
     temperature: 0

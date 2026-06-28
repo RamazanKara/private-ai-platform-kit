@@ -35,7 +35,7 @@ data:
           maxCompletionTokens: 8192
           promotionRequest: model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml
           notes: Current Qwen3 Coder Next profile for customer GPU coding-agent clusters.
-        - id: qwen3.5:0.8b
+        - id: qwen2.5:0.5b
           runtime: ollama
           owner: platform-team
           status: approved
@@ -49,8 +49,24 @@ data:
           contextWindow: 32768
           maxPromptChars: 8192
           maxCompletionTokens: 1024
-          promotionRequest: model-catalog/promotion-requests/qwen3.5-local-lab-approved.yaml
-          notes: Latest small Qwen3.5 CPU smoke model; the default local model.
+          promotionRequest: model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml
+          notes: Default local CPU smoke model; fast non-reasoning Qwen2.5 0.5B sized for laptop kind demos.
+        - id: qwen3.5:0.8b
+          runtime: ollama
+          owner: platform-team
+          status: approved
+          stage: customer-lab
+          riskTier: low
+          dataClassification: internal
+          license: apache-2.0
+          source: ollama-library
+          accelerators:
+            - cpu
+          contextWindow: 32768
+          maxPromptChars: 8192
+          maxCompletionTokens: 1024
+          promotionRequest: model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml
+          notes: Higher-quality small Qwen3.5 reasoning model for the customer Ollama profile; reasons slowly on CPU, so the local laptop profile uses qwen2.5:0.5b instead.
         # Proposed newer models. Promote to `approved` only after capturing a real provenance
         # digest (governance/model-provenance.yaml) and a promotion request, then add to the
         # relevant runtime.allowedModels. See runbooks/model-governance.md.

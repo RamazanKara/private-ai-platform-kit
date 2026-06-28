@@ -4,16 +4,16 @@ image:
   pullPolicy: IfNotPresent
 runtime:
   backend: ollama
-  modelId: qwen3.5:0.8b
+  modelId: qwen2.5:0.5b
   ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
   vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
   allowedModels:
-    - qwen3.5:0.8b
+    - qwen2.5:0.5b
 routing:
   policy:
     enabled: true
     models:
-      - id: qwen3.5:0.8b
+      - id: qwen2.5:0.5b
         backend: ollama
 admission:
   maxMessages: 16

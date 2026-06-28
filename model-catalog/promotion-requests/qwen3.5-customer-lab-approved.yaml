@@ -1,22 +1,21 @@
 apiVersion: platform.ai/v1alpha1
 kind: ModelPromotionRequest
 metadata:
-  name: qwen3.5-local-lab-approved
+  name: qwen3.5-customer-lab-approved
 spec:
   modelId: qwen3.5:0.8b
   targetStatus: approved
   requestedBy: platform-team
   approvers:
     - platform-team
-  businessJustification: Latest small Qwen3.5 CPU smoke-test model; promoted as the default local model in place of qwen3:0.6b, which is retained as a smaller fallback.
+  businessJustification: Higher-quality small Qwen3.5 reasoning model for the customer Ollama profile. It reasons slowly on CPU, so the local laptop profile uses the faster qwen2.5:0.5b instead.
   runtime: ollama
   accelerators:
     - cpu
   rollout:
     environments:
-      - local
+      - customer
     allowedModelFiles:
-      - clusters/local/values/inference-gateway.yaml
       - clusters/customer/values/inference-gateway.yaml
   evidence:
     evalSuite: evals/smoke-suite.yaml

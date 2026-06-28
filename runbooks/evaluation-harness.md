@@ -37,7 +37,7 @@ Start and sync the local lab first:
 
     make local-up
     LOCAL_DIRECT_APPLY=1 make sync
-    kubectl -n ollama exec ollama-0 -- ollama pull qwen3.5:0.8b
+    kubectl -n ollama exec ollama-0 -- ollama pull qwen2.5:0.5b
 
 Then run:
 

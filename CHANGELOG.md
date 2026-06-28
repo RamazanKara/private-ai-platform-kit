@@ -9,7 +9,7 @@
 
 ### Changed
 
-- Promoted `qwen3.5:0.8b` to the default local Ollama smoke model, replacing `qwen3:0.6b`, with a reproducible Ollama-registry model-layer provenance digest, a promotion request, and refreshed catalog and provenance evidence. The customer coding-agent default `Qwen/Qwen3-Coder-Next` is unchanged (still the latest dedicated Qwen coder).
+- Set the default local Ollama smoke model to `qwen2.5:0.5b`, a fast non-reasoning model so the laptop CPU quickstart completes in seconds (verified live: ~4s per completion), and made the larger `qwen3.5:0.8b` reasoning model the customer Ollama profile default. `qwen3.5:0.8b` reasons past the gateway timeout on a CPU-only laptop, so it is not suited to the local smoke. Both models carry reproducible Ollama-registry model-layer provenance digests and promotion requests; the old `qwen3:0.6b` is fully removed. The customer coding-agent default `Qwen/Qwen3-Coder-Next` is unchanged (still the latest dedicated Qwen coder).
 
 ### Removed
 
