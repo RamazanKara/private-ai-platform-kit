@@ -19,10 +19,11 @@ from pydantic import BaseModel, Field
 from app.embeddings import build_embedding_provider
 from app.retriever import LexicalRetriever, QdrantRetriever, VectorStoreError, build_context
 from app.settings import Settings, validate_sandbox_id
+from app.tracing import configure_tracing, trace_request
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.rag.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.7.0"
+SERVICE_VERSION = "0.8.0"
 OPENAPI_DESCRIPTION = (
     "Private retrieval service for platform and customer knowledge. The service "
     "returns traceable retrieval results, optional context blocks, and "
@@ -240,6 +241,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     else:
         app.state.retriever = LexicalRetriever.from_directory(resolved.document_dir)
+    tracing = configure_tracing(resolved)
+    app.state.tracer = tracing[0] if tracing else None
+    app.state.tracer_provider = tracing[1] if tracing else None
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
@@ -252,15 +256,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-        if resolved.api_key_auth_enabled and _auth_required(request.url.path) and not _valid_api_key(request, resolved):
-            return _auth_failure_response(request, "invalid_or_missing_api_key")
+        async def dispatch() -> Response:
+            if (
+                resolved.api_key_auth_enabled
+                and _auth_required(request.url.path)
+                and not _valid_api_key(request, resolved)
+            ):
+                return _auth_failure_response(request, "invalid_or_missing_api_key")
+            response = await call_next(request)
+            response.headers["X-Request-ID"] = request.state.request_id
+            response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+            if request.state.traceparent:
+                response.headers["traceparent"] = request.state.traceparent
+            return response
 
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request.state.request_id
-        response.headers["X-Sandbox-ID"] = request.state.sandbox_id
-        if request.state.traceparent:
-            response.headers["traceparent"] = request.state.traceparent
-        return response
+        tracer = request.app.state.tracer
+        if tracer is None:
+            return await dispatch()
+        return await trace_request(tracer, request, dispatch)
 
     @app.get(
         "/healthz",

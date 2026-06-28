@@ -37,7 +37,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `autoscaling.targetCPUUtilizationPercentage` | `70` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/rag-service` |
-| `image.tag` | `v0.7.0` |
+| `image.tag` | `v0.8.0` |
 | `ingestion.annotations` | `{}` |
 | `ingestion.backoffLimit` | `1` |
 | `ingestion.chunkChars` | `1200` |
@@ -57,6 +57,9 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `networkPolicy.vectorStoreEgress.enabled` | `true` |
 | `networkPolicy.vectorStoreEgress.namespace` | `vector` |
 | `networkPolicy.vectorStoreEgress.port` | `6333` |
+| `observability.tracing.enabled` | `false` |
+| `observability.tracing.otlpEndpoint` | `""` |
+| `observability.tracing.serviceName` | `rag-service` |
 | `podDisruptionBudget.enabled` | `true` |
 | `podDisruptionBudget.minAvailable` | `1` |
 | `podLabels.platform.ai/cost-center` | `platform` |

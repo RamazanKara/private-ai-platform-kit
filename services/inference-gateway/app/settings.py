@@ -156,6 +156,9 @@ class Settings:
     runtime_retry_backoff_seconds: float = 0.1
     runtime_circuit_failure_threshold: int = 0
     runtime_circuit_reset_seconds: float = 30.0
+    otel_tracing_enabled: bool = False
+    otel_exporter_otlp_endpoint: str = ""
+    otel_service_name: str = "inference-gateway"
 
     def __post_init__(self) -> None:
         """Validate budget, auth, JWT, and runtime resilience fields after init."""
@@ -195,6 +198,8 @@ class Settings:
             raise ValueError("runtime_circuit_failure_threshold must be zero or greater")
         if self.runtime_circuit_reset_seconds <= 0:
             raise ValueError("runtime_circuit_reset_seconds must be greater than zero")
+        if self.otel_tracing_enabled and not self.otel_exporter_otlp_endpoint:
+            raise ValueError("otel_exporter_otlp_endpoint must be set when OTEL tracing is enabled")
         unknown_patterns = sorted(set(self.prompt_secret_patterns) - set(BUILT_IN_SECRET_PATTERNS))
         if unknown_patterns:
             raise ValueError(f"prompt_secret_patterns contains unknown patterns: {unknown_patterns}")
@@ -282,6 +287,9 @@ class Settings:
                 "RUNTIME_CIRCUIT_RESET_SECONDS",
                 30.0,
             ),
+            otel_tracing_enabled=_bool_from_env("OTEL_TRACING_ENABLED", False),
+            otel_exporter_otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip(),
+            otel_service_name=os.getenv("OTEL_SERVICE_NAME", "inference-gateway").strip(),
         )
 
     @property

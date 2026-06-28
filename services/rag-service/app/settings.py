@@ -106,6 +106,9 @@ class Settings:
     api_key_auth_enabled: bool = False
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
+    otel_tracing_enabled: bool = False
+    otel_exporter_otlp_endpoint: str = ""
+    otel_service_name: str = "rag-service"
 
     def __post_init__(self) -> None:
         """Validate retrieval, vector store, embedding, and auth fields after init."""
@@ -145,6 +148,8 @@ class Settings:
                 raise ValueError("api_key_sha256s must contain SHA-256 hex digests")
         if not self.api_key_header.strip():
             raise ValueError("api_key_header must not be empty")
+        if self.otel_tracing_enabled and not self.otel_exporter_otlp_endpoint:
+            raise ValueError("otel_exporter_otlp_endpoint must be set when OTEL tracing is enabled")
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -175,6 +180,9 @@ class Settings:
             api_key_auth_enabled=_bool_from_env("API_KEY_AUTH_ENABLED", False),
             api_key_sha256s=_sha256s_from_env("API_KEY_SHA256S"),
             api_key_header=os.getenv("API_KEY_HEADER", "X-API-Key"),
+            otel_tracing_enabled=_bool_from_env("OTEL_TRACING_ENABLED", False),
+            otel_exporter_otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip(),
+            otel_service_name=os.getenv("OTEL_SERVICE_NAME", "rag-service").strip(),
         )
 
 

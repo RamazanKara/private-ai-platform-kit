@@ -145,6 +145,9 @@ def check_gateway_render(name: str, docs: list[dict[str, Any]], errors: list[str
         "API_KEY_AUTH_ENABLED",
         "API_KEY_HEADER",
         "API_KEY_SHA256S",
+        "OTEL_TRACING_ENABLED",
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "OTEL_SERVICE_NAME",
     }
     missing_env = required_env - env_names(deployment)
 
@@ -285,6 +288,9 @@ def check_rag_render(name: str, docs: list[dict[str, Any]], expect_hpa: bool, er
             "API_KEY_AUTH_ENABLED",
             "API_KEY_HEADER",
             "API_KEY_SHA256S",
+            "OTEL_TRACING_ENABLED",
+            "OTEL_EXPORTER_OTLP_ENDPOINT",
+            "OTEL_SERVICE_NAME",
         }
         missing_env = required_env - env_names(deployment)
         require(errors, ":latest" not in image, f"{name}: RAG image tag must be pinned")

@@ -91,6 +91,12 @@ spec:
               {{- else }}
               value: {{ join "," .Values.auth.apiKeyHashes | quote }}
               {{- end }}
+            - name: OTEL_TRACING_ENABLED
+              value: {{ .Values.observability.tracing.enabled | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.observability.tracing.otlpEndpoint | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Values.observability.tracing.serviceName | quote }}
           ports:
             - name: http
               containerPort: 8080

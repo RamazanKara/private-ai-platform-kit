@@ -212,3 +212,36 @@ def test_upsert_chunks_embeds_and_writes_points(tmp_path, monkeypatch):
     assert summary["collection_status"] == "created"
     assert len(captured["points"][0]["vector"]) == 8
     assert captured["points"][0]["payload"]["source_id"] == "handbook"
+
+
+def test_main_check_mode_reports_summary(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "docs"
+    root.mkdir()
+    (root / "guide.md").write_text("alpha content here", encoding="utf-8")
+    manifest = _write_manifest(tmp_path, _source_block("docs"))
+    monkeypatch.setattr("sys.argv", ["ingest", "--source", str(manifest), "--check", "--dimensions", "8"])
+
+    assert ingest.main() == 0
+
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["status"] == "checked"
+    assert summary["sources"] == 1
+    assert summary["chunks"] >= 1
+    assert summary["dimensions"] == 8
+
+
+def test_main_rejects_non_positive_dimensions(tmp_path, monkeypatch):
+    manifest = _write_manifest(tmp_path, _source_block("docs"))
+    monkeypatch.setattr("sys.argv", ["ingest", "--source", str(manifest), "--check", "--dimensions", "0"])
+    with pytest.raises(SystemExit, match="dimensions"):
+        ingest.main()
+
+
+def test_main_write_requires_qdrant_url(tmp_path, monkeypatch):
+    root = tmp_path / "docs"
+    root.mkdir()
+    (root / "guide.md").write_text("alpha", encoding="utf-8")
+    manifest = _write_manifest(tmp_path, _source_block("docs"))
+    monkeypatch.setattr("sys.argv", ["ingest", "--source", str(manifest), "--write", "--dimensions", "8"])
+    with pytest.raises(SystemExit, match="qdrant-url"):
+        ingest.main()
