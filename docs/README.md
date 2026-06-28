@@ -46,8 +46,11 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Prompt and secret guardrails | [Guardrails](../runbooks/guardrails.md) |
 | Agent workspace design | [Agent workspaces](../runbooks/agent-workspaces.md) |
 | Tenant lab onboarding | [Tenant labs](../runbooks/tenant-labs.md) |
+| Regulated offline tenant example | [Regulated offline tenant](regulated-offline-tenant-example.md) |
+| GPU coding-agent tenant example | [GPU coding-agent tenant](gpu-coding-agent-tenant-example.md) |
 | RAG service | [RAG service](../runbooks/rag-service.md) |
 | Qdrant vector RAG profile | [Vector RAG](../runbooks/vector-rag.md) |
+| Qdrant collection migration | [Qdrant migration](../runbooks/qdrant-migration.md) |
 
 ## Governance And Evidence
 
@@ -60,6 +63,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Quota and chargeback | [Quota and chargeback](../runbooks/quota-chargeback.md) |
 | Data retention and privacy | [Data retention](../runbooks/data-retention.md) |
 | External egress approvals | [Egress governance](../runbooks/egress-governance.md) |
+| OpenSSF Scorecard triage | [Scorecard triage](../runbooks/scorecard-triage.md) |
 | Model lifecycle and promotion | [Model governance](../runbooks/model-governance.md) |
 | Model artifact provenance | [Model provenance](../runbooks/model-provenance.md) |
 | Restore verification | [Restore drill](../runbooks/restore-drill.md) |

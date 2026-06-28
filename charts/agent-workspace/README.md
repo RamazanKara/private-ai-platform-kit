@@ -54,3 +54,12 @@ Isolated namespace template for coding agents that use the Private AI Platform K
 | `workspace.pvc.size` | `10Gi` |
 | `workspace.pvc.storageClassName` | `""` |
 <!-- chart-docs:end -->
+## Install profiles
+
+| Profile | Command |
+| --- | --- |
+| Minimal (chart defaults) | `helm install agent-workspace charts/agent-workspace` |
+| Local kind lab | `helm install agent-workspace charts/agent-workspace -f clusters/local/values/agent-workspace.yaml` |
+| Customer cluster | `helm install agent-workspace charts/agent-workspace -f clusters/customer/values/agent-workspace.yaml` |
+
+In GitOps installs these value files are applied by the matching Argo CD Application in `clusters/<env>/apps.yaml`; the commands above are for direct `helm` workstation checks.

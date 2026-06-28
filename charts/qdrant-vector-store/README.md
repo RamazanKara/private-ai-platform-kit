@@ -35,3 +35,12 @@ Optional local vector store profile for Private AI Platform Kit RAG.
 | `serviceMonitor.enabled` | `true` |
 | `serviceMonitor.interval` | `30s` |
 <!-- chart-docs:end -->
+## Install profiles
+
+| Profile | Command |
+| --- | --- |
+| Minimal (chart defaults) | `helm install qdrant-vector-store charts/qdrant-vector-store` |
+| Local kind lab | `helm install qdrant-vector-store charts/qdrant-vector-store -f clusters/local/values/qdrant-vector-store.yaml` |
+| Customer cluster | `helm install qdrant-vector-store charts/qdrant-vector-store -f clusters/customer/values/qdrant-vector-store.yaml` |
+
+In GitOps installs these value files are applied by the matching Argo CD Application in `clusters/<env>/apps.yaml`; the commands above are for direct `helm` workstation checks.

@@ -29,3 +29,12 @@ Local Redis-compatible store for shared sandbox budget accounting.
 | `serviceAccount.create` | `true` |
 | `serviceAccount.name` | `""` |
 <!-- chart-docs:end -->
+## Install profiles
+
+| Profile | Command |
+| --- | --- |
+| Minimal (chart defaults) | `helm install budget-redis charts/budget-redis` |
+
+This chart ships only the minimal profile; tune values inline for your environment.
+
+In GitOps installs these value files are applied by the matching Argo CD Application in `clusters/<env>/apps.yaml`; the commands above are for direct `helm` workstation checks.

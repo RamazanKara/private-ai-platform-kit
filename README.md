@@ -128,10 +128,14 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | Roadmap | [Roadmap](ROADMAP.md) |
 | Customer cluster assumptions | [Customer cluster README](clusters/customer/README.md) |
 | Customer handoff example | [Customer handoff example](docs/customer-handoff-example.md) |
+| Regulated offline tenant example | [Regulated offline tenant](docs/regulated-offline-tenant-example.md) |
+| GPU coding-agent tenant example | [GPU coding-agent tenant](docs/gpu-coding-agent-tenant-example.md) |
 | Restore verification | [Restore drill runbook](runbooks/restore-drill.md) |
 | Coding-agent workspaces | [Agent workspaces runbook](runbooks/agent-workspaces.md) |
 | Model governance | [Model governance runbook](runbooks/model-governance.md) |
 | OIDC / JWKS rotation | [OIDC/JWKS rotation runbook](runbooks/oidc-jwks-rotation.md) |
+| OpenSSF Scorecard triage | [Scorecard triage runbook](runbooks/scorecard-triage.md) |
+| Qdrant collection migration | [Qdrant migration runbook](runbooks/qdrant-migration.md) |
 | Upstream references | [References](docs/references.md) |
 
 ## Repo Map

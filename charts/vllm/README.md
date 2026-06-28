@@ -53,3 +53,14 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `topologySpread.topologyKey` | `kubernetes.io/hostname` |
 | `topologySpread.whenUnsatisfiable` | `ScheduleAnyway` |
 <!-- chart-docs:end -->
+## Install profiles
+
+| Profile | Command |
+| --- | --- |
+| Minimal (chart defaults) | `helm install vllm charts/vllm` |
+| Local kind lab | `helm install vllm charts/vllm -f clusters/local/values/vllm.yaml` |
+| Customer cluster | `helm install vllm charts/vllm -f clusters/customer/values/vllm.yaml` |
+
+GPU variants: `clusters/customer/values/vllm-nvidia.yaml` and `clusters/customer/values/vllm-amd.yaml`.
+
+In GitOps installs these value files are applied by the matching Argo CD Application in `clusters/<env>/apps.yaml`; the commands above are for direct `helm` workstation checks.

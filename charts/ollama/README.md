@@ -34,3 +34,12 @@ Local-first private LLM runtime.
 | `topologySpread.topologyKey` | `kubernetes.io/hostname` |
 | `topologySpread.whenUnsatisfiable` | `ScheduleAnyway` |
 <!-- chart-docs:end -->
+## Install profiles
+
+| Profile | Command |
+| --- | --- |
+| Minimal (chart defaults) | `helm install ollama charts/ollama` |
+| Local kind lab | `helm install ollama charts/ollama -f clusters/local/values/ollama.yaml` |
+| Customer cluster | `helm install ollama charts/ollama -f clusters/customer/values/ollama.yaml` |
+
+In GitOps installs these value files are applied by the matching Argo CD Application in `clusters/<env>/apps.yaml`; the commands above are for direct `helm` workstation checks.

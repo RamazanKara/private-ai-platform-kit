@@ -5,6 +5,7 @@
 ### Added
 
 - Added proposed model-catalog entries for newer self-hostable vLLM models: `Qwen/Qwen3.6-35B-A3B`, `zai-org/GLM-5.2`, and `deepseek-ai/DeepSeek-V4-Flash`, pending provenance and promotion (see `runbooks/model-governance.md`).
+- Added an OpenSSF Scorecard triage runbook, a Qdrant collection migration (dry-run + rollback) runbook, regulated-offline and GPU coding-agent tenant example walkthroughs, and per-chart install-profile sections in every chart README.
 
 ### Changed
 

@@ -113,3 +113,12 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `traceability.auditLogEnabled` | `true` |
 | `traceability.defaultSandboxId` | `local-lab` |
 <!-- chart-docs:end -->
+## Install profiles
+
+| Profile | Command |
+| --- | --- |
+| Minimal (chart defaults) | `helm install inference-gateway charts/inference-gateway` |
+| Local kind lab | `helm install inference-gateway charts/inference-gateway -f clusters/local/values/inference-gateway.yaml` |
+| Customer cluster | `helm install inference-gateway charts/inference-gateway -f clusters/customer/values/inference-gateway.yaml` |
+
+In GitOps installs these value files are applied by the matching Argo CD Application in `clusters/<env>/apps.yaml`; the commands above are for direct `helm` workstation checks.
