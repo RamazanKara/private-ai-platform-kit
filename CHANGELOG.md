@@ -4,6 +4,23 @@
 
 No unreleased changes.
 
+## v0.7.0 - 2026-06-28
+
+### Added
+
+- Added `helm test` connection probes for the inference-gateway and rag-service charts (`tests.enabled`), rendered for chart validation and run on demand with `helm test`.
+- Added a per-service Grafana dashboard for the RAG service and a `make dashboard-check` gate (wired into `make validate`) that fails when a dashboard references a metric the services do not emit.
+- Added public-API docstrings across both service codebases.
+- Added gateway runtime-client streaming, health-fallback, and circuit-breaker tests plus a RAG ingestion test suite, and raised the enforced `make coverage` floors to 84% (gateway) and 78% (RAG).
+- Added a `CITATION.cff` for repository citation metadata.
+
+### Validation
+
+- `make validate-full`
+- `make quality`
+- `make coverage`
+- `make dashboard-check`
+
 ## v0.6.0 - 2026-06-28
 
 ### Added

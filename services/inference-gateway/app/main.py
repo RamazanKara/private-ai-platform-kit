@@ -1,3 +1,5 @@
+"""OpenAI-compatible inference gateway with auth, admission, budgets, and runtime routing."""
+
 import hashlib
 import hmac
 import json
@@ -21,7 +23,7 @@ from app.settings import AdmissionPolicyError, Settings, validate_sandbox_id
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.6.0"
+SERVICE_VERSION = "0.7.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
@@ -78,11 +80,15 @@ AUTH_FAILURES = Counter(
 
 
 class Message(BaseModel):
+    """A single chat message with an OpenAI-style role and text content."""
+
     role: Literal["system", "user", "assistant", "tool"]
     content: str
 
 
 class ChatCompletionRequest(BaseModel):
+    """Request body for an OpenAI-compatible chat completion call."""
+
     model: str | None = None
     messages: list[Message]
     temperature: float | None = None
@@ -91,6 +97,7 @@ class ChatCompletionRequest(BaseModel):
 
 
 def _request_id_from_header(request: Request) -> str:
+    """Return a validated X-Request-ID header value, generating a UUID when absent."""
     request_id = request.headers.get("x-request-id", "").strip()
     if not request_id:
         return str(uuid4())
@@ -100,6 +107,7 @@ def _request_id_from_header(request: Request) -> str:
 
 
 def _traceparent_from_header(request: Request) -> str | None:
+    """Return the validated W3C ``traceparent`` header, or None when not provided."""
     traceparent = request.headers.get("traceparent")
     if traceparent is None:
         return None
@@ -110,6 +118,7 @@ def _traceparent_from_header(request: Request) -> str | None:
 
 
 def _runtime_headers(request: Request) -> dict[str, str]:
+    """Build the trace-propagation headers forwarded to the runtime backend."""
     headers = {
         "X-Request-ID": request.state.request_id,
         "X-Sandbox-ID": request.state.sandbox_id,
@@ -123,10 +132,12 @@ def _runtime_headers(request: Request) -> dict[str, str]:
 
 
 def _auth_required(path: str) -> bool:
+    """Return whether the given request path requires authentication."""
     return path not in {"/healthz", "/metrics", "/docs", "/openapi.json"}
 
 
 def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
+    """Attach bearer/API-key security schemes to the app's generated OpenAPI schema."""
     default_openapi = app.openapi
 
     def custom_openapi() -> dict[str, Any]:
@@ -159,6 +170,7 @@ def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
 
 
 def _api_key_from_request(request: Request, settings: Settings) -> str | None:
+    """Extract the API key from the bearer token or configured API-key header."""
     authorization = request.headers.get("authorization", "").strip()
     if authorization.lower().startswith("bearer "):
         token = authorization[7:].strip()
@@ -171,6 +183,7 @@ def _api_key_from_request(request: Request, settings: Settings) -> str | None:
 
 
 def _valid_api_key(request: Request, settings: Settings) -> bool:
+    """Return whether the request carries an API key matching a configured digest."""
     api_key = _api_key_from_request(request, settings)
     if not api_key:
         return False
@@ -179,6 +192,7 @@ def _valid_api_key(request: Request, settings: Settings) -> bool:
 
 
 def _valid_jwt(request: Request, verifier: JwtVerifier) -> bool:
+    """Return whether the request carries a bearer JWT that passes verification."""
     authorization = request.headers.get("authorization", "").strip()
     if not authorization.lower().startswith("bearer "):
         return False
@@ -193,6 +207,7 @@ def _valid_jwt(request: Request, verifier: JwtVerifier) -> bool:
 
 
 def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
+    """Record the failure metric and build the 401 response with trace headers."""
     AUTH_FAILURES.labels(request.url.path, reason).inc()
     response = JSONResponse(
         status_code=401,
@@ -214,6 +229,7 @@ def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
 
 
 def _payload_fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
+    """Summarize a chat payload into redacted audit fields (counts, roles, prompt hash)."""
     messages = payload.get("messages") or []
     canonical_messages = []
     roles = []

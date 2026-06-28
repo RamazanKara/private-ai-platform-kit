@@ -1,3 +1,5 @@
+"""Knowledge retrievers providing lexical and Qdrant-backed grounded context."""
+
 from __future__ import annotations
 
 from collections import Counter
@@ -12,6 +14,8 @@ from app.embeddings import EmbeddingProvider, HashEmbeddingProvider, tokenize
 
 @dataclass(frozen=True)
 class KnowledgeDocument:
+    """An indexed knowledge document with its text and token frequency counts."""
+
     id: str
     title: str
     source: str
@@ -21,13 +25,15 @@ class KnowledgeDocument:
 
 @dataclass(frozen=True)
 class RetrievalResult:
+    """A retrieved document with its relevance score and a context excerpt."""
+
     document: KnowledgeDocument
     score: float
     excerpt: str
 
 
 class VectorStoreError(RuntimeError):
-    pass
+    """Raised when the vector store cannot be reached or bootstrapped."""
 
 
 def _title_from_content(path: Path, content: str) -> str:
@@ -41,6 +47,7 @@ def _title_from_content(path: Path, content: str) -> str:
 
 
 def load_documents(document_dir: Path) -> list[KnowledgeDocument]:
+    """Load markdown and text files under the directory into knowledge documents."""
     if not document_dir.exists():
         return []
     documents: list[KnowledgeDocument] = []
@@ -80,14 +87,18 @@ def _excerpt(content: str, terms: set[str], max_chars: int = 700) -> str:
 
 
 class LexicalRetriever:
+    """In-memory retriever ranking documents by token overlap with the query."""
+
     def __init__(self, documents: list[KnowledgeDocument]) -> None:
         self.documents = documents
 
     @classmethod
     def from_directory(cls, document_dir: Path) -> LexicalRetriever:
+        """Build a lexical retriever from documents loaded under a directory."""
         return cls(load_documents(document_dir))
 
     def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
+        """Return the top-k documents scored by term, phrase, and title matches."""
         terms = tokenize(query)
         if not terms:
             return []
@@ -116,6 +127,8 @@ class LexicalRetriever:
 
 
 class QdrantRetriever:
+    """Vector retriever that embeds queries and searches a Qdrant collection."""
+
     def __init__(
         self,
         documents: list[KnowledgeDocument],
@@ -151,6 +164,7 @@ class QdrantRetriever:
         bootstrap_from_knowledge: bool,
         embedding_provider: EmbeddingProvider | None = None,
     ) -> QdrantRetriever:
+        """Build a Qdrant retriever seeded with documents loaded from a directory."""
         return cls(
             documents=load_documents(document_dir),
             base_url=base_url,
@@ -163,6 +177,7 @@ class QdrantRetriever:
         )
 
     def status(self) -> dict[str, str | int | bool]:
+        """Return collection, embedding, and last-sync status for health checks."""
         return {
             "collection": self.collection,
             "collection_version": self.collection_version,
@@ -235,6 +250,7 @@ class QdrantRetriever:
             raise VectorStoreError("qdrant bootstrap failed") from exc
 
     def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
+        """Embed the query and return the top-k matching points from Qdrant."""
         if not tokenize(query):
             return []
         self._ensure_bootstrapped()
@@ -299,6 +315,7 @@ class QdrantRetriever:
 
 
 def build_context(results: list[RetrievalResult], max_context_chars: int) -> str:
+    """Concatenate retrieval excerpts into a context block within the char budget."""
     sections: list[str] = []
     used = 0
     for result in results:

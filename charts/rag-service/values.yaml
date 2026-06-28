@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/ramazankara/private-ai-platform-kit/rag-service
-  tag: "v0.6.0"
+  tag: "v0.7.0"
   pullPolicy: IfNotPresent
 
 service:
@@ -143,3 +143,10 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
+
+# `helm test` connection probe. Rendered for validation; only created by `helm test`.
+tests:
+  enabled: true
+  image:
+    repository: busybox
+    tag: "1.37.0"

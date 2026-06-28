@@ -81,6 +81,9 @@ services/inference-gateway/.venv/bin/python scripts/api-contract.py --check
 log "checking configuration contracts"
 services/inference-gateway/.venv/bin/python scripts/config-contract.py --check
 
+log "checking observability dashboards"
+services/inference-gateway/.venv/bin/python scripts/dashboard-check.py --check
+
 log "checking production readiness controls"
 services/inference-gateway/.venv/bin/python scripts/production-check.py
 

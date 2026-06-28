@@ -56,7 +56,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"]` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` |
-| `image.tag` | `v0.6.0` |
+| `image.tag` | `v0.7.0` |
 | `keda.enabled` | `true` |
 | `keda.maxReplicaCount` | `5` |
 | `keda.minReplicaCount` | `1` |
@@ -100,6 +100,9 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `serviceAccount.name` | `""` |
 | `serviceMonitor.enabled` | `true` |
 | `serviceMonitor.interval` | `30s` |
+| `tests.enabled` | `true` |
+| `tests.image.repository` | `busybox` |
+| `tests.image.tag` | `1.37.0` |
 | `topologySpread.enabled` | `true` |
 | `topologySpread.maxSkew` | `1` |
 | `topologySpread.topologyKey` | `kubernetes.io/hostname` |
