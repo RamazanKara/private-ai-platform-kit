@@ -249,7 +249,7 @@ def main() -> int:
     parser.add_argument("--catalog", default=str(DEFAULT_CATALOG))
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--report", action="store_true")
-    parser.add_argument("--output-dir", default="results/egress-governance")
+    parser.add_argument("--output-dir", default=".out/results/egress-governance")
     args = parser.parse_args()
 
     catalog_path = (ROOT / args.catalog).resolve() if not Path(args.catalog).is_absolute() else Path(args.catalog)

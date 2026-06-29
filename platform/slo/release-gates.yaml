@@ -13,16 +13,16 @@ spec:
     eval:
       required: true
       evidence:
-        - results/evals/eval-*.json
-        - results/evals/sample-summary.json
+        - .out/results/evals/eval-*.json
+        - .out/results/evals/sample-summary.json
       minCases: 2
       minPassRate: 1.0
       maxCaseLatencyMs: 30000
     load:
       required: true
       evidence:
-        - results/loadtest/loadtest-*.json
-        - results/loadtest/sample-summary.json
+        - .out/results/loadtest/loadtest-*.json
+        - .out/results/loadtest/sample-summary.json
       minRequests: 1
       maxErrorRate: 0.05
       maxP95LatencyMs: 10000
@@ -35,63 +35,63 @@ spec:
       # RESTORE_DRILL_QDRANT_DATA=1) is present in the evidence below.
       required: true
       evidence:
-        - results/restore-drill/qdrant-data-restore-*.json
-        - results/restore-drill/restore-drill-run-*.json
-        - results/restore-drill/sample-redis-run.json
+        - .out/results/restore-drill/qdrant-data-restore-*.json
+        - .out/results/restore-drill/restore-drill-run-*.json
+        - .out/results/restore-drill/sample-redis-run.json
       minPassRate: 1.0
       requireValidationPassed: true
     toolchain:
       required: true
       evidence:
-        - results/toolchain/toolchain-*.json
-        - results/toolchain/sample-summary.json
+        - .out/results/toolchain/toolchain-*.json
+        - .out/results/toolchain/sample-summary.json
       requireNoMissingRequired: true
     egress:
       required: true
       evidence:
-        - results/egress-governance/egress-governance-*.json
-        - results/egress-governance/sample-summary.json
+        - .out/results/egress-governance/egress-governance-*.json
+        - .out/results/egress-governance/sample-summary.json
       maxErrors: 0
       minReferences: 1
     retention:
       required: true
       evidence:
-        - results/retention/retention-*.json
-        - results/retention/sample-summary.json
+        - .out/results/retention/retention-*.json
+        - .out/results/retention/sample-summary.json
       maxErrors: 0
       minClasses: 5
     slo:
       required: true
       evidence:
-        - results/slo/slo-*.json
-        - results/slo/sample-summary.json
+        - .out/results/slo/slo-*.json
+        - .out/results/slo/sample-summary.json
       maxErrors: 0
       minObjectives: 5
     quota:
       required: true
       evidence:
-        - results/quota/quota-*.json
-        - results/quota/sample-summary.json
+        - .out/results/quota/quota-*.json
+        - .out/results/quota/sample-summary.json
       maxErrors: 0
       minPlans: 3
       minLabels: 4
     modelProvenance:
       required: true
       evidence:
-        - results/model-provenance/model-provenance-*.json
-        - results/model-provenance/sample-summary.json
+        - .out/results/model-provenance/model-provenance-*.json
+        - .out/results/model-provenance/sample-summary.json
       maxErrors: 0
       minArtifacts: 2
     supplyChain:
       required: true
       evidence:
-        - results/supply-chain/supply-chain-summary-*.json
-        - results/supply-chain/sample-summary.json
+        - .out/results/supply-chain/supply-chain-summary-*.json
+        - .out/results/supply-chain/sample-summary.json
       requireZeroHighCriticalFindings: true
       requireChecksums: true
     evidencePack:
       required: true
       evidence:
-        - results/evidence/evidence-*.json
-        - results/evidence/sample-summary.json
+        - .out/results/evidence/evidence-*.json
+        - .out/results/evidence/sample-summary.json
       maxFailedControls: 0

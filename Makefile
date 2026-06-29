@@ -6,7 +6,7 @@ RUNTIME ?= local
 CLUSTER_NAME ?= private-ai-platform-kit
 LIVE ?= 0
 TENANT_SPEC ?= tenants/onboarding/coding-agents.yaml
-TENANT_OUTPUT ?= tenants/generated
+TENANT_OUTPUT ?= .out/tenants
 TOOLCHAIN_PROFILE ?= validate
 RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS ?= 24
 CUSTOMER_REPO_URL ?= https://github.com/RamazanKara/private-ai-platform-kit.git
@@ -74,8 +74,8 @@ clean:
 	find . -path ./.git -prune -o -type d -name __pycache__ -prune -exec rm -rf {} +
 	find . -path ./.git -prune -o -type d -name .pytest_cache -prune -exec rm -rf {} +
 	find . -path ./.git -prune -o -type d -name .ruff_cache -prune -exec rm -rf {} +
-	find results -type f ! -name 'sample-*' -delete
-	find results -mindepth 1 -type d -empty -delete
+	find .out/results -type f ! -name 'sample-*' -delete
+	find .out/results -mindepth 1 -type d -empty -delete
 
 clean-all: clean
 	rm -rf .tools
@@ -234,8 +234,8 @@ repo-security-scan:
 		--exit-code 1 \
 		--timeout 10m \
 		--skip-dirs .tools \
-		--skip-dirs results \
-		--skip-dirs tenants/generated \
+		--skip-dirs .out/results \
+		--skip-dirs .out/tenants \
 		--skip-dirs deploy/policies/kyverno/tests/resources \
 		--skip-dirs src/inference-gateway/.venv \
 		--skip-dirs src/rag-service/.venv \

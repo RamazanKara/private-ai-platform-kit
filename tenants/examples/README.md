@@ -11,8 +11,8 @@ Tracked examples:
 Generate full onboarding artifacts for either spec:
 
 ```bash
-make tenant-onboard TENANT_SPEC=tenants/onboarding/regulated-offline-coding-agents.yaml TENANT_OUTPUT=tenants/generated
-make tenant-onboard TENANT_SPEC=tenants/onboarding/gpu-coding-agents.yaml TENANT_OUTPUT=tenants/generated
+make tenant-onboard TENANT_SPEC=tenants/onboarding/regulated-offline-coding-agents.yaml TENANT_OUTPUT=.out/tenants
+make tenant-onboard TENANT_SPEC=tenants/onboarding/gpu-coding-agents.yaml TENANT_OUTPUT=.out/tenants
 ```
 
-Generated tenant artifacts stay under `tenants/generated/` and should be reviewed before applying to a cluster.
+Generated tenant artifacts stay under `.out/tenants/` and should be reviewed before applying to a cluster.

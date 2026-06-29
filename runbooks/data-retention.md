@@ -24,7 +24,7 @@ Generate JSON and Markdown retention evidence:
 
     make retention-report
 
-Reports are written under `results/retention/`.
+Reports are written under `.out/results/retention/`.
 
 ## Customer Handoff
 

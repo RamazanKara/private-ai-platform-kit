@@ -181,8 +181,8 @@ if require_optional_or_full trivy "Trivy is needed for filesystem secret and con
     --exit-code 1 \
     --timeout 10m \
     --skip-dirs .tools \
-    --skip-dirs results \
-    --skip-dirs tenants/generated \
+    --skip-dirs .out/results \
+    --skip-dirs .out/tenants \
     --skip-dirs deploy/policies/kyverno/tests/resources \
     --skip-dirs src/inference-gateway/.venv \
     --skip-dirs src/rag-service/.venv \

@@ -63,7 +63,7 @@ capture_evidence_report() {
     printf '$ make evidence LIVE=1\n\n'
     make evidence LIVE=1
     local latest
-    latest="$(ls -t results/evidence/evidence-*.md | head -1)"
+    latest="$(ls -t .out/results/evidence/evidence-*.md | head -1)"
     printf '\n$ sed -n "1,80p" %s\n\n' "$latest"
     sed -n '1,80p' "$latest"
   } >"$output" 2>&1

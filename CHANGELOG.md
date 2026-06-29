@@ -158,7 +158,7 @@ Validation and repository bloat cleanup for the private AI platform kit.
 - Updated customer overlay examples to pin `CUSTOMER_REVISION=v0.4.1`.
 - Reduced duplicate production validation by keeping `production-check.py` focused on production/static assertions and leaving script orchestration to `validate.sh`.
 - Replaced brittle prose-token checks with policy and implementation checks in production, evidence-pack, quota, and retention validation.
-- Collapsed generated evidence ignore rules and retained sample evidence onto a single `results/**/sample-*` convention.
+- Collapsed generated evidence ignore rules and retained sample evidence onto a single `.out/results/**/sample-*` convention.
 - Trimmed repetitive production-readiness and landing-page copy.
 
 ### Validation

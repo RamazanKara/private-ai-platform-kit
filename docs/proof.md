@@ -18,7 +18,7 @@ For release reviews, attach or link:
 
 - OpenAPI snapshots from `platform/api-contracts/`
 - Configuration snapshots from `platform/config-contracts/`
-- Current eval, load, restore, toolchain, SLO, quota, egress, retention, model-provenance, evidence-pack, and supply-chain reports under `results/`
+- Current eval, load, restore, toolchain, SLO, quota, egress, retention, model-provenance, evidence-pack, and supply-chain reports under `.out/results/`
 - SBOMs, SARIF files, checksums, signed image digests, provenance attestations, SBOM attestations, and Scorecard findings from GitHub Actions
 
 ## Supported Tool Versions

@@ -40,7 +40,7 @@ Run:
 
     make toolchain-report
 
-The command writes JSON and Markdown reports under `results/toolchain/`. Attach the Markdown report to customer handoff notes when strict validation cannot be run directly on the customer's workstation.
+The command writes JSON and Markdown reports under `.out/results/toolchain/`. Attach the Markdown report to customer handoff notes when strict validation cannot be run directly on the customer's workstation.
 
 ## Full Validation
 

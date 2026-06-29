@@ -149,7 +149,7 @@ DRILL=vllm-runtime-rollout make chaos-drill
 DRILL=gpu-capacity-preflight RUN_SMOKE=0 make chaos-drill
 ```
 
-Restore evidence is written under `results/restore-drill/`.
+Restore evidence is written under `.out/results/restore-drill/`.
 
 ## Evals, Load Tests, And Evidence
 
@@ -199,7 +199,7 @@ make model-check
 make model-provenance-check
 ```
 
-The matching report targets write JSON and Markdown evidence under `results/`.
+The matching report targets write JSON and Markdown evidence under `.out/results/`.
 
 ## Customer-Owned Kubernetes
 

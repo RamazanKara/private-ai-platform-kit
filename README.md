@@ -150,7 +150,7 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | `platform/config-contracts/` | Versioned runtime configuration snapshots for services and Helm charts |
 | `runbooks/` | Operational procedures and incident drills |
 | `platform/governance/`, `platform/model-catalog/`, `platform/network/`, `platform/slo/` | Reviewed policy and evidence inputs |
-| `results/` | Sample evidence artifacts; generated reports are ignored by default |
+| `.out/results/` | Sample evidence artifacts; generated reports are ignored by default |
 | `deploy/backup/restore-drill/` | Restore-drill wrapper around `RamazanKara/restore-drill` |
 
 ## Evidence Commands
@@ -172,7 +172,7 @@ make image-scan
 make supply-chain-check
 ```
 
-Runtime images use a pinned Alpine Python base and exclude test-only dependencies. Local image scans generate SBOM, SARIF, checksum, and summary evidence under `results/supply-chain/`. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
+Runtime images use a pinned Alpine Python base and exclude test-only dependencies. Local image scans generate SBOM, SARIF, checksum, and summary evidence under `.out/results/supply-chain/`. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
 
 ## Trademark Notice
 

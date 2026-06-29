@@ -27,7 +27,7 @@ Validate the spec, then render namespace, quota, limit range, default-deny + all
 NetworkPolicies, the trace-contract ConfigMap, RBAC, and the agent workspace:
 
 ```bash
-make tenant-onboard-regulated TENANT_OUTPUT=tenants/generated
+make tenant-onboard-regulated TENANT_OUTPUT=.out/tenants
 ```
 
 This is equivalent to:
@@ -35,10 +35,10 @@ This is equivalent to:
 ```bash
 python3 scripts/tenant-onboard.py \
   --spec tenants/onboarding/regulated-offline-coding-agents.yaml \
-  --output-dir tenants/generated
+  --output-dir .out/tenants
 ```
 
-Review the generated manifests under `tenants/generated/` before applying. Confirm:
+Review the generated manifests under `.out/tenants/` before applying. Confirm:
 
 - the namespace carries `platform.ai/tenant`, `platform.ai/sandbox-id`, `pod-security.kubernetes.io/enforce=restricted`, and the confidential data-classification label;
 - a default-deny NetworkPolicy exists with **no** egress allow rules beyond DNS, gateway, and RAG;
@@ -46,7 +46,7 @@ Review the generated manifests under `tenants/generated/` before applying. Confi
 
 ## Apply And Verify
 
-Apply through GitOps or `kubectl apply -f tenants/generated/`, then:
+Apply through GitOps or `kubectl apply -f .out/tenants/`, then:
 
 ```bash
 make tenant-smoke

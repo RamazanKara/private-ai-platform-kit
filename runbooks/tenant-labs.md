@@ -36,7 +36,7 @@ Use the reviewed onboarding spec when a customer needs a repeatable tenant packa
 
     make tenant-onboard
 
-The default spec is `tenants/onboarding/coding-agents.yaml`. The generated files are written under `tenants/generated/<sandbox-id>/`:
+The default spec is `tenants/onboarding/coding-agents.yaml`. The generated files are written under `.out/tenants/<sandbox-id>/`:
 
 - `tenant-lab.yaml` for Namespace, quota, LimitRange, NetworkPolicy, trace contract, Role, and RoleBinding
 - `agent-workspace-values.yaml` for the `deploy/charts/agent-workspace` Helm chart
@@ -44,7 +44,7 @@ The default spec is `tenants/onboarding/coding-agents.yaml`. The generated files
 
 Use a custom spec and output directory when onboarding a customer team:
 
-    TENANT_SPEC=tenants/onboarding/coding-agents.yaml TENANT_OUTPUT=tenants/generated make tenant-onboard
+    TENANT_SPEC=tenants/onboarding/coding-agents.yaml TENANT_OUTPUT=.out/tenants make tenant-onboard
 
 Generate the regulated/offline profile when a team must run without external CIDR egress:
 

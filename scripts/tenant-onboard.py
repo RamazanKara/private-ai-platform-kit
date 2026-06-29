@@ -410,7 +410,7 @@ def render(spec: dict[str, Any]) -> tuple[str, str, str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate tenant lab and coding-agent workspace onboarding artifacts.")
     parser.add_argument("--spec", default="tenants/onboarding/coding-agents.yaml")
-    parser.add_argument("--output-dir", default="tenants/generated")
+    parser.add_argument("--output-dir", default=".out/tenants")
     parser.add_argument("--check", action="store_true", help="Validate and render the spec without writing files.")
     args = parser.parse_args()
 

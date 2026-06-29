@@ -24,7 +24,7 @@ Generate JSON and Markdown evidence:
 
     make quota-report
 
-Reports are written under `results/quota/`.
+Reports are written under `.out/results/quota/`.
 
 ## Before Tenant Onboarding
 

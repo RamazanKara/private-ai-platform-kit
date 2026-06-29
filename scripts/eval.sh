@@ -15,8 +15,8 @@ fi
 SUITE="${SUITE:-evals/smoke-suite.yaml}"
 GATEWAY_URL="${GATEWAY_URL:-}"
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-output_json="results/evals/eval-${timestamp}.json"
-output_md="results/evals/eval-${timestamp}.md"
+output_json=".out/results/evals/eval-${timestamp}.json"
+output_md=".out/results/evals/eval-${timestamp}.md"
 PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}"
 
 if [[ -z "$GATEWAY_URL" ]]; then

@@ -29,8 +29,8 @@ spec:
       Qwen3-Coder-Next requires multi-GPU serving and cannot be run in CI; qwen3.5:0.8b
       is the CPU-runnable proxy exercised by the coding-agent eval suite. Re-run the suite
       against the real model on the customer GPU profile before production sign-off.
-    evalSummary: results/evals/sample-summary.md
-    loadTestSummary: results/loadtest/sample-summary.md
+    evalSummary: .out/results/evals/sample-summary.md
+    loadTestSummary: .out/results/loadtest/sample-summary.md
     securityWorkflow: .github/workflows/ci.yml
   conditions:
     promptLogging: redacted

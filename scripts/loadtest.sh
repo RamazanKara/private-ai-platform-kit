@@ -6,10 +6,10 @@ source "$ROOT/scripts/common.sh"
 require_cmd k6 "Install k6 to run load tests."
 
 cd "$ROOT"
-mkdir -p results/loadtest
+mkdir -p .out/results/loadtest
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-OUT="results/loadtest/loadtest-${STAMP}.json"
-SUMMARY="results/loadtest/summary-${STAMP}.md"
+OUT=".out/results/loadtest/loadtest-${STAMP}.json"
+SUMMARY=".out/results/loadtest/summary-${STAMP}.md"
 
 PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}" k6 run --summary-export "$OUT" loadtest/chat-completions.js
 python3 loadtest/summarize.py "$OUT" "$SUMMARY"

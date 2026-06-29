@@ -514,7 +514,7 @@ def main() -> int:
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--check", action="store_true", help="Validate and run gates without writing a report.")
     parser.add_argument("--report", action="store_true", help="Write JSON and Markdown release-gate reports.")
-    parser.add_argument("--output-dir", default="results/release-gate")
+    parser.add_argument("--output-dir", default=".out/results/release-gate")
     parser.add_argument(
         "--require-current-evidence",
         action="store_true",

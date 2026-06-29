@@ -128,4 +128,4 @@ make agent-smoke
 make evidence LIVE=1
 ```
 
-Record the command output, generated evidence paths under `results/`, image digests, chart versions, and GitHub Actions run URL in the release notes.
+Record the command output, generated evidence paths under `.out/results/`, image digests, chart versions, and GitHub Actions run URL in the release notes.

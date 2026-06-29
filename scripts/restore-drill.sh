@@ -6,7 +6,7 @@ source "$ROOT/scripts/common.sh"
 cd "$ROOT"
 
 RUNTIME="${RUNTIME:-local}"
-mkdir -p results/restore-drill
+mkdir -p .out/results/restore-drill
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 # -----------------------------------------------------------------------------
@@ -30,7 +30,7 @@ qdrant_data_restore_drill() {
   local collection="${RESTORE_DRILL_QDRANT_COLLECTION:-restore-drill-data-probe}"
   local dimensions="${RESTORE_DRILL_QDRANT_DIMENSIONS:-4}"
   local point_count="${RESTORE_DRILL_QDRANT_POINTS:-16}"
-  local report="results/restore-drill/qdrant-data-restore-${STAMP}.json"
+  local report=".out/results/restore-drill/qdrant-data-restore-${STAMP}.json"
 
   log "REAL DATA DRILL: Qdrant vector data-restore against ${base_url} collection '${collection}'"
   log "this drill seeds, snapshots, deletes, and restores real vectors and asserts recovery"
@@ -178,7 +178,7 @@ PY
   restore-drill run \
     --config deploy/backup/restore-drill/drills/local-redis-aof.yaml \
     --runtime docker \
-    --format json | tee "results/restore-drill/restore-drill-${STAMP}.json"
+    --format json | tee ".out/results/restore-drill/restore-drill-${STAMP}.json"
   log "restore-tooling smoke passed: the restore pipeline works (fixture validation only, not a production-data recovery proof)"
 else
   require_cmd kubectl "kubectl is required for Kubernetes restore-drill deployment."

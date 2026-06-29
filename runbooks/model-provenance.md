@@ -26,7 +26,7 @@ Generate JSON and Markdown evidence:
 
     make model-provenance-report
 
-Reports are written under `results/model-provenance/`.
+Reports are written under `.out/results/model-provenance/`.
 
 ## Customer Production Use
 

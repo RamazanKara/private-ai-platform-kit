@@ -37,7 +37,7 @@ GPU requests.
 ## Render The Tenant Artifacts
 
 ```bash
-make tenant-onboard-gpu TENANT_OUTPUT=tenants/generated
+make tenant-onboard-gpu TENANT_OUTPUT=.out/tenants
 ```
 
 Equivalent to:
@@ -45,10 +45,10 @@ Equivalent to:
 ```bash
 python3 scripts/tenant-onboard.py \
   --spec tenants/onboarding/gpu-coding-agents.yaml \
-  --output-dir tenants/generated
+  --output-dir .out/tenants
 ```
 
-Review `tenants/generated/` and confirm:
+Review `.out/tenants/` and confirm:
 
 - the egress NetworkPolicy lists **only** the two approved CIDRs (`203.0.113.0/24`, `198.51.100.0/24`) on port 443, plus DNS, gateway, and RAG;
 - the workspace PVC requests `100Gi` and the Role allows job management;
@@ -57,7 +57,7 @@ Review `tenants/generated/` and confirm:
 ## Apply And Verify
 
 ```bash
-kubectl apply -f tenants/generated/
+kubectl apply -f .out/tenants/
 make tenant-smoke
 ```
 

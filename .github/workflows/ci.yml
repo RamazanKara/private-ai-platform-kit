@@ -303,11 +303,11 @@ jobs:
           name: scheduled-proof-evidence-${{ github.run_id }}
           if-no-files-found: warn
           path: |
-            results/**/*.json
-            results/**/*.md
-            results/**/*.sarif
-            results/**/*.spdx.json
-            results/**/*.txt
+            .out/results/**/*.json
+            .out/results/**/*.md
+            .out/results/**/*.sarif
+            .out/results/**/*.spdx.json
+            .out/results/**/*.txt
 
   scorecard:
     runs-on: ubuntu-latest
@@ -373,5 +373,5 @@ jobs:
           name: local-e2e-evidence-${{ github.run_id }}
           if-no-files-found: warn
           path: |
-            results/**/*.json
-            results/**/*.md
+            .out/results/**/*.json
+            .out/results/**/*.md

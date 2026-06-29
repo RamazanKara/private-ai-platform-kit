@@ -341,7 +341,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate and report on Private AI Platform Kit model governance.")
     parser.add_argument("--check", action="store_true", help="Validate the model catalog without writing a report.")
     parser.add_argument("--report", action="store_true", help="Write JSON and Markdown model governance reports.")
-    parser.add_argument("--output-dir", default="results/model-catalog")
+    parser.add_argument("--output-dir", default=".out/results/model-catalog")
     args = parser.parse_args()
 
     errors, models, allowlists = validate()

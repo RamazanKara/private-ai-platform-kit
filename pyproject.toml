@@ -19,7 +19,7 @@ extend-exclude = [
     ".venv-quality",
     ".tools",
     "results",
-    "tenants/generated",
+    ".out/tenants",
 ]
 
 [tool.ruff.lint]

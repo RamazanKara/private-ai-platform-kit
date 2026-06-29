@@ -14,8 +14,8 @@ spec:
         minRequests: 1
         maxErrorRate: 0.05
       evidence:
-        - results/loadtest/loadtest-*.json
-        - results/loadtest/sample-summary.json
+        - .out/results/loadtest/loadtest-*.json
+        - .out/results/loadtest/sample-summary.json
       alertRefs:
         - InferenceGatewayHighErrorRate
         - InferenceGatewayErrorBudgetFastBurn
@@ -30,8 +30,8 @@ spec:
         maxP95LatencyMs: 10000
         maxP99LatencyMs: 15000
       evidence:
-        - results/loadtest/loadtest-*.json
-        - results/loadtest/sample-summary.json
+        - .out/results/loadtest/loadtest-*.json
+        - .out/results/loadtest/sample-summary.json
       alertRefs:
         - InferenceGatewayHighLatency
       customerAction: Size Ollama or vLLM replicas, GPU inventory, and queueing policy to the customer concurrency target.
@@ -44,8 +44,8 @@ spec:
         minPassRate: 1.0
         maxCaseLatencyMs: 30000
       evidence:
-        - results/evals/eval-*.json
-        - results/evals/sample-summary.json
+        - .out/results/evals/eval-*.json
+        - .out/results/evals/sample-summary.json
       alertRefs: []
       customerAction: Extend the suite with customer coding-agent tasks before production use.
     - id: restore-verification
@@ -65,9 +65,9 @@ spec:
         minPassRate: 1.0
         requireValidationPassed: true
       evidence:
-        - results/restore-drill/qdrant-data-restore-*.json
-        - results/restore-drill/restore-drill-run-*.json
-        - results/restore-drill/sample-redis-run.json
+        - .out/results/restore-drill/qdrant-data-restore-*.json
+        - .out/results/restore-drill/restore-drill-run-*.json
+        - .out/results/restore-drill/sample-redis-run.json
       alertRefs:
         - RestoreDrillFailed
         - RestoreDrillStale
@@ -84,7 +84,7 @@ spec:
           - Traceable sandbox isolation
           - Egress governance for coding agents
       evidence:
-        - results/evidence/evidence-*.json
-        - results/evidence/sample-summary.json
+        - .out/results/evidence/evidence-*.json
+        - .out/results/evidence/sample-summary.json
       alertRefs: []
       customerAction: Regenerate the evidence pack after every platform upgrade, tenant onboarding change, or agent workspace policy change.

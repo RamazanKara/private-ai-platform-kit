@@ -56,7 +56,7 @@ Procedure executed by the drill:
 Tunables: `RESTORE_DRILL_QDRANT_URL` (default `http://127.0.0.1:6333`),
 `RESTORE_DRILL_QDRANT_COLLECTION`, `RESTORE_DRILL_QDRANT_DIMENSIONS`,
 `RESTORE_DRILL_QDRANT_POINTS`. The report is written to
-`results/restore-drill/qdrant-data-restore-<stamp>.json`. A failed assertion or
+`.out/results/restore-drill/qdrant-data-restore-<stamp>.json`. A failed assertion or
 an unreachable Qdrant produces a `validation_passed: false` record -- results
 are never faked.
 

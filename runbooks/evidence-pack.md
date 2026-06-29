@@ -8,7 +8,7 @@ Run:
 
     make evidence
 
-The command writes JSON and Markdown reports under `results/evidence/`.
+The command writes JSON and Markdown reports under `.out/results/evidence/`.
 
 The static pack checks:
 
