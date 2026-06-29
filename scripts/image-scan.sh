@@ -10,7 +10,7 @@ SYFT_BIN="${SYFT_BIN:-syft}"
 IMAGE_PREFIX="${IMAGE_PREFIX:-private-ai-platform-kit}"
 GATEWAY_IMAGE="${GATEWAY_IMAGE:-${IMAGE_PREFIX}/inference-gateway:local-scan}"
 RAG_IMAGE="${RAG_IMAGE:-${IMAGE_PREFIX}/rag-service:local-scan}"
-OUTPUT_DIR="${OUTPUT_DIR:-results/supply-chain}"
+OUTPUT_DIR="${OUTPUT_DIR:-.out/results/supply-chain}"
 STAMP="${STAMP:-$(date -u +%Y%m%dT%H%M%SZ)}"
 
 require_cmd docker "Docker is required to build local images for vulnerability scans."
