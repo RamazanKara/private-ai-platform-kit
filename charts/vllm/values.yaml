@@ -47,11 +47,71 @@ podDisruptionBudget:
   enabled: true
   minAvailable: 1
 
+# CPU-based HorizontalPodAutoscaler. NOTE: CPU% is the WRONG signal for a GPU
+# server -- vLLM is frequently GPU-bound while CPU stays low, so this never
+# scales when it should and is only a placeholder fallback. Prefer the queue-
+# based KEDA autoscaler below (keda.enabled). When keda.enabled is true this
+# CPU HPA is suppressed (the two are mutually exclusive; KEDA wins).
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 4
   targetCPUUtilizationPercentage: 70
+
+# Queue-depth autoscaling via KEDA (preferred for GPU runtimes). Scales on the
+# vLLM request-queue gauge `vllm:num_requests_waiting` (a real backlog signal)
+# instead of CPU%. Requires the KEDA operator and a Prometheus scraping vLLM
+# metrics (the bundled ServiceMonitor). Disabled by default because it is
+# environment-specific (operator + Prometheus address); enable per cluster.
+keda:
+  enabled: false
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  # Scale up once this many requests are queued (waiting, not running) per replica.
+  threshold: "5"
+  prometheusServerAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
+  # Average queue depth across all vLLM replicas. KEDA divides the result by
+  # threshold to compute the desired replica count.
+  query: 'avg(vllm:num_requests_waiting)'
+  # Seconds to wait after the last trigger before scaling back down. Generous so
+  # a multi-GPU pod with a multi-minute model load is not churned needlessly.
+  cooldownPeriod: 300
+
+# Startup probe covers the multi-minute model weight download + load. Liveness
+# and readiness checks do not begin until it first succeeds, so a slow cold
+# start is not mistaken for a crash. failureThreshold x periodSeconds is the
+# total grace window (default 60 x 10s = 10 minutes).
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Steady-state liveness probe: restarts the container if /health stops
+# responding after startup. failureThreshold is kept lenient so a transient
+# stall under heavy GPU load does not trigger a needless restart.
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+# Pod-level security context. The vllm/vllm-openai image ships no USER (runs as
+# root by default), so with runAsNonRoot an explicit non-root UID/GID is
+# mandatory. fsGroup makes the emptyDir model-cache and /tmp volumes writable by
+# this UID for HF_HOME / VLLM_CACHE_ROOT.
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
 
 resources:
   requests:

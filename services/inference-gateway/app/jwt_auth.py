@@ -22,6 +22,14 @@ class JwtAuthError(ValueError):
     """Raised when a JWT is malformed, unsupported, or fails verification."""
 
 
+class JwksUnavailableError(RuntimeError):
+    """Raised when JWKS keys cannot be obtained and no cached keys are available.
+
+    Distinguished from :class:`JwtAuthError` so callers can return 503 (issuer
+    unreachable, retry later) instead of 401 (token rejected).
+    """
+
+
 def _b64url_decode(value: str) -> bytes:
     padding = "=" * (-len(value) % 4)
     return base64.urlsafe_b64decode((value + padding).encode("ascii"))
@@ -41,29 +49,62 @@ def _b64url_int(value: str) -> int:
     return int.from_bytes(_b64url_decode(value), "big")
 
 
+# Cap the negative-cache backoff so a transient issuer outage is retried quickly
+# while still shielding the issuer from a per-request thundering herd.
+_MAX_JWKS_NEGATIVE_CACHE_SECONDS = 30.0
+
+
 class JwksCache:
-    """Fetch and time-cache the JWKS document from the configured issuer."""
+    """Fetch and time-cache the JWKS document from the configured issuer.
+
+    Fetches run on ``httpx.AsyncClient`` so the event loop is never blocked. On a
+    fetch failure the last-known-good keys are served (when present) and a short
+    negative-cache backoff is applied to avoid hammering the issuer; when no keys
+    have ever been cached the failure surfaces as :class:`JwksUnavailableError`.
+    """
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self._expires_at = 0.0
+        self._negative_until = 0.0
         self._keys: list[dict[str, Any]] = []
 
-    def keys(self) -> list[dict[str, Any]]:
-        """Return cached JWKS keys, refreshing from the JWKS URL when expired."""
+    def _negative_cache_seconds(self) -> float:
+        # Derived from the configured cache TTL (no new env contract): a small
+        # fraction, capped, so retries stay frequent without flooding the issuer.
+        return min(max(self.settings.jwt_cache_seconds / 10.0, 1.0), _MAX_JWKS_NEGATIVE_CACHE_SECONDS)
+
+    async def keys(self) -> list[dict[str, Any]]:
+        """Return cached JWKS keys, refreshing from the JWKS URL when expired.
+
+        Serves last-known-good keys on a fetch failure (with a negative-cache
+        backoff) and raises :class:`JwksUnavailableError` when no keys are cached.
+        """
         if not self.settings.jwt_auth_enabled:
             return []
-        if self._keys and time() < self._expires_at:
+        now = time()
+        if self._keys and now < self._expires_at:
             return self._keys
-        with httpx.Client(timeout=min(self.settings.request_timeout_seconds, 10.0)) as client:
-            response = client.get(self.settings.jwt_jwks_url)
-            response.raise_for_status()
-            payload = response.json()
+        if now < self._negative_until and (self._keys or not self.settings.jwt_jwks_url):
+            return self._keys
+        try:
+            async with httpx.AsyncClient(timeout=min(self.settings.request_timeout_seconds, 10.0)) as client:
+                response = await client.get(self.settings.jwt_jwks_url)
+                response.raise_for_status()
+                payload = response.json()
+        except httpx.HTTPError as exc:
+            self._negative_until = time() + self._negative_cache_seconds()
+            if self._keys:
+                # Serve last-known-good keys so a transient JWKS outage does not
+                # reject otherwise-valid tokens.
+                return self._keys
+            raise JwksUnavailableError("JWKS document could not be fetched") from exc
         keys = payload.get("keys", []) if isinstance(payload, dict) else []
         if not isinstance(keys, list):
             raise JwtAuthError("JWKS response must contain a keys list")
         self._keys = [key for key in keys if isinstance(key, dict)]
         self._expires_at = time() + self.settings.jwt_cache_seconds
+        self._negative_until = 0.0
         return self._keys
 
 
@@ -74,8 +115,12 @@ class JwtVerifier:
         self.settings = settings
         self.jwks_cache = jwks_cache or JwksCache(settings)
 
-    def verify(self, token: str) -> dict[str, Any]:
-        """Verify the token signature and claims, returning the decoded claims."""
+    async def verify(self, token: str) -> dict[str, Any]:
+        """Verify the token signature and claims, returning the decoded claims.
+
+        Awaits the JWKS cache (async HTTP fetch). Raises :class:`JwksUnavailableError`
+        when keys cannot be obtained, distinct from a :class:`JwtAuthError` rejection.
+        """
         parts = token.split(".")
         if len(parts) != 3:
             raise JwtAuthError("jwt must have three segments")
@@ -83,29 +128,32 @@ class JwtVerifier:
         header = _b64url_json(parts[0])
         claims = _b64url_json(parts[1])
         algorithm = str(header.get("alg") or "")
+        # Resolve the algorithm before fetching keys so an unsupported/none alg is
+        # rejected as a 401 without ever touching the network (algorithm-confusion defense).
+        if algorithm not in {"HS256", "RS256", "ES256"}:
+            raise JwtAuthError("unsupported jwt alg; supported algorithms: HS256, RS256, ES256")
+        jwks_keys = await self.jwks_cache.keys()
         if algorithm == "HS256":
-            key = self._oct_key_for(header)
+            key = self._oct_key_for(header, jwks_keys)
             expected = hmac.new(key, signing_input, hashlib.sha256).digest()
             actual = _b64url_decode(parts[2])
             if not hmac.compare_digest(expected, actual):
                 raise JwtAuthError("jwt signature verification failed")
         elif algorithm == "RS256":
-            key = self._rsa_key_for(header)
+            key = self._rsa_key_for(header, jwks_keys)
             self._verify_rsa(key, signing_input, parts[2])
-        elif algorithm == "ES256":
-            key = self._ec_key_for(header)
+        else:  # algorithm == "ES256"
+            key = self._ec_key_for(header, jwks_keys)
             self._verify_ec(key, signing_input, parts[2])
-        else:
-            raise JwtAuthError("unsupported jwt alg; supported algorithms: HS256, RS256, ES256")
         self._validate_claims(claims)
         return claims
 
-    def _matching_keys(self, header: dict[str, Any], kty: str) -> list[dict[str, Any]]:
+    @staticmethod
+    def _matching_keys(header: dict[str, Any], kty: str, jwks_keys: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Return JWKS keys matching the header kid and the given key type."""
         kid = header.get("kid")
         keys: list[dict[str, Any]] = []
-        # JwksCache.keys() is a domain accessor returning the JWK list, not Mapping.keys().
-        for key in self.jwks_cache.keys():  # noqa: SIM118
+        for key in jwks_keys:
             if key.get("kty") != kty:
                 continue
             if kid is not None and key.get("kid") != kid:
@@ -115,18 +163,18 @@ class JwtVerifier:
             keys.append(key)
         return keys
 
-    def _oct_key_for(self, header: dict[str, Any]) -> bytes:
+    def _oct_key_for(self, header: dict[str, Any], jwks_keys: list[dict[str, Any]]) -> bytes:
         """Return the symmetric (oct) key bytes for HS256 verification."""
-        for key in self._matching_keys(header, "oct"):
+        for key in self._matching_keys(header, "oct", jwks_keys):
             material = key.get("k")
             if not isinstance(material, str):
                 continue
             return _b64url_decode(material)
         raise JwtAuthError("matching JWKS oct key was not found")
 
-    def _rsa_key_for(self, header: dict[str, Any]):
+    def _rsa_key_for(self, header: dict[str, Any], jwks_keys: list[dict[str, Any]]):
         """Return the RSA public key for RS256 verification."""
-        for key in self._matching_keys(header, "RSA"):
+        for key in self._matching_keys(header, "RSA", jwks_keys):
             if key.get("alg") not in {None, "RS256"}:
                 continue
             n = key.get("n")
@@ -137,9 +185,9 @@ class JwtVerifier:
             return public_numbers.public_key()
         raise JwtAuthError("matching JWKS RSA key was not found")
 
-    def _ec_key_for(self, header: dict[str, Any]):
+    def _ec_key_for(self, header: dict[str, Any], jwks_keys: list[dict[str, Any]]):
         """Return the P-256 elliptic-curve public key for ES256 verification."""
-        for key in self._matching_keys(header, "EC"):
+        for key in self._matching_keys(header, "EC", jwks_keys):
             if key.get("alg") not in {None, "ES256"}:
                 continue
             if key.get("crv") != "P-256":

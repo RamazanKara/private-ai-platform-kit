@@ -385,7 +385,7 @@ def check_vllm_render(name: str, docs: list[dict[str, Any]], resource_name: str,
     require(errors, {"model-cache", "tmp"} <= volumes, f"{name}: vLLM must define model-cache and tmp volumes")
     require(errors, bool(find_kind(docs, "ServiceAccount")), f"{name}: vLLM chart must render a ServiceAccount")
     require(errors, bool(find_kind(docs, "PodDisruptionBudget")), f"{name}: vLLM chart must render a PodDisruptionBudget")
-    require(errors, bool(find_kind(docs, "HorizontalPodAutoscaler")), f"{name}: vLLM profile must render an HPA")
+    require(errors, bool(find_kind(docs, "HorizontalPodAutoscaler")) or bool(find_kind(docs, "ScaledObject")), f"{name}: vLLM profile must render autoscaling (HPA or a KEDA ScaledObject on a GPU/queue signal)")
 
 
 def check_model_catalog(errors: list[str]) -> None:

@@ -22,6 +22,8 @@ class EmbeddingProvider(Protocol):
 
     def embed(self, value: str) -> list[float]: ...
 
+    async def embed_async(self, value: str) -> list[float]: ...
+
 
 def tokenize(value: str) -> list[str]:
     """Lowercase the text and return its alphanumeric token sequence."""
@@ -58,6 +60,10 @@ class HashEmbeddingProvider:
         """Return the hashed embedding vector for the given text."""
         return hashed_text_embedding(value, self.dimensions)
 
+    async def embed_async(self, value: str) -> list[float]:
+        """Async wrapper around :meth:`embed`; hashing is CPU-bound and non-blocking."""
+        return self.embed(value)
+
 
 class OpenAICompatibleEmbeddingProvider:
     """Embedding provider that calls an OpenAI-compatible ``/v1/embeddings`` API."""
@@ -76,6 +82,15 @@ class OpenAICompatibleEmbeddingProvider:
         self.dimensions = dimensions
         self.timeout_seconds = timeout_seconds
 
+    def _parse(self, payload: object) -> list[float]:
+        embedding = payload.get("data", [{}])[0].get("embedding") if isinstance(payload, dict) else None
+        if not isinstance(embedding, list):
+            raise ValueError("embedding response did not contain data[0].embedding")
+        vector = [float(item) for item in embedding]
+        if len(vector) != self.dimensions:
+            raise ValueError(f"embedding returned {len(vector)} dimensions; expected {self.dimensions}")
+        return vector
+
     def embed(self, value: str) -> list[float]:
         """Request an embedding from the API and validate its dimensionality."""
         with httpx.Client(timeout=self.timeout_seconds) as client:
@@ -85,13 +100,18 @@ class OpenAICompatibleEmbeddingProvider:
             )
             response.raise_for_status()
             payload = response.json()
-        embedding = payload.get("data", [{}])[0].get("embedding") if isinstance(payload, dict) else None
-        if not isinstance(embedding, list):
-            raise ValueError("embedding response did not contain data[0].embedding")
-        vector = [float(item) for item in embedding]
-        if len(vector) != self.dimensions:
-            raise ValueError(f"embedding returned {len(vector)} dimensions; expected {self.dimensions}")
-        return vector
+        return self._parse(payload)
+
+    async def embed_async(self, value: str) -> list[float]:
+        """Request an embedding over async HTTP so the event loop is not blocked."""
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            response = await client.post(
+                f"{self.base_url}/v1/embeddings",
+                json={"model": self.model, "input": value},
+            )
+            response.raise_for_status()
+            payload = response.json()
+        return self._parse(payload)
 
 
 def build_embedding_provider(

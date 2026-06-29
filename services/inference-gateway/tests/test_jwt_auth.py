@@ -1,14 +1,21 @@
+import asyncio
 import base64
 import hashlib
 import hmac
 import json
 import time
 
+import httpx
 import pytest
-from app.jwt_auth import JwtAuthError, JwtVerifier
+from app import jwt_auth
+from app.jwt_auth import JwksCache, JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.settings import Settings
 
 SECRET = b"super-secret-signing-key-0123456789"
+
+
+def _verify(verifier: JwtVerifier, token: str) -> dict:
+    return asyncio.run(verifier.verify(token))
 
 
 def _b64url(value: bytes) -> str:
@@ -27,7 +34,7 @@ class _FakeJwks:
     def __init__(self, keys: list[dict]) -> None:
         self._keys = keys
 
-    def keys(self) -> list[dict]:
+    async def keys(self) -> list[dict]:
         return self._keys
 
 
@@ -57,60 +64,60 @@ def _claims(**overrides) -> dict:
 
 def test_verify_accepts_valid_token():
     verifier = _verifier(jwt_issuer="https://idp.example", jwt_audience="platform", jwt_required_scopes=("read",))
-    assert verifier.verify(_hs256(_claims()))["aud"] == "platform"
+    assert _verify(verifier, _hs256(_claims()))["aud"] == "platform"
 
 
 def test_verify_rejects_expired_token():
     with pytest.raises(JwtAuthError, match="expired or missing exp"):
-        _verifier().verify(_hs256(_claims(exp=int(time.time()) - 10)))
+        _verify(_verifier(), _hs256(_claims(exp=int(time.time()) - 10)))
 
 
 def test_verify_rejects_not_yet_valid_token():
     with pytest.raises(JwtAuthError, match="not yet valid"):
-        _verifier().verify(_hs256(_claims(nbf=int(time.time()) + 600)))
+        _verify(_verifier(), _hs256(_claims(nbf=int(time.time()) + 600)))
 
 
 def test_verify_rejects_issuer_mismatch():
     with pytest.raises(JwtAuthError, match="issuer mismatch"):
-        _verifier(jwt_issuer="https://idp.example").verify(_hs256(_claims(iss="https://evil")))
+        _verify(_verifier(jwt_issuer="https://idp.example"), _hs256(_claims(iss="https://evil")))
 
 
 def test_verify_rejects_audience_mismatch():
     with pytest.raises(JwtAuthError, match="audience mismatch"):
-        _verifier(jwt_audience="platform").verify(_hs256(_claims(aud="other")))
+        _verify(_verifier(jwt_audience="platform"), _hs256(_claims(aud="other")))
 
 
 def test_verify_accepts_audience_list():
     verifier = _verifier(jwt_audience="platform")
-    assert verifier.verify(_hs256(_claims(aud=["other", "platform"])))
+    assert _verify(verifier, _hs256(_claims(aud=["other", "platform"])))
 
 
 def test_verify_rejects_missing_scope():
     with pytest.raises(JwtAuthError, match="missing required scopes"):
-        _verifier(jwt_required_scopes=("admin",)).verify(_hs256(_claims(scope="read")))
+        _verify(_verifier(jwt_required_scopes=("admin",)), _hs256(_claims(scope="read")))
 
 
 def test_verify_rejects_malformed_token():
     with pytest.raises(JwtAuthError, match="three segments"):
-        _verifier().verify("only.two")
+        _verify(_verifier(), "only.two")
 
 
 def test_verify_rejects_unsupported_algorithm():
     header = _b64url(json.dumps({"alg": "none", "kid": "test-key"}).encode("utf-8"))
     claims = _b64url(json.dumps(_claims()).encode("utf-8"))
     with pytest.raises(JwtAuthError, match="unsupported jwt alg"):
-        _verifier().verify(f"{header}.{claims}.")
+        _verify(_verifier(), f"{header}.{claims}.")
 
 
 def test_verify_rejects_bad_signature():
     token = _hs256(_claims(), secret=b"a-different-secret-key-9876543210")
     with pytest.raises(JwtAuthError, match="signature verification failed"):
-        _verifier().verify(token)
+        _verify(_verifier(), token)
 
 
 def test_verify_rejects_unknown_kid():
     with pytest.raises(JwtAuthError, match="oct key was not found"):
-        _verifier().verify(_hs256(_claims(), kid="rotated-away"))
+        _verify(_verifier(), _hs256(_claims(), kid="rotated-away"))
 
 
 def test_verifier_follows_jwks_key_rotation():
@@ -128,9 +135,89 @@ def test_verifier_follows_jwks_key_rotation():
     )
 
     before = JwtVerifier(settings, jwks_cache=_FakeJwks([_oct_jwk("kid-old", SECRET)]))
-    assert before.verify(_hs256(_claims(), kid="kid-old", secret=SECRET))
+    assert _verify(before, _hs256(_claims(), kid="kid-old", secret=SECRET))
 
     after = JwtVerifier(settings, jwks_cache=_FakeJwks([_oct_jwk("kid-new", new_secret)]))
-    assert after.verify(_hs256(_claims(), kid="kid-new", secret=new_secret))
+    assert _verify(after, _hs256(_claims(), kid="kid-new", secret=new_secret))
     with pytest.raises(JwtAuthError, match="oct key was not found"):
-        after.verify(_hs256(_claims(), kid="kid-old", secret=SECRET))
+        _verify(after, _hs256(_claims(), kid="kid-old", secret=SECRET))
+
+
+def _jwks_settings(**overrides) -> Settings:
+    base = {
+        "runtime_backend": "ollama",
+        "ollama_base_url": "http://o:1",
+        "vllm_base_url": "http://v:1",
+        "model_id": "m",
+        "request_timeout_seconds": 5,
+        "jwt_auth_enabled": True,
+        "jwt_jwks_url": "https://idp.example/jwks",
+    }
+    base.update(overrides)
+    return Settings(**base)
+
+
+def _mock_async_client(monkeypatch, handler):
+    real_async_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        jwt_auth.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_async_client(transport=httpx.MockTransport(handler)),
+    )
+
+
+def test_jwks_cache_fetches_keys_over_async_http(monkeypatch):
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        return httpx.Response(200, json={"keys": [_oct_jwk()]})
+
+    _mock_async_client(monkeypatch, handler)
+    cache = JwksCache(_jwks_settings())
+
+    keys = asyncio.run(cache.keys())
+
+    assert keys[0]["kid"] == "test-key"
+    assert seen["url"] == "https://idp.example/jwks"
+
+
+def test_jwks_cache_serves_last_known_good_on_fetch_failure(monkeypatch):
+    state = {"fail": False}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if state["fail"]:
+            raise httpx.ConnectError("issuer down")
+        return httpx.Response(200, json={"keys": [_oct_jwk()]})
+
+    _mock_async_client(monkeypatch, handler)
+    cache = JwksCache(_jwks_settings(jwt_cache_seconds=1))
+
+    first = asyncio.run(cache.keys())
+    assert first[0]["kid"] == "test-key"
+
+    # Force the cached entry to expire, then make the next fetch fail.
+    cache._expires_at = 0.0
+    state["fail"] = True
+    served = asyncio.run(cache.keys())
+
+    # Last-known-good keys are served instead of rejecting valid tokens.
+    assert served[0]["kid"] == "test-key"
+    # A negative-cache backoff is applied so the issuer is not hammered per request.
+    assert cache._negative_until > time.time()
+
+
+def test_jwks_cache_raises_unavailable_when_no_keys_cached(monkeypatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("issuer down")
+
+    _mock_async_client(monkeypatch, handler)
+    cache = JwksCache(_jwks_settings())
+
+    with pytest.raises(JwksUnavailableError):
+        asyncio.run(cache.keys())
+
+
+def test_jwks_cache_returns_empty_when_auth_disabled():
+    cache = JwksCache(_jwks_settings(jwt_auth_enabled=False, jwt_jwks_url=""))
+    assert asyncio.run(cache.keys()) == []

@@ -35,6 +35,24 @@ spec:
             - "no"
             - --protected-mode
             - "no"
+            {{- if .Values.auth.enabled }}
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            {{- end }}
+          {{- if .Values.auth.enabled }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecret.name }}
+                  key: {{ .Values.auth.existingSecret.key }}
+            # redis-cli health probes pick up REDISCLI_AUTH automatically.
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecret.name }}
+                  key: {{ .Values.auth.existingSecret.key }}
+          {{- end }}
           ports:
             - name: redis
               containerPort: 6379

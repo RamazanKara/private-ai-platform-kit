@@ -97,7 +97,7 @@ class LexicalRetriever:
         """Build a lexical retriever from documents loaded under a directory."""
         return cls(load_documents(document_dir))
 
-    def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
+    async def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
         """Return the top-k documents scored by term, phrase, and title matches."""
         terms = tokenize(query)
         if not terms:
@@ -190,14 +190,14 @@ class QdrantRetriever:
             "last_sync_error": self.last_sync_error,
         }
 
-    def _client(self) -> httpx.Client:
-        return httpx.Client(timeout=self.timeout_seconds)
+    def _client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(timeout=self.timeout_seconds)
 
-    def _ensure_collection(self, client: httpx.Client) -> None:
+    async def _ensure_collection(self, client: httpx.AsyncClient) -> None:
         collection_url = f"{self.base_url}/collections/{self.collection}"
-        response = client.get(collection_url)
+        response = await client.get(collection_url)
         if response.status_code == 404:
-            response = client.put(
+            response = await client.put(
                 collection_url,
                 json={
                     "vectors": {
@@ -208,7 +208,7 @@ class QdrantRetriever:
             )
         response.raise_for_status()
 
-    def _upsert_documents(self, client: httpx.Client) -> None:
+    async def _upsert_documents(self, client: httpx.AsyncClient) -> None:
         if not self.documents:
             self.last_sync_status = "empty"
             return
@@ -217,7 +217,7 @@ class QdrantRetriever:
             points.append(
                 {
                     "id": str(uuid5(NAMESPACE_URL, f"{self.collection_version}:{document.source}:{document.id}")),
-                    "vector": self.embedding_provider.embed(document.content),
+                    "vector": await self.embedding_provider.embed_async(document.content),
                     "payload": {
                         "collection_version": self.collection_version,
                         "document_id": document.id,
@@ -227,7 +227,7 @@ class QdrantRetriever:
                     },
                 }
             )
-        response = client.put(
+        response = await client.put(
             f"{self.base_url}/collections/{self.collection}/points",
             params={"wait": "true"},
             json={"points": points},
@@ -236,28 +236,46 @@ class QdrantRetriever:
         self.last_sync_status = "synced"
         self.last_sync_error = ""
 
-    def _ensure_bootstrapped(self) -> None:
+    async def _ensure_bootstrapped(self) -> None:
         if self._bootstrapped or not self.bootstrap_from_knowledge:
             return
         try:
-            with self._client() as client:
-                self._ensure_collection(client)
-                self._upsert_documents(client)
+            async with self._client() as client:
+                await self._ensure_collection(client)
+                await self._upsert_documents(client)
             self._bootstrapped = True
         except httpx.HTTPError as exc:
             self.last_sync_status = "failed"
             self.last_sync_error = str(exc)
             raise VectorStoreError("qdrant bootstrap failed") from exc
 
-    def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
+    async def bootstrap(self) -> None:
+        """Eagerly bootstrap the collection at startup so reachability surfaces early.
+
+        Avoids a cold-start thundering herd where every concurrent first request
+        races to create/upsert the collection. Failures propagate as VectorStoreError.
+        """
+        await self._ensure_bootstrapped()
+
+    async def ping(self) -> bool:
+        """Return whether the Qdrant collection endpoint is reachable for readiness."""
+        try:
+            async with self._client() as client:
+                response = await client.get(f"{self.base_url}/collections/{self.collection}")
+                response.raise_for_status()
+        except httpx.HTTPError:
+            return False
+        return True
+
+    async def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
         """Embed the query and return the top-k matching points from Qdrant."""
         if not tokenize(query):
             return []
-        self._ensure_bootstrapped()
-        vector = self.embedding_provider.embed(query)
+        await self._ensure_bootstrapped()
+        vector = await self.embedding_provider.embed_async(query)
         try:
-            with self._client() as client:
-                response = client.post(
+            async with self._client() as client:
+                response = await client.post(
                     f"{self.base_url}/collections/{self.collection}/points/query",
                     json={
                         "query": vector,

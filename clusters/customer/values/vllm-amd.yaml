@@ -3,6 +3,10 @@ replicaCount: 2
 image:
   repository: vllm/vllm-openai-rocm
   tag: "v0.22.0"
+  # ROCm multi-arch manifest digest (distinct from the nvidia image pinned in the chart
+  # default); without this the AMD profile would inherit the nvidia digest and pin the
+  # wrong image.
+  digest: "sha256:c3f18c9baf778cb4f9456a0f161e658fb45d70e3cd534dc3d1c55fac478d03bd"
   pullPolicy: IfNotPresent
 model:
   name: Qwen/Qwen3-Coder-Next
@@ -20,11 +24,23 @@ accelerator:
     - key: amd.com/gpu
       operator: Exists
       effect: NoSchedule
+# CPU-based HPA is disabled: vLLM is GPU-bound, so CPU% never reflects real
+# load and would never scale a saturated GPU server. Scale on request-queue
+# depth via KEDA instead (below).
 autoscaling:
-  enabled: true
+  enabled: false
   minReplicas: 2
   maxReplicas: 8
   targetCPUUtilizationPercentage: 70
+# Queue-based GPU autoscaling. Requires the KEDA operator and a Prometheus
+# reachable at prometheusServerAddress scraping vLLM metrics. Adjust the address
+# to this cluster's Prometheus if it differs from the kube-prometheus-stack default.
+keda:
+  enabled: true
+  minReplicaCount: 2
+  maxReplicaCount: 8
+  threshold: "5"
+  prometheusServerAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
 externalSecrets:
   enabled: true
   huggingFaceTokenSecretName: hf-token

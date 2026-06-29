@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "qdrant-vector-store values",
+  "type": "object",
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1,
+      "description": "Single-instance only: this chart runs Qdrant on one ReadWriteOnce PVC and is not built for shared-filesystem multi-writer. For HA, run an external Qdrant cluster and point the RAG service at it."
+    }
+  }
+}

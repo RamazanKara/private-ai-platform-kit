@@ -1,4 +1,10 @@
-{{- if .Values.autoscaling.enabled }}
+{{- /*
+CPU-based HPA. Mutually exclusive with the KEDA ScaledObject: when keda.enabled
+is true, KEDA owns scaling (on the vLLM request-queue metric) and this CPU HPA is
+suppressed to avoid two controllers fighting over the same Deployment. CPU% is a
+poor signal for a GPU-bound server and is only a placeholder fallback.
+*/ -}}
+{{- if and .Values.autoscaling.enabled (not .Values.keda.enabled) }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:

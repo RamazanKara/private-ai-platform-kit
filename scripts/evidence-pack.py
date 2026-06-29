@@ -403,8 +403,8 @@ def static_controls() -> list[Control]:
             "Multi-replica runtime availability",
             nested(customer_gateway, "replicaCount", default=0) >= 2
             and nested(customer_gateway, "keda", "enabled") is True
-            and nested(vllm_nvidia, "autoscaling", "enabled") is True
-            and nested(vllm_amd, "autoscaling", "enabled") is True,
+            and (nested(vllm_nvidia, "autoscaling", "enabled") is True or nested(vllm_nvidia, "keda", "enabled") is True)
+            and (nested(vllm_amd, "autoscaling", "enabled") is True or nested(vllm_amd, "keda", "enabled") is True),
             "Customer profiles demonstrate multiple replicas, autoscaling, PDBs, and topology spread.",
             ["clusters/customer/values/inference-gateway.yaml", "clusters/customer/values/vllm.yaml", "charts/inference-gateway/templates/pdb.yaml"],
             "Tune min/max replicas to customer SLOs, GPU inventory, and maintenance windows.",

@@ -1,4 +1,5 @@
 {{- if .Values.rbac.create }}
+# Read-only role for both the workspace ServiceAccount and the (human) viewer group.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -10,11 +11,6 @@ rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log", "events", "configmaps", "persistentvolumeclaims"]
     verbs: ["get", "list", "watch"]
-  {{- if .Values.rbac.allowJobManagement }}
-  - apiGroups: ["batch"]
-    resources: ["jobs"]
-    verbs: ["get", "list", "watch", "create", "delete"]
-  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -34,4 +30,37 @@ roleRef:
   kind: Role
   name: agent-workspace-runner
   apiGroup: rbac.authorization.k8s.io
+{{- if .Values.rbac.allowJobManagement }}
+---
+# Job management is granted to the workspace ServiceAccount ONLY, never the viewer group,
+# so enabling allowJobManagement does not silently let every human in viewerGroup
+# create/delete Jobs in the namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-workspace-jobs
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "agent-workspace.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-workspace-jobs
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "agent-workspace.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "agent-workspace.serviceAccountName" . }}
+    namespace: {{ .Values.namespace.name }}
+roleRef:
+  kind: Role
+  name: agent-workspace-jobs
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
 {{- end }}

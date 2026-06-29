@@ -1,0 +1,30 @@
+{{- if .Values.keda.enabled }}
+# Queue-depth autoscaling for the GPU runtime. A KEDA ScaledObject manages its
+# own HPA on a Prometheus metric, so the CPU-based HorizontalPodAutoscaler in
+# hpa.yaml is gated off whenever keda.enabled is true (see hpa.yaml). vLLM can be
+# fully GPU-bound at low CPU, so CPU% is the wrong scale signal; the request
+# queue (vllm:num_requests_waiting) reflects real backlog and triggers scale-up
+# before latency degrades. Each replica is a multi-GPU pod with a multi-minute
+# model load, so keep min/max conservative.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "vllm.fullname" . }}
+  labels:
+    {{- include "vllm.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "vllm.fullname" . }}
+  minReplicaCount: {{ .Values.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.maxReplicaCount }}
+  {{- if .Values.keda.cooldownPeriod }}
+  cooldownPeriod: {{ .Values.keda.cooldownPeriod }}
+  {{- end }}
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: {{ .Values.keda.prometheusServerAddress | quote }}
+        metricName: vllm_num_requests_waiting
+        threshold: {{ .Values.keda.threshold | quote }}
+        query: {{ .Values.keda.query | quote }}
+{{- end }}

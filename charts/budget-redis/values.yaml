@@ -11,6 +11,15 @@ image:
 service:
   port: 6379
 
+# Optional Redis AUTH. Defense-in-depth on top of the default-deny NetworkPolicy, which is
+# the primary access control for the shared budget store. When enabled, the inference
+# gateway's budget.redisUrl must use the same password (redis://:PASSWORD@...).
+auth:
+  enabled: false
+  existingSecret:
+    name: budget-redis-auth
+    key: password
+
 serviceAccount:
   create: true
   name: ""

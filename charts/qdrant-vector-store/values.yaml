@@ -1,3 +1,4 @@
+# Single-instance only (enforced by values.schema.json); raising replicaCount is unsafe on the shared RWO PVC.
 replicaCount: 1
 
 image:

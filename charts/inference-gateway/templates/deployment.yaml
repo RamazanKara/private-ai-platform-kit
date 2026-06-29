@@ -138,10 +138,12 @@ spec:
               containerPort: 8080
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
+            # /readyz may loop over configured backends, so keep the timeout below periodSeconds.
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /healthz

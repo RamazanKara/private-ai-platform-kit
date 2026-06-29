@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "vllm values",
+  "type": "object",
+  "properties": {
+    "replicaCount": { "type": "integer", "minimum": 0 },
+    "accelerator": {
+      "type": "object",
+      "properties": {
+        "vendor": { "type": "string", "enum": ["nvidia", "amd"] },
+        "count": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

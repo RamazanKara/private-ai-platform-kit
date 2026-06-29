@@ -102,10 +102,12 @@ spec:
               containerPort: 8080
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
+            # /readyz probes the vector store in qdrant mode, so keep the timeout below periodSeconds.
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /healthz

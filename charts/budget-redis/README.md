@@ -7,6 +7,9 @@ Local Redis-compatible store for shared sandbox budget accounting.
 
 | Value | Default |
 | --- | --- |
+| `auth.enabled` | `false` |
+| `auth.existingSecret.key` | `password` |
+| `auth.existingSecret.name` | `budget-redis-auth` |
 | `fullnameOverride` | `budget-redis` |
 | `image.digest` | `sha256:5f61955be8ab2ccee9372b84ae4d4da2e2b156f87281e3f218544055e7ee04d4` |
 | `image.pullPolicy` | `IfNotPresent` |

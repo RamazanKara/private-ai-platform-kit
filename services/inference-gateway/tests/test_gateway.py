@@ -385,6 +385,152 @@ def test_streaming_chat_completion_is_passed_through_when_enabled():
     assert fake.calls == 1
 
 
+def test_streaming_chat_completion_records_usage_latency_and_audit(caplog):
+    caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+        allow_streaming=True,
+    )
+    app = create_app(settings)
+    fake = FakeRuntimeClient()
+    fake.stream_chunks = [
+        b'data: {"choices":[{"delta":{"content":"hel"}}]}\n\n',
+        b'data: {"choices":[{"delta":{"content":"lo"}}]}\n\n',
+        # Terminal usage chunk carries the token counts for the streamed request.
+        b'data: {"choices":[],"usage":{"prompt_tokens":7,"completion_tokens":3,"total_tokens":10}}\n\n',
+        b"data: [DONE]\n\n",
+    ]
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    def _total_tokens() -> float:
+        for line in client.get("/metrics").text.splitlines():
+            if line.startswith("inference_gateway_tokens_total") and 'token_type="total_tokens"' in line:
+                return float(line.rsplit(" ", 1)[1])
+        return 0.0
+
+    before_tokens = _total_tokens()
+
+    with client.stream(
+        "POST",
+        "/v1/chat/completions",
+        headers={"X-Request-ID": "stream-audit-1"},
+        json={"stream": True, "messages": [{"role": "user", "content": "hello"}]},
+    ) as response:
+        body = response.read()
+
+    assert response.status_code == 200
+    assert b"[DONE]" in body
+    # Audit recording is deferred to true end-of-stream: parse the emitted JSON event.
+    audit_event = next(
+        json.loads(record.getMessage())
+        for record in caplog.records
+        if record.name == "ai_platform_ops_lab.audit" and '"stream-audit-1"' in record.getMessage()
+    )
+    # The bug recorded status 200, ~0 latency, and no usage before bytes flowed; assert the fix.
+    assert audit_event["status_code"] == 200
+    assert audit_event["latency_ms"] > 0
+    assert audit_event["usage"]["total_tokens"] == 10
+    # Token usage is exported to Prometheus from the parsed terminal usage chunk (10 here).
+    assert _total_tokens() == before_tokens + 10.0
+
+
+def test_streaming_mid_stream_upstream_error_emits_terminal_event_and_records_502(caplog):
+    caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
+
+    class MidStreamFailingClient(FakeRuntimeClient):
+        async def stream_chat_completions(self, payload, headers=None, backend=None):
+            self.calls += 1
+            self.payload = payload
+            self.headers = headers or {}
+            self.backend = backend
+            yield b'data: {"choices":[{"delta":{"content":"par"}}]}\n\n'
+            raise httpx.ReadError("upstream dropped mid-stream")
+
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+        allow_streaming=True,
+    )
+    app = create_app(settings)
+    app.state.runtime_client = MidStreamFailingClient()
+    client = TestClient(app)
+
+    def _requests_502() -> float:
+        for line in client.get("/metrics").text.splitlines():
+            if (
+                line.startswith("inference_gateway_requests_total")
+                and 'route="/v1/chat/completions"' in line
+                and 'status="502"' in line
+            ):
+                return float(line.rsplit(" ", 1)[1])
+        return 0.0
+
+    before_502 = _requests_502()
+
+    with client.stream(
+        "POST",
+        "/v1/chat/completions",
+        json={"stream": True, "messages": [{"role": "user", "content": "hello"}]},
+    ) as response:
+        body = response.read()
+
+    # Headers were already sent (HTTP 200), so the failure is surfaced as a terminal SSE
+    # error event and the recorded status maps to 502.
+    assert response.status_code == 200
+    assert b"par" in body
+    assert b"upstream_error" in body
+    assert "upstream dropped mid-stream" not in body.decode("utf-8")
+    assert '"status_code": 502' in caplog.text
+    # The deferred recording maps the mid-stream failure to a 502 request metric.
+    assert _requests_502() == before_502 + 1.0
+
+
+def test_streaming_pre_first_byte_upstream_error_returns_502():
+    class PreFirstByteFailingClient(FakeRuntimeClient):
+        async def stream_chat_completions(self, payload, headers=None, backend=None):
+            self.calls += 1
+            self.payload = payload
+            # Fail before yielding any bytes (e.g. response.raise_for_status()).
+            raise httpx.HTTPStatusError(
+                "runtime unavailable",
+                request=httpx.Request("POST", "http://ollama:11434/v1/chat/completions"),
+                response=httpx.Response(
+                    503,
+                    request=httpx.Request("POST", "http://ollama:11434/v1/chat/completions"),
+                ),
+            )
+            yield b""  # pragma: no cover - unreachable, marks this an async generator
+
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+        allow_streaming=True,
+    )
+    app = create_app(settings)
+    app.state.runtime_client = PreFirstByteFailingClient()
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"stream": True, "messages": [{"role": "user", "content": "hello"}]},
+    )
+
+    # No bytes were sent yet, so a clean 502 JSON error is returned instead of a 200.
+    assert response.status_code == 502
+    assert response.json()["detail"]["runtime_status"] == 503
+
+
 def test_chat_completion_uses_default_model_when_model_is_omitted():
     settings = Settings(
         runtime_backend="ollama",
@@ -556,11 +702,11 @@ def test_bearer_api_key_is_accepted_when_auth_is_enabled():
 
 def test_jwt_bearer_token_is_accepted_when_enabled(monkeypatch):
     secret = b"jwt-test-secret"
-    monkeypatch.setattr(
-        JwksCache,
-        "keys",
-        lambda self: [{"kty": "oct", "kid": "test-key", "k": _b64url(secret)}],
-    )
+
+    async def fake_keys(self):
+        return [{"kty": "oct", "kid": "test-key", "k": _b64url(secret)}]
+
+    monkeypatch.setattr(JwksCache, "keys", fake_keys)
     settings = Settings(
         runtime_backend="ollama",
         ollama_base_url="http://ollama:11434",
@@ -628,7 +774,11 @@ def test_jwt_bearer_token_is_accepted_when_enabled(monkeypatch):
 )
 def test_oidc_jwks_asymmetric_jwt_is_accepted(monkeypatch, algorithm, key_factory, jwk_factory, signer):
     private_key = key_factory()
-    monkeypatch.setattr(JwksCache, "keys", lambda self: [jwk_factory(private_key)])
+
+    async def fake_keys(self):
+        return [jwk_factory(private_key)]
+
+    monkeypatch.setattr(JwksCache, "keys", fake_keys)
     settings = Settings(
         runtime_backend="ollama",
         ollama_base_url="http://ollama:11434",
@@ -675,6 +825,63 @@ def test_oidc_jwks_asymmetric_jwt_is_accepted(monkeypatch, algorithm, key_factor
     assert valid.status_code == 200
     assert invalid.status_code == 401
     assert fake.calls == 1
+
+
+def _jwt_only_settings():
+    return Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+        jwt_auth_enabled=True,
+        jwt_jwks_url="https://issuer.example/.well-known/jwks.json",
+    )
+
+
+def test_jwks_unavailable_returns_503_not_401(monkeypatch):
+    from app.jwt_auth import JwksUnavailableError
+
+    async def unavailable(self):
+        raise JwksUnavailableError("issuer unreachable")
+
+    monkeypatch.setattr(JwksCache, "keys", unavailable)
+    app = create_app(_jwt_only_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    token = _signed_hs256_jwt(b"any-secret", {"exp": int(time.time()) + 300})
+
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": [{"role": "user", "content": "hello"}]},
+    )
+
+    # Issuer unreachable is retry-later (503), distinct from a rejected token (401).
+    assert response.status_code == 503
+    assert response.json()["detail"]["reason"] == "jwks_unavailable"
+    assert response.headers["Retry-After"] == "5"
+
+
+def test_invalid_token_returns_401_when_jwks_is_available(monkeypatch):
+    async def fake_keys(self):
+        return [{"kty": "oct", "kid": "test-key", "k": _b64url(b"real-secret")}]
+
+    monkeypatch.setattr(JwksCache, "keys", fake_keys)
+    app = create_app(_jwt_only_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    # Signed with the wrong secret: the issuer is reachable but the token is invalid.
+    token = _signed_hs256_jwt(b"wrong-secret", {"exp": int(time.time()) + 300})
+
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": [{"role": "user", "content": "hello"}]},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"]["reason"] == "invalid_or_missing_api_key"
 
 
 def test_chat_completion_rejects_disallowed_model():

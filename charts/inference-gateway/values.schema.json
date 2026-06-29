@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "inference-gateway values",
+  "type": "object",
+  "properties": {
+    "replicaCount": { "type": "integer", "minimum": 1 },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "backend": { "type": "string", "enum": ["ollama", "vllm"] }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "properties": {
+        "maxMessages": { "type": "integer", "minimum": 1 },
+        "maxPromptChars": { "type": "integer", "minimum": 1 },
+        "maxCompletionTokens": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

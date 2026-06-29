@@ -16,7 +16,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, ge
 from pydantic import BaseModel
 
 from app.budget import BudgetReservation, SandboxBudgetTracker, build_sandbox_budget_tracker
-from app.jwt_auth import JwtAuthError, JwtVerifier
+from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.runtime_client import RuntimeClient
 from app.settings import AdmissionPolicyError, Settings, validate_sandbox_id
@@ -192,8 +192,12 @@ def _valid_api_key(request: Request, settings: Settings) -> bool:
     return any(hmac.compare_digest(digest, expected) for expected in settings.api_key_sha256s)
 
 
-def _valid_jwt(request: Request, verifier: JwtVerifier) -> bool:
-    """Return whether the request carries a bearer JWT that passes verification."""
+async def _valid_jwt(request: Request, verifier: JwtVerifier) -> bool:
+    """Return whether the request carries a bearer JWT that passes verification.
+
+    Propagates :class:`JwksUnavailableError` so the caller can distinguish an
+    unreachable issuer (503) from a rejected token (401).
+    """
     authorization = request.headers.get("authorization", "").strip()
     if not authorization.lower().startswith("bearer "):
         return False
@@ -201,7 +205,7 @@ def _valid_jwt(request: Request, verifier: JwtVerifier) -> bool:
     if not token or token.count(".") != 2:
         return False
     try:
-        verifier.verify(token)
+        await verifier.verify(token)
         return True
     except (JwtAuthError, httpx.HTTPError):
         return False
@@ -222,6 +226,28 @@ def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
         },
     )
     response.headers["WWW-Authenticate"] = "Bearer"
+    response.headers["X-Request-ID"] = request.state.request_id
+    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+    if request.state.traceparent:
+        response.headers["traceparent"] = request.state.traceparent
+    return response
+
+
+def _jwks_unavailable_response(request: Request) -> JSONResponse:
+    """Build a 503 response when the JWKS issuer is unreachable (not a token rejection)."""
+    AUTH_FAILURES.labels(request.url.path, "jwks_unavailable").inc()
+    response = JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "message": "authentication is temporarily unavailable",
+                "reason": "jwks_unavailable",
+                "request_id": request.state.request_id,
+                "sandbox_id": request.state.sandbox_id,
+            }
+        },
+        headers={"Retry-After": "5"},
+    )
     response.headers["X-Request-ID"] = request.state.request_id
     response.headers["X-Sandbox-ID"] = request.state.sandbox_id
     if request.state.traceparent:
@@ -258,6 +284,44 @@ def _record_token_usage(backend: str, runtime_response: dict[str, Any] | None) -
         value = usage.get(token_type)
         if isinstance(value, (int, float)) and value >= 0:
             TOKEN_USAGE.labels(backend, token_type).inc(value)
+
+
+def _usage_from_sse_chunk(chunk: bytes) -> dict[str, Any] | None:
+    """Return the ``usage`` object from a terminal SSE chunk, or None when absent.
+
+    OpenAI-compatible streams emit a final ``data:`` event carrying a ``usage``
+    object (when usage reporting is enabled) before ``data: [DONE]``. Each chunk may
+    contain several SSE events; scan them and return the last usage object found.
+    """
+    found: dict[str, Any] | None = None
+    for line in chunk.split(b"\n"):
+        line = line.strip()
+        if not line.startswith(b"data:"):
+            continue
+        data = line[5:].strip()
+        if not data or data == b"[DONE]":
+            continue
+        try:
+            parsed = json.loads(data)
+        except (ValueError, UnicodeDecodeError):
+            continue
+        if isinstance(parsed, dict) and isinstance(parsed.get("usage"), dict):
+            found = parsed["usage"]
+    return found
+
+
+def _terminal_stream_error_event(backend: str, request: Request) -> bytes:
+    """Build a terminal SSE error event emitted when the upstream fails mid-stream."""
+    payload = {
+        "error": {
+            "message": "runtime stream failed",
+            "type": "upstream_error",
+            "backend": backend,
+            "request_id": request.state.request_id,
+            "sandbox_id": request.state.sandbox_id,
+        }
+    }
+    return b"data: " + json.dumps(payload).encode("utf-8") + b"\n\n"
 
 
 def _record_budget_reservation(reservation: BudgetReservation | None, settings: Settings) -> None:
@@ -358,7 +422,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         async def dispatch() -> Response:
             if (resolved.api_key_auth_enabled or resolved.jwt_auth_enabled) and _auth_required(request.url.path):
                 api_key_ok = resolved.api_key_auth_enabled and _valid_api_key(request, resolved)
-                jwt_ok = resolved.jwt_auth_enabled and _valid_jwt(request, request.app.state.jwt_verifier)
+                jwt_ok = False
+                if not api_key_ok and resolved.jwt_auth_enabled:
+                    try:
+                        jwt_ok = await _valid_jwt(request, request.app.state.jwt_verifier)
+                    except JwksUnavailableError:
+                        # Issuer JWKS is unreachable: this is a 503 (retry later),
+                        # not a 401 token rejection.
+                        return _jwks_unavailable_response(request)
                 if not api_key_ok and not jwt_ok:
                     return _auth_failure_response(request, "invalid_or_missing_api_key")
 
@@ -467,6 +538,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         error = None
         payload_dict = payload.model_dump(exclude_none=True)
         request.state.budget_reservation = None
+        # When streaming, the response generator records metrics + audit at its own
+        # end-of-stream; the outer finally must not double-record on the headers path.
+        stream_owns_recording = False
         try:
             policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
@@ -489,9 +563,63 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     headers=_runtime_headers(request),
                     backend=backend,
                 )
+                stream_backend = backend
+                # Prime the stream: pull the first chunk before responding so a
+                # pre-first-byte upstream failure (e.g. raise_for_status) surfaces here
+                # as a 502 instead of a 200 carrying an error body. An empty stream
+                # (StopAsyncIteration) is a valid 200 with no chunks.
+                try:
+                    first_chunk: bytes | None = await stream.__anext__()
+                except StopAsyncIteration:
+                    first_chunk = None
+                stream_owns_recording = True
+
+                async def stream_body() -> Any:
+                    stream_status = "200"
+                    stream_status_code = 200
+                    stream_error: str | None = None
+                    usage: dict[str, Any] | None = None
+                    try:
+                        chunk = first_chunk
+                        while chunk is not None:
+                            parsed_usage = _usage_from_sse_chunk(chunk)
+                            if parsed_usage is not None:
+                                usage = parsed_usage
+                            yield chunk
+                            try:
+                                chunk = await stream.__anext__()
+                            except StopAsyncIteration:
+                                break
+                    except httpx.HTTPError as exc:
+                        # Upstream failed after headers were sent: emit a terminal SSE
+                        # error event and map the recorded status to 502.
+                        stream_status = "502"
+                        stream_status_code = 502
+                        stream_error = "runtime stream failed"
+                        AUDIT_LOGGER.debug("runtime stream error: %s", type(exc).__name__)
+                        yield _terminal_stream_error_event(stream_backend, request)
+                    finally:
+                        # True end of stream: record metrics, token usage, and audit now.
+                        latency_seconds = perf_counter() - start
+                        REQUESTS.labels(route, stream_backend, stream_status).inc()
+                        SANDBOX_REQUESTS.labels(request.state.sandbox_id, stream_backend, stream_status).inc()
+                        LATENCY.labels(route, stream_backend).observe(latency_seconds)
+                        usage_response = {"usage": usage} if usage is not None else None
+                        _record_token_usage(stream_backend, usage_response)
+                        _write_audit_log(
+                            resolved,
+                            request,
+                            payload_dict,
+                            status_code=stream_status_code,
+                            latency_seconds=latency_seconds,
+                            backend=stream_backend,
+                            runtime_response=usage_response,
+                            error=stream_error,
+                        )
+
                 # FastAPI streams this Response object directly; the dict[str, Any] return
                 # annotation describes the JSON path and drives the OpenAPI response schema.
-                return StreamingResponse(stream, media_type="text/event-stream")  # type: ignore[return-value]
+                return StreamingResponse(stream_body(), media_type="text/event-stream")  # type: ignore[return-value]
             runtime_response = await client.chat_completions(
                 payload_dict,
                 headers=_runtime_headers(request),
@@ -561,22 +689,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 },
             ) from exc
         finally:
-            REQUESTS.labels(route, backend, status).inc()
-            SANDBOX_REQUESTS.labels(request.state.sandbox_id, backend, status).inc()
-            latency_seconds = perf_counter() - start
-            LATENCY.labels(route, backend).observe(latency_seconds)
-            _record_token_usage(backend, runtime_response)
-            _write_audit_log(
-                resolved,
-                request,
-                payload_dict,
-                status_code=status_code,
-                latency_seconds=latency_seconds,
-                backend=backend,
-                runtime_response=runtime_response,
-                runtime_status_code=runtime_status_code,
-                error=error,
-            )
+            # Streaming responses record at end-of-stream inside stream_body(); the
+            # outer finally only records the non-streaming and error-before-headers paths.
+            if not stream_owns_recording:
+                REQUESTS.labels(route, backend, status).inc()
+                SANDBOX_REQUESTS.labels(request.state.sandbox_id, backend, status).inc()
+                latency_seconds = perf_counter() - start
+                LATENCY.labels(route, backend).observe(latency_seconds)
+                _record_token_usage(backend, runtime_response)
+                _write_audit_log(
+                    resolved,
+                    request,
+                    payload_dict,
+                    status_code=status_code,
+                    latency_seconds=latency_seconds,
+                    backend=backend,
+                    runtime_response=runtime_response,
+                    runtime_status_code=runtime_status_code,
+                    error=error,
+                )
 
     _install_openapi_contract(app, resolved)
     return app

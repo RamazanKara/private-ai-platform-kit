@@ -20,6 +20,14 @@ spec:
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
       securityContext:
         runAsNonRoot: true
+        # The vllm/vllm-openai image ships no USER directive (defaults to root),
+        # so an explicit non-root UID/GID is required or the kubelet rejects the
+        # pod ("container has runAsNonRoot and image will run as root").
+        runAsUser: {{ .Values.podSecurityContext.runAsUser }}
+        runAsGroup: {{ .Values.podSecurityContext.runAsGroup }}
+        # fsGroup makes the emptyDir model-cache/tmp volumes group-writable by the
+        # non-root UID so HF_HOME/VLLM_CACHE_ROOT downloads succeed.
+        fsGroup: {{ .Values.podSecurityContext.fsGroup }}
         seccompProfile:
           type: RuntimeDefault
       {{- if .Values.accelerator.runtimeClassName }}
@@ -95,12 +103,37 @@ spec:
           ports:
             - name: http
               containerPort: 8000
+          {{- if .Values.startupProbe.enabled }}
+          # Guards the multi-minute model load: liveness/readiness do not start
+          # failing until the startup probe first succeeds. failureThreshold x
+          # periodSeconds must exceed the worst-case weight download + load time.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          {{- end }}
           readinessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 30
-            periodSeconds: 15
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

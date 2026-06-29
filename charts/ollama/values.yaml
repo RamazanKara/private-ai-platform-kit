@@ -23,6 +23,32 @@ persistence:
   enabled: true
   size: 20Gi
 
+# Startup probe covers model pull/load on first start (Ollama returns 200
+# "Ollama is running" on GET /). Liveness and readiness checks do not begin
+# until it first succeeds. failureThreshold x periodSeconds is the total
+# cold-start grace window (default 30 x 10s = 5 minutes).
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Steady-state liveness probe: restarts the container if GET / stops responding
+# after startup. failureThreshold kept lenient to avoid restarts on brief stalls.
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 6
+
 topologySpread:
   enabled: true
   maxSkew: 1

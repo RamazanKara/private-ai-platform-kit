@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import logging
@@ -222,9 +223,9 @@ def test_qdrant_retriever_bootstraps_and_queries_with_rest_api(tmp_path, monkeyp
         bootstrap_from_knowledge=True,
     )
     transport = httpx.MockTransport(handler)
-    monkeypatch.setattr(retriever, "_client", lambda: httpx.Client(transport=transport))
+    monkeypatch.setattr(retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
 
-    results = retriever.query("gateway", top_k=1, max_context_chars=200)
+    results = asyncio.run(retriever.query("gateway", top_k=1, max_context_chars=200))
 
     assert results[0].document.id == "agents"
     assert results[0].score == 0.87
@@ -365,3 +366,173 @@ def test_rag_audit_log_redacts_query_content(tmp_path, caplog):
     assert "rag-audit-1" in caplog.text
     assert "query_sha256" in caplog.text
     assert "secret customer repo path" not in caplog.text
+
+
+def _qdrant_settings(tmp_path):
+    return Settings(
+        document_dir=tmp_path,
+        retrieval_backend="qdrant",
+        vector_store_url="http://qdrant.local:6333",
+        vector_collection="lab",
+        vector_dimensions=16,
+    )
+
+
+def test_readyz_lexical_backend_is_always_ready(tmp_path):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+    client = TestClient(create_app(Settings(document_dir=tmp_path)))
+
+    response = client.get("/readyz")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["retrieval_backend"] == "lexical"
+    assert body["vector_store"]["status"] == "ok"
+
+
+def test_readyz_qdrant_reports_ready_when_vector_store_is_reachable(tmp_path, monkeypatch):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        # /readyz probes the collection endpoint; bootstrap during startup uses the same client.
+        return httpx.Response(200, json={"status": "ok", "result": {"status": "green"}})
+
+    transport = httpx.MockTransport(handler)
+    app = create_app(_qdrant_settings(tmp_path))
+    monkeypatch.setattr(app.state.retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    with TestClient(app) as client:
+        response = client.get("/readyz")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["retrieval_backend"] == "qdrant"
+    assert body["vector_store"]["status"] == "ok"
+
+
+def test_readyz_qdrant_returns_503_when_vector_store_is_unreachable(tmp_path, monkeypatch):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("vector store down")
+
+    transport = httpx.MockTransport(handler)
+    app = create_app(_qdrant_settings(tmp_path))
+    monkeypatch.setattr(app.state.retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    with TestClient(app) as client:
+        response = client.get("/readyz")
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["status"] == "not_ready"
+    assert body["vector_store"]["status"] == "unavailable"
+    # The internal failure detail must not leak into the readiness body.
+    assert "vector store down" not in response.text
+
+
+def test_readyz_does_not_require_auth(tmp_path):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+    settings = Settings(
+        document_dir=tmp_path,
+        api_key_auth_enabled=True,
+        api_key_sha256s=(hashlib.sha256(b"secret-key").hexdigest(),),
+    )
+    client = TestClient(create_app(settings))
+
+    response = client.get("/readyz")
+
+    assert response.status_code == 200
+
+
+def test_lifespan_eagerly_bootstraps_qdrant_collection(tmp_path, monkeypatch):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+    calls: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.url.path))
+        if request.method == "GET" and request.url.path == "/collections/lab":
+            return httpx.Response(404)
+        if request.method == "PUT" and request.url.path == "/collections/lab":
+            return httpx.Response(200, json={"status": "ok"})
+        if request.method == "PUT" and request.url.path == "/collections/lab/points":
+            return httpx.Response(200, json={"status": "ok"})
+        return httpx.Response(200, json={"status": "ok"})
+
+    transport = httpx.MockTransport(handler)
+    app = create_app(_qdrant_settings(tmp_path))
+    monkeypatch.setattr(app.state.retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    # Entering the TestClient context manager runs the lifespan, which eagerly bootstraps.
+    with TestClient(app):
+        pass
+
+    assert app.state.retriever._bootstrapped is True
+    assert ("PUT", "/collections/lab/points") in calls
+    assert app.state.retriever.status()["last_sync_status"] == "synced"
+
+
+def test_lifespan_bootstrap_failure_does_not_crash_startup(tmp_path, monkeypatch):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("vector store down")
+
+    transport = httpx.MockTransport(handler)
+    app = create_app(_qdrant_settings(tmp_path))
+    monkeypatch.setattr(app.state.retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    # Startup must not raise even when the vector store is unreachable; readiness reports it.
+    with TestClient(app) as client:
+        ready = client.get("/readyz")
+
+    assert app.state.retriever._bootstrapped is False
+    assert ready.status_code == 503
+
+
+def test_rag_query_returns_503_when_vector_store_bootstrap_fails(tmp_path, monkeypatch):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("vector store down")
+
+    transport = httpx.MockTransport(handler)
+    app = create_app(_qdrant_settings(tmp_path))
+    monkeypatch.setattr(app.state.retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    with TestClient(app) as client:
+        response = client.post("/v1/rag/query", json={"query": "gateway"})
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["reason"] == "vector_store_unavailable"
+
+
+def test_async_http_embedding_provider_uses_async_client(monkeypatch):
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"data": [{"embedding": [0.1, 0.2, 0.3]}]})
+
+    transport = httpx.MockTransport(handler)
+    real_async_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_async_client(transport=transport),
+    )
+    provider = OpenAICompatibleEmbeddingProvider(
+        "http://embeddings.local",
+        "private-embedding",
+        dimensions=3,
+        timeout_seconds=1,
+    )
+
+    vector = asyncio.run(provider.embed_async("hello"))
+
+    assert vector == [0.1, 0.2, 0.3]
+    assert captured["url"] == "http://embeddings.local/v1/embeddings"
+    assert captured["body"]["model"] == "private-embedding"

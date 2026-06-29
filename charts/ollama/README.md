@@ -11,6 +11,11 @@ Local-first private LLM runtime.
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ollama/ollama` |
 | `image.tag` | `0.24.0` |
+| `livenessProbe.enabled` | `true` |
+| `livenessProbe.failureThreshold` | `6` |
+| `livenessProbe.initialDelaySeconds` | `0` |
+| `livenessProbe.periodSeconds` | `20` |
+| `livenessProbe.timeoutSeconds` | `5` |
 | `model.name` | `qwen3.5:0.8b` |
 | `model.pullOnStart` | `false` |
 | `persistence.enabled` | `true` |
@@ -21,6 +26,10 @@ Local-first private LLM runtime.
 | `podLabels.platform.ai/environment` | `local` |
 | `podLabels.platform.ai/owner` | `platform-team` |
 | `podLabels.platform.ai/sandbox-id` | `local-lab` |
+| `readinessProbe.failureThreshold` | `3` |
+| `readinessProbe.initialDelaySeconds` | `10` |
+| `readinessProbe.periodSeconds` | `10` |
+| `readinessProbe.timeoutSeconds` | `5` |
 | `replicaCount` | `1` |
 | `resources.limits.cpu` | `2` |
 | `resources.limits.memory` | `4Gi` |
@@ -30,6 +39,11 @@ Local-first private LLM runtime.
 | `serviceAccount.automountServiceAccountToken` | `false` |
 | `serviceAccount.create` | `true` |
 | `serviceAccount.name` | `""` |
+| `startupProbe.enabled` | `true` |
+| `startupProbe.failureThreshold` | `30` |
+| `startupProbe.initialDelaySeconds` | `5` |
+| `startupProbe.periodSeconds` | `10` |
+| `startupProbe.timeoutSeconds` | `5` |
 | `topologySpread.enabled` | `true` |
 | `topologySpread.maxSkew` | `1` |
 | `topologySpread.topologyKey` | `kubernetes.io/hostname` |

@@ -7,6 +7,8 @@ import hmac
 import json
 import logging
 import re
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from time import perf_counter
 from typing import Any
 from uuid import uuid4
@@ -97,7 +99,7 @@ def _hash_query(query: str) -> str:
 
 def _auth_required(path: str) -> bool:
     """Return whether the given request path requires authentication."""
-    return path not in {"/healthz", "/metrics", "/docs", "/openapi.json"}
+    return path not in {"/healthz", "/readyz", "/metrics", "/docs", "/openapi.json"}
 
 
 def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
@@ -209,6 +211,25 @@ def _write_audit_log(
     logging.getLogger("uvicorn.error").info(line)
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Eagerly bootstrap the vector store at startup so reachability surfaces early.
+
+    Bootstrapping is best-effort: a failure is recorded on the retriever (and
+    reflected by ``/readyz``) rather than crashing startup, avoiding a cold-start
+    thundering herd where every concurrent first request races to bootstrap.
+    """
+    bootstrap = getattr(app.state.retriever, "bootstrap", None)
+    if callable(bootstrap):
+        try:
+            await bootstrap()
+        except VectorStoreError:
+            logging.getLogger("uvicorn.error").warning(
+                "vector store bootstrap failed at startup; readiness will report not_ready until it recovers"
+            )
+    yield
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build and configure the RAG service FastAPI application with its retriever."""
     resolved = settings or Settings.from_env()
@@ -219,6 +240,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_tags=OPENAPI_TAGS,
         docs_url="/docs",
         redoc_url=None,
+        lifespan=_lifespan,
     )
     app.state.settings = resolved
     if resolved.retrieval_backend == "qdrant":
@@ -296,6 +318,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if callable(status):
             body["vector_store"] = status()
         return body
+
+    @app.get(
+        "/readyz",
+        tags=["health"],
+        summary="Check RAG service and vector store readiness",
+        operation_id="getRagReadiness",
+        include_in_schema=False,
+    )
+    async def readyz(response: Response) -> dict[str, Any]:
+        ready = True
+        vector_store: dict[str, Any] = {"status": "ok"}
+        if resolved.retrieval_backend == "qdrant":
+            ping = getattr(app.state.retriever, "ping", None)
+            reachable = await ping() if callable(ping) else False
+            ready = bool(reachable)
+            vector_store = {"status": "ok" if ready else "unavailable"}
+            status_obj = getattr(app.state.retriever, "status", None)
+            if callable(status_obj):
+                vector_store["last_sync_status"] = status_obj().get("last_sync_status")
+        response.status_code = 200 if ready else 503
+        REQUESTS.labels("/readyz", str(response.status_code)).inc()
+        return {
+            "status": "ready" if ready else "not_ready",
+            "retrieval_backend": resolved.retrieval_backend,
+            "vector_store": vector_store,
+        }
 
     @app.get(
         "/metrics",
@@ -390,7 +438,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     },
                 )
 
-            results = app.state.retriever.query(query_text, top_k, max_context_chars)
+            results = await app.state.retriever.query(query_text, top_k, max_context_chars)
             result_ids = [result.document.id for result in results]
             context = build_context(results, max_context_chars)
             RETRIEVAL_RESULTS.labels(request.state.sandbox_id).observe(len(results))
