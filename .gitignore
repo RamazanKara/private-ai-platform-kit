@@ -22,3 +22,8 @@ results/**/*.sarif
 results/**/*.txt
 results/**/*.log
 !results/**/sample-*
+
+# mkdocs docs site build
+/site/
+/docs/runbooks/
+/.venv-docs/

@@ -1,0 +1,89 @@
+site_name: Private AI Platform Kit
+site_description: A runnable, vendor-neutral Kubernetes platform for private LLMs, RAG, and coding-agent workspaces.
+site_url: https://ramazankara.github.io/private-ai-platform-kit/
+repo_url: https://github.com/RamazanKara/private-ai-platform-kit
+repo_name: RamazanKara/private-ai-platform-kit
+edit_uri: edit/main/docs/
+copyright: Maintained by fluentorbit as project steward. Licensed under Apache-2.0.
+
+# Runbooks live at the repo-root runbooks/ (their paths are gate-referenced and shipped in
+# live Prometheus alert runbook_url annotations). scripts/docs-build.sh copies them into
+# docs/runbooks/ at build time so they are searchable and linkable from the site without
+# moving the source of truth. docs/runbooks/ is git-ignored.
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.indexes
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+
+validation:
+  nav:
+    omitted_files: ignore
+  links:
+    not_found: warn
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - tutorials/index.md
+      - First private AI platform: quickstart.md
+  - How-to guides:
+      - Local lab and operations: getting-started.md
+      - Customer cluster handoff: customer-handoff-example.md
+      - Regulated offline tenant: regulated-offline-tenant-example.md
+      - GPU coding-agent tenant: gpu-coding-agent-tenant-example.md
+      - Runbooks: runbooks/README.md
+  - Reference:
+      - Production readiness matrix: production-readiness.md
+      - Benchmarks and evals: benchmarks-and-evals.md
+      - Release verification: release-verification.md
+      - Upstream references: references.md
+  - Explanation:
+      - Is this for you (decision guide): decision-guide.md
+      - Architecture and threat model: threat-model.md
+      - Proof and strict evidence: proof.md

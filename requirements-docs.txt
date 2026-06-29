@@ -1,0 +1,2 @@
+# Documentation site toolchain (mkdocs-material). Build with scripts/docs-build.sh.
+mkdocs-material==9.5.49

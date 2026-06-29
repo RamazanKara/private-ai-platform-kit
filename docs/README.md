@@ -13,7 +13,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Maintainers | [Maintainers](../MAINTAINERS.md) |
 | Roadmap | [Roadmap](../ROADMAP.md) |
 | Adopters | [Adopters](../ADOPTERS.md) |
-| GitHub Pages landing page | [index.html](index.html) |
+| Documentation site (mkdocs-material) | [ramazankara.github.io/private-ai-platform-kit](https://ramazankara.github.io/private-ai-platform-kit/) |
 | 15-30 minute local quickstart | [Quickstart](quickstart.md) |
 | Local setup and validation flow | [Getting started](getting-started.md) |
 | Project fit and alternatives | [Decision guide](decision-guide.md) |
