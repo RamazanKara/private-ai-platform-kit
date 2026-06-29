@@ -1,0 +1,38 @@
+{
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "Apache-2.0",
+  "title": "Private AI Platform Kit",
+  "description": "A runnable, vendor-neutral Kubernetes platform for private LLM serving, RAG, and coding-agent workspaces, with an evidence model that turns regulatory requirements (EU AI Act, DORA, GDPR) into machine-checkable controls: request lineage, access and model governance, and model provenance. This is the artifact accompanying the paper \"Auditable Private LLM Serving on Kubernetes: A Vendor-Neutral Architecture and Evidence Model for Regulated Environments.\"",
+  "creators": [
+    {
+      "name": "Kara, Ramazan",
+      "orcid": "0009-0006-5153-9622",
+      "affiliation": "Independent Researcher"
+    }
+  ],
+  "keywords": [
+    "Kubernetes",
+    "GitOps",
+    "private LLM serving",
+    "RAG",
+    "vLLM",
+    "Ollama",
+    "Helm",
+    "compliance automation",
+    "model provenance",
+    "audit trail",
+    "policy-as-code",
+    "supply-chain security",
+    "EU AI Act",
+    "DORA",
+    "GDPR"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.5281/zenodo.21038652",
+      "scheme": "doi"
+    }
+  ]
+}
