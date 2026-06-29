@@ -4,12 +4,12 @@ The repository includes lightweight eval and load-test paths for release hygiene
 
 ## Evals
 
-Eval suites live under `evals/`.
+Eval suites live under `platform/evals/`.
 
 ```bash
 make eval-local
 make eval
-SUITE=evals/coding-agent-suite.yaml make eval
+SUITE=platform/evals/coding-agent-suite.yaml make eval
 ```
 
 `make eval-local` uses an ephemeral mock runtime for current release-gate evidence without a live cluster. `make eval` targets a live gateway. The default smoke suite proves that the selected gateway/model path can answer basic platform prompts within configured latency limits. The coding-agent suite exercises agent-oriented prompts. Customer teams should add cases for their languages, tools, retrieval corpus, safety policy, and expected failure modes.
@@ -28,7 +28,7 @@ For a live gateway:
 GATEWAY_URL=http://127.0.0.1:8080 make loadtest
 ```
 
-The release gates check request count, error rate, p95 latency, and p99 latency. Tune thresholds in `slo/release-gates.yaml` only when the target environment and workload justify the change.
+The release gates check request count, error rate, p95 latency, and p99 latency. Tune thresholds in `platform/slo/release-gates.yaml` only when the target environment and workload justify the change.
 
 ## Reference Serving Benchmark
 

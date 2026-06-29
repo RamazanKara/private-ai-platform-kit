@@ -2,7 +2,7 @@
 
 Generated: `2026-05-31T00:00:00Z`
 
-Policy: `governance/quota-plans.yaml`
+Policy: `platform/governance/quota-plans.yaml`
 
 Summary: 3 plans checked, 4 labels checked, 0 errors.
 

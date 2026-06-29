@@ -83,10 +83,10 @@ def collect_artifacts() -> list[Artifact]:
         Artifact("Project README", "README.md", "markdown", "tracked"),
         Artifact("Production readiness matrix", "docs/production-readiness.md", "markdown", "tracked"),
         Artifact("API access runbook", "runbooks/api-access.md", "markdown", "tracked"),
-        Artifact("Gateway OpenAPI contract", "api-contracts/inference-gateway.openapi.json", "json", "tracked"),
-        Artifact("RAG OpenAPI contract", "api-contracts/rag-service.openapi.json", "json", "tracked"),
-        Artifact("Gateway configuration contract", "config-contracts/inference-gateway.config.json", "json", "tracked"),
-        Artifact("RAG configuration contract", "config-contracts/rag-service.config.json", "json", "tracked"),
+        Artifact("Gateway OpenAPI contract", "platform/api-contracts/inference-gateway.openapi.json", "json", "tracked"),
+        Artifact("RAG OpenAPI contract", "platform/api-contracts/rag-service.openapi.json", "json", "tracked"),
+        Artifact("Gateway configuration contract", "platform/config-contracts/inference-gateway.config.json", "json", "tracked"),
+        Artifact("RAG configuration contract", "platform/config-contracts/rag-service.config.json", "json", "tracked"),
         Artifact("Agent workspaces runbook", "runbooks/agent-workspaces.md", "markdown", "tracked"),
         Artifact("Tenant onboarding spec", "tenants/onboarding/coding-agents.yaml", "yaml", "tracked"),
         Artifact("Regulated offline tenant onboarding spec", "tenants/onboarding/regulated-offline-coding-agents.yaml", "yaml", "tracked"),
@@ -94,20 +94,20 @@ def collect_artifacts() -> list[Artifact]:
         Artifact("Vector RAG runbook", "runbooks/vector-rag.md", "markdown", "tracked"),
         Artifact("Gateway guardrails runbook", "runbooks/guardrails.md", "markdown", "tracked"),
         Artifact("Model governance runbook", "runbooks/model-governance.md", "markdown", "tracked"),
-        Artifact("Model provenance policy", "governance/model-provenance.yaml", "yaml", "tracked"),
+        Artifact("Model provenance policy", "platform/governance/model-provenance.yaml", "yaml", "tracked"),
         Artifact("Model provenance runbook", "runbooks/model-provenance.md", "markdown", "tracked"),
-        Artifact("Validation toolchain manifest", "tools/validation-toolchain.yaml", "yaml", "tracked"),
+        Artifact("Validation toolchain manifest", "platform/tools/validation-toolchain.yaml", "yaml", "tracked"),
         Artifact("Validation toolchain installer", "scripts/install-validation-tools.sh", "shell", "tracked"),
         Artifact("Validation toolchain runbook", "runbooks/validation-toolchain.md", "markdown", "tracked"),
-        Artifact("Release gate definition", "slo/release-gates.yaml", "yaml", "tracked"),
+        Artifact("Release gate definition", "platform/slo/release-gates.yaml", "yaml", "tracked"),
         Artifact("Release gates runbook", "runbooks/release-gates.md", "markdown", "tracked"),
-        Artifact("SLO objective definition", "slo/objectives.yaml", "yaml", "tracked"),
+        Artifact("SLO objective definition", "platform/slo/objectives.yaml", "yaml", "tracked"),
         Artifact("SLO and error budget runbook", "runbooks/slo-error-budget.md", "markdown", "tracked"),
-        Artifact("Quota plan policy", "governance/quota-plans.yaml", "yaml", "tracked"),
+        Artifact("Quota plan policy", "platform/governance/quota-plans.yaml", "yaml", "tracked"),
         Artifact("Quota and chargeback runbook", "runbooks/quota-chargeback.md", "markdown", "tracked"),
-        Artifact("Egress catalog", "network/egress-catalog.yaml", "yaml", "tracked"),
+        Artifact("Egress catalog", "platform/network/egress-catalog.yaml", "yaml", "tracked"),
         Artifact("Egress governance runbook", "runbooks/egress-governance.md", "markdown", "tracked"),
-        Artifact("Data retention policy", "governance/data-retention.yaml", "yaml", "tracked"),
+        Artifact("Data retention policy", "platform/governance/data-retention.yaml", "yaml", "tracked"),
         Artifact("Data retention runbook", "runbooks/data-retention.md", "markdown", "tracked"),
         Artifact("Chaos drill catalog", "chaos/drills/", "yaml", "tracked"),
         Artifact("Restore drill runbook", "runbooks/restore-drill.md", "markdown", "tracked"),
@@ -145,17 +145,17 @@ def static_controls() -> list[Control]:
     customer_qdrant = load_yaml("clusters/customer/values/qdrant-vector-store.yaml")
     vllm_amd = load_yaml("clusters/customer/values/vllm-amd.yaml")
     vllm_nvidia = load_yaml("clusters/customer/values/vllm-nvidia.yaml")
-    model_catalog = load_yaml("model-catalog/models.yaml")
-    model_provenance = load_yaml("governance/model-provenance.yaml")
+    model_catalog = load_yaml("platform/model-catalog/models.yaml")
+    model_provenance = load_yaml("platform/governance/model-provenance.yaml")
     workflow = read_text(".github/workflows/ci.yml")
     readme = read_text("README.md")
     production_doc = read_text("docs/production-readiness.md")
-    toolchain = load_yaml("tools/validation-toolchain.yaml")
-    release_gates = load_yaml("slo/release-gates.yaml")
-    slo_objectives = load_yaml("slo/objectives.yaml")
-    quota_plans = load_yaml("governance/quota-plans.yaml")
-    egress_catalog = load_yaml("network/egress-catalog.yaml")
-    retention_policy = load_yaml("governance/data-retention.yaml")
+    toolchain = load_yaml("platform/tools/validation-toolchain.yaml")
+    release_gates = load_yaml("platform/slo/release-gates.yaml")
+    slo_objectives = load_yaml("platform/slo/objectives.yaml")
+    quota_plans = load_yaml("platform/governance/quota-plans.yaml")
+    egress_catalog = load_yaml("platform/network/egress-catalog.yaml")
+    retention_policy = load_yaml("platform/governance/data-retention.yaml")
     regulated_onboarding = load_yaml("tenants/onboarding/regulated-offline-coding-agents.yaml")
     chaos_drill_names = {
         nested(item, "metadata", "name")
@@ -197,27 +197,27 @@ def static_controls() -> list[Control]:
         ),
         control(
             "API contract governance",
-            exists("api-contracts/inference-gateway.openapi.json", "api-contracts/rag-service.openapi.json", "scripts/api-contract.py")
+            exists("platform/api-contracts/inference-gateway.openapi.json", "platform/api-contracts/rag-service.openapi.json", "scripts/api-contract.py")
             and executable("scripts/api-contract.py")
             and "api-contract:" in read_text("Makefile")
-            and "createChatCompletion" in read_text("api-contracts/inference-gateway.openapi.json")
-            and "queryRagContext" in read_text("api-contracts/rag-service.openapi.json")
-            and "securitySchemes" in read_text("api-contracts/inference-gateway.openapi.json"),
+            and "createChatCompletion" in read_text("platform/api-contracts/inference-gateway.openapi.json")
+            and "queryRagContext" in read_text("platform/api-contracts/rag-service.openapi.json")
+            and "securitySchemes" in read_text("platform/api-contracts/inference-gateway.openapi.json"),
             "Gateway and RAG OpenAPI snapshots are versioned and checked for route, schema, operation ID, and auth drift.",
-            ["api-contracts/", "scripts/api-contract.py", "docs/production-readiness.md"],
+            ["platform/api-contracts/", "scripts/api-contract.py", "docs/production-readiness.md"],
             "Review contract diffs with customer integrators before changing public routes or request schemas.",
         ),
         control(
             "Configuration contract governance",
-            exists("config-contracts/inference-gateway.config.json", "config-contracts/rag-service.config.json", "scripts/config-contract.py")
+            exists("platform/config-contracts/inference-gateway.config.json", "platform/config-contracts/rag-service.config.json", "scripts/config-contract.py")
             and executable("scripts/config-contract.py")
             and "config-contract:" in read_text("Makefile")
-            and "SANDBOX_BUDGET_REDIS_URL" in read_text("config-contracts/inference-gateway.config.json")
-            and "QDRANT_VECTOR_DIMENSIONS" in read_text("config-contracts/rag-service.config.json")
+            and "SANDBOX_BUDGET_REDIS_URL" in read_text("platform/config-contracts/inference-gateway.config.json")
+            and "QDRANT_VECTOR_DIMENSIONS" in read_text("platform/config-contracts/rag-service.config.json")
             and "secretKeyRef" in read_text("charts/inference-gateway/templates/deployment.yaml")
             and "secretKeyRef" in read_text("charts/rag-service/templates/deployment.yaml"),
             "Gateway and RAG runtime configuration snapshots are versioned and checked against service settings, Helm env vars, chart defaults, and secret sourcing.",
-            ["config-contracts/", "scripts/config-contract.py", "charts/inference-gateway/templates/deployment.yaml", "charts/rag-service/templates/deployment.yaml"],
+            ["platform/config-contracts/", "scripts/config-contract.py", "charts/inference-gateway/templates/deployment.yaml", "charts/rag-service/templates/deployment.yaml"],
             "Review configuration contract diffs before changing customer overlays, runtime endpoints, budget settings, retrieval settings, or auth secrets.",
         ),
         control(
@@ -280,31 +280,31 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Model catalog and admission controls",
-            exists("model-catalog/models.yaml", "model-catalog/k8s/configmap.yaml")
+            exists("platform/model-catalog/models.yaml", "platform/model-catalog/k8s/configmap.yaml")
             and allowed <= catalog_ids
             and nested(customer_gateway, "admission", "maxPromptChars", default=0) > 0,
             "Gateway allowed models are backed by a reviewed catalog and request limits.",
-            ["model-catalog/models.yaml", "clusters/customer/values/inference-gateway.yaml"],
+            ["platform/model-catalog/models.yaml", "clusters/customer/values/inference-gateway.yaml"],
             "Review model additions through the catalog before exposing them to tenants or coding agents.",
         ),
         control(
             "Model lifecycle governance",
             exists("scripts/model-catalog.py", "runbooks/model-governance.md", "results/model-catalog/sample-summary.md")
             and executable("scripts/model-catalog.py")
-            and exists("model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml", "model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml", "model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml"),
+            and exists("platform/model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml", "platform/model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml", "platform/model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml"),
             "Approved models require promotion requests, evidence references, runtime metadata, and approved-only gateway allowlists.",
-            ["scripts/model-catalog.py", "model-catalog/promotion-requests/", "runbooks/model-governance.md"],
+            ["scripts/model-catalog.py", "platform/model-catalog/promotion-requests/", "runbooks/model-governance.md"],
             "Run `make model-check` before changing model status or gateway allowlists.",
         ),
         control(
             "Model provenance governance",
-            exists("governance/model-provenance.yaml", "scripts/model-provenance.py", "runbooks/model-provenance.md", "results/model-provenance/sample-summary.md")
+            exists("platform/governance/model-provenance.yaml", "scripts/model-provenance.py", "runbooks/model-provenance.md", "results/model-provenance/sample-summary.md")
             and executable("scripts/model-provenance.py")
             and len(nested(model_provenance, "spec", "artifacts", default=[])) >= len([item for item in nested(model_catalog, "spec", "models", default=[]) if isinstance(item, dict) and item.get("status") == "approved"])
             and {"sourceUri", "immutableRef", "digest", "license", "dataClassification", "riskTier", "promotionRequest", "servingProfiles"}
             <= set(nested(model_provenance, "spec", "requiredEvidence", default=[])),
             "Approved models require source, immutable reference, digest, license, risk, data classification, promotion, serving, and evidence metadata.",
-            ["governance/model-provenance.yaml", "scripts/model-provenance.py", "runbooks/model-provenance.md"],
+            ["platform/governance/model-provenance.yaml", "scripts/model-provenance.py", "runbooks/model-provenance.md"],
             "Replace source-reference digests with customer model-store artifact digests before production use.",
         ),
         control(
@@ -319,65 +319,65 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Validation toolchain",
-            exists("tools/validation-toolchain.yaml", "scripts/toolchain-doctor.py", "scripts/install-validation-tools.sh", "runbooks/validation-toolchain.md", "results/toolchain/sample-summary.md")
+            exists("platform/tools/validation-toolchain.yaml", "scripts/toolchain-doctor.py", "scripts/install-validation-tools.sh", "runbooks/validation-toolchain.md", "results/toolchain/sample-summary.md")
             and executable("scripts/toolchain-doctor.py")
             and executable("scripts/install-validation-tools.sh")
             and {"python3", "helm", "kubeconform", "kyverno", "restore-drill", "k6", "syft", "argocd", "cosign", "trivy"}
             <= set(nested(toolchain, "spec", "profiles", "strict", "required", default=[])),
             "Validation profiles define the core, local-lab, and strict customer-handoff toolchain with a pinned installer.",
-            ["tools/validation-toolchain.yaml", "scripts/toolchain-doctor.py", "scripts/install-validation-tools.sh", "runbooks/validation-toolchain.md"],
+            ["platform/tools/validation-toolchain.yaml", "scripts/toolchain-doctor.py", "scripts/install-validation-tools.sh", "runbooks/validation-toolchain.md"],
             "Run `make toolchain-install` and `make toolchain-doctor TOOLCHAIN_PROFILE=strict` before strict customer sign-off.",
         ),
         control(
             "Release gates and SLO evidence",
-            exists("slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md", "results/release-gate/sample-summary.md")
+            exists("platform/slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md", "results/release-gate/sample-summary.md")
             and executable("scripts/release-gate.py")
             and "release-gate-strict" in read_text("Makefile")
             and "--require-current-evidence" in read_text("scripts/release-gate.py")
             and {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "supplyChain", "evidencePack"} <= set(nested(release_gates, "spec", "gates", default={})),
             "Customer handoff gates check eval, load, restore, strict toolchain, SLO, governance, supply-chain, evidence-pack thresholds, and strict current-evidence mode.",
-            ["slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md"],
+            ["platform/slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md"],
             "Run `make release-gate-strict` before demos, releases, restore reviews, and production-readiness handoff.",
         ),
         control(
             "SLO and error budget governance",
-            exists("slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "results/slo/sample-summary.md")
+            exists("platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "results/slo/sample-summary.md")
             and executable("scripts/slo-report.py")
             and len(nested(slo_objectives, "spec", "objectives", default=[])) >= 5
             and "InferenceGatewayErrorBudgetFastBurn" in read_text("observability/alerts/ai-platform-alerts.yaml"),
             "SLO objectives cover inference availability, latency, eval pass rate, restore verification, and coding-agent platform readiness.",
-            ["slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "observability/alerts/ai-platform-alerts.yaml"],
+            ["platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "observability/alerts/ai-platform-alerts.yaml"],
             "Set targets to the customer's contract and review error-budget burn alerts before production use.",
         ),
         control(
             "Quota and chargeback governance",
-            exists("governance/quota-plans.yaml", "scripts/quota-check.py", "runbooks/quota-chargeback.md", "results/quota/sample-summary.md")
+            exists("platform/governance/quota-plans.yaml", "scripts/quota-check.py", "runbooks/quota-chargeback.md", "results/quota/sample-summary.md")
             and executable("scripts/quota-check.py")
             and len(nested(quota_plans, "spec", "plans", default=[])) >= 3
             and {"platform.ai/owner", "platform.ai/cost-center", "platform.ai/environment", "platform.ai/sandbox-id"}
             <= set(nested(quota_plans, "spec", "chargeback", "requiredLabels", default=[])),
             "Reviewed quota plans connect tenant ResourceQuota, gateway sandbox budgets, workspace sizing, and chargeback labels.",
-            ["governance/quota-plans.yaml", "scripts/quota-check.py", "runbooks/quota-chargeback.md"],
+            ["platform/governance/quota-plans.yaml", "scripts/quota-check.py", "runbooks/quota-chargeback.md"],
             "Align quota plans to customer chargeback policy before tenant onboarding or budget increases.",
         ),
         control(
             "Egress governance for coding agents",
-            exists("network/egress-catalog.yaml", "scripts/egress-governance.py", "runbooks/egress-governance.md", "results/egress-governance/sample-summary.md")
+            exists("platform/network/egress-catalog.yaml", "scripts/egress-governance.py", "runbooks/egress-governance.md", "results/egress-governance/sample-summary.md")
             and executable("scripts/egress-governance.py")
             and "customer-git-artifact-mirror-example" in {entry.get("id") for entry in nested(egress_catalog, "spec", "entries", default=[]) if isinstance(entry, dict)}
             and "catalogRef" in read_text("tenants/onboarding/coding-agents.yaml"),
             "External coding-agent egress must reference approved catalog entries before NetworkPolicies allow it.",
-            ["network/egress-catalog.yaml", "scripts/egress-governance.py", "runbooks/egress-governance.md"],
+            ["platform/network/egress-catalog.yaml", "scripts/egress-governance.py", "runbooks/egress-governance.md"],
             "Review catalog entries before adding Git, package mirror, artifact, or ticketing egress for agents.",
         ),
         control(
             "Data retention and privacy governance",
-            exists("governance/data-retention.yaml", "scripts/retention-check.py", "runbooks/data-retention.md", "results/retention/sample-summary.md")
+            exists("platform/governance/data-retention.yaml", "scripts/retention-check.py", "runbooks/data-retention.md", "results/retention/sample-summary.md")
             and executable("scripts/retention-check.py")
             and nested(retention_policy, "spec", "classes", "auditLogs", "storesRawPrompt") is False
             and nested(retention_policy, "spec", "classes", "auditLogs", "storesRawQuery") is False,
             "Retention policy covers redacted audit logs, generated evidence, RAG knowledge, agent workspace data, and model governance records.",
-            ["governance/data-retention.yaml", "scripts/retention-check.py", "runbooks/data-retention.md"],
+            ["platform/governance/data-retention.yaml", "scripts/retention-check.py", "runbooks/data-retention.md"],
             "Align retention days and classifications to customer policy before long-running use.",
         ),
         control(
@@ -452,12 +452,12 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Evaluation, load, and incident evidence",
-            exists("evals/smoke-suite.yaml", "evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/evals/sample-coding-agent-summary.md", "results/loadtest/sample-summary.md")
+            exists("platform/evals/smoke-suite.yaml", "platform/evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/evals/sample-coding-agent-summary.md", "results/loadtest/sample-summary.md")
             and executable("scripts/eval.sh")
             and executable("scripts/loadtest.sh")
             and executable("scripts/loadtest-local.sh"),
             "The lab stores smoke and coding-agent evaluation summaries alongside load-test, incident, and chaos evidence.",
-            ["evals/smoke-suite.yaml", "evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/loadtest/sample-summary.md", "scripts/loadtest-local.sh"],
+            ["platform/evals/smoke-suite.yaml", "platform/evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/loadtest/sample-summary.md", "scripts/loadtest-local.sh"],
             "Keep customer-specific evaluation and load results with release evidence.",
         ),
         control(

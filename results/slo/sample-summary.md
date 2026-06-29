@@ -2,7 +2,7 @@
 
 Generated: `2026-05-31T00:00:00Z`
 
-Config: `slo/objectives.yaml`
+Config: `platform/slo/objectives.yaml`
 
 Summary: 5 passed, 0 failed, 0 config errors.
 

@@ -39,8 +39,8 @@ Use this map when the README is too high-level and you need a specific setup, op
 | --- | --- |
 | API-key access model | [API access](../runbooks/api-access.md) |
 | Benchmark and eval interpretation | [Benchmarks and evals](benchmarks-and-evals.md) |
-| API contract snapshots | [API contracts](../api-contracts/README.md) |
-| Configuration contract snapshots | [Configuration contracts](../config-contracts/README.md) |
+| API contract snapshots | [API contracts](../platform/api-contracts/README.md) |
+| Configuration contract snapshots | [Configuration contracts](../platform/config-contracts/README.md) |
 | Traceable sandbox controls | [Traceability sandbox](../runbooks/traceability-sandbox.md) |
 | Sandbox budget controls | [Budget controls](../runbooks/budget-controls.md) |
 | Prompt and secret guardrails | [Guardrails](../runbooks/guardrails.md) |

@@ -389,8 +389,8 @@ def check_vllm_render(name: str, docs: list[dict[str, Any]], resource_name: str,
 
 
 def check_model_catalog(errors: list[str]) -> None:
-    catalog_path = ROOT / "model-catalog/models.yaml"
-    require(errors, catalog_path.exists(), "model catalog must exist at model-catalog/models.yaml")
+    catalog_path = ROOT / "platform/model-catalog/models.yaml"
+    require(errors, catalog_path.exists(), "model catalog must exist at platform/model-catalog/models.yaml")
     if not catalog_path.exists():
         return
     catalog = yaml.safe_load(catalog_path.read_text())
@@ -408,7 +408,7 @@ def check_model_catalog(errors: list[str]) -> None:
         values = yaml.safe_load((ROOT / f"clusters/{environment}/values/inference-gateway.yaml").read_text())
         for model_id in nested(values, "runtime", "allowedModels", default=[]):
             require(errors, model_id in model_ids, f"{environment}: allowed model {model_id} is missing from model catalog")
-    configmap = ROOT / "model-catalog/k8s/configmap.yaml"
+    configmap = ROOT / "platform/model-catalog/k8s/configmap.yaml"
     require(errors, configmap.exists(), "model catalog ConfigMap must exist")
     if configmap.exists():
         docs = load_yaml_documents(configmap)
@@ -420,7 +420,7 @@ def check_model_governance(errors: list[str]) -> None:
     require(errors, os.access(script, os.X_OK), "scripts/model-catalog.py must be executable")
     require(errors, (ROOT / "runbooks/model-governance.md").exists(), "model governance runbook must exist")
     require(errors, (ROOT / "results/model-catalog/sample-summary.md").exists(), "model catalog sample summary must exist")
-    catalog_models = nested(yaml.safe_load((ROOT / "model-catalog/models.yaml").read_text()), "spec", "models", default=[])
+    catalog_models = nested(yaml.safe_load((ROOT / "platform/model-catalog/models.yaml").read_text()), "spec", "models", default=[])
     for model in catalog_models:
         if model.get("status") == "approved":
             promotion_request = model.get("promotionRequest")
@@ -460,8 +460,8 @@ def check_sandbox(errors: list[str]) -> None:
 
 
 def check_evals(errors: list[str]) -> None:
-    suite_path = ROOT / "evals/smoke-suite.yaml"
-    require(errors, suite_path.exists(), "eval smoke suite must exist at evals/smoke-suite.yaml")
+    suite_path = ROOT / "platform/evals/smoke-suite.yaml"
+    require(errors, suite_path.exists(), "eval smoke suite must exist at platform/evals/smoke-suite.yaml")
     if suite_path.exists():
         suite = yaml.safe_load(suite_path.read_text())
         require(errors, suite.get("kind") == "EvalSuite", "eval smoke suite must use kind EvalSuite")
@@ -477,8 +477,8 @@ def check_evals(errors: list[str]) -> None:
     require(errors, os.access(ROOT / "scripts/eval.sh", os.X_OK), "scripts/eval.sh must be executable")
     require(errors, os.access(ROOT / "scripts/eval-suite.py", os.X_OK), "scripts/eval-suite.py must be executable")
     require(errors, (ROOT / "results/evals/sample-summary.md").exists(), "eval sample summary must exist")
-    coding_agent_suite = ROOT / "evals/coding-agent-suite.yaml"
-    require(errors, coding_agent_suite.exists(), "coding-agent eval suite must exist at evals/coding-agent-suite.yaml")
+    coding_agent_suite = ROOT / "platform/evals/coding-agent-suite.yaml"
+    require(errors, coding_agent_suite.exists(), "coding-agent eval suite must exist at platform/evals/coding-agent-suite.yaml")
     require(errors, (ROOT / "results/evals/sample-coding-agent-summary.md").exists(), "coding-agent eval sample summary must exist")
     require(errors, (ROOT / "results/evals/sample-coding-agent-summary.json").exists(), "coding-agent eval sample JSON must exist")
     if coding_agent_suite.exists():
@@ -634,7 +634,7 @@ def check_evidence_pack(errors: list[str]) -> None:
 
 
 def check_validation_toolchain(errors: list[str]) -> None:
-    manifest_path = ROOT / "tools/validation-toolchain.yaml"
+    manifest_path = ROOT / "platform/tools/validation-toolchain.yaml"
     script = ROOT / "scripts/toolchain-doctor.py"
     installer = ROOT / "scripts/install-validation-tools.sh"
     require(errors, manifest_path.exists(), "validation toolchain manifest must exist")
@@ -734,7 +734,7 @@ def check_release_packaging(errors: list[str]) -> None:
         text = (ROOT / path).read_text()
         require(errors, f'SERVICE_VERSION = "{release_version}"' in text, f"{path} SERVICE_VERSION must match latest CHANGELOG version")
 
-    for path in ("api-contracts/inference-gateway.openapi.json", "api-contracts/rag-service.openapi.json"):
+    for path in ("platform/api-contracts/inference-gateway.openapi.json", "platform/api-contracts/rag-service.openapi.json"):
         api = load_json(ROOT / path)
         require(errors, nested(api, "info", "version") == release_version, f"{path} info.version must match latest CHANGELOG version")
 
@@ -813,9 +813,9 @@ def check_release_packaging(errors: list[str]) -> None:
 
 
 def check_release_gates(errors: list[str]) -> None:
-    config_path = ROOT / "slo/release-gates.yaml"
+    config_path = ROOT / "platform/slo/release-gates.yaml"
     script = ROOT / "scripts/release-gate.py"
-    require(errors, config_path.exists(), "release gate config must exist at slo/release-gates.yaml")
+    require(errors, config_path.exists(), "release gate config must exist at platform/slo/release-gates.yaml")
     require(errors, os.access(script, os.X_OK), "scripts/release-gate.py must be executable")
     require(errors, (ROOT / "runbooks/release-gates.md").exists(), "release gates runbook must exist")
     require(errors, (ROOT / "results/release-gate/sample-summary.md").exists(), "release gate sample summary must exist")
@@ -843,9 +843,9 @@ def check_release_gates(errors: list[str]) -> None:
 
 
 def check_slo_governance(errors: list[str]) -> None:
-    config_path = ROOT / "slo/objectives.yaml"
+    config_path = ROOT / "platform/slo/objectives.yaml"
     script = ROOT / "scripts/slo-report.py"
-    require(errors, config_path.exists(), "SLO objective config must exist at slo/objectives.yaml")
+    require(errors, config_path.exists(), "SLO objective config must exist at platform/slo/objectives.yaml")
     require(errors, os.access(script, os.X_OK), "scripts/slo-report.py must be executable")
     require(errors, (ROOT / "runbooks/slo-error-budget.md").exists(), "SLO error budget runbook must exist")
     require(errors, (ROOT / "results/slo/sample-summary.md").exists(), "SLO sample summary must exist")
@@ -863,9 +863,9 @@ def check_slo_governance(errors: list[str]) -> None:
 
 
 def check_quota_governance(errors: list[str]) -> None:
-    policy_path = ROOT / "governance/quota-plans.yaml"
+    policy_path = ROOT / "platform/governance/quota-plans.yaml"
     script = ROOT / "scripts/quota-check.py"
-    require(errors, policy_path.exists(), "quota plan policy must exist at governance/quota-plans.yaml")
+    require(errors, policy_path.exists(), "quota plan policy must exist at platform/governance/quota-plans.yaml")
     require(errors, os.access(script, os.X_OK), "scripts/quota-check.py must be executable")
     require(errors, (ROOT / "runbooks/quota-chargeback.md").exists(), "quota chargeback runbook must exist")
     require(errors, (ROOT / "results/quota/sample-summary.md").exists(), "quota sample summary must exist")
@@ -883,9 +883,9 @@ def check_quota_governance(errors: list[str]) -> None:
 
 
 def check_model_provenance_governance(errors: list[str]) -> None:
-    policy_path = ROOT / "governance/model-provenance.yaml"
+    policy_path = ROOT / "platform/governance/model-provenance.yaml"
     script = ROOT / "scripts/model-provenance.py"
-    require(errors, policy_path.exists(), "model provenance policy must exist at governance/model-provenance.yaml")
+    require(errors, policy_path.exists(), "model provenance policy must exist at platform/governance/model-provenance.yaml")
     require(errors, os.access(script, os.X_OK), "scripts/model-provenance.py must be executable")
     require(errors, (ROOT / "runbooks/model-provenance.md").exists(), "model provenance runbook must exist")
     require(errors, (ROOT / "results/model-provenance/sample-summary.md").exists(), "model provenance sample summary must exist")
@@ -895,7 +895,7 @@ def check_model_provenance_governance(errors: list[str]) -> None:
         require(errors, policy.get("kind") == "ModelProvenanceSet", "model provenance policy kind must be ModelProvenanceSet")
         artifacts = nested(policy, "spec", "artifacts", default=[])
         model_ids = {item.get("modelId") for item in artifacts if isinstance(item, dict)}
-        catalog_models = nested(yaml.safe_load((ROOT / "model-catalog/models.yaml").read_text()), "spec", "models", default=[])
+        catalog_models = nested(yaml.safe_load((ROOT / "platform/model-catalog/models.yaml").read_text()), "spec", "models", default=[])
         expected = {model.get("id") for model in catalog_models if model.get("status") == "approved"}
         require(errors, expected <= model_ids, f"model provenance must cover all approved catalog models; missing {sorted(expected - model_ids)}")
         required = set(nested(policy, "spec", "requiredEvidence", default=[]))
@@ -904,9 +904,9 @@ def check_model_provenance_governance(errors: list[str]) -> None:
 
 
 def check_egress_governance(errors: list[str]) -> None:
-    catalog_path = ROOT / "network/egress-catalog.yaml"
+    catalog_path = ROOT / "platform/network/egress-catalog.yaml"
     script = ROOT / "scripts/egress-governance.py"
-    require(errors, catalog_path.exists(), "egress governance catalog must exist at network/egress-catalog.yaml")
+    require(errors, catalog_path.exists(), "egress governance catalog must exist at platform/network/egress-catalog.yaml")
     require(errors, os.access(script, os.X_OK), "scripts/egress-governance.py must be executable")
     require(errors, (ROOT / "runbooks/egress-governance.md").exists(), "egress governance runbook must exist")
     require(errors, (ROOT / "results/egress-governance/sample-summary.md").exists(), "egress governance sample summary must exist")
@@ -923,9 +923,9 @@ def check_egress_governance(errors: list[str]) -> None:
 
 
 def check_retention_governance(errors: list[str]) -> None:
-    policy_path = ROOT / "governance/data-retention.yaml"
+    policy_path = ROOT / "platform/governance/data-retention.yaml"
     script = ROOT / "scripts/retention-check.py"
-    require(errors, policy_path.exists(), "data retention policy must exist at governance/data-retention.yaml")
+    require(errors, policy_path.exists(), "data retention policy must exist at platform/governance/data-retention.yaml")
     require(errors, os.access(script, os.X_OK), "scripts/retention-check.py must be executable")
     require(errors, (ROOT / "runbooks/data-retention.md").exists(), "data retention runbook must exist")
     require(errors, (ROOT / "results/retention/sample-summary.md").exists(), "data retention sample summary must exist")

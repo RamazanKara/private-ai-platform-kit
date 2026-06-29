@@ -6,7 +6,7 @@ For the public proof model and the difference between sample and current evidenc
 
 ## Gate Definition
 
-Release gates are declared in `slo/release-gates.yaml`. The default local customer-handoff gate checks:
+Release gates are declared in `platform/slo/release-gates.yaml`. The default local customer-handoff gate checks:
 
 - eval evidence has the required number of passing cases
 - load evidence stays inside latency and error-rate limits
@@ -70,4 +70,4 @@ A failed release gate means the handoff evidence is incomplete or below the defi
 
 If the strict gate reports sample evidence, rerun the matching evidence command from the previous section. Sample artifacts prove report shape only; they do not prove the current build is ready for a customer handoff.
 
-Tune thresholds only through reviewed changes to `slo/release-gates.yaml`; do not edit generated evidence to make a gate pass.
+Tune thresholds only through reviewed changes to `platform/slo/release-gates.yaml`; do not edit generated evidence to make a gate pass.

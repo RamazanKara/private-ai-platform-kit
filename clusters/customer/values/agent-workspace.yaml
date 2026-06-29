@@ -24,4 +24,4 @@ workspace:
 
 networkPolicy:
   allowedEgressCidrs: []
-  # External CIDRs must be approved in network/egress-catalog.yaml and include catalogRef.
+  # External CIDRs must be approved in platform/network/egress-catalog.yaml and include catalogRef.

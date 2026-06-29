@@ -33,7 +33,7 @@ Review the generated changes in:
 - Confirm API-key hashes are sourced from the customer secret backend.
 - Replace model provenance source-reference digests with customer model-store artifact digests.
 - Replace sample RAG knowledge with approved customer documents and matching Qdrant dimensions.
-- Review agent workspace egress against `network/egress-catalog.yaml`.
+- Review agent workspace egress against `platform/network/egress-catalog.yaml`.
 
 ## Handoff Proof
 

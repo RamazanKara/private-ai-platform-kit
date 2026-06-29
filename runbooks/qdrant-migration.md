@@ -27,7 +27,7 @@ Validate the source manifest, embedding provider, and chunk plan without touchin
 
 ```bash
 python3 scripts/rag-ingest.py --check \
-  --source rag/sources/manifest.yaml \
+  --source platform/rag/sources/manifest.yaml \
   --collection "$QDRANT_COLLECTION" \
   --collection-version v2 \
   --dimensions 384 \
@@ -45,7 +45,7 @@ to write if the existing collection's dimensions differ from `--dimensions`:
 
 ```bash
 python3 scripts/rag-ingest.py --write \
-  --source rag/sources/manifest.yaml \
+  --source platform/rag/sources/manifest.yaml \
   --qdrant-url "$QDRANT_URL" \
   --collection "$QDRANT_COLLECTION" \
   --collection-version v2 \

@@ -12,7 +12,7 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CATALOG = ROOT / "network/egress-catalog.yaml"
+DEFAULT_CATALOG = ROOT / "platform/network/egress-catalog.yaml"
 VALID_STATUSES = {"proposed", "approved", "deprecated", "blocked"}
 VALID_DATA_CLASSES = {"public", "internal", "confidential", "restricted"}
 

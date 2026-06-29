@@ -9,7 +9,7 @@ require_cmd kubectl "kubectl is required to bootstrap Argo CD."
 # floating `stable` ref so every bootstrap is reproducible, matching the
 # digest-pinned posture of the rest of the platform. Keep this in step with
 # ARGOCD_VERSION in scripts/install-validation-tools.sh and
-# tools/validation-toolchain.yaml. Override with the env var when intentionally
+# platform/tools/validation-toolchain.yaml. Override with the env var when intentionally
 # moving to a different release.
 ARGOCD_VERSION="${ARGOCD_VERSION:-v3.4.3}"
 ARGOCD_INSTALL_MANIFEST="${ARGOCD_INSTALL_MANIFEST:-https://raw.githubusercontent.com/argoproj/argo-cd/${ARGOCD_VERSION}/manifests/install.yaml}"

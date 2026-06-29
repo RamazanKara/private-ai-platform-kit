@@ -56,8 +56,8 @@ make repo-security-scan
 - Keep Docker base images pinned by digest.
 - Keep generated evidence under `results/` ignored unless it is an intentional `sample-*` artifact.
 - Keep every tracked `scripts/*.py` and `scripts/*.sh` file executable in git; use `git update-index --chmod=+x <path>` when a mode-only fix is needed.
-- Update `api-contracts/` with `make api-contract-update` when changing customer-facing service routes or request schemas.
-- Update `config-contracts/` with `make config-contract-update` when changing service settings, Helm env vars, or chart defaults.
+- Update `platform/api-contracts/` with `make api-contract-update` when changing customer-facing service routes or request schemas.
+- Update `platform/config-contracts/` with `make config-contract-update` when changing service settings, Helm env vars, or chart defaults.
 - Keep customer-facing commands documented in README, docs, or runbooks.
 - Add or update a validation check when adding a new operational invariant.
 - Do not commit secrets, raw prompts, private customer context, local kubeconfigs, or generated tenant output.

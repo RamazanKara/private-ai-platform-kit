@@ -119,8 +119,8 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | Current proof and strict evidence | [Project proof](docs/proof.md) |
 | Threat model | [Threat model](docs/threat-model.md) |
 | Benchmarks and evals | [Benchmarks and evals](docs/benchmarks-and-evals.md) |
-| API contracts | [API contract snapshots](api-contracts/README.md) |
-| Configuration contracts | [Configuration contract snapshots](config-contracts/README.md) |
+| API contracts | [API contract snapshots](platform/api-contracts/README.md) |
+| Configuration contracts | [Configuration contract snapshots](platform/config-contracts/README.md) |
 | Full documentation map | [Docs index](docs/README.md) |
 | Contributor workflow | [Contributing](CONTRIBUTING.md) |
 | Security policy | [Security](SECURITY.md) |
@@ -146,10 +146,10 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | `clusters/local/` | Local `kind` and Argo CD values |
 | `clusters/customer/` | Provider-neutral customer cluster values |
 | `src/` | Gateway and RAG service code |
-| `api-contracts/` | Versioned OpenAPI snapshots for customer-facing services |
-| `config-contracts/` | Versioned runtime configuration snapshots for services and Helm charts |
+| `platform/api-contracts/` | Versioned OpenAPI snapshots for customer-facing services |
+| `platform/config-contracts/` | Versioned runtime configuration snapshots for services and Helm charts |
 | `runbooks/` | Operational procedures and incident drills |
-| `governance/`, `model-catalog/`, `network/`, `slo/` | Reviewed policy and evidence inputs |
+| `platform/governance/`, `platform/model-catalog/`, `platform/network/`, `platform/slo/` | Reviewed policy and evidence inputs |
 | `results/` | Sample evidence artifacts; generated reports are ignored by default |
 | `backup/restore-drill/` | Restore-drill wrapper around `RamazanKara/restore-drill` |
 

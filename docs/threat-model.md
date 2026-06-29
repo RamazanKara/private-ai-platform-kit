@@ -53,7 +53,7 @@ threat go away, so treat them as defense in depth, not a guarantee.
   request-level auth does not stop it.
 - **Current Controls.** Coding-agent and tenant namespaces run default-deny
   NetworkPolicies, so a hijacked agent cannot freely reach the network; external
-  egress is allowed only through reviewed `network/egress-catalog.yaml` entries
+  egress is allowed only through reviewed `platform/network/egress-catalog.yaml` entries
   referenced by `catalogRef` (no broad CIDRs, enforced at render time and by the
   Kyverno `ai-platform-restrict-egress-cidrs` policy). RAG knowledge is mounted
   read-only and ingestion/retention is reviewed per the customer handoff. The
@@ -72,8 +72,8 @@ threat go away, so treat them as defense in depth, not a guarantee.
   appearing legitimate.
 - **Current Controls.** Only catalog-approved model IDs pass the gateway
   allowlist (`runtime.allowedModels`, cross-checked against
-  `model-catalog/models.yaml`); approved entries require a promotion request and
-  governed provenance (`governance/model-provenance.yaml` requires `sourceUri`,
+  `platform/model-catalog/models.yaml`); approved entries require a promotion request and
+  governed provenance (`platform/governance/model-provenance.yaml` requires `sourceUri`,
   `immutableRef`, `digest`, `license`, `dataClassification`, and `riskTier`),
   verified by `scripts/model-provenance.py` in the strict release gate. Customers
   replace source-reference digests with their own model-store digests before
@@ -106,7 +106,7 @@ the platform stores only redacted, length-and-SHA-256 fingerprinted audit
 records (never raw prompt/query text) and pins all data-bearing stores (Qdrant,
 agent PVCs) to the customer cluster, so data residency follows wherever the
 customer runs the cluster and its backups. Customers are responsible for
-classifying ingested content, setting retention per `governance/data-retention.yaml`,
+classifying ingested content, setting retention per `platform/governance/data-retention.yaml`,
 and confirming the deployment region meets their residency obligations.
 
 ## Required Customer Hardening

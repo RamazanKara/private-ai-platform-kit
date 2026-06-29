@@ -30,8 +30,8 @@ spec:
       license: apache-2.0
       dataClassification: internal
       riskTier: low
-      promotionRequest: model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml
-      catalogRef: model-catalog/models.yaml
+      promotionRequest: platform/model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml
+      catalogRef: platform/model-catalog/models.yaml
       servingProfiles:
         - clusters/local/values/ollama.yaml
         - clusters/local/values/inference-gateway.yaml
@@ -56,8 +56,8 @@ spec:
       license: apache-2.0
       dataClassification: internal
       riskTier: low
-      promotionRequest: model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml
-      catalogRef: model-catalog/models.yaml
+      promotionRequest: platform/model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml
+      catalogRef: platform/model-catalog/models.yaml
       servingProfiles:
         - clusters/customer/values/ollama.yaml
         - clusters/customer/values/inference-gateway.yaml
@@ -83,8 +83,8 @@ spec:
       license: apache-2.0
       dataClassification: internal
       riskTier: medium
-      promotionRequest: model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml
-      catalogRef: model-catalog/models.yaml
+      promotionRequest: platform/model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml
+      catalogRef: platform/model-catalog/models.yaml
       servingProfiles:
         - clusters/customer/values/vllm.yaml
         - clusters/customer/values/vllm-nvidia.yaml

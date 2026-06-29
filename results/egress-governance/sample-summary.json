@@ -1,5 +1,5 @@
 {
-  "catalog": "network/egress-catalog.yaml",
+  "catalog": "platform/network/egress-catalog.yaml",
   "checked_references": [
     {
       "catalog_ref": "customer-git-artifact-mirror-example",

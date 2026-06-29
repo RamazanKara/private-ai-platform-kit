@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-31T00:00:00Z",
-  "manifest": "tools/validation-toolchain.yaml",
+  "manifest": "platform/tools/validation-toolchain.yaml",
   "profile": "strict",
   "project": "Private AI Platform Kit",
   "summary": {

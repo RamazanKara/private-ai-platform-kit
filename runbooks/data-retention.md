@@ -4,7 +4,7 @@ Use this runbook when reviewing customer handoff evidence, audit-log handling, R
 
 ## Policy
 
-The retention policy lives in `governance/data-retention.yaml`.
+The retention policy lives in `platform/governance/data-retention.yaml`.
 
 Default policy:
 
@@ -38,4 +38,4 @@ Before handoff, confirm:
 
 ## Changing Retention
 
-Tune `retentionDays` and classifications only through reviewed changes to `governance/data-retention.yaml`. If a customer requires longer retention or stricter classification, update the policy first and regenerate `make retention-report`.
+Tune `retentionDays` and classifications only through reviewed changes to `platform/governance/data-retention.yaml`. If a customer requires longer retention or stricter classification, update the policy first and regenerate `make retention-report`.

@@ -71,7 +71,7 @@ The RAG health endpoint reports the selected backend and collection metadata:
 Run a dry ingestion check before writing:
 
     src/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
-      --source rag/sources/platform-knowledge.yaml \
+      --source platform/rag/sources/platform-knowledge.yaml \
       --backend qdrant \
       --collection-version v1 \
       --check
@@ -86,4 +86,4 @@ If queries return `vector_store_unavailable`, inspect:
 - matching collection name, collection version, and vector dimensions
 - Qdrant logs for collection creation or upsert errors
 
-Do not load unreviewed private repository or incident data into the vector store. Treat embedded content as customer confidential data and align backup, retention, and deletion procedures with `governance/data-retention.yaml`.
+Do not load unreviewed private repository or incident data into the vector store. Treat embedded content as customer confidential data and align backup, retention, and deletion procedures with `platform/governance/data-retention.yaml`.

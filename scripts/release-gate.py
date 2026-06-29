@@ -12,7 +12,7 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CONFIG = ROOT / "slo/release-gates.yaml"
+DEFAULT_CONFIG = ROOT / "platform/slo/release-gates.yaml"
 SUPPLY_CHAIN_VALIDATOR = ROOT / "scripts/supply-chain-evidence.py"
 
 

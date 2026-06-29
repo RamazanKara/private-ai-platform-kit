@@ -12,5 +12,5 @@
     "coding-agents-lab",
     "customer-shared-runtime"
   ],
-  "policy": "governance/quota-plans.yaml"
+  "policy": "platform/governance/quota-plans.yaml"
 }

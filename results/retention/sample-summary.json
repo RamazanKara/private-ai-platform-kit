@@ -8,5 +8,5 @@
   ],
   "errors": [],
   "generated_at": "2026-05-31T00:00:00Z",
-  "policy": "governance/data-retention.yaml"
+  "policy": "platform/governance/data-retention.yaml"
 }

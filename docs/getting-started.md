@@ -157,7 +157,7 @@ Run repeatable prompt checks:
 
 ```bash
 make eval
-SUITE=evals/coding-agent-suite.yaml make eval
+SUITE=platform/evals/coding-agent-suite.yaml make eval
 ```
 
 Run k6 load tests against an ephemeral local gateway and mock runtime:

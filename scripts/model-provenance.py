@@ -13,7 +13,7 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_POLICY = ROOT / "governance/model-provenance.yaml"
+DEFAULT_POLICY = ROOT / "platform/governance/model-provenance.yaml"
 HEX_SHA256 = re.compile(r"^[a-f0-9]{64}$")
 
 
@@ -52,8 +52,8 @@ def require(errors: list[str], condition: bool, message: str) -> None:
 
 
 def approved_catalog_models(errors: list[str]) -> dict[str, dict[str, Any]]:
-    catalog_path = ROOT / "model-catalog/models.yaml"
-    require(errors, catalog_path.exists(), "model catalog must exist at model-catalog/models.yaml")
+    catalog_path = ROOT / "platform/model-catalog/models.yaml"
+    require(errors, catalog_path.exists(), "model catalog must exist at platform/model-catalog/models.yaml")
     if not catalog_path.exists():
         return {}
     catalog = load_yaml(catalog_path)
@@ -118,7 +118,7 @@ def validate_artifact_against_catalog(artifact: dict[str, Any], catalog: dict[st
         require(errors, artifact.get(field) == model.get(field), f"{model_id}: provenance {field} must match model catalog")
     require(errors, artifact.get("source") == model.get("source"), f"{model_id}: provenance source must match model catalog")
     catalog_ref = artifact.get("catalogRef")
-    require(errors, catalog_ref == "model-catalog/models.yaml", f"{model_id}: catalogRef must be model-catalog/models.yaml")
+    require(errors, catalog_ref == "platform/model-catalog/models.yaml", f"{model_id}: catalogRef must be platform/model-catalog/models.yaml")
     require(errors, (ROOT / str(artifact.get("promotionRequest"))).exists(), f"{model_id}: promotionRequest must exist")
 
 

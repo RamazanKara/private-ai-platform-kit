@@ -145,7 +145,7 @@ that fails signature verification (`ai-platform-verify-project-images`, set to
    intended -- treat an unexplained verification failure as a potential
    supply-chain event and escalate to the security lead.
 3. For a broad-egress block, add the destination to
-   `network/egress-catalog.yaml` and reference it by `catalogRef` rather than
+   `platform/network/egress-catalog.yaml` and reference it by `catalogRef` rather than
    widening the CIDR (`runbooks/egress-governance.md`).
 
 ## Evidence

@@ -1,5 +1,5 @@
 {
-  "config": "slo/objectives.yaml",
+  "config": "platform/slo/objectives.yaml",
   "errors": [],
   "generated_at": "2026-05-31T00:00:00Z",
   "objectives": [

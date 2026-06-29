@@ -17,7 +17,7 @@ The `agent-workspace` chart creates:
 
 The workspace does not grant cluster-admin privileges and does not include runtime secrets. Customers should wire Git credentials, API keys, package mirrors, ticketing tools, or artifact stores through their own secret backend and explicit egress allowlists.
 
-External egress must also be approved in `network/egress-catalog.yaml` and referenced with `catalogRef`. Run `make egress-check` before applying a workspace that adds external CIDRs.
+External egress must also be approved in `platform/network/egress-catalog.yaml` and referenced with `catalogRef`. Run `make egress-check` before applying a workspace that adds external CIDRs.
 
 ## Create A Workspace
 

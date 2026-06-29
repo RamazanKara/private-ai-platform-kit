@@ -45,7 +45,7 @@ The rendered gateway Deployment exposes these as:
 
 The bundled `charts/budget-redis` chart is a local and portable default. Customer clusters can keep the same gateway values shape and point `budget.redisUrl` at a managed or enterprise Redis-compatible service.
 
-Reviewed quota and chargeback plans live in `governance/quota-plans.yaml`. Keep gateway budgets aligned with the tenant's `platform.ai/owner`, `platform.ai/cost-center`, `platform.ai/environment`, and `platform.ai/sandbox-id` labels so Prometheus, OpenCost-style reporting, logs, and evidence packs attribute usage to the same owner.
+Reviewed quota and chargeback plans live in `platform/governance/quota-plans.yaml`. Keep gateway budgets aligned with the tenant's `platform.ai/owner`, `platform.ai/cost-center`, `platform.ai/environment`, and `platform.ai/sandbox-id` labels so Prometheus, OpenCost-style reporting, logs, and evidence packs attribute usage to the same owner.
 
 ## Inspect Current Usage
 

@@ -4,11 +4,11 @@ Use this runbook when adding external network access for coding-agent workspaces
 
 ## Policy
 
-Agent and tenant namespaces use default-deny networking. Egress to the inference gateway and RAG service is built in. Any external CIDR must be approved in `network/egress-catalog.yaml` and referenced from the tenant or workspace values with `catalogRef`.
+Agent and tenant namespaces use default-deny networking. Egress to the inference gateway and RAG service is built in. Any external CIDR must be approved in `platform/network/egress-catalog.yaml` and referenced from the tenant or workspace values with `catalogRef`.
 
 ## Add An External Destination
 
-1. Add or update an approved catalog entry in `network/egress-catalog.yaml`.
+1. Add or update an approved catalog entry in `platform/network/egress-catalog.yaml`.
 2. Set the entry `status` to `approved`, define the owner, environments, expiry date, use cases, data classification, CIDRs, and ports.
 3. Reference the entry from `tenants/onboarding/<tenant>.yaml` or `clusters/<environment>/values/agent-workspace.yaml`:
 

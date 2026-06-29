@@ -4,7 +4,7 @@ Use this runbook to review whether the local lab or a customer-owned cluster is 
 
 ## SLO Definition
 
-SLO objectives live in `slo/objectives.yaml`.
+SLO objectives live in `platform/slo/objectives.yaml`.
 
 The default local customer-handoff profile covers:
 
@@ -45,7 +45,7 @@ Treat a failed SLO objective as a customer-readiness blocker for that profile.
 - Restore failures mean backup evidence is not trustworthy enough for handoff.
 - Evidence-control failures mean a required coding-agent platform control is missing from the handoff pack.
 
-Tune targets only through reviewed changes to `slo/objectives.yaml`. Do not edit generated evidence to make an SLO pass.
+Tune targets only through reviewed changes to `platform/slo/objectives.yaml`. Do not edit generated evidence to make an SLO pass.
 
 ## Customer Adaptation
 

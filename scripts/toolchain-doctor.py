@@ -14,7 +14,7 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = ROOT / "tools/validation-toolchain.yaml"
+DEFAULT_MANIFEST = ROOT / "platform/tools/validation-toolchain.yaml"
 
 
 @dataclass(frozen=True)

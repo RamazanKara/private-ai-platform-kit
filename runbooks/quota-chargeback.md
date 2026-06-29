@@ -4,7 +4,7 @@ Use this runbook when onboarding a tenant, sizing a coding-agent workspace, or p
 
 ## Policy
 
-Reviewed quota plans live in `governance/quota-plans.yaml`.
+Reviewed quota plans live in `platform/governance/quota-plans.yaml`.
 
 Each plan connects:
 
@@ -42,4 +42,4 @@ Use the required labels as the stable attribution keys for OpenCost, Prometheus,
 
 ## Adjusting Quotas
 
-Tune `governance/quota-plans.yaml` first, then update tenant onboarding specs or gateway values. Do not raise live Kubernetes or gateway limits without a matching quota-plan update and refreshed `make quota-report` evidence.
+Tune `platform/governance/quota-plans.yaml` first, then update tenant onboarding specs or gateway values. Do not raise live Kubernetes or gateway limits without a matching quota-plan update and refreshed `make quota-report` evidence.

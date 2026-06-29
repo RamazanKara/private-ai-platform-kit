@@ -16,14 +16,14 @@ This page records what the project can prove from the repository and what must b
 
 For release reviews, attach or link:
 
-- OpenAPI snapshots from `api-contracts/`
-- Configuration snapshots from `config-contracts/`
+- OpenAPI snapshots from `platform/api-contracts/`
+- Configuration snapshots from `platform/config-contracts/`
 - Current eval, load, restore, toolchain, SLO, quota, egress, retention, model-provenance, evidence-pack, and supply-chain reports under `results/`
 - SBOMs, SARIF files, checksums, signed image digests, provenance attestations, SBOM attestations, and Scorecard findings from GitHub Actions
 
 ## Supported Tool Versions
 
-The source of truth is [tools/validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/tools/validation-toolchain.yaml). Run:
+The source of truth is [platform/tools/validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml). Run:
 
 ```bash
 make toolchain-report TOOLCHAIN_PROFILE=strict

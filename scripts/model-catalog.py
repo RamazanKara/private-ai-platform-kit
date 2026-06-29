@@ -179,7 +179,7 @@ def validate_vllm_profiles(models: dict[str, dict[str, Any]], errors: list[str])
 
 
 def validate_configmap_matches_catalog(catalog: dict[str, Any], errors: list[str]) -> None:
-    configmap_path = ROOT / "model-catalog/k8s/configmap.yaml"
+    configmap_path = ROOT / "platform/model-catalog/k8s/configmap.yaml"
     require(errors, configmap_path.exists(), "model catalog ConfigMap must exist")
     if not configmap_path.exists():
         return
@@ -189,11 +189,11 @@ def validate_configmap_matches_catalog(catalog: dict[str, Any], errors: list[str
     if not configmaps:
         return
     embedded = yaml.safe_load(nested(configmaps[0], "data", "models.yaml", default="")) or {}
-    require(errors, embedded == catalog, "model catalog ConfigMap embedded models.yaml must match model-catalog/models.yaml")
+    require(errors, embedded == catalog, "model catalog ConfigMap embedded models.yaml must match platform/model-catalog/models.yaml")
 
 
 def promotion_request_paths() -> list[Path]:
-    return sorted((ROOT / "model-catalog/promotion-requests").glob("*.yaml"))
+    return sorted((ROOT / "platform/model-catalog/promotion-requests").glob("*.yaml"))
 
 
 def validate_promotion_requests(models: dict[str, dict[str, Any]], allowlists: dict[str, list[str]], errors: list[str]) -> dict[str, dict[str, Any]]:
@@ -323,8 +323,8 @@ def write_report(output_dir: Path, rows: list[CatalogModel], allowlists: dict[st
 
 def validate() -> tuple[list[str], dict[str, dict[str, Any]], dict[str, list[str]]]:
     errors: list[str] = []
-    catalog_path = ROOT / "model-catalog/models.yaml"
-    require(errors, catalog_path.exists(), "model-catalog/models.yaml must exist")
+    catalog_path = ROOT / "platform/model-catalog/models.yaml"
+    require(errors, catalog_path.exists(), "platform/model-catalog/models.yaml must exist")
     catalog = load_yaml(catalog_path) if catalog_path.exists() else {}
     models = catalog_models(catalog, errors)
     for model_id, model in models.items():

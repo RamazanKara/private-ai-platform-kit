@@ -21,13 +21,13 @@ The default smoke suite is intentionally small. The coding-agent suite adds chec
 
 Run this without a live cluster:
 
-    src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/smoke-suite.yaml --check-config
-    src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/coding-agent-suite.yaml --check-config
+    src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite platform/evals/smoke-suite.yaml --check-config
+    src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite platform/evals/coding-agent-suite.yaml --check-config
 
 Expected output:
 
-    eval suite OK: evals/smoke-suite.yaml (2 case(s))
-    eval suite OK: evals/coding-agent-suite.yaml (4 case(s))
+    eval suite OK: platform/evals/smoke-suite.yaml (2 case(s))
+    eval suite OK: platform/evals/coding-agent-suite.yaml (4 case(s))
 
 `make validate` runs this syntax check automatically.
 
@@ -45,7 +45,7 @@ Then run:
 
 Run the coding-agent readiness suite:
 
-    SUITE=evals/coding-agent-suite.yaml make eval
+    SUITE=platform/evals/coding-agent-suite.yaml make eval
 
 The wrapper port-forwards the inference gateway, runs the suite, and writes evidence under `results/evals/`.
 
@@ -80,4 +80,4 @@ Add a new item under `spec.cases`:
         forbiddenAny:
           - text that must not appear
 
-Prefer short prompts with deterministic expected checks for the local smoke suite. Put larger or domain-specific tests in a separate suite and pass it with `SUITE=evals/<name>.yaml make eval`.
+Prefer short prompts with deterministic expected checks for the local smoke suite. Put larger or domain-specific tests in a separate suite and pass it with `SUITE=platform/evals/<name>.yaml make eval`.

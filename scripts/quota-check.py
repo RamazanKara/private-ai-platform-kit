@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_POLICY = ROOT / "governance/quota-plans.yaml"
+DEFAULT_POLICY = ROOT / "platform/governance/quota-plans.yaml"
 
 
 @dataclass(frozen=True)

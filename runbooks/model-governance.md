@@ -6,16 +6,16 @@ Use this runbook when adding, approving, deprecating, blocking, or reviewing mod
 
 Every approved model must have:
 
-- an entry in `model-catalog/models.yaml`
+- an entry in `platform/model-catalog/models.yaml`
 - lifecycle status, owner, runtime, stage, risk tier, data classification, license, and source metadata
 - context window, prompt limit, and completion limit metadata
 - supported accelerator metadata
-- model artifact provenance in `governance/model-provenance.yaml`
-- a matching `ModelPromotionRequest` under `model-catalog/promotion-requests/`
+- model artifact provenance in `platform/governance/model-provenance.yaml`
+- a matching `ModelPromotionRequest` under `platform/model-catalog/promotion-requests/`
 - evaluation, load-test, and security workflow evidence references
 - gateway allowlist entries only after approval
 
-The cluster-facing catalog ConfigMap at `model-catalog/k8s/configmap.yaml` must embed the same catalog content as `model-catalog/models.yaml`.
+The cluster-facing catalog ConfigMap at `platform/model-catalog/k8s/configmap.yaml` must embed the same catalog content as `platform/model-catalog/models.yaml`.
 
 ## Validate Governance
 
@@ -37,9 +37,9 @@ Reports are written under `results/model-catalog/` and `results/model-provenance
 
 For a new model:
 
-1. Add the model to `model-catalog/models.yaml` with `status: proposed`.
-2. Add a `ModelPromotionRequest` under `model-catalog/promotion-requests/`.
-3. Add artifact provenance under `governance/model-provenance.yaml`, including source URI, immutable reference, digest, license, risk, data classification, and serving profiles.
+1. Add the model to `platform/model-catalog/models.yaml` with `status: proposed`.
+2. Add a `ModelPromotionRequest` under `platform/model-catalog/promotion-requests/`.
+3. Add artifact provenance under `platform/governance/model-provenance.yaml`, including source URI, immutable reference, digest, license, risk, data classification, and serving profiles.
 4. Run an evaluation suite and keep the Markdown summary under `results/evals/`.
 5. Run a load test appropriate for the target runtime and keep the summary under `results/loadtest/`.
 6. Confirm the image, runtime, or serving stack is covered by CI security controls.

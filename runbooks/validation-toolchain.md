@@ -4,7 +4,7 @@ Use this runbook when preparing a local lab, customer handoff, release review, o
 
 ## Profiles
 
-The validation toolchain is declared in `tools/validation-toolchain.yaml`.
+The validation toolchain is declared in `platform/tools/validation-toolchain.yaml`.
 
 - `validate`: minimum tools required for `make validate`; strict tools are reported and skipped when absent.
 - `local`: tools expected for operating the complete local `kind` lab and rebuilding local images.
@@ -32,7 +32,7 @@ On Linux, WSL, or CI runners, install the pinned strict validation tools locally
 
     make toolchain-install
 
-The installer downloads pinned GitHub release assets, verifies published SHA-256 asset digests when available, and installs binaries under `.tools/bin` by default. Make targets and repo scripts automatically prefer that managed directory over globally installed tools. Override versions with the environment variables listed in `tools/validation-toolchain.yaml` only after reviewing the release.
+The installer downloads pinned GitHub release assets, verifies published SHA-256 asset digests when available, and installs binaries under `.tools/bin` by default. Make targets and repo scripts automatically prefer that managed directory over globally installed tools. Override versions with the environment variables listed in `platform/tools/validation-toolchain.yaml` only after reviewing the release.
 
 ## Generate Evidence
 

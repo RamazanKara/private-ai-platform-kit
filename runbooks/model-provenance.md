@@ -4,7 +4,7 @@ Use this runbook when approving or serving a model in the local lab or a custome
 
 ## Policy
 
-Model artifact provenance lives in `governance/model-provenance.yaml`.
+Model artifact provenance lives in `platform/governance/model-provenance.yaml`.
 
 Every approved model must have:
 

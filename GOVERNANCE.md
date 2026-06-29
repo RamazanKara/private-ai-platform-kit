@@ -9,8 +9,8 @@ Maintainers listed in [MAINTAINERS.md](MAINTAINERS.md) can triage issues, review
 ## Change Requirements
 
 - Changes to gateway, RAG, Helm charts, GitOps overlays, policies, or release controls require tests or validation updates.
-- Public API changes must update `api-contracts/`.
-- Runtime configuration changes must update `config-contracts/`.
+- Public API changes must update `platform/api-contracts/`.
+- Runtime configuration changes must update `platform/config-contracts/`.
 - Customer-facing operational changes must update README, docs, or runbooks.
 - Security-sensitive changes should include evidence from `make validate`, and when relevant `make validate-full`, `make image-scan`, or `make release-gate-strict`.
 

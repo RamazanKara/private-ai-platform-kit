@@ -12,10 +12,7 @@
 /policies/ @RamazanKara
 
 # Governance, evidence, and release controls.
-/governance/ @RamazanKara
-/model-catalog/ @RamazanKara
-/network/ @RamazanKara
-/slo/ @RamazanKara
+/platform/ @RamazanKara
 /scripts/ @RamazanKara
 /.github/workflows/ @RamazanKara
 

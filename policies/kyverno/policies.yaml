@@ -305,7 +305,7 @@ metadata:
       Admission-time backstop for the CI egress-governance check: denies NetworkPolicy
       egress rules that open the internet (0.0.0.0/0, ::/0) or a broad RFC1918 supernet
       in platform and tenant namespaces, so an ungoverned --set or out-of-band overlay
-      cannot grant arbitrary egress the catalog (network/egress-catalog.yaml) never
+      cannot grant arbitrary egress the catalog (platform/network/egress-catalog.yaml) never
       approved. The CI check enforces the full /24-or-narrower + catalog-membership rule;
       this policy is the in-cluster safety net for the worst bypasses.
 spec:
@@ -337,7 +337,7 @@ spec:
           Egress NetworkPolicy must not allow 0.0.0.0/0, ::/0, or a broad RFC1918
           supernet (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16). Approved external egress
           must be a /24-or-narrower entry from the governed catalog
-          (network/egress-catalog.yaml).
+          (platform/network/egress-catalog.yaml).
         deny:
           conditions:
             any:

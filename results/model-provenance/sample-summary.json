@@ -11,5 +11,5 @@
   ],
   "errors": [],
   "generated_at": "2026-06-28T23:19:50Z",
-  "policy": "governance/model-provenance.yaml"
+  "policy": "platform/governance/model-provenance.yaml"
 }

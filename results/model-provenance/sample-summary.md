@@ -1,7 +1,7 @@
 # Model Provenance Report
 
 Generated: `2026-06-28T23:19:50Z`
-Policy: `governance/model-provenance.yaml`
+Policy: `platform/governance/model-provenance.yaml`
 
 Summary: 3 artifacts checked, 3 approved models checked, 0 errors.
 

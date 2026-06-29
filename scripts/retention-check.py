@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_POLICY = ROOT / "governance/data-retention.yaml"
+DEFAULT_POLICY = ROOT / "platform/governance/data-retention.yaml"
 VALID_CLASSES = {"public", "internal", "confidential", "restricted"}
 
 

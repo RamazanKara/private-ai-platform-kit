@@ -23,7 +23,7 @@ spec:
       - clusters/customer/values/vllm-nvidia.yaml
       - clusters/customer/values/vllm-amd.yaml
   evidence:
-    evalSuite: evals/coding-agent-suite.yaml
+    evalSuite: platform/evals/coding-agent-suite.yaml
     evalModelProxy: qwen3.5:0.8b
     evalProxyJustification: >-
       Qwen3-Coder-Next requires multi-GPU serving and cannot be run in CI; qwen3.5:0.8b

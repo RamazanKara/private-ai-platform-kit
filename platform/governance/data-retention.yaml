@@ -77,6 +77,6 @@ spec:
       retentionDays: 730
       classification: internal
       sourcePaths:
-        - model-catalog/models.yaml
-        - model-catalog/promotion-requests
+        - platform/model-catalog/models.yaml
+        - platform/model-catalog/promotion-requests
         - runbooks/model-governance.md
