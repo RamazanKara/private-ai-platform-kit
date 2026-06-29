@@ -11,6 +11,10 @@
 
 - Set the default local Ollama smoke model to `qwen2.5:0.5b`, a fast non-reasoning model so the laptop CPU quickstart completes in seconds (verified live: ~4s per completion), and made the larger `qwen3.5:0.8b` reasoning model the customer Ollama profile default. `qwen3.5:0.8b` reasons past the gateway timeout on a CPU-only laptop, so it is not suited to the local smoke. Both models carry reproducible Ollama-registry model-layer provenance digests and promotion requests; the old `qwen3:0.6b` is fully removed. The customer coding-agent default `Qwen/Qwen3-Coder-Next` is unchanged (still the latest dedicated Qwen coder).
 
+### Fixed
+
+- Fixed the Argo CD quickstart path so `make quickstart` works non-interactively (without `QUICKSTART_DIRECT_APPLY=1`). `scripts/sync.sh` now runs the Argo CD CLI in `--core` mode, which talks directly to the Kubernetes API and removes the `Argo CD server address unspecified` failure that occurred because the CLI was never logged in. The sync also now waits for the smoke-critical runtime workloads (gateway, Ollama, RAG, Qdrant, budget Redis) to roll out before returning, so the gateway and RAG smoke tests no longer race the asynchronous reconcile and connect before the gateway exists. Verified end to end on a fresh `kind` cluster: the GitOps sync brings the platform up and the gateway smoke returns `qwen2.5:0.5b` content.
+
 ### Removed
 
 - Removed the Dependabot configuration and its repository-hygiene checks. Dependabot's single-package bumps could not satisfy the strict `make validate-full` gate (hashed lockfiles plus regenerated API, chart, and config snapshots), so dependency updates are handled manually with `pip-compile`.
