@@ -60,29 +60,9 @@ REQUIRED_FILES = (
     "scripts/validate.sh",
 )
 
-REQUIRED_DIRECTORIES = (
-    "backup",
-    "api-contracts",
-    "charts",
-    "clusters",
-    "docs",
-    "evals",
-    "gitops",
-    "governance",
-    "model-catalog",
-    "network",
-    "observability",
-    "policies",
-    "results",
-    "runbooks",
-    "sandbox",
-    "scripts",
-    "services",
-    "slo",
-    "tenants",
-    "tests",
-    "tools",
-)
+# The canonical top-level directory inventory lives in scripts/paths.py (the single
+# source of truth for the repo layout). check_required_paths() verifies it via
+# paths.check(), which covers existence and flags any undeclared top-level directory.
 
 REQUIRED_MAKE_TARGETS = (
     "help",
@@ -129,10 +109,12 @@ def require(errors: list[str], condition: bool, message: str) -> None:
 
 
 def check_required_paths(errors: list[str]) -> None:
+    from paths import check as check_layout
+
     for item in REQUIRED_FILES:
         require(errors, (ROOT / item).is_file(), f"required file missing: {item}")
-    for item in REQUIRED_DIRECTORIES:
-        require(errors, (ROOT / item).is_dir(), f"required directory missing: {item}")
+    # Directory inventory and layout-drift guard come from the canonical registry.
+    errors.extend(check_layout())
 
 
 def check_makefile(errors: list[str]) -> None:
