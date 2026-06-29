@@ -118,14 +118,14 @@ CONTRACTS = {
     "inference-gateway": ServiceContract(
         service="inference-gateway",
         service_dir=ROOT / "src/inference-gateway",
-        chart_dir=ROOT / "charts/inference-gateway",
+        chart_dir=ROOT / "deploy/charts/inference-gateway",
         snapshot=ROOT / "platform/config-contracts/inference-gateway.config.json",
         variables=GATEWAY_VARS,
     ),
     "rag-service": ServiceContract(
         service="rag-service",
         service_dir=ROOT / "src/rag-service",
-        chart_dir=ROOT / "charts/rag-service",
+        chart_dir=ROOT / "deploy/charts/rag-service",
         snapshot=ROOT / "platform/config-contracts/rag-service.config.json",
         variables=RAG_VARS,
     ),

@@ -176,17 +176,17 @@ target.write_bytes(
 )
 PY
   restore-drill run \
-    --config backup/restore-drill/drills/local-redis-aof.yaml \
+    --config deploy/backup/restore-drill/drills/local-redis-aof.yaml \
     --runtime docker \
     --format json | tee "results/restore-drill/restore-drill-${STAMP}.json"
   log "restore-tooling smoke passed: the restore pipeline works (fixture validation only, not a production-data recovery proof)"
 else
   require_cmd kubectl "kubectl is required for Kubernetes restore-drill deployment."
-  kubectl apply -f backup/restore-drill/k8s/
+  kubectl apply -f deploy/backup/restore-drill/k8s/
 fi
 
 if [[ "${1:-}" == "--include-velero" ]]; then
   require_cmd kubectl "kubectl is required for the Velero namespace drill."
-  kubectl apply -f backup/velero/velero-smoke-namespace.yaml
+  kubectl apply -f deploy/backup/velero/velero-smoke-namespace.yaml
   log "Velero smoke namespace applied; run the Velero Backup and Restore resources after Velero is installed."
 fi

@@ -306,7 +306,7 @@
       "type": "path"
     }
   ],
-  "helm_chart": "charts/rag-service",
+  "helm_chart": "deploy/charts/rag-service",
   "service": "rag-service",
   "service_settings": "src/rag-service/app/settings.py"
 }

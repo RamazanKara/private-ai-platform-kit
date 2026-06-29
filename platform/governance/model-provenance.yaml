@@ -33,8 +33,8 @@ spec:
       promotionRequest: platform/model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml
       catalogRef: platform/model-catalog/models.yaml
       servingProfiles:
-        - clusters/local/values/ollama.yaml
-        - clusters/local/values/inference-gateway.yaml
+        - deploy/clusters/local/values/ollama.yaml
+        - deploy/clusters/local/values/inference-gateway.yaml
       evidenceRefs:
         evalSummary: results/evals/sample-summary.md
         loadTestSummary: results/loadtest/sample-summary.md
@@ -59,8 +59,8 @@ spec:
       promotionRequest: platform/model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml
       catalogRef: platform/model-catalog/models.yaml
       servingProfiles:
-        - clusters/customer/values/ollama.yaml
-        - clusters/customer/values/inference-gateway.yaml
+        - deploy/clusters/customer/values/ollama.yaml
+        - deploy/clusters/customer/values/inference-gateway.yaml
       evidenceRefs:
         evalSummary: results/evals/sample-summary.md
         loadTestSummary: results/loadtest/sample-summary.md
@@ -86,10 +86,10 @@ spec:
       promotionRequest: platform/model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml
       catalogRef: platform/model-catalog/models.yaml
       servingProfiles:
-        - clusters/customer/values/vllm.yaml
-        - clusters/customer/values/vllm-nvidia.yaml
-        - clusters/customer/values/vllm-amd.yaml
-        - clusters/customer/values/inference-gateway.yaml
+        - deploy/clusters/customer/values/vllm.yaml
+        - deploy/clusters/customer/values/vllm-nvidia.yaml
+        - deploy/clusters/customer/values/vllm-amd.yaml
+        - deploy/clusters/customer/values/inference-gateway.yaml
       evidenceRefs:
         evalSummary: results/evals/sample-summary.md
         loadTestSummary: results/loadtest/sample-summary.md

@@ -27,7 +27,7 @@ The smoke test port-forwards the RAG service, sends `X-Request-ID`, `X-Sandbox-I
 
 ## Add Knowledge
 
-Edit `charts/rag-service/values.yaml` or an environment-specific values file:
+Edit `deploy/charts/rag-service/values.yaml` or an environment-specific values file:
 
     knowledge:
       documents:

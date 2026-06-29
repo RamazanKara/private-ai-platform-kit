@@ -41,7 +41,7 @@ def latest_changelog_version(errors: list[str]) -> str:
 
 
 def render_chart(chart: str, values: Path | None = None) -> list[dict[str, Any]]:
-    cmd = ["helm", "template", "production-check", str(ROOT / f"charts/{chart}")]
+    cmd = ["helm", "template", "production-check", str(ROOT / f"deploy/charts/{chart}")]
     if values:
         cmd.extend(["--values", str(values)])
     rendered = subprocess.run(cmd, check=True, text=True, capture_output=True)
@@ -405,7 +405,7 @@ def check_model_catalog(errors: list[str]) -> None:
         require(errors, model.get("status") in {"proposed", "approved", "deprecated", "blocked"}, f"model catalog entry {model_id} must define a valid lifecycle status")
         require(errors, isinstance(model.get("contextWindow"), int) and model.get("contextWindow") > 0, f"model catalog entry {model_id} must define a positive contextWindow")
     for environment in ("local", "customer"):
-        values = yaml.safe_load((ROOT / f"clusters/{environment}/values/inference-gateway.yaml").read_text())
+        values = yaml.safe_load((ROOT / f"deploy/clusters/{environment}/values/inference-gateway.yaml").read_text())
         for model_id in nested(values, "runtime", "allowedModels", default=[]):
             require(errors, model_id in model_ids, f"{environment}: allowed model {model_id} is missing from model catalog")
     configmap = ROOT / "platform/model-catalog/k8s/configmap.yaml"
@@ -429,7 +429,7 @@ def check_model_governance(errors: list[str]) -> None:
 
 def check_sandbox(errors: list[str]) -> None:
     sandbox_docs: list[dict[str, Any]] = []
-    for path in sorted((ROOT / "sandbox/base").glob("*.yaml")):
+    for path in sorted((ROOT / "deploy/sandbox/base").glob("*.yaml")):
         sandbox_docs.extend(load_yaml_documents(path))
 
     namespaces = find_kind(sandbox_docs, "Namespace")
@@ -576,7 +576,7 @@ def check_chaos_drills(errors: list[str]) -> None:
 
 
 def check_static_workload_security(errors: list[str]) -> None:
-    restore_cronjobs = find_kind(load_yaml_documents(ROOT / "backup/restore-drill/k8s/cronjob.yaml"), "CronJob")
+    restore_cronjobs = find_kind(load_yaml_documents(ROOT / "deploy/backup/restore-drill/k8s/cronjob.yaml"), "CronJob")
     require(errors, len(restore_cronjobs) == 1, "restore-drill CronJob manifest must define one CronJob")
     if restore_cronjobs:
         pod_spec = nested(restore_cronjobs[0], "spec", "jobTemplate", "spec", "template", "spec", default={})
@@ -596,10 +596,10 @@ def check_static_workload_security(errors: list[str]) -> None:
         volumes = {volume.get("name") for volume in pod_spec.get("volumes", [])}
         require(errors, {"config", "reports", "fixtures", "tmp"} <= volumes, "restore-drill CronJob must define config, reports, fixtures, and tmp volumes")
 
-    restore_rbac = (ROOT / "backup/restore-drill/k8s/rbac.yaml").read_text()
+    restore_rbac = (ROOT / "deploy/backup/restore-drill/k8s/rbac.yaml").read_text()
     require(errors, "pods/exec" not in restore_rbac, "restore-drill RBAC must not grant pods/exec")
 
-    smoke_jobs = find_kind(load_yaml_documents(ROOT / "sandbox/tests/trace-smoke-job.yaml"), "Job")
+    smoke_jobs = find_kind(load_yaml_documents(ROOT / "deploy/sandbox/tests/trace-smoke-job.yaml"), "Job")
     require(errors, len(smoke_jobs) == 1, "sandbox trace smoke manifest must define one Job")
     if smoke_jobs:
         pod_spec = nested(smoke_jobs[0], "spec", "template", "spec", default={})
@@ -616,9 +616,9 @@ def check_static_workload_security(errors: list[str]) -> None:
         volumes = {volume.get("name") for volume in pod_spec.get("volumes", [])}
         require(errors, "tmp" in volumes, "sandbox trace smoke Job must define a tmp volume")
 
-    policies = (ROOT / "policies/kyverno/policies.yaml").read_text()
+    policies = (ROOT / "deploy/policies/kyverno/policies.yaml").read_text()
     require(errors, "require-read-only-root-filesystem" in policies, "Kyverno restricted policy must require read-only root filesystems")
-    kyverno_tests = (ROOT / "policies/kyverno/tests/kyverno-test.yaml").read_text()
+    kyverno_tests = (ROOT / "deploy/policies/kyverno/tests/kyverno-test.yaml").read_text()
     require(errors, "writable-root-pod" in kyverno_tests, "Kyverno tests must cover read-only root filesystem enforcement")
 
 
@@ -699,10 +699,10 @@ def check_release_packaging(errors: list[str]) -> None:
         ):
             require(errors, token in scorecard, f"OpenSSF Scorecard workflow missing {token}")
 
-    gateway_values = yaml.safe_load((ROOT / "charts/inference-gateway/values.yaml").read_text()) or {}
-    rag_values = yaml.safe_load((ROOT / "charts/rag-service/values.yaml").read_text()) or {}
-    gateway_chart = yaml.safe_load((ROOT / "charts/inference-gateway/Chart.yaml").read_text()) or {}
-    rag_chart = yaml.safe_load((ROOT / "charts/rag-service/Chart.yaml").read_text()) or {}
+    gateway_values = yaml.safe_load((ROOT / "deploy/charts/inference-gateway/values.yaml").read_text()) or {}
+    rag_values = yaml.safe_load((ROOT / "deploy/charts/rag-service/values.yaml").read_text()) or {}
+    gateway_chart = yaml.safe_load((ROOT / "deploy/charts/inference-gateway/Chart.yaml").read_text()) or {}
+    rag_chart = yaml.safe_load((ROOT / "deploy/charts/rag-service/Chart.yaml").read_text()) or {}
     gateway_tag = str(nested(gateway_values, "image", "tag", default=""))
     rag_tag = str(nested(rag_values, "image", "tag", default=""))
     gateway_version = str(gateway_chart.get("version", ""))
@@ -721,12 +721,12 @@ def check_release_packaging(errors: list[str]) -> None:
     require(errors, str(nested(rag_values, "image", "repository", default="")).startswith("ghcr.io/"), "rag-service chart must default to a GHCR image")
 
     for chart in ("agent-workspace", "budget-redis", "inference-gateway", "ollama", "qdrant-vector-store", "rag-service", "vllm"):
-        metadata = yaml.safe_load((ROOT / f"charts/{chart}/Chart.yaml").read_text()) or {}
+        metadata = yaml.safe_load((ROOT / f"deploy/charts/{chart}/Chart.yaml").read_text()) or {}
         require(errors, metadata.get("version") == gateway_version, f"{chart} chart version must match the release chart version")
         if chart in {"agent-workspace", "inference-gateway", "rag-service"}:
             require(errors, str(metadata.get("appVersion")) == release_version, f"{chart} appVersion must match latest CHANGELOG version")
 
-    for path in ("README.md", "docs/getting-started.md", "clusters/customer/README.md"):
+    for path in ("README.md", "docs/getting-started.md", "deploy/clusters/customer/README.md"):
         text = (ROOT / path).read_text()
         require(errors, f"CUSTOMER_REVISION={release_tag}" in text, f"{path} must show CUSTOMER_REVISION={release_tag}")
 
@@ -807,7 +807,7 @@ def check_release_packaging(errors: list[str]) -> None:
     require(errors, os.access(overlay_script, os.X_OK), "customer overlay configurator must be executable")
     makefile = (ROOT / "Makefile").read_text()
     require(errors, "customer-overlay:" in makefile and "customer-overlay-check:" in makefile, "Makefile must expose customer overlay targets")
-    customer_readme = (ROOT / "clusters/customer/README.md").read_text()
+    customer_readme = (ROOT / "deploy/clusters/customer/README.md").read_text()
     require(errors, "make customer-overlay" in customer_readme, "customer README must document overlay configuration")
     require(errors, "Handoff Checklist" in customer_readme, "customer README must include a handoff checklist")
 
@@ -857,7 +857,7 @@ def check_slo_governance(errors: list[str]) -> None:
         objective_ids = {item.get("id") for item in objectives if isinstance(item, dict)}
         expected = {"inference-availability", "inference-latency", "eval-quality-smoke", "restore-verification", "agent-platform-readiness"}
         require(errors, expected <= objective_ids, f"SLO objective config missing {sorted(expected - objective_ids)}")
-    alerts = (ROOT / "observability/alerts/ai-platform-alerts.yaml").read_text()
+    alerts = (ROOT / "deploy/observability/alerts/ai-platform-alerts.yaml").read_text()
     for alert in ("InferenceGatewayErrorBudgetFastBurn", "InferenceGatewayErrorBudgetSlowBurn", "InferenceGatewayHighLatency", "RestoreDrillFailed"):
         require(errors, alert in alerts, f"SLO alert coverage missing {alert}")
 
@@ -943,7 +943,7 @@ def check_retention_governance(errors: list[str]) -> None:
 
 def check_values_and_docs(errors: list[str]) -> None:
     for environment in ("local", "customer"):
-        values = yaml.safe_load((ROOT / f"clusters/{environment}/values/inference-gateway.yaml").read_text())
+        values = yaml.safe_load((ROOT / f"deploy/clusters/{environment}/values/inference-gateway.yaml").read_text())
         allowed = nested(values, "runtime", "allowedModels", default=[])
         require(errors, bool(allowed), f"{environment}: inference gateway values must define runtime.allowedModels")
         admission = values.get("admission", {})
@@ -972,9 +972,9 @@ def check_values_and_docs(errors: list[str]) -> None:
         else:
             require(errors, bool(nested(auth, "existingSecret", "name")), f"{environment}: inference gateway auth existingSecret.name must be set")
             require(errors, bool(nested(auth, "existingSecret", "key")), f"{environment}: inference gateway auth existingSecret.key must be set")
-        rag_values_path = ROOT / f"clusters/{environment}/values/rag-service.yaml"
-        qdrant_values_path = ROOT / f"clusters/{environment}/values/qdrant-vector-store.yaml"
-        agent_values_path = ROOT / f"clusters/{environment}/values/agent-workspace.yaml"
+        rag_values_path = ROOT / f"deploy/clusters/{environment}/values/rag-service.yaml"
+        qdrant_values_path = ROOT / f"deploy/clusters/{environment}/values/qdrant-vector-store.yaml"
+        agent_values_path = ROOT / f"deploy/clusters/{environment}/values/agent-workspace.yaml"
         require(errors, rag_values_path.exists(), f"{environment}: RAG service values must exist")
         require(errors, qdrant_values_path.exists(), f"{environment}: Qdrant vector-store values must exist")
         require(errors, agent_values_path.exists(), f"{environment}: agent workspace values must exist")
@@ -1036,7 +1036,7 @@ def check_values_and_docs(errors: list[str]) -> None:
     require(errors, production_doc.startswith("# Production Readiness Matrix"), "production readiness document must keep its title")
     require(errors, "## Required Controls" in production_doc, "production readiness document must list required controls")
     require(errors, "| Area |" in production_doc and "| Validation |" in production_doc, "production readiness controls must remain tabular")
-    policies = (ROOT / "policies/kyverno/policies.yaml").read_text()
+    policies = (ROOT / "deploy/policies/kyverno/policies.yaml").read_text()
     require(errors, "platform.ai/sandbox-id" in policies, "Kyverno policies must require sandbox id labels")
     require(errors, os.access(ROOT / "scripts/sandbox-smoke.sh", os.X_OK), "scripts/sandbox-smoke.sh must be executable")
     require(errors, os.access(ROOT / "scripts/rag-smoke.sh", os.X_OK), "scripts/rag-smoke.sh must be executable")
@@ -1058,26 +1058,26 @@ def main() -> int:
         for environment in ("local", "customer"):
             check_agent_workspace_render(
                 f"{environment}-agent-workspace",
-                render_chart("agent-workspace", ROOT / f"clusters/{environment}/values/agent-workspace.yaml"),
+                render_chart("agent-workspace", ROOT / f"deploy/clusters/{environment}/values/agent-workspace.yaml"),
                 errors,
             )
         check_budget_redis_render(render_chart("budget-redis"), errors)
         check_ollama_render("ollama-defaults", render_chart("ollama"), errors)
         check_ollama_render(
             "local-ollama",
-            render_chart("ollama", ROOT / "clusters/local/values/ollama.yaml"),
+            render_chart("ollama", ROOT / "deploy/clusters/local/values/ollama.yaml"),
             errors,
         )
         check_qdrant_render("qdrant-defaults", render_chart("qdrant-vector-store"), True, errors)
         check_qdrant_render(
             "local-qdrant-vector-store",
-            render_chart("qdrant-vector-store", ROOT / "clusters/local/values/qdrant-vector-store.yaml"),
+            render_chart("qdrant-vector-store", ROOT / "deploy/clusters/local/values/qdrant-vector-store.yaml"),
             False,
             errors,
         )
         check_qdrant_render(
             "customer-qdrant-vector-store",
-            render_chart("qdrant-vector-store", ROOT / "clusters/customer/values/qdrant-vector-store.yaml"),
+            render_chart("qdrant-vector-store", ROOT / "deploy/clusters/customer/values/qdrant-vector-store.yaml"),
             True,
             errors,
         )
@@ -1085,31 +1085,31 @@ def main() -> int:
         for environment in ("local", "customer"):
             check_gateway_render(
                 environment,
-                render_chart("inference-gateway", ROOT / f"clusters/{environment}/values/inference-gateway.yaml"),
+                render_chart("inference-gateway", ROOT / f"deploy/clusters/{environment}/values/inference-gateway.yaml"),
                 errors,
             )
         check_rag_render("chart-defaults", render_chart("rag-service"), False, errors)
         check_rag_render(
             "local-rag-service",
-            render_chart("rag-service", ROOT / "clusters/local/values/rag-service.yaml"),
+            render_chart("rag-service", ROOT / "deploy/clusters/local/values/rag-service.yaml"),
             False,
             errors,
         )
         check_rag_render(
             "customer-rag-service",
-            render_chart("rag-service", ROOT / "clusters/customer/values/rag-service.yaml"),
+            render_chart("rag-service", ROOT / "deploy/clusters/customer/values/rag-service.yaml"),
             True,
             errors,
         )
         check_vllm_render(
             "customer-vllm-nvidia",
-            render_chart("vllm", ROOT / "clusters/customer/values/vllm-nvidia.yaml"),
+            render_chart("vllm", ROOT / "deploy/clusters/customer/values/vllm-nvidia.yaml"),
             "nvidia.com/gpu",
             errors,
         )
         check_vllm_render(
             "customer-vllm-amd",
-            render_chart("vllm", ROOT / "clusters/customer/values/vllm-amd.yaml"),
+            render_chart("vllm", ROOT / "deploy/clusters/customer/values/vllm-amd.yaml"),
             "amd.com/gpu",
             errors,
         )

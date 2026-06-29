@@ -20,8 +20,8 @@ kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply --server-side --force-conflicts -n argocd -f "$ARGOCD_INSTALL_MANIFEST"
 kubectl -n argocd rollout status deploy/argocd-server --timeout=5m
 if [[ "${ENVIRONMENT:-local}" == "customer" ]]; then
-  kubectl apply -f gitops/argocd/root-app-customer.yaml
+  kubectl apply -f deploy/gitops/argocd/root-app-customer.yaml
 else
-  kubectl apply -f gitops/argocd/root-app.yaml
+  kubectl apply -f deploy/gitops/argocd/root-app.yaml
 fi
 kubectl -n argocd get application private-ai-platform-kit-root

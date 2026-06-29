@@ -94,7 +94,7 @@ jobs:
             --username "${{ github.actor }}" \
             --password-stdin
           mkdir -p chart-packages
-          for chart in charts/*; do
+          for chart in deploy/charts/*; do
             [[ -f "${chart}/Chart.yaml" ]] || continue
             helm package "$chart" --destination chart-packages
           done

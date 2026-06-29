@@ -17,7 +17,7 @@ if ! [[ "$LOCAL_GATEWAY_HOST_PORT" =~ ^[0-9]+$ ]] || (( LOCAL_GATEWAY_HOST_PORT 
   die "LOCAL_GATEWAY_HOST_PORT must be a TCP port between 1 and 65535"
 fi
 
-KIND_CONFIG="clusters/local/kind-config.yaml"
+KIND_CONFIG="deploy/clusters/local/kind-config.yaml"
 RENDERED_KIND_CONFIG=""
 
 cleanup() {

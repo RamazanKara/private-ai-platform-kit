@@ -39,7 +39,7 @@ REQUIRED_FILES = (
     "README.md",
     "ROADMAP.md",
     "SECURITY.md",
-    "charts/README.md",
+    "deploy/charts/README.md",
     "docs/README.md",
     "docs/benchmarks-and-evals.md",
     "docs/customer-handoff-example.md",

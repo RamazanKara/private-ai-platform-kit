@@ -23,7 +23,7 @@ Render the downloaded chart before installing:
 
 ```bash
 helm template verify-inference "inference-gateway-${RELEASE#v}.tgz" \
-  --values clusters/customer/values/inference-gateway.yaml >/tmp/inference.yaml
+  --values deploy/clusters/customer/values/inference-gateway.yaml >/tmp/inference.yaml
 ```
 
 ## Image Signatures

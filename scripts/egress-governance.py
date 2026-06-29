@@ -170,7 +170,7 @@ def collect_references() -> list[EgressReference]:
     refs: list[EgressReference] = []
     for path in sorted((ROOT / "tenants/onboarding").glob("*.yaml")):
         refs.extend(tenant_onboarding_references(path))
-    for path in sorted((ROOT / "clusters").glob("*/values/agent-workspace.yaml")):
+    for path in sorted((ROOT / "deploy/clusters").glob("*/values/agent-workspace.yaml")):
         refs.extend(agent_values_references(path))
     return refs
 

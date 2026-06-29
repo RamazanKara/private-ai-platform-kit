@@ -6,10 +6,7 @@
 /loadtest/ @RamazanKara
 
 # Kubernetes, GitOps, and customer deployment surface.
-/charts/ @RamazanKara
-/clusters/ @RamazanKara
-/gitops/ @RamazanKara
-/policies/ @RamazanKara
+/deploy/ @RamazanKara
 
 # Governance, evidence, and release controls.
 /platform/ @RamazanKara
@@ -22,4 +19,4 @@
 /SECURITY.md @RamazanKara
 /docs/ @RamazanKara
 /runbooks/ @RamazanKara
-/clusters/customer/README.md @RamazanKara
+/deploy/clusters/customer/README.md @RamazanKara

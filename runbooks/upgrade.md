@@ -12,10 +12,10 @@ unforgiving: the thing you change in Git is the thing that ships.
 A release bumps several pinned references together. `make production-check`
 enforces that they all match the latest `CHANGELOG.md` version:
 
-- the `inference-gateway` and `rag-service` chart image tags (`charts/*/values.yaml`),
+- the `inference-gateway` and `rag-service` chart image tags (`deploy/charts/*/values.yaml`),
 - every chart `version` and the service `appVersion`,
 - `SERVICE_VERSION` in the gateway and RAG service code and the OpenAPI `info.version`,
-- the `CUSTOMER_REVISION=<tag>` examples in `README.md`, `docs/getting-started.md`, and `clusters/customer/README.md`.
+- the `CUSTOMER_REVISION=<tag>` examples in `README.md`, `docs/getting-started.md`, and `deploy/clusters/customer/README.md`.
 
 CI builds and signs the images at that tag (see the build/release controls in
 `docs/threat-model.md`). For an operator promoting a published release you do
@@ -24,9 +24,9 @@ not rebuild images -- you point GitOps at the tag whose images already exist.
 ## The Promotion Lever: CUSTOMER_REVISION
 
 The customer overlay deploys from an immutable Git tag, not a branch. The root
-Application `gitops/argocd/root-app-customer.yaml` is pinned (currently
-`targetRevision: v0.9.0`) and every child Application in `clusters/customer/apps.yaml`
-runs under the `private-ai-platform` AppProject (`clusters/customer/appprojects.yaml`),
+Application `deploy/gitops/argocd/root-app-customer.yaml` is pinned (currently
+`targetRevision: v0.9.0`) and every child Application in `deploy/clusters/customer/apps.yaml`
+runs under the `private-ai-platform` AppProject (`deploy/clusters/customer/appprojects.yaml`),
 which locks `sourceRepos` to the approved repo. **Moving `CUSTOMER_REVISION` to a
 new tag is the canonical promotion.** `make customer-overlay-check` rejects
 `HEAD` or a branch, so every deployed state is reproducible and revertible.
@@ -40,9 +40,9 @@ Promote by re-running the overlay configurator with the new tag and committing:
 
     make customer-overlay-check
 
-This rewrites `gitops/argocd/root-app-customer.yaml` and the child Applications
-in `clusters/customer/apps.yaml` to the new tag. Commit to the customer repo;
-Argo CD picks it up on the next poll. See `clusters/customer/README.md` for the
+This rewrites `deploy/gitops/argocd/root-app-customer.yaml` and the child Applications
+in `deploy/clusters/customer/apps.yaml` to the new tag. Commit to the customer repo;
+Argo CD picks it up on the next poll. See `deploy/clusters/customer/README.md` for the
 overlay mechanics.
 
 ## Order Of Operations

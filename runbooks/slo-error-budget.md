@@ -14,7 +14,7 @@ The default local customer-handoff profile covers:
 - restore-drill pass rate
 - coding-agent platform readiness controls from the evidence pack
 
-Prometheus alert references are validated against `observability/alerts/ai-platform-alerts.yaml`.
+Prometheus alert references are validated against `deploy/observability/alerts/ai-platform-alerts.yaml`.
 
 ## Generate Evidence
 

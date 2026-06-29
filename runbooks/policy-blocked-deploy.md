@@ -9,7 +9,7 @@ Argo CD sync fails with an admission error from Kyverno.
     kubectl get events --all-namespaces --field-selector reason=PolicyViolation
     kubectl -n argocd describe application security-policies
     kubectl get clusterpolicy
-    kyverno apply policies/kyverno/policies.yaml --resource <rendered-resource.yaml>
+    kyverno apply deploy/policies/kyverno/policies.yaml --resource <rendered-resource.yaml>
 
 ## Likely Causes
 

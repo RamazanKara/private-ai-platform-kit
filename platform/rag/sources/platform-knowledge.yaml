@@ -5,13 +5,13 @@ metadata:
 spec:
   sources:
     - id: platform-docs
-      source: ../../docs
+      source: ../../../docs
       classification: internal
       retentionClass: project-documentation
       owner: platform-team
       embeddingModel: hash-text-v1
     - id: platform-knowledge-chart
-      source: ../../charts/rag-service/README.md
+      source: ../../../deploy/charts/rag-service/README.md
       classification: internal
       retentionClass: release-documentation
       owner: platform-team

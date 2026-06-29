@@ -16,7 +16,7 @@ spec:
     environments:
       - customer
     allowedModelFiles:
-      - clusters/customer/values/inference-gateway.yaml
+      - deploy/clusters/customer/values/inference-gateway.yaml
   evidence:
     evalSuite: platform/evals/coding-agent-suite.yaml
     evalSummary: results/evals/sample-summary.md

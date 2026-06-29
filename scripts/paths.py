@@ -24,13 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # governance inputs -> contracts -> tooling -> docs/evidence).
 DIRECTORIES: dict[str, str] = {
     "src": "Python FastAPI services (inference gateway and RAG service).",
-    "charts": "Helm charts for every platform component.",
-    "clusters": "Per-environment cluster overlays (local lab and customer).",
-    "gitops": "Argo CD app-of-apps GitOps definitions.",
-    "policies": "Kyverno admission policies and their conformance tests.",
-    "observability": "Prometheus rules, Grafana dashboards, and alerting.",
-    "sandbox": "Traceability sandbox base manifests.",
-    "backup": "Velero backup schedules and restore-drill fixtures.",
+    "deploy": "Deployable Kubernetes surface: charts, clusters, gitops, policies, sandbox, backup, observability.",
     "chaos": "Chaos and resilience drill definitions.",
     "platform": "Governance and contract inputs: governance, network, slo, model-catalog, evals, rag, api-contracts, config-contracts, tools.",
     "tenants": "Tenant onboarding specs and generated artifacts.",

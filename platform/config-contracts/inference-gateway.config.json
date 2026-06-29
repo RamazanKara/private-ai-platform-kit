@@ -528,7 +528,7 @@
       "type": "url"
     }
   ],
-  "helm_chart": "charts/inference-gateway",
+  "helm_chart": "deploy/charts/inference-gateway",
   "service": "inference-gateway",
   "service_settings": "src/inference-gateway/app/settings.py"
 }

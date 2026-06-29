@@ -51,7 +51,7 @@ first-response procedure; escalate per the tiers above.
 
 ### Budget Redis Outage
 
-**Severity.** Usually SEV2: the shared budget backend (`charts/budget-redis`,
+**Severity.** Usually SEV2: the shared budget backend (`deploy/charts/budget-redis`,
 `budget` namespace) is down, so the gateway cannot read or write per-sandbox
 usage. Inference availability itself may be unaffected, but budget enforcement is
 degraded.
@@ -108,7 +108,7 @@ unreachable pod) and check the RAG service health for `retrieval_backend=qdrant`
    snapshot-restore path against the real collection. Backups are a customer
    prerequisite -- a metadata-only Velero backup restores an empty store, so the
    PVC/snapshot contents must have been captured (see
-   `clusters/customer/README.md` handoff checklist).
+   `deploy/clusters/customer/README.md` handoff checklist).
 3. After restore, re-run RAG smoke and confirm recovered point counts match
    expectations before declaring recovery.
 4. If no good backup exists, this is a SEV1 data-loss event: engage the customer
@@ -125,7 +125,7 @@ it blocks a release-wide sync or a rollback during another incident.
     kubectl get events --all-namespaces --field-selector reason=PolicyViolation
     kubectl -n argocd describe application <application>
     kubectl get clusterpolicy
-    kyverno apply policies/kyverno/policies.yaml --resource <rendered-resource.yaml>
+    kyverno apply deploy/policies/kyverno/policies.yaml --resource <rendered-resource.yaml>
 
 Common causes: missing required labels (including `platform.ai/sandbox-id`), a
 `latest` image tag, missing CPU/memory requests/limits, running as root, an
@@ -139,8 +139,8 @@ that fails signature verification (`ai-platform-verify-project-images`, set to
    `runbooks/policy-blocked-deploy.md`. Do not bypass policy; exceptions must be
    time-boxed, documented, and reviewed.
 2. For an image-verification block on a fork, the keyless `subject`/`issuer` in
-   `policies/kyverno/policies.yaml` and the image registry must point at your own
-   identity (see `docs/threat-model.md` and `clusters/customer/README.md`). A
+   `deploy/policies/kyverno/policies.yaml` and the image registry must point at your own
+   identity (see `docs/threat-model.md` and `deploy/clusters/customer/README.md`). A
    rejected image signed by an unexpected identity is the policy working as
    intended -- treat an unexplained verification failure as a potential
    supply-chain event and escalate to the security lead.
@@ -152,5 +152,5 @@ that fails signature verification (`ai-platform-verify-project-images`, set to
 
 For every incident, record: the firing alert and severity, timeline, the runbook
 followed, mitigation steps (including any paused Argo CD automation per
-`runbooks/upgrade.md`), affected sandbox/request IDs, and -- for data-loss or
-security events -- the backup/restore artifacts and the security-lead handoff.
+`runbooks/upgrade.md`), affected deploy/sandbox/request IDs, and -- for data-loss or
+security events -- the deploy/backup/restore artifacts and the security-lead handoff.

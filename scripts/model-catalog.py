@@ -98,7 +98,7 @@ def validate_model_entry(model_id: str, model: dict[str, Any], errors: list[str]
 
 
 def allowed_models_for_environment(environment: str) -> tuple[list[str], dict[str, Any]]:
-    values_path = ROOT / f"clusters/{environment}/values/inference-gateway.yaml"
+    values_path = ROOT / f"deploy/clusters/{environment}/values/inference-gateway.yaml"
     values = load_yaml(values_path)
     return list(nested(values, "runtime", "allowedModels", default=[])), values
 
@@ -146,7 +146,7 @@ def validate_gateway_routing_policies(
     errors: list[str],
 ) -> None:
     for environment, allowlist in sorted(allowlists.items()):
-        values_path = ROOT / f"clusters/{environment}/values/inference-gateway.yaml"
+        values_path = ROOT / f"deploy/clusters/{environment}/values/inference-gateway.yaml"
         values = load_yaml(values_path)
         routing = nested(values, "routing", "policy", default={})
         expected = routing_models_for_allowlist(models, allowlist)
@@ -164,7 +164,7 @@ def validate_gateway_routing_policies(
 
 def validate_vllm_profiles(models: dict[str, dict[str, Any]], errors: list[str]) -> None:
     for profile, expected_accelerator in (("vllm", "nvidia"), ("vllm-nvidia", "nvidia"), ("vllm-amd", "amd")):
-        path = ROOT / f"clusters/customer/values/{profile}.yaml"
+        path = ROOT / f"deploy/clusters/customer/values/{profile}.yaml"
         if not path.exists():
             errors.append(f"customer {profile} values must exist")
             continue

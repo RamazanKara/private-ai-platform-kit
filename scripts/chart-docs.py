@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-CHARTS_DIR = ROOT / "charts"
+CHARTS_DIR = ROOT / "deploy/charts"
 START = "<!-- chart-docs:start -->"
 END = "<!-- chart-docs:end -->"
 

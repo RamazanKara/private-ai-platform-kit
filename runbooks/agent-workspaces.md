@@ -35,7 +35,7 @@ Inspect the contract:
 
 ## Customer Adaptation
 
-Edit `clusters/customer/values/agent-workspace.yaml` for quota, PVC size, tenant labels, and approved external CIDRs. Keep default-deny egress in place. Add only customer-approved Git hosts, package mirrors, artifact stores, or ticketing systems.
+Edit `deploy/clusters/customer/values/agent-workspace.yaml` for quota, PVC size, tenant labels, and approved external CIDRs. Keep default-deny egress in place. Add only customer-approved Git hosts, package mirrors, artifact stores, or ticketing systems.
 
 Example approved CIDR:
 

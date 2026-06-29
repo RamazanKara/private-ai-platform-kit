@@ -90,7 +90,7 @@ def collect_artifacts() -> list[Artifact]:
         Artifact("Agent workspaces runbook", "runbooks/agent-workspaces.md", "markdown", "tracked"),
         Artifact("Tenant onboarding spec", "tenants/onboarding/coding-agents.yaml", "yaml", "tracked"),
         Artifact("Regulated offline tenant onboarding spec", "tenants/onboarding/regulated-offline-coding-agents.yaml", "yaml", "tracked"),
-        Artifact("Qdrant vector-store chart", "charts/qdrant-vector-store/", "helm-chart", "tracked"),
+        Artifact("Qdrant vector-store chart", "deploy/charts/qdrant-vector-store/", "helm-chart", "tracked"),
         Artifact("Vector RAG runbook", "runbooks/vector-rag.md", "markdown", "tracked"),
         Artifact("Gateway guardrails runbook", "runbooks/guardrails.md", "markdown", "tracked"),
         Artifact("Model governance runbook", "runbooks/model-governance.md", "markdown", "tracked"),
@@ -137,14 +137,14 @@ def control(area: str, ok: bool, summary: str, evidence: list[str], customer_act
 
 
 def static_controls() -> list[Control]:
-    local_gateway = load_yaml("clusters/local/values/inference-gateway.yaml")
-    customer_gateway = load_yaml("clusters/customer/values/inference-gateway.yaml")
-    local_rag = load_yaml("clusters/local/values/rag-service.yaml")
-    customer_rag = load_yaml("clusters/customer/values/rag-service.yaml")
-    local_qdrant = load_yaml("clusters/local/values/qdrant-vector-store.yaml")
-    customer_qdrant = load_yaml("clusters/customer/values/qdrant-vector-store.yaml")
-    vllm_amd = load_yaml("clusters/customer/values/vllm-amd.yaml")
-    vllm_nvidia = load_yaml("clusters/customer/values/vllm-nvidia.yaml")
+    local_gateway = load_yaml("deploy/clusters/local/values/inference-gateway.yaml")
+    customer_gateway = load_yaml("deploy/clusters/customer/values/inference-gateway.yaml")
+    local_rag = load_yaml("deploy/clusters/local/values/rag-service.yaml")
+    customer_rag = load_yaml("deploy/clusters/customer/values/rag-service.yaml")
+    local_qdrant = load_yaml("deploy/clusters/local/values/qdrant-vector-store.yaml")
+    customer_qdrant = load_yaml("deploy/clusters/customer/values/qdrant-vector-store.yaml")
+    vllm_amd = load_yaml("deploy/clusters/customer/values/vllm-amd.yaml")
+    vllm_nvidia = load_yaml("deploy/clusters/customer/values/vllm-nvidia.yaml")
     model_catalog = load_yaml("platform/model-catalog/models.yaml")
     model_provenance = load_yaml("platform/governance/model-provenance.yaml")
     workflow = read_text(".github/workflows/ci.yml")
@@ -170,29 +170,29 @@ def static_controls() -> list[Control]:
     return [
         control(
             "Local-first customer-owned Kubernetes",
-            "local" in readme and "customer-owned clusters" in readme and exists("clusters/local/kind-config.yaml", "clusters/customer/README.md"),
+            "local" in readme and "customer-owned clusters" in readme and exists("deploy/clusters/local/kind-config.yaml", "deploy/clusters/customer/README.md"),
             "The README keeps the core product local-first and portable to customer-owned clusters.",
-            ["README.md", "clusters/local/kind-config.yaml", "clusters/customer/README.md"],
+            ["README.md", "deploy/clusters/local/kind-config.yaml", "deploy/clusters/customer/README.md"],
             "Provide the customer's ingress, storage class, secret backend, GPU nodes, and observability integrations.",
         ),
         control(
             "OpenAI-compatible gateway and API authentication",
-            exists("src/inference-gateway/app/main.py", "charts/inference-gateway/templates/deployment.yaml")
+            exists("src/inference-gateway/app/main.py", "deploy/charts/inference-gateway/templates/deployment.yaml")
             and nested(local_gateway, "auth", "enabled") is True
             and nested(customer_gateway, "auth", "enabled") is True
             and nested(customer_gateway, "auth", "existingSecret", "name"),
             "Gateway business endpoints require API keys in local and customer values.",
-            ["src/inference-gateway/app/main.py", "charts/inference-gateway/", "clusters/customer/values/inference-gateway.yaml"],
+            ["src/inference-gateway/app/main.py", "deploy/charts/inference-gateway/", "deploy/clusters/customer/values/inference-gateway.yaml"],
             "Back customer key hashes with the customer's secret manager and rotate through External Secrets.",
         ),
         control(
             "RAG service for coding-agent grounding",
-            exists("src/rag-service/app/main.py", "charts/rag-service/templates/deployment.yaml")
+            exists("src/rag-service/app/main.py", "deploy/charts/rag-service/templates/deployment.yaml")
             and nested(local_rag, "auth", "enabled") is True
             and nested(customer_rag, "auth", "enabled") is True
             and nested(customer_rag, "autoscaling", "enabled") is True,
             "The RAG service exposes approved context and grounded messages with the same API-key pattern.",
-            ["src/rag-service/app/main.py", "charts/rag-service/", "runbooks/rag-service.md"],
+            ["src/rag-service/app/main.py", "deploy/charts/rag-service/", "runbooks/rag-service.md"],
             "Replace or extend the bundled knowledge documents with customer-approved internal context.",
         ),
         control(
@@ -214,30 +214,30 @@ def static_controls() -> list[Control]:
             and "config-contract:" in read_text("Makefile")
             and "SANDBOX_BUDGET_REDIS_URL" in read_text("platform/config-contracts/inference-gateway.config.json")
             and "QDRANT_VECTOR_DIMENSIONS" in read_text("platform/config-contracts/rag-service.config.json")
-            and "secretKeyRef" in read_text("charts/inference-gateway/templates/deployment.yaml")
-            and "secretKeyRef" in read_text("charts/rag-service/templates/deployment.yaml"),
+            and "secretKeyRef" in read_text("deploy/charts/inference-gateway/templates/deployment.yaml")
+            and "secretKeyRef" in read_text("deploy/charts/rag-service/templates/deployment.yaml"),
             "Gateway and RAG runtime configuration snapshots are versioned and checked against service settings, Helm env vars, chart defaults, and secret sourcing.",
-            ["platform/config-contracts/", "scripts/config-contract.py", "charts/inference-gateway/templates/deployment.yaml", "charts/rag-service/templates/deployment.yaml"],
+            ["platform/config-contracts/", "scripts/config-contract.py", "deploy/charts/inference-gateway/templates/deployment.yaml", "deploy/charts/rag-service/templates/deployment.yaml"],
             "Review configuration contract diffs before changing customer overlays, runtime endpoints, budget settings, retrieval settings, or auth secrets.",
         ),
         control(
             "Vector RAG profile",
-            exists("charts/qdrant-vector-store/templates/deployment.yaml", "clusters/customer/values/qdrant-vector-store.yaml", "runbooks/vector-rag.md")
+            exists("deploy/charts/qdrant-vector-store/templates/deployment.yaml", "deploy/clusters/customer/values/qdrant-vector-store.yaml", "runbooks/vector-rag.md")
             and nested(local_rag, "retrieval", "backend") == "lexical"
             and nested(customer_rag, "retrieval", "backend") == "qdrant"
             and str(nested(customer_rag, "retrieval", "vectorStore", "url", default="")).startswith("http://qdrant-vector-store.vector.svc")
             and nested(customer_qdrant, "persistence", "enabled") is True
             and nested(local_qdrant, "persistence", "enabled") is False,
             "The local lab keeps zero-dependency lexical retrieval while customer values enable a persistent Qdrant vector-store profile.",
-            ["charts/qdrant-vector-store/", "clusters/customer/values/rag-service.yaml", "clusters/customer/values/qdrant-vector-store.yaml", "runbooks/vector-rag.md"],
+            ["deploy/charts/qdrant-vector-store/", "deploy/clusters/customer/values/rag-service.yaml", "deploy/clusters/customer/values/qdrant-vector-store.yaml", "runbooks/vector-rag.md"],
             "Size Qdrant storage and vector dimensions to the customer's embedding strategy before loading production knowledge.",
         ),
         control(
             "Coding-agent workspaces",
-            exists("charts/agent-workspace/templates/pvc.yaml", "charts/agent-workspace/templates/rbac.yaml", "charts/agent-workspace/templates/networkpolicy.yaml")
+            exists("deploy/charts/agent-workspace/templates/pvc.yaml", "deploy/charts/agent-workspace/templates/rbac.yaml", "deploy/charts/agent-workspace/templates/networkpolicy.yaml")
             and executable("scripts/agent-smoke.sh"),
             "Agent workspaces include PVC-backed storage, namespace-scoped RBAC, quota, and approved egress.",
-            ["charts/agent-workspace/", "clusters/customer/values/agent-workspace.yaml", "runbooks/agent-workspaces.md"],
+            ["deploy/charts/agent-workspace/", "deploy/clusters/customer/values/agent-workspace.yaml", "runbooks/agent-workspaces.md"],
             "Create one workspace per team, project, or trust boundary and approve any external egress explicitly.",
         ),
         control(
@@ -262,20 +262,20 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Traceable sandbox isolation",
-            exists("sandbox/base/namespace.yaml", "sandbox/base/networkpolicy.yaml", "sandbox/base/resource-controls.yaml", "sandbox/tests/trace-smoke-job.yaml")
+            exists("deploy/sandbox/base/namespace.yaml", "deploy/sandbox/base/networkpolicy.yaml", "deploy/sandbox/base/resource-controls.yaml", "deploy/sandbox/tests/trace-smoke-job.yaml")
             and executable("scripts/sandbox-smoke.sh"),
             "Sandbox namespaces carry trace labels, quota, limits, default-deny networking, and a smoke job.",
-            ["sandbox/base/", "sandbox/tests/trace-smoke-job.yaml", "runbooks/traceability-sandbox.md"],
+            ["deploy/sandbox/base/", "deploy/sandbox/tests/trace-smoke-job.yaml", "runbooks/traceability-sandbox.md"],
             "Preserve `X-Request-ID`, `X-Sandbox-ID`, and `traceparent` through ingress, agents, and logs.",
         ),
         control(
             "Shared sandbox budget controls",
-            exists("charts/budget-redis/templates/deployment.yaml")
+            exists("deploy/charts/budget-redis/templates/deployment.yaml")
             and nested(local_gateway, "budget", "backend") == "redis"
             and nested(customer_gateway, "budget", "backend") == "redis"
             and nested(customer_gateway, "budget", "requestLimit", default=0) > 0,
             "Gateway replicas share Redis-compatible request, prompt-character, and estimated-token counters.",
-            ["charts/budget-redis/", "clusters/customer/values/inference-gateway.yaml", "runbooks/budget-controls.md"],
+            ["deploy/charts/budget-redis/", "deploy/clusters/customer/values/inference-gateway.yaml", "runbooks/budget-controls.md"],
             "Map budget limits to customer tenant policies and replace bundled Redis with an enterprise service if required.",
         ),
         control(
@@ -284,7 +284,7 @@ def static_controls() -> list[Control]:
             and allowed <= catalog_ids
             and nested(customer_gateway, "admission", "maxPromptChars", default=0) > 0,
             "Gateway allowed models are backed by a reviewed catalog and request limits.",
-            ["platform/model-catalog/models.yaml", "clusters/customer/values/inference-gateway.yaml"],
+            ["platform/model-catalog/models.yaml", "deploy/clusters/customer/values/inference-gateway.yaml"],
             "Review model additions through the catalog before exposing them to tenants or coding agents.",
         ),
         control(
@@ -314,7 +314,7 @@ def static_controls() -> list[Control]:
             and "private_key" in nested(customer_gateway, "guardrails", "promptSecretDetection", "patterns", default=[])
             and exists("runbooks/guardrails.md"),
             "Gateway admission rejects obvious credential material before prompts reach Ollama or vLLM.",
-            ["src/inference-gateway/app/settings.py", "clusters/customer/values/inference-gateway.yaml", "runbooks/guardrails.md"],
+            ["src/inference-gateway/app/settings.py", "deploy/clusters/customer/values/inference-gateway.yaml", "runbooks/guardrails.md"],
             "Keep secret detection enabled for coding-agent workspaces and tune pattern lists only after review.",
         ),
         control(
@@ -344,9 +344,9 @@ def static_controls() -> list[Control]:
             exists("platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "results/slo/sample-summary.md")
             and executable("scripts/slo-report.py")
             and len(nested(slo_objectives, "spec", "objectives", default=[])) >= 5
-            and "InferenceGatewayErrorBudgetFastBurn" in read_text("observability/alerts/ai-platform-alerts.yaml"),
+            and "InferenceGatewayErrorBudgetFastBurn" in read_text("deploy/observability/alerts/ai-platform-alerts.yaml"),
             "SLO objectives cover inference availability, latency, eval pass rate, restore verification, and coding-agent platform readiness.",
-            ["platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "observability/alerts/ai-platform-alerts.yaml"],
+            ["platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "deploy/observability/alerts/ai-platform-alerts.yaml"],
             "Set targets to the customer's contract and review error-budget burn alerts before production use.",
         ),
         control(
@@ -396,7 +396,7 @@ def static_controls() -> list[Control]:
             and nested(vllm_amd, "accelerator", "resourceName") == "amd.com/gpu"
             and "rocm" in str(nested(vllm_amd, "image", "repository", default="")).lower(),
             "vLLM customer values include NVIDIA CUDA and AMD ROCm scheduling profiles.",
-            ["clusters/customer/values/vllm-nvidia.yaml", "clusters/customer/values/vllm-amd.yaml", "runbooks/gpu-capacity.md"],
+            ["deploy/clusters/customer/values/vllm-nvidia.yaml", "deploy/clusters/customer/values/vllm-amd.yaml", "runbooks/gpu-capacity.md"],
             "Verify the customer's GPU device plugin resource names and node labels before enabling replicas.",
         ),
         control(
@@ -406,23 +406,23 @@ def static_controls() -> list[Control]:
             and (nested(vllm_nvidia, "autoscaling", "enabled") is True or nested(vllm_nvidia, "keda", "enabled") is True)
             and (nested(vllm_amd, "autoscaling", "enabled") is True or nested(vllm_amd, "keda", "enabled") is True),
             "Customer profiles demonstrate multiple replicas, autoscaling, PDBs, and topology spread.",
-            ["clusters/customer/values/inference-gateway.yaml", "clusters/customer/values/vllm.yaml", "charts/inference-gateway/templates/pdb.yaml"],
+            ["deploy/clusters/customer/values/inference-gateway.yaml", "deploy/clusters/customer/values/vllm.yaml", "deploy/charts/inference-gateway/templates/pdb.yaml"],
             "Tune min/max replicas to customer SLOs, GPU inventory, and maintenance windows.",
         ),
         control(
             "Observability and cost labels",
-            exists("observability/alerts/ai-platform-alerts.yaml", "observability/dashboards/inference-dashboard.json")
+            exists("deploy/observability/alerts/ai-platform-alerts.yaml", "deploy/observability/dashboards/inference-dashboard.json")
             and "platform.ai/cost-center" in set(nested(quota_plans, "spec", "chargeback", "requiredLabels", default=[])),
             "Metrics, alerts, dashboards, and cost-label expectations are documented and versioned.",
-            ["observability/", "docs/production-readiness.md"],
+            ["deploy/observability/", "docs/production-readiness.md"],
             "Connect these signals to the customer's Prometheus, logs, dashboard, and chargeback systems.",
         ),
         control(
             "Policy as code",
-            exists("policies/kyverno/policies.yaml", "policies/kyverno/tests/kyverno-test.yaml")
-            and "verifyImages" in read_text("policies/kyverno/policies.yaml"),
+            exists("deploy/policies/kyverno/policies.yaml", "deploy/policies/kyverno/tests/kyverno-test.yaml")
+            and "verifyImages" in read_text("deploy/policies/kyverno/policies.yaml"),
             "Kyverno policies cover labels, resources, pod hardening, image tags, and signature verification.",
-            ["policies/kyverno/policies.yaml", "runbooks/policy-blocked-deploy.md"],
+            ["deploy/policies/kyverno/policies.yaml", "runbooks/policy-blocked-deploy.md"],
             "Run policies in audit mode first, then enforce on agreed AI namespaces.",
         ),
         control(
@@ -444,10 +444,10 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Restore-drill integration",
-            exists("backup/restore-drill/drills/local-redis-aof.yaml", "scripts/restore-drill.sh", "results/restore-drill/sample-redis-run.json")
-            and "RamazanKara/restore-drill" in read_text("backup/restore-drill/README.md"),
+            exists("deploy/backup/restore-drill/drills/local-redis-aof.yaml", "scripts/restore-drill.sh", "results/restore-drill/sample-redis-run.json")
+            and "RamazanKara/restore-drill" in read_text("deploy/backup/restore-drill/README.md"),
             "Application-data restore verification uses the restore-drill project, with Velero examples kept separate.",
-            ["backup/restore-drill/", "results/restore-drill/sample-redis-run.json", "runbooks/restore-drill.md"],
+            ["deploy/backup/restore-drill/", "results/restore-drill/sample-redis-run.json", "runbooks/restore-drill.md"],
             "Run scheduled drills against each critical customer data store and retain generated reports per policy.",
         ),
         control(

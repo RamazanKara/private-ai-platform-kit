@@ -16,7 +16,7 @@ spec:
     environments:
       - local
     allowedModelFiles:
-      - clusters/local/values/inference-gateway.yaml
+      - deploy/clusters/local/values/inference-gateway.yaml
   evidence:
     evalSuite: platform/evals/smoke-suite.yaml
     evalSummary: results/evals/sample-summary.md

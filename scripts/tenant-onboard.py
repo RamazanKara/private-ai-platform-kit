@@ -382,7 +382,7 @@ def render_readme(spec: dict[str, Any], tenant_yaml: str, agent_values_yaml: str
             "",
             "Install or update the matching coding-agent workspace:",
             "",
-            f"    helm upgrade --install agent-workspace charts/agent-workspace --namespace {namespace} --values {agent_values_yaml}",
+            f"    helm upgrade --install agent-workspace deploy/charts/agent-workspace --namespace {namespace} --values {agent_values_yaml}",
             "",
             "Run a tenant smoke check after the gateway and RAG service are ready:",
             "",

@@ -92,7 +92,7 @@ Use [docs/decision-guide.md](docs/decision-guide.md) to decide whether the kit i
 
 ## Customer-Owned Kubernetes
 
-The customer profile assumes Kubernetes already exists. Install Argo CD, configure the customer GitOps overlay, and apply the customer values under [clusters/customer](clusters/customer/).
+The customer profile assumes Kubernetes already exists. Install Argo CD, configure the customer GitOps overlay, and apply the customer values under [deploy/clusters/customer](deploy/clusters/customer/).
 
 ```bash
 make customer-overlay \
@@ -103,8 +103,8 @@ make customer-overlay \
 
 NVIDIA clusters should expose `nvidia.com/gpu`; AMD clusters should expose `amd.com/gpu`. Label GPU nodes with `platform.ai/node-pool=gpu` and `platform.ai/gpu-vendor=<nvidia|amd>`, then use:
 
-- [clusters/customer/values/vllm-nvidia.yaml](clusters/customer/values/vllm-nvidia.yaml)
-- [clusters/customer/values/vllm-amd.yaml](clusters/customer/values/vllm-amd.yaml)
+- [deploy/clusters/customer/values/vllm-nvidia.yaml](deploy/clusters/customer/values/vllm-nvidia.yaml)
+- [deploy/clusters/customer/values/vllm-amd.yaml](deploy/clusters/customer/values/vllm-amd.yaml)
 
 The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-agent workloads. Tune replica count, context length, tensor parallelism, and GPU requests to the customer cluster before production use.
 
@@ -126,7 +126,7 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | Security policy | [Security](SECURITY.md) |
 | Governance | [Governance](GOVERNANCE.md) |
 | Roadmap | [Roadmap](ROADMAP.md) |
-| Customer cluster assumptions | [Customer cluster README](clusters/customer/README.md) |
+| Customer cluster assumptions | [Customer cluster README](deploy/clusters/customer/README.md) |
 | Customer handoff example | [Customer handoff example](docs/customer-handoff-example.md) |
 | Regulated offline tenant example | [Regulated offline tenant](docs/regulated-offline-tenant-example.md) |
 | GPU coding-agent tenant example | [GPU coding-agent tenant](docs/gpu-coding-agent-tenant-example.md) |
@@ -142,16 +142,16 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 
 | Path | Purpose |
 | --- | --- |
-| `charts/` | Helm charts for gateway, runtimes, RAG, vector store, budget Redis, and agent workspaces |
-| `clusters/local/` | Local `kind` and Argo CD values |
-| `clusters/customer/` | Provider-neutral customer cluster values |
+| `deploy/charts/` | Helm charts for gateway, runtimes, RAG, vector store, budget Redis, and agent workspaces |
+| `deploy/clusters/local/` | Local `kind` and Argo CD values |
+| `deploy/clusters/customer/` | Provider-neutral customer cluster values |
 | `src/` | Gateway and RAG service code |
 | `platform/api-contracts/` | Versioned OpenAPI snapshots for customer-facing services |
 | `platform/config-contracts/` | Versioned runtime configuration snapshots for services and Helm charts |
 | `runbooks/` | Operational procedures and incident drills |
 | `platform/governance/`, `platform/model-catalog/`, `platform/network/`, `platform/slo/` | Reviewed policy and evidence inputs |
 | `results/` | Sample evidence artifacts; generated reports are ignored by default |
-| `backup/restore-drill/` | Restore-drill wrapper around `RamazanKara/restore-drill` |
+| `deploy/backup/restore-drill/` | Restore-drill wrapper around `RamazanKara/restore-drill` |
 
 ## Evidence Commands
 

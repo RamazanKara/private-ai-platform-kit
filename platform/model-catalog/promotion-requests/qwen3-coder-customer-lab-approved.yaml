@@ -17,11 +17,11 @@ spec:
     environments:
       - customer
     allowedModelFiles:
-      - clusters/customer/values/inference-gateway.yaml
+      - deploy/clusters/customer/values/inference-gateway.yaml
     runtimeValueFiles:
-      - clusters/customer/values/vllm.yaml
-      - clusters/customer/values/vllm-nvidia.yaml
-      - clusters/customer/values/vllm-amd.yaml
+      - deploy/clusters/customer/values/vllm.yaml
+      - deploy/clusters/customer/values/vllm-nvidia.yaml
+      - deploy/clusters/customer/values/vllm-amd.yaml
   evidence:
     evalSuite: platform/evals/coding-agent-suite.yaml
     evalModelProxy: qwen3.5:0.8b

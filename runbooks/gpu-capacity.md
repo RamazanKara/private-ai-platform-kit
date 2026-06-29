@@ -24,8 +24,8 @@ Install or repair the NVIDIA or AMD device plugin according to the customer's Ku
 
 Use these profiles as starting points:
 
-    clusters/customer/values/vllm-nvidia.yaml
-    clusters/customer/values/vllm-amd.yaml
+    deploy/clusters/customer/values/vllm-nvidia.yaml
+    deploy/clusters/customer/values/vllm-amd.yaml
 
 For AMD ROCm vLLM, use an ROCm-compatible vLLM image and verify that the worker nodes have ROCm-capable AMD GPUs, drivers, and the AMD Kubernetes device plugin.
 

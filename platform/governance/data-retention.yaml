@@ -58,9 +58,9 @@ spec:
       classification: internal
       reviewRequired: true
       sourcePaths:
-        - charts/rag-service/templates/configmap.yaml
-        - charts/rag-service/values.yaml
-        - charts/qdrant-vector-store/values.yaml
+        - deploy/charts/rag-service/templates/configmap.yaml
+        - deploy/charts/rag-service/values.yaml
+        - deploy/charts/qdrant-vector-store/values.yaml
         - runbooks/rag-service.md
         - runbooks/vector-rag.md
     agentWorkspace:
@@ -69,7 +69,7 @@ spec:
       classification: confidential
       purgeOnTenantOffboarding: true
       sourcePaths:
-        - charts/agent-workspace/templates/pvc.yaml
+        - deploy/charts/agent-workspace/templates/pvc.yaml
         - tenants/onboarding/coding-agents.yaml
         - runbooks/agent-workspaces.md
     modelGovernance:

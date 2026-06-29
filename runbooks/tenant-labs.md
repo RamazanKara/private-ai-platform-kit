@@ -39,7 +39,7 @@ Use the reviewed onboarding spec when a customer needs a repeatable tenant packa
 The default spec is `tenants/onboarding/coding-agents.yaml`. The generated files are written under `tenants/generated/<sandbox-id>/`:
 
 - `tenant-lab.yaml` for Namespace, quota, LimitRange, NetworkPolicy, trace contract, Role, and RoleBinding
-- `agent-workspace-values.yaml` for the `charts/agent-workspace` Helm chart
+- `agent-workspace-values.yaml` for the `deploy/charts/agent-workspace` Helm chart
 - `README.md` with apply commands for the tenant
 
 Use a custom spec and output directory when onboarding a customer team:

@@ -27,7 +27,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 
 | Need | Document |
 | --- | --- |
-| Customer-owned Kubernetes deployment | [Customer cluster README](../clusters/customer/README.md) |
+| Customer-owned Kubernetes deployment | [Customer cluster README](../deploy/clusters/customer/README.md) |
 | Customer handoff walkthrough | [Customer handoff example](customer-handoff-example.md) |
 | Validation prerequisites | [Validation toolchain](../runbooks/validation-toolchain.md) |
 | GPU scheduling and capacity | [GPU capacity](../runbooks/gpu-capacity.md) |

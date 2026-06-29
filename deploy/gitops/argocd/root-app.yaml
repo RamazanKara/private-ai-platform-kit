@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: private-ai-platform-kit-root
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: private-ai-platform-kit-root
+    app.kubernetes.io/part-of: private-ai-platform-kit
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
+    targetRevision: HEAD
+    path: deploy/clusters/local
+    directory:
+      include: apps.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

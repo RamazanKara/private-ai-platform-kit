@@ -39,8 +39,8 @@ spec:
         estimatedTokenLimit: 150000
         windowSeconds: 86400
       sourceRefs:
-        - sandbox/base/resource-controls.yaml
-        - clusters/local/values/inference-gateway.yaml
+        - deploy/sandbox/base/resource-controls.yaml
+        - deploy/clusters/local/values/inference-gateway.yaml
       review:
         cadence: before-demo
         approver: platform-team
@@ -72,7 +72,7 @@ spec:
         windowSeconds: 86400
       sourceRefs:
         - tenants/onboarding/coding-agents.yaml
-        - clusters/customer/values/inference-gateway.yaml
+        - deploy/clusters/customer/values/inference-gateway.yaml
       review:
         cadence: before-tenant-onboarding
         approver: customer-platform-owner
@@ -97,9 +97,9 @@ spec:
         estimatedTokenLimit: 15000000
         windowSeconds: 86400
       sourceRefs:
-        - clusters/customer/values/inference-gateway.yaml
-        - clusters/customer/values/vllm-nvidia.yaml
-        - clusters/customer/values/vllm-amd.yaml
+        - deploy/clusters/customer/values/inference-gateway.yaml
+        - deploy/clusters/customer/values/vllm-nvidia.yaml
+        - deploy/clusters/customer/values/vllm-amd.yaml
       review:
         cadence: before-release
         approver: platform-team

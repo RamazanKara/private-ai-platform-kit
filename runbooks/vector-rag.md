@@ -33,7 +33,7 @@ Keep `retrieval.vectorStore.dimensions` exactly aligned with the embedding endpo
 
 ## Customer Sizing
 
-Review `clusters/customer/values/qdrant-vector-store.yaml` before handoff:
+Review `deploy/clusters/customer/values/qdrant-vector-store.yaml` before handoff:
 
     persistence:
       enabled: true
@@ -53,8 +53,8 @@ Set storage class, size, resource requests, backup policy, and collection count 
 
 Render and validate the charts:
 
-    helm template validate-qdrant charts/qdrant-vector-store --values clusters/customer/values/qdrant-vector-store.yaml
-    helm template validate-rag charts/rag-service --values clusters/customer/values/rag-service.yaml
+    helm template validate-qdrant deploy/charts/qdrant-vector-store --values deploy/clusters/customer/values/qdrant-vector-store.yaml
+    helm template validate-rag deploy/charts/rag-service --values deploy/clusters/customer/values/rag-service.yaml
     make production-check
 
 After deployment, check Qdrant and RAG:

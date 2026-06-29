@@ -31,7 +31,7 @@ them when reviewing evidence:
 
 For the local Docker runtime (restore-tooling smoke):
 
-    restore-drill run --config backup/restore-drill/drills/local-redis-aof.yaml --runtime docker --no-cleanup --format json
+    restore-drill run --config deploy/backup/restore-drill/drills/local-redis-aof.yaml --runtime docker --no-cleanup --format json
 
 ## Real Data-Recovery Drill (Qdrant)
 

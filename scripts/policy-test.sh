@@ -6,5 +6,5 @@ source "$ROOT/scripts/common.sh"
 require_cmd kyverno "Install the Kyverno CLI to run policy tests."
 
 cd "$ROOT"
-kyverno test policies/kyverno/tests
+kyverno test deploy/policies/kyverno/tests
 

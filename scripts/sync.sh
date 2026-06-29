@@ -87,9 +87,9 @@ fi
 kubectl -n argocd get applications || true
 
 if kubectl -n argocd get application "$ROOT_APP" -o jsonpath='{.status.conditions[*].message}' 2>/dev/null | grep -qi 'Repository not found'; then
-  root_app_file="gitops/argocd/root-app.yaml"
+  root_app_file="deploy/gitops/argocd/root-app.yaml"
   if [[ "${ENVIRONMENT:-local}" == "customer" ]]; then
-    root_app_file="gitops/argocd/root-app-customer.yaml and clusters/customer/apps.yaml"
+    root_app_file="deploy/gitops/argocd/root-app-customer.yaml and deploy/clusters/customer/apps.yaml"
   fi
   log "GitOps repo is not reachable from Argo CD yet; publish the repo or update ${root_app_file}. Running local direct-apply fallback."
   direct_apply_local

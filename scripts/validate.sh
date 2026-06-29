@@ -25,20 +25,20 @@ log "running Python lint, format, and type checks"
 
 log "linting and rendering local Helm charts"
 rendered_manifests=()
-for chart in charts/agent-workspace charts/budget-redis charts/inference-gateway charts/ollama charts/qdrant-vector-store charts/rag-service charts/vllm; do
+for chart in deploy/charts/agent-workspace deploy/charts/budget-redis deploy/charts/inference-gateway deploy/charts/ollama deploy/charts/qdrant-vector-store deploy/charts/rag-service deploy/charts/vllm; do
   helm lint "$chart"
   rendered="/tmp/$(basename "$chart")-rendered.yaml"
   helm template "validate-$(basename "$chart")" "$chart" >"$rendered"
   rendered_manifests+=("$rendered")
   for environment in local customer; do
-    values="clusters/${environment}/values/$(basename "$chart").yaml"
+    values="deploy/clusters/${environment}/values/$(basename "$chart").yaml"
     if [[ -f "$values" ]]; then
       rendered="/tmp/${environment}-$(basename "$chart")-rendered.yaml"
       helm template "validate-${environment}-$(basename "$chart")" "$chart" --values "$values" >"$rendered"
       rendered_manifests+=("$rendered")
     fi
     if [[ "$(basename "$chart")" == "vllm" ]]; then
-      for profile in "clusters/${environment}/values/vllm-"*.yaml; do
+      for profile in "deploy/clusters/${environment}/values/vllm-"*.yaml; do
         if [[ -f "$profile" ]]; then
           rendered="/tmp/${environment}-$(basename "$profile" .yaml)-rendered.yaml"
           helm template "validate-${environment}-$(basename "$profile" .yaml)" "$chart" --values "$profile" >"$rendered"
@@ -127,18 +127,18 @@ if require_optional_or_full kubeconform "kubeconform is needed for Kubernetes sc
   kubeconform -summary -ignore-missing-schemas "${rendered_manifests[@]}"
   mapfile -d '' manifest_files < <(
     find \
-      clusters \
-      gitops \
-      backup/restore-drill/k8s \
-      backup/velero \
-      observability \
-      policies/kyverno/policies.yaml \
-      policies/kyverno/tests/resources \
-      sandbox \
+      deploy/clusters \
+      deploy/gitops \
+      deploy/backup/restore-drill/k8s \
+      deploy/backup/velero \
+      deploy/observability \
+      deploy/policies/kyverno/policies.yaml \
+      deploy/policies/kyverno/tests/resources \
+      deploy/sandbox \
       platform/model-catalog/k8s \
       tenants/examples \
       -name '*.yaml' \
-      ! -path 'clusters/*/values/*' \
+      ! -path 'deploy/clusters/*/values/*' \
       ! -name 'values*.yaml' \
       ! -name 'Chart.yaml' \
       -print0
@@ -149,11 +149,11 @@ if require_optional_or_full kubeconform "kubeconform is needed for Kubernetes sc
 fi
 
 if require_optional_or_full kyverno "Kyverno CLI is needed for policy tests."; then
-  kyverno test policies/kyverno/tests
+  kyverno test deploy/policies/kyverno/tests
 fi
 
 if require_optional_or_full restore-drill "restore-drill validates drill config syntax."; then
-  restore-drill validate --config backup/restore-drill/drills/local-redis-aof.yaml
+  restore-drill validate --config deploy/backup/restore-drill/drills/local-redis-aof.yaml
 fi
 
 if require_optional_or_full k6 "k6 is needed for load-test syntax validation."; then
@@ -183,7 +183,7 @@ if require_optional_or_full trivy "Trivy is needed for filesystem secret and con
     --skip-dirs .tools \
     --skip-dirs results \
     --skip-dirs tenants/generated \
-    --skip-dirs policies/kyverno/tests/resources \
+    --skip-dirs deploy/policies/kyverno/tests/resources \
     --skip-dirs src/inference-gateway/.venv \
     --skip-dirs src/rag-service/.venv \
     . >"$trivy_output"; then

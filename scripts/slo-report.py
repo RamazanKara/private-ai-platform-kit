@@ -69,7 +69,7 @@ def latest_artifact(patterns: list[str]) -> Path | None:
 
 
 def validate_alert_refs(config: dict[str, Any], errors: list[str]) -> None:
-    alert_path = ROOT / "observability/alerts/ai-platform-alerts.yaml"
+    alert_path = ROOT / "deploy/observability/alerts/ai-platform-alerts.yaml"
     if not alert_path.exists():
         errors.append("observability alert rules must exist")
         return

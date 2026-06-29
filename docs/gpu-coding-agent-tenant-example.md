@@ -24,11 +24,11 @@ in-cluster gateway and RAG service.
 ## Prerequisite: GPU Runtime
 
 This tenant assumes a vLLM runtime is already serving on GPU nodes. Label GPU nodes and deploy the
-vLLM chart per the [Customer cluster README](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/clusters/customer/README.md):
+vLLM chart per the [Customer cluster README](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/README.md):
 
 ```bash
 kubectl label node <gpu-node> platform.ai/node-pool=gpu platform.ai/gpu-vendor=nvidia
-# vLLM customer profile: clusters/customer/values/vllm-nvidia.yaml (or vllm-amd.yaml)
+# vLLM customer profile: deploy/clusters/customer/values/vllm-nvidia.yaml (or vllm-amd.yaml)
 ```
 
 See [GPU capacity](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md) for sizing tensor parallelism, context length, and

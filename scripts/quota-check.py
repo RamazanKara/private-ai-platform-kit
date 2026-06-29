@@ -97,7 +97,7 @@ def check_policy_shape(policy: dict[str, Any], errors: list[str]) -> list[dict[s
 def check_gateway_budget_alignment(plans: list[dict[str, Any]], errors: list[str]) -> None:
     values_by_environment: dict[str, dict[str, Any]] = {}
     for environment in ("local", "customer"):
-        path = ROOT / f"clusters/{environment}/values/inference-gateway.yaml"
+        path = ROOT / f"deploy/clusters/{environment}/values/inference-gateway.yaml"
         values_by_environment[environment] = load_yaml(path)
     for plan in plans:
         plan_id = str(plan.get("id", "<unknown>"))
@@ -162,7 +162,7 @@ def check_tenant_onboarding_alignment(plans: list[dict[str, Any]], errors: list[
 
 def check_chargeback_label_coverage(labels: list[str], errors: list[str]) -> None:
     files = [
-        ROOT / "policies/kyverno/policies.yaml",
+        ROOT / "deploy/policies/kyverno/policies.yaml",
         ROOT / "tenants/examples/team-a-lab.yaml",
         ROOT / "runbooks/budget-controls.md",
     ]

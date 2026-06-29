@@ -5,7 +5,7 @@ Validation keeps dashboards honest: every ``inference_gateway_*`` or ``rag_servi
 series used in a panel query must be a metric the service actually emits, so renaming or
 removing a metric without updating its dashboard fails the check.
 
-``--write`` renders ``observability/dashboards/configmap.yaml`` from the canonical dashboard
+``--write`` renders ``deploy/observability/dashboards/configmap.yaml`` from the canonical dashboard
 JSON. Each dashboard becomes a ConfigMap labelled ``grafana_dashboard: "1"`` so the Grafana
 sidecar (shipped by kube-prometheus-stack) auto-loads it. ``--check`` fails when that rendered
 file drifts from the dashboards, keeping the provisioned copies in sync with their sources.
@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-DASHBOARD_DIR = ROOT / "observability/dashboards"
+DASHBOARD_DIR = ROOT / "deploy/observability/dashboards"
 CONFIGMAP_PATH = DASHBOARD_DIR / "configmap.yaml"
 DASHBOARD_NAMESPACE = "monitoring"
 REQUIRED_DASHBOARDS = (
@@ -104,7 +104,7 @@ def render_configmaps() -> str:
 
 def check_dashboards() -> list[str]:
     errors: list[str] = []
-    require(errors, DASHBOARD_DIR.is_dir(), "observability/dashboards directory must exist")
+    require(errors, DASHBOARD_DIR.is_dir(), "deploy/observability/dashboards directory must exist")
     for name in REQUIRED_DASHBOARDS:
         require(errors, (DASHBOARD_DIR / name).is_file(), f"required dashboard missing: {name}")
 

@@ -59,7 +59,7 @@ The previous version (`v1`) is untouched, so retrieval keeps serving it until cu
 Point the RAG service at the new version and roll the deployment:
 
 ```yaml
-# clusters/<env>/values/rag-service.yaml
+# deploy/clusters/<env>/values/rag-service.yaml
 retrieval:
   vectorStore:
     collectionVersion: v2

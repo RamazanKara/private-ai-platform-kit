@@ -203,7 +203,7 @@ The matching report targets write JSON and Markdown evidence under `results/`.
 
 ## Customer-Owned Kubernetes
 
-For an existing Kubernetes cluster, install Argo CD, configure the customer overlay, and sync the applications from `clusters/customer/`.
+For an existing Kubernetes cluster, install Argo CD, configure the customer overlay, and sync the applications from `deploy/clusters/customer/`.
 
 ```bash
 make customer-overlay \
@@ -228,15 +228,15 @@ kubectl label node <node> platform.ai/node-pool=gpu platform.ai/gpu-vendor=<nvid
 Then choose the matching vLLM profile:
 
 ```bash
-clusters/customer/values/vllm-nvidia.yaml
-clusters/customer/values/vllm-amd.yaml
+deploy/clusters/customer/values/vllm-nvidia.yaml
+deploy/clusters/customer/values/vllm-amd.yaml
 ```
 
-Customer RAG values switch retrieval to Qdrant and deploy `charts/qdrant-vector-store` with persistent storage. Size Qdrant storage, vector dimensions, and ingestion to the customer's embedding model and approved knowledge pipeline.
+Customer RAG values switch retrieval to Qdrant and deploy `deploy/charts/qdrant-vector-store` with persistent storage. Size Qdrant storage, vector dimensions, and ingestion to the customer's embedding model and approved knowledge pipeline.
 
 For regulated or offline teams, start from `tenants/onboarding/regulated-offline-coding-agents.yaml`.
 
-The full customer deployment checklist is in `clusters/customer/README.md`.
+The full customer deployment checklist is in `deploy/clusters/customer/README.md`.
 
 ## Clean Up
 

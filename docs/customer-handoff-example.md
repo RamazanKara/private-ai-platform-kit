@@ -21,11 +21,11 @@ make customer-overlay \
 
 Review the generated changes in:
 
-- `gitops/argocd/root-app-customer.yaml`
-- `clusters/customer/apps.yaml`
-- `clusters/customer/values/inference-gateway.yaml`
-- `clusters/customer/values/vllm-nvidia.yaml`
-- `clusters/customer/values/rag-service.yaml`
+- `deploy/gitops/argocd/root-app-customer.yaml`
+- `deploy/clusters/customer/apps.yaml`
+- `deploy/clusters/customer/values/inference-gateway.yaml`
+- `deploy/clusters/customer/values/vllm-nvidia.yaml`
+- `deploy/clusters/customer/values/rag-service.yaml`
 
 ## Customer Decisions
 

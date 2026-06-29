@@ -10,9 +10,9 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-ROOT_APP = ROOT / "gitops/argocd/root-app-customer.yaml"
-CUSTOMER_APPS = ROOT / "clusters/customer/apps.yaml"
-APPPROJECTS = ROOT / "clusters/customer/appprojects.yaml"
+ROOT_APP = ROOT / "deploy/gitops/argocd/root-app-customer.yaml"
+CUSTOMER_APPS = ROOT / "deploy/clusters/customer/apps.yaml"
+APPPROJECTS = ROOT / "deploy/clusters/customer/appprojects.yaml"
 VLLM_VALUE_FILES = {
     "default": "../../clusters/customer/values/vllm.yaml",
     "nvidia": "../../clusters/customer/values/vllm-nvidia.yaml",
@@ -78,12 +78,12 @@ def check_overlay() -> list[str]:
     root_repo = nested(root, "spec", "source", "repoURL")
     root_revision = nested(root, "spec", "source", "targetRevision")
     require(errors, root.get("kind") == "Application", "root-app-customer.yaml must define an Argo CD Application")
-    require(errors, nested(root, "spec", "source", "path") == "clusters/customer", "customer root app must point at clusters/customer")
+    require(errors, nested(root, "spec", "source", "path") == "deploy/clusters/customer", "customer root app must point at deploy/clusters/customer")
     require(errors, isinstance(root_repo, str) and valid_git_url(root_repo), "customer root repoURL must be a Git URL")
     require(errors, isinstance(root_revision, str) and bool(root_revision), "customer root targetRevision must be set")
     require(errors, is_pinned_revision(str(root_revision)), "customer root targetRevision must be pinned to a tag or commit SHA, not HEAD or a branch")
 
-    require(errors, APPPROJECTS.exists(), "clusters/customer/appprojects.yaml must exist")
+    require(errors, APPPROJECTS.exists(), "deploy/clusters/customer/appprojects.yaml must exist")
     if APPPROJECTS.exists():
         try:
             project_docs = load_yaml_documents(APPPROJECTS)

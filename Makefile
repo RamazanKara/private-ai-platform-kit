@@ -236,7 +236,7 @@ repo-security-scan:
 		--skip-dirs .tools \
 		--skip-dirs results \
 		--skip-dirs tenants/generated \
-		--skip-dirs policies/kyverno/tests/resources \
+		--skip-dirs deploy/policies/kyverno/tests/resources \
 		--skip-dirs src/inference-gateway/.venv \
 		--skip-dirs src/rag-service/.venv \
 		.

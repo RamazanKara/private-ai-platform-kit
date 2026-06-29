@@ -10,7 +10,7 @@ Agent and tenant namespaces use default-deny networking. Egress to the inference
 
 1. Add or update an approved catalog entry in `platform/network/egress-catalog.yaml`.
 2. Set the entry `status` to `approved`, define the owner, environments, expiry date, use cases, data classification, CIDRs, and ports.
-3. Reference the entry from `tenants/onboarding/<tenant>.yaml` or `clusters/<environment>/values/agent-workspace.yaml`:
+3. Reference the entry from `tenants/onboarding/<tenant>.yaml` or `deploy/clusters/<environment>/values/agent-workspace.yaml`:
 
        allowedEgressCidrs:
          - catalogRef: customer-git-artifact-mirror-example
