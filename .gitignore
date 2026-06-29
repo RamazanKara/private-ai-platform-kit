@@ -15,13 +15,13 @@ htmlcov/
 .tmp-*
 *.tmp
 .out/tenants/
-.out/results/**/*.json
-.out/results/**/*.md
-.out/results/**/*.html
-.out/results/**/*.sarif
-.out/results/**/*.txt
-.out/results/**/*.log
-!.out/results/**/sample-*
+results/**/*.json
+results/**/*.md
+results/**/*.html
+results/**/*.sarif
+results/**/*.txt
+results/**/*.log
+!results/**/sample-*
 
 # mkdocs docs site build
 /site/

@@ -36,8 +36,8 @@ spec:
         - deploy/clusters/local/values/ollama.yaml
         - deploy/clusters/local/values/inference-gateway.yaml
       evidenceRefs:
-        evalSummary: .out/results/evals/sample-summary.md
-        loadTestSummary: .out/results/loadtest/sample-summary.md
+        evalSummary: results/evals/sample-summary.md
+        loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
       notes: Source digest is the Ollama registry model-weights layer (reproducible via verificationCommand). Re-verify against your own model store before production use.
     - modelId: qwen3.5:0.8b
@@ -62,8 +62,8 @@ spec:
         - deploy/clusters/customer/values/ollama.yaml
         - deploy/clusters/customer/values/inference-gateway.yaml
       evidenceRefs:
-        evalSummary: .out/results/evals/sample-summary.md
-        loadTestSummary: .out/results/loadtest/sample-summary.md
+        evalSummary: results/evals/sample-summary.md
+        loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
       notes: Source digest is the Ollama registry model-weights layer (reproducible via verificationCommand). Re-verify against your own model store before production use.
     - modelId: Qwen/Qwen3-Coder-Next
@@ -91,7 +91,7 @@ spec:
         - deploy/clusters/customer/values/vllm-amd.yaml
         - deploy/clusters/customer/values/inference-gateway.yaml
       evidenceRefs:
-        evalSummary: .out/results/evals/sample-summary.md
-        loadTestSummary: .out/results/loadtest/sample-summary.md
+        evalSummary: results/evals/sample-summary.md
+        loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
       notes: Customer lab vLLM coding-agent model. Replace source-reference digest with the customer's pinned model-store artifact revision and checksum.

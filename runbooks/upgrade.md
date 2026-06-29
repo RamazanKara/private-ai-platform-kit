@@ -25,7 +25,7 @@ not rebuild images -- you point GitOps at the tag whose images already exist.
 
 The customer overlay deploys from an immutable Git tag, not a branch. The root
 Application `deploy/gitops/argocd/root-app-customer.yaml` is pinned (currently
-`targetRevision: v0.9.0`) and every child Application in `deploy/clusters/customer/apps.yaml`
+`targetRevision: v0.10.0`) and every child Application in `deploy/clusters/customer/apps.yaml`
 runs under the `private-ai-platform` AppProject (`deploy/clusters/customer/appprojects.yaml`),
 which locks `sourceRepos` to the approved repo. **Moving `CUSTOMER_REVISION` to a
 new tag is the canonical promotion.** `make customer-overlay-check` rejects

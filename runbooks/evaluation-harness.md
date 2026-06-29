@@ -47,7 +47,7 @@ Run the coding-agent readiness suite:
 
     SUITE=platform/evals/coding-agent-suite.yaml make eval
 
-The wrapper port-forwards the inference gateway, runs the suite, and writes evidence under `.out/results/evals/`.
+The wrapper port-forwards the inference gateway, runs the suite, and writes evidence under `results/evals/`.
 
 If a gateway is already reachable, bypass port-forwarding:
 

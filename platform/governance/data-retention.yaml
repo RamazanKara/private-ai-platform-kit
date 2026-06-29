@@ -38,20 +38,20 @@ spec:
       retentionDays: 365
       classification: internal
       paths:
-        - .out/results/evals
-        - .out/results/loadtest
-        - .out/results/restore-drill
-        - .out/results/evidence
-        - .out/results/release-gate
-        - .out/results/egress-governance
-        - .out/results/model-catalog
-        - .out/results/model-provenance
-        - .out/results/retention
-        - .out/results/slo
-        - .out/results/quota
-        - .out/results/toolchain
-        - .out/results/supply-chain
-      sampleFilePattern: .out/results/**/sample-*
+        - results/evals
+        - results/loadtest
+        - results/restore-drill
+        - results/evidence
+        - results/release-gate
+        - results/egress-governance
+        - results/model-catalog
+        - results/model-provenance
+        - results/retention
+        - results/slo
+        - results/quota
+        - results/toolchain
+        - results/supply-chain
+      sampleFilePattern: results/**/sample-*
     ragKnowledge:
       description: Approved RAG knowledge documents and vector-store collections used by the RAG service.
       retentionDays: 180

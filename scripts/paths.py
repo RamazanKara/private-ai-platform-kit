@@ -32,11 +32,11 @@ DIRECTORIES: dict[str, str] = {
     "scripts": "Automation, governance gates, and tooling.",
     "runbooks": "Operational runbooks (also shipped as Prometheus runbook_url targets).",
     "docs": "User-facing documentation and the mkdocs site source.",
+    "results": "Sample evidence (tracked) and generated reports (git-ignored except sample-*).",
 }
 
-# Generated output lives in the git-ignored .out/ tree (.out/results evidence and
-# .out/tenants rendered tenant artifacts); as a dotdir it is excluded from the
-# layout inventory and the drift guard below.
+# Rendered tenant artifacts go to the git-ignored .out/tenants tree; .out is a
+# dotdir, so it is excluded from the layout inventory and the drift guard below.
 
 # Build-time / tooling directories that are intentionally outside the layout and
 # must not be flagged as undeclared by --check (mkdocs output, etc.).

@@ -374,7 +374,7 @@ def main() -> int:
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--report", action="store_true")
-    parser.add_argument("--output-dir", default=".out/results/slo")
+    parser.add_argument("--output-dir", default="results/slo")
     args = parser.parse_args()
 
     config_path = Path(args.config)

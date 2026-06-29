@@ -10,5 +10,5 @@ Kubernetes run:
 
     kubectl apply -f deploy/backup/restore-drill/k8s/
 
-Reports are written under `.out/results/restore-drill/` for local runs and `/reports` inside the Kubernetes CronJob pod for scheduled runs. Prometheus metrics are pushed to `http://pushgateway.monitoring:9091`.
+Reports are written under `results/restore-drill/` for local runs and `/reports` inside the Kubernetes CronJob pod for scheduled runs. Prometheus metrics are pushed to `http://pushgateway.monitoring:9091`.
 

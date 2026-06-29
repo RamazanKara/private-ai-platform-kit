@@ -5,7 +5,7 @@ Use this checklist before trusting a public release in a customer-owned cluster.
 Set the release and repository once:
 
 ```bash
-export RELEASE=v0.9.0
+export RELEASE=v0.10.0
 export IMAGE_REPO=ghcr.io/ramazankara/private-ai-platform-kit
 ```
 
@@ -128,4 +128,4 @@ make agent-smoke
 make evidence LIVE=1
 ```
 
-Record the command output, generated evidence paths under `.out/results/`, image digests, chart versions, and GitHub Actions run URL in the release notes.
+Record the command output, generated evidence paths under `results/`, image digests, chart versions, and GitHub Actions run URL in the release notes.

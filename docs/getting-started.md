@@ -149,7 +149,7 @@ DRILL=vllm-runtime-rollout make chaos-drill
 DRILL=gpu-capacity-preflight RUN_SMOKE=0 make chaos-drill
 ```
 
-Restore evidence is written under `.out/results/restore-drill/`.
+Restore evidence is written under `results/restore-drill/`.
 
 ## Evals, Load Tests, And Evidence
 
@@ -199,7 +199,7 @@ make model-check
 make model-provenance-check
 ```
 
-The matching report targets write JSON and Markdown evidence under `.out/results/`.
+The matching report targets write JSON and Markdown evidence under `results/`.
 
 ## Customer-Owned Kubernetes
 
@@ -208,7 +208,7 @@ For an existing Kubernetes cluster, install Argo CD, configure the customer over
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.9.0 \
+  CUSTOMER_REVISION=v0.10.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 

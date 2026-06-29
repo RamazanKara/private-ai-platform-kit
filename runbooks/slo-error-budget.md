@@ -33,7 +33,7 @@ Generate JSON and Markdown SLO evidence:
 
     make slo-report
 
-Reports are written under `.out/results/slo/`.
+Reports are written under `results/slo/`.
 
 ## Interpreting Failures
 

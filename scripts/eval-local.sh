@@ -46,7 +46,7 @@ SUITE="${SUITE:-evals/smoke-suite.yaml}"
 PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}"
 LOCAL_API_KEY_SHA256="ed20191044553dac8f9c45e62062dd18e7dc1f898a897240b4179fb84fea3db4"
 LOG_DIR="${LOG_DIR:-/tmp/private-ai-platform-kit-eval}"
-mkdir -p "$LOG_DIR" .out/results/evals
+mkdir -p "$LOG_DIR" results/evals
 
 cleanup() {
   local status=$?
@@ -85,8 +85,8 @@ GATEWAY_PID=$!
 wait_http "http://127.0.0.1:${GATEWAY_PORT}/healthz"
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-OUT=".out/results/evals/eval-${STAMP}.json"
-SUMMARY=".out/results/evals/eval-${STAMP}.md"
+OUT="results/evals/eval-${STAMP}.json"
+SUMMARY="results/evals/eval-${STAMP}.md"
 
 log "running eval suite ${SUITE} against local mock-backed gateway"
 src/inference-gateway/.venv/bin/python scripts/eval-suite.py \

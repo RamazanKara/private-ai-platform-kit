@@ -50,7 +50,7 @@ Write JSON and Markdown release-gate evidence:
 
     make release-report
 
-Reports are written under `.out/results/release-gate/`.
+Reports are written under `results/release-gate/`.
 
 For customer demos, release reviews, restore-drill reviews, and production-readiness handoff, run the strict gate after generating the required evidence:
 

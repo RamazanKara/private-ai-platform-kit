@@ -31,7 +31,7 @@ Generate a customer-facing report:
     make model-report
     make model-provenance-report
 
-Reports are written under `.out/results/model-catalog/` and `.out/results/model-provenance/`.
+Reports are written under `results/model-catalog/` and `results/model-provenance/`.
 
 ## Promotion Workflow
 
@@ -40,8 +40,8 @@ For a new model:
 1. Add the model to `platform/model-catalog/models.yaml` with `status: proposed`.
 2. Add a `ModelPromotionRequest` under `platform/model-catalog/promotion-requests/`.
 3. Add artifact provenance under `platform/governance/model-provenance.yaml`, including source URI, immutable reference, digest, license, risk, data classification, and serving profiles.
-4. Run an evaluation suite and keep the Markdown summary under `.out/results/evals/`.
-5. Run a load test appropriate for the target runtime and keep the summary under `.out/results/loadtest/`.
+4. Run an evaluation suite and keep the Markdown summary under `results/evals/`.
+5. Run a load test appropriate for the target runtime and keep the summary under `results/loadtest/`.
 6. Confirm the image, runtime, or serving stack is covered by CI security controls.
 7. Change the catalog status to `approved` only after review.
 8. Add the model to the gateway `runtime.allowedModels` values for the approved environment.

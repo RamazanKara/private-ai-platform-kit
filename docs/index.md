@@ -28,7 +28,7 @@ It is for teams that want the operating model of a production AI platform withou
 Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway forwards to Ollama or vLLM based on `RUNTIME_BACKEND`, enforces model allowlists and admission limits, records Prometheus metrics, and emits redacted audit events. The local lab runs fully on `kind`; customer clusters keep the same repo structure and replace only the platform services they already operate.
 
 !!! tip "Maturity"
-    Current release `v0.9.0` — reference implementation and customer lab. Production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation. See [Production readiness](production-readiness.md).
+    Current release `v0.10.0` — reference implementation and customer lab. Production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation. See [Production readiness](production-readiness.md).
 
 ---
 

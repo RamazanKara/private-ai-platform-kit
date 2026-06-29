@@ -91,8 +91,8 @@ def check_generated_evidence(policy: dict[str, Any], errors: list[str]) -> None:
         pattern = f"{path}/*.json"
         html_pattern = f"{path}/*.html"
         md_pattern = f"{path}/*.md"
-        generic_result_pattern = str(path).startswith(".out/results/") and any(
-            item in gitignore for item in (".out/results/**/*.json", ".out/results/**/*.html", ".out/results/**/*.md")
+        generic_result_pattern = str(path).startswith("results/") and any(
+            item in gitignore for item in ("results/**/*.json", "results/**/*.html", "results/**/*.md")
         )
         require(
             errors,
@@ -100,8 +100,8 @@ def check_generated_evidence(policy: dict[str, Any], errors: list[str]) -> None:
             f".gitignore must ignore generated artifacts under {path}",
         )
     sample_pattern = evidence.get("sampleFilePattern")
-    require(errors, sample_pattern == ".out/results/**/sample-*", "generatedEvidence.sampleFilePattern must be .out/results/**/sample-*")
-    require(errors, "!.out/results/**/sample-*" in gitignore, ".gitignore must retain sample result artifacts by convention")
+    require(errors, sample_pattern == "results/**/sample-*", "generatedEvidence.sampleFilePattern must be results/**/sample-*")
+    require(errors, "!results/**/sample-*" in gitignore, ".gitignore must retain sample result artifacts by convention")
 
 
 def check_source_paths(policy: dict[str, Any], class_name: str, errors: list[str]) -> None:
@@ -156,7 +156,7 @@ def main() -> int:
     parser.add_argument("--policy", default=str(DEFAULT_POLICY))
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--report", action="store_true")
-    parser.add_argument("--output-dir", default=".out/results/retention")
+    parser.add_argument("--output-dir", default="results/retention")
     args = parser.parse_args()
 
     policy_path = (ROOT / args.policy).resolve() if not Path(args.policy).is_absolute() else Path(args.policy)

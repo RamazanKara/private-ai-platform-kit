@@ -11,7 +11,7 @@ Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs
 
 It is designed for teams that want the operating model of a production AI platform without depending on a specific cloud provider.
 
-Current release: `v0.9.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
+Current release: `v0.10.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
 [Docs site](https://ramazankara.github.io/private-ai-platform-kit/) | [Quickstart](docs/quickstart.md) | [Decision guide](docs/decision-guide.md) | [Production readiness](docs/production-readiness.md) | [Proof](docs/proof.md) | [Runbooks](docs/README.md) | [Contributing](CONTRIBUTING.md) | [Security](SECURITY.md)
 
@@ -97,7 +97,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.9.0 \
+  CUSTOMER_REVISION=v0.10.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
@@ -150,7 +150,7 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | `platform/config-contracts/` | Versioned runtime configuration snapshots for services and Helm charts |
 | `runbooks/` | Operational procedures and incident drills |
 | `platform/governance/`, `platform/model-catalog/`, `platform/network/`, `platform/slo/` | Reviewed policy and evidence inputs |
-| `.out/results/` | Sample evidence artifacts; generated reports are ignored by default |
+| `results/` | Sample evidence artifacts; generated reports are ignored by default |
 | `deploy/backup/restore-drill/` | Restore-drill wrapper around `RamazanKara/restore-drill` |
 
 ## Evidence Commands
@@ -172,7 +172,7 @@ make image-scan
 make supply-chain-check
 ```
 
-Runtime images use a pinned Alpine Python base and exclude test-only dependencies. Local image scans generate SBOM, SARIF, checksum, and summary evidence under `.out/results/supply-chain/`. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
+Runtime images use a pinned Alpine Python base and exclude test-only dependencies. Local image scans generate SBOM, SARIF, checksum, and summary evidence under `results/supply-chain/`. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
 
 ## Trademark Notice
 

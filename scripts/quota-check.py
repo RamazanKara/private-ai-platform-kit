@@ -222,7 +222,7 @@ def main() -> int:
     parser.add_argument("--policy", default=str(DEFAULT_POLICY))
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--report", action="store_true")
-    parser.add_argument("--output-dir", default=".out/results/quota")
+    parser.add_argument("--output-dir", default="results/quota")
     args = parser.parse_args()
 
     policy_path = Path(args.policy)

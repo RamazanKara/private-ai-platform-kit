@@ -39,5 +39,5 @@ metrics:
 
 reporting:
   format: [json, html]
-  output: .out/results/restore-drill/
+  output: results/restore-drill/
   retention: 90d

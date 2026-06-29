@@ -113,19 +113,19 @@ def collect_artifacts() -> list[Artifact]:
         Artifact("Restore drill runbook", "runbooks/restore-drill.md", "markdown", "tracked"),
     ]
     for artifact in [
-        latest_artifact("Evaluation summary", [".out/results/evals/*.md"], "markdown"),
-        latest_artifact("Model governance summary", [".out/results/model-catalog/*.md"], "markdown"),
-        latest_artifact("Model provenance summary", [".out/results/model-provenance/*.md"], "markdown"),
-        latest_artifact("Validation toolchain report", [".out/results/toolchain/*.md"], "markdown"),
-        latest_artifact("SLO and error budget report", [".out/results/slo/*.md"], "markdown"),
-        latest_artifact("Quota and chargeback report", [".out/results/quota/*.md"], "markdown"),
-        latest_artifact("Egress governance report", [".out/results/egress-governance/*.md"], "markdown"),
-        latest_artifact("Data retention report", [".out/results/retention/*.md"], "markdown"),
-        latest_artifact("Release gate report", [".out/results/release-gate/*.md"], "markdown"),
-        latest_artifact("Supply-chain scan summary", [".out/results/supply-chain/*.md"], "markdown"),
-        latest_artifact("Load-test summary", [".out/results/loadtest/*.md"], "markdown"),
-        latest_artifact("Restore-drill JSON evidence", [".out/results/restore-drill/*run*.json", ".out/results/restore-drill/sample-redis-run.json"], "json"),
-        latest_artifact("Restore-drill compliance report", [".out/results/restore-drill/*compliance*.html", ".out/results/restore-drill/sample-compliance-report.html"], "html"),
+        latest_artifact("Evaluation summary", ["results/evals/*.md"], "markdown"),
+        latest_artifact("Model governance summary", ["results/model-catalog/*.md"], "markdown"),
+        latest_artifact("Model provenance summary", ["results/model-provenance/*.md"], "markdown"),
+        latest_artifact("Validation toolchain report", ["results/toolchain/*.md"], "markdown"),
+        latest_artifact("SLO and error budget report", ["results/slo/*.md"], "markdown"),
+        latest_artifact("Quota and chargeback report", ["results/quota/*.md"], "markdown"),
+        latest_artifact("Egress governance report", ["results/egress-governance/*.md"], "markdown"),
+        latest_artifact("Data retention report", ["results/retention/*.md"], "markdown"),
+        latest_artifact("Release gate report", ["results/release-gate/*.md"], "markdown"),
+        latest_artifact("Supply-chain scan summary", ["results/supply-chain/*.md"], "markdown"),
+        latest_artifact("Load-test summary", ["results/loadtest/*.md"], "markdown"),
+        latest_artifact("Restore-drill JSON evidence", ["results/restore-drill/*run*.json", "results/restore-drill/sample-redis-run.json"], "json"),
+        latest_artifact("Restore-drill compliance report", ["results/restore-drill/*compliance*.html", "results/restore-drill/sample-compliance-report.html"], "html"),
     ]:
         if artifact is not None:
             artifacts.append(artifact)
@@ -289,7 +289,7 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Model lifecycle governance",
-            exists("scripts/model-catalog.py", "runbooks/model-governance.md", ".out/results/model-catalog/sample-summary.md")
+            exists("scripts/model-catalog.py", "runbooks/model-governance.md", "results/model-catalog/sample-summary.md")
             and executable("scripts/model-catalog.py")
             and exists("platform/model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml", "platform/model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml", "platform/model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml"),
             "Approved models require promotion requests, evidence references, runtime metadata, and approved-only gateway allowlists.",
@@ -298,7 +298,7 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Model provenance governance",
-            exists("platform/governance/model-provenance.yaml", "scripts/model-provenance.py", "runbooks/model-provenance.md", ".out/results/model-provenance/sample-summary.md")
+            exists("platform/governance/model-provenance.yaml", "scripts/model-provenance.py", "runbooks/model-provenance.md", "results/model-provenance/sample-summary.md")
             and executable("scripts/model-provenance.py")
             and len(nested(model_provenance, "spec", "artifacts", default=[])) >= len([item for item in nested(model_catalog, "spec", "models", default=[]) if isinstance(item, dict) and item.get("status") == "approved"])
             and {"sourceUri", "immutableRef", "digest", "license", "dataClassification", "riskTier", "promotionRequest", "servingProfiles"}
@@ -319,7 +319,7 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Validation toolchain",
-            exists("platform/tools/validation-toolchain.yaml", "scripts/toolchain-doctor.py", "scripts/install-validation-tools.sh", "runbooks/validation-toolchain.md", ".out/results/toolchain/sample-summary.md")
+            exists("platform/tools/validation-toolchain.yaml", "scripts/toolchain-doctor.py", "scripts/install-validation-tools.sh", "runbooks/validation-toolchain.md", "results/toolchain/sample-summary.md")
             and executable("scripts/toolchain-doctor.py")
             and executable("scripts/install-validation-tools.sh")
             and {"python3", "helm", "kubeconform", "kyverno", "restore-drill", "k6", "syft", "argocd", "cosign", "trivy"}
@@ -330,7 +330,7 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Release gates and SLO evidence",
-            exists("platform/slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md", ".out/results/release-gate/sample-summary.md")
+            exists("platform/slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md", "results/release-gate/sample-summary.md")
             and executable("scripts/release-gate.py")
             and "release-gate-strict" in read_text("Makefile")
             and "--require-current-evidence" in read_text("scripts/release-gate.py")
@@ -341,7 +341,7 @@ def static_controls() -> list[Control]:
         ),
         control(
             "SLO and error budget governance",
-            exists("platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", ".out/results/slo/sample-summary.md")
+            exists("platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "results/slo/sample-summary.md")
             and executable("scripts/slo-report.py")
             and len(nested(slo_objectives, "spec", "objectives", default=[])) >= 5
             and "InferenceGatewayErrorBudgetFastBurn" in read_text("deploy/observability/alerts/ai-platform-alerts.yaml"),
@@ -351,7 +351,7 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Quota and chargeback governance",
-            exists("platform/governance/quota-plans.yaml", "scripts/quota-check.py", "runbooks/quota-chargeback.md", ".out/results/quota/sample-summary.md")
+            exists("platform/governance/quota-plans.yaml", "scripts/quota-check.py", "runbooks/quota-chargeback.md", "results/quota/sample-summary.md")
             and executable("scripts/quota-check.py")
             and len(nested(quota_plans, "spec", "plans", default=[])) >= 3
             and {"platform.ai/owner", "platform.ai/cost-center", "platform.ai/environment", "platform.ai/sandbox-id"}
@@ -362,7 +362,7 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Egress governance for coding agents",
-            exists("platform/network/egress-catalog.yaml", "scripts/egress-governance.py", "runbooks/egress-governance.md", ".out/results/egress-governance/sample-summary.md")
+            exists("platform/network/egress-catalog.yaml", "scripts/egress-governance.py", "runbooks/egress-governance.md", "results/egress-governance/sample-summary.md")
             and executable("scripts/egress-governance.py")
             and "customer-git-artifact-mirror-example" in {entry.get("id") for entry in nested(egress_catalog, "spec", "entries", default=[]) if isinstance(entry, dict)}
             and "catalogRef" in read_text("tenants/onboarding/coding-agents.yaml"),
@@ -372,7 +372,7 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Data retention and privacy governance",
-            exists("platform/governance/data-retention.yaml", "scripts/retention-check.py", "runbooks/data-retention.md", ".out/results/retention/sample-summary.md")
+            exists("platform/governance/data-retention.yaml", "scripts/retention-check.py", "runbooks/data-retention.md", "results/retention/sample-summary.md")
             and executable("scripts/retention-check.py")
             and nested(retention_policy, "spec", "classes", "auditLogs", "storesRawPrompt") is False
             and nested(retention_policy, "spec", "classes", "auditLogs", "storesRawQuery") is False,
@@ -444,20 +444,20 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Restore-drill integration",
-            exists("deploy/backup/restore-drill/drills/local-redis-aof.yaml", "scripts/restore-drill.sh", ".out/results/restore-drill/sample-redis-run.json")
+            exists("deploy/backup/restore-drill/drills/local-redis-aof.yaml", "scripts/restore-drill.sh", "results/restore-drill/sample-redis-run.json")
             and "RamazanKara/restore-drill" in read_text("deploy/backup/restore-drill/README.md"),
             "Application-data restore verification uses the restore-drill project, with Velero examples kept separate.",
-            ["deploy/backup/restore-drill/", ".out/results/restore-drill/sample-redis-run.json", "runbooks/restore-drill.md"],
+            ["deploy/backup/restore-drill/", "results/restore-drill/sample-redis-run.json", "runbooks/restore-drill.md"],
             "Run scheduled drills against each critical customer data store and retain generated reports per policy.",
         ),
         control(
             "Evaluation, load, and incident evidence",
-            exists("platform/evals/smoke-suite.yaml", "platform/evals/coding-agent-suite.yaml", ".out/results/evals/sample-summary.md", ".out/results/evals/sample-coding-agent-summary.md", ".out/results/loadtest/sample-summary.md")
+            exists("platform/evals/smoke-suite.yaml", "platform/evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/evals/sample-coding-agent-summary.md", "results/loadtest/sample-summary.md")
             and executable("scripts/eval.sh")
             and executable("scripts/loadtest.sh")
             and executable("scripts/loadtest-local.sh"),
             "The lab stores smoke and coding-agent evaluation summaries alongside load-test, incident, and chaos evidence.",
-            ["platform/evals/smoke-suite.yaml", "platform/evals/coding-agent-suite.yaml", ".out/results/evals/sample-summary.md", ".out/results/loadtest/sample-summary.md", "scripts/loadtest-local.sh"],
+            ["platform/evals/smoke-suite.yaml", "platform/evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/loadtest/sample-summary.md", "scripts/loadtest-local.sh"],
             "Keep customer-specific evaluation and load results with release evidence.",
         ),
         control(
@@ -621,7 +621,7 @@ def write_json(path: Path, generated_at: str, controls: list[Control], artifacts
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate or validate a Private AI Platform Kit customer evidence pack.")
-    parser.add_argument("--output-dir", default=".out/results/evidence")
+    parser.add_argument("--output-dir", default="results/evidence")
     parser.add_argument("--check", action="store_true", help="Validate static evidence-pack inputs without writing a report.")
     parser.add_argument("--live", action="store_true", help="Include live Kubernetes readiness checks.")
     args = parser.parse_args()

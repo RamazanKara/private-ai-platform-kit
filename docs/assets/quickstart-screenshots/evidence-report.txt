@@ -2,9 +2,9 @@ $ make evidence LIVE=1
 
 ./scripts/bootstrap-python.sh
 src/inference-gateway/.venv/bin/python scripts/evidence-pack.py --live
-wrote .out/results/evidence/evidence-20260627T083438Z.json and .out/results/evidence/evidence-20260627T083438Z.md
+wrote results/evidence/evidence-20260627T083438Z.json and results/evidence/evidence-20260627T083438Z.md
 
-$ sed -n '1,38p' .out/results/evidence/evidence-20260627T083438Z.md
+$ sed -n '1,38p' results/evidence/evidence-20260627T083438Z.md
 
 # Private AI Platform Kit Evidence Pack
 

@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.10.0 - 2026-06-29
+
+A documentation and repository-structure release. No runtime, chart, or API behavior changes — the deployed artifacts are functionally identical to `v0.9.0`; only the documentation, the repository layout, and the version string changed. Adopters who reference repository paths directly (rather than through the pinned Argo CD applications) must update them — see the migration note below.
+
+### Added
+
+- A documentation site built with mkdocs-material in the [Diátaxis](https://diataxis.fr/) structure (Tutorials / How-to / Reference / Explanation), deployed to GitHub Pages by a SHA-pinned workflow. A new learning-oriented "Your first private AI platform" tutorial. The build runs `mkdocs --strict`, so a broken link or nav drift fails the deploy. Set repo Settings → Pages → Source = "GitHub Actions" to publish.
+- `scripts/paths.py` and `scripts/_paths.sh`: a central registry that is the single source of truth for the repository directory layout, with `--dump` (JSON manifest), `--dump-sh` (shell variables), and `--check` (a drift guard that flags any undeclared top-level directory). `repo-hygiene` now derives its directory inventory from it, closing a gap that omitted `chaos/`, `config-contracts/`, and `rag/`. New `make paths` / `make paths-check` targets.
+
+### Changed
+
+- Repository restructure for a curated top level. `services/` → `src/`; charts, clusters, gitops, policies, sandbox, backup, and observability → `deploy/`; governance, network, slo, model-catalog, evals, rag, api-contracts, config-contracts, and tools → `platform/`; `tests/load` → `loadtest/`. Argo CD `source.path`s, Helm `valueFiles`, CI path filters, the Makefile, and every governance gate were repointed in lockstep; `git mv` preserves file history. Verified end to end with `make validate` (helm render, kubeconform 0-invalid, kyverno, and the full gate suite).
+- The 11 documents were rewritten/normalized for Diátaxis voice, and cross-area links that leave the doc set now use absolute GitHub URLs so both `repo-hygiene` and `mkdocs --strict` pass.
+- Generated output is consolidated under a git-ignored `.out/` (rendered tenant artifacts in `.out/tenants/`); the evidence tree stays in a visible top-level `results/` with sample evidence tracked and generated reports git-ignored.
+
+### Removed
+
+- The hand-rolled `docs/index.html`, replaced by the documentation-site landing page.
+
+### Migration
+
+- Repository paths changed: `charts/<x>` → `deploy/charts/<x>`, `clusters/` → `deploy/clusters/`, `gitops/` → `deploy/gitops/`, `policies/` → `deploy/policies/`, `services/` → `src/`, and the governance/contract inputs → `platform/`. Customers deploying through the pinned Argo CD applications (`make customer-overlay`, `CUSTOMER_REVISION=v0.10.0`) need no manual change — the application `source.path`s already point at the new locations. Forks or automation that reference the old paths directly must update them.
+
 ## v0.9.0 - 2026-06-29
 
 A platform-hardening release that closes the gap between "claims rigor" and "demonstrably rigorous": controls that enforce rather than appear, a reproducible serving benchmark, and end-to-end supply-chain and operations polish.
@@ -158,7 +181,7 @@ Validation and repository bloat cleanup for the private AI platform kit.
 - Updated customer overlay examples to pin `CUSTOMER_REVISION=v0.4.1`.
 - Reduced duplicate production validation by keeping `production-check.py` focused on production/static assertions and leaving script orchestration to `validate.sh`.
 - Replaced brittle prose-token checks with policy and implementation checks in production, evidence-pack, quota, and retention validation.
-- Collapsed generated evidence ignore rules and retained sample evidence onto a single `.out/results/**/sample-*` convention.
+- Collapsed generated evidence ignore rules and retained sample evidence onto a single `results/**/sample-*` convention.
 - Trimmed repetitive production-readiness and landing-page copy.
 
 ### Validation

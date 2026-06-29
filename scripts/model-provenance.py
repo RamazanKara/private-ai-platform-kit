@@ -252,7 +252,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--report", action="store_true")
     parser.add_argument("--verify", action="store_true", help="Fetch each model-artifact digest from its source and assert it reproduces (network required).")
-    parser.add_argument("--output-dir", default=".out/results/model-provenance")
+    parser.add_argument("--output-dir", default="results/model-provenance")
     args = parser.parse_args()
 
     policy_path = Path(args.policy)

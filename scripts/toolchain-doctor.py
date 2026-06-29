@@ -267,7 +267,7 @@ def main() -> int:
     parser.add_argument("--profile", default="validate", help="Tool profile to check: validate, local, or strict.")
     parser.add_argument("--check", action="store_true", help="Exit non-zero when required tools are missing.")
     parser.add_argument("--report", action="store_true", help="Write JSON and Markdown reports.")
-    parser.add_argument("--output-dir", default=".out/results/toolchain", help="Directory for report output.")
+    parser.add_argument("--output-dir", default="results/toolchain", help="Directory for report output.")
     args = parser.parse_args()
 
     manifest_path = (ROOT / args.manifest).resolve() if not Path(args.manifest).is_absolute() else Path(args.manifest)

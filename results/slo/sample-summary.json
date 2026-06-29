@@ -4,7 +4,7 @@
   "generated_at": "2026-05-31T00:00:00Z",
   "objectives": [
     {
-      "evidence": ".out/results/loadtest/sample-summary.json",
+      "evidence": "results/loadtest/sample-summary.json",
       "failures": [],
       "id": "inference-availability",
       "indicator": "load-error-rate",
@@ -13,7 +13,7 @@
       "summary": "60 requests, error rate 0.0000"
     },
     {
-      "evidence": ".out/results/loadtest/sample-summary.json",
+      "evidence": "results/loadtest/sample-summary.json",
       "failures": [],
       "id": "inference-latency",
       "indicator": "load-latency",
@@ -22,7 +22,7 @@
       "summary": "p95 1280.00ms, p99 2400.00ms"
     },
     {
-      "evidence": ".out/results/evals/sample-summary.json",
+      "evidence": "results/evals/sample-summary.json",
       "failures": [],
       "id": "eval-quality-smoke",
       "indicator": "eval-pass-rate",
@@ -31,7 +31,7 @@
       "summary": "2/2 eval cases passed"
     },
     {
-      "evidence": ".out/results/restore-drill/sample-redis-run.json",
+      "evidence": "results/restore-drill/sample-redis-run.json",
       "failures": [],
       "id": "restore-verification",
       "indicator": "restore-pass-rate",
@@ -40,7 +40,7 @@
       "summary": "1/1 restore drills passed"
     },
     {
-      "evidence": ".out/results/evidence/sample-summary.json",
+      "evidence": "results/evidence/sample-summary.json",
       "failures": [],
       "id": "agent-platform-readiness",
       "indicator": "evidence-controls",

@@ -19,8 +19,8 @@ spec:
       - deploy/clusters/local/values/inference-gateway.yaml
   evidence:
     evalSuite: platform/evals/smoke-suite.yaml
-    evalSummary: .out/results/evals/sample-summary.md
-    loadTestSummary: .out/results/loadtest/sample-summary.md
+    evalSummary: results/evals/sample-summary.md
+    loadTestSummary: results/loadtest/sample-summary.md
     securityWorkflow: .github/workflows/ci.yml
   conditions:
     promptLogging: redacted
