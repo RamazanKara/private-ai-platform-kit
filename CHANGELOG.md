@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.11.0 - 2026-06-30
+
+### Changed
+
+- The inference gateway now reuses a single pooled upstream HTTP client (keep-alive plus `TCP_NODELAY`) instead of constructing a new `httpx.AsyncClient` per request. Reusing the client keeps the connection pool warm and removes per-request client and TLS-context setup from the hot path, which substantially raises single-worker throughput and lowers per-request latency; the shared client is closed on gateway shutdown.
+
+### Added
+
+- A `paper/` reproducibility artifact for the companion paper *Auditable Private LLM Serving on Kubernetes*: the cost-of-compliance benchmark and governance microbenchmark, the conformance suite, the tamper-evident audit-chain tooling, an external-baseline (LiteLLM) runner, and a `PAPER.md` mapping each claim to the command that regenerates it.
+- `.zenodo.json` so GitHub releases archived by Zenodo carry correct metadata (author ORCID, license, and the supplement link to the paper), and a Zenodo DOI badge in the README.
+
+### Note
+
+- The `v1.0.0-paper` and `v1.1.0-paper` tags are GitHub pre-releases that snapshot the exact revisions cited by the paper; they are archived to Zenodo for citation and sit outside this normal release line.
+
 ## v0.10.0 - 2026-06-29
 
 A documentation and repository-structure release. No runtime, chart, or API behavior changes — the deployed artifacts are functionally identical to `v0.9.0`; only the documentation, the repository layout, and the version string changed. Adopters who reference repository paths directly (rather than through the pinned Argo CD applications) must update them — see the migration note below.
