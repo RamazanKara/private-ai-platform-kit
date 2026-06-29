@@ -28,6 +28,19 @@ app.kubernetes.io/name: {{ include "rag-service.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
+{{- /*
+Render a container image reference. Pin by digest when `.digest` is set,
+otherwise fall back to the mutable tag. Call with the image map as context,
+e.g. {{ include "rag-service.image" .Values.image }}.
+*/ -}}
+{{- define "rag-service.image" -}}
+{{- if .digest -}}
+{{- printf "%s@%s" .repository .digest -}}
+{{- else -}}
+{{- printf "%s:%s" .repository .tag -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "rag-service.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
 {{- default (include "rag-service.fullname" .) .Values.serviceAccount.name -}}

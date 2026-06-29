@@ -2,7 +2,9 @@ replicaCount: 1
 
 image:
   repository: ollama/ollama
+  # tag is kept as documentation; digest pins the multi-arch manifest list.
   tag: "0.24.0"
+  digest: "sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4"
   pullPolicy: IfNotPresent
 
 model:

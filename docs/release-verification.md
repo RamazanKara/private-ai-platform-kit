@@ -5,7 +5,7 @@ Use this checklist before trusting a public release in a customer-owned cluster.
 Set the release and repository once:
 
 ```bash
-export RELEASE=v0.8.0
+export RELEASE=v0.9.0
 export IMAGE_REPO=ghcr.io/ramazankara/private-ai-platform-kit
 ```
 
@@ -39,6 +39,28 @@ cosign verify "$IMAGE_REPO/rag-service:$RELEASE" \
   --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
+
+Release images are also multi-arch (`linux/amd64` and `linux/arm64`); the signature covers the manifest list, so the same `cosign verify` works on Apple Silicon and arm64 (Graviton/Ampere) clusters.
+
+## Chart Signatures
+
+Helm chart OCI artifacts are cosign-signed by digest in the same release workflow as the images.
+
+```bash
+cosign verify "$IMAGE_REPO/charts/inference-gateway:${RELEASE#v}" \
+  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+cosign verify "$IMAGE_REPO/charts/rag-service:${RELEASE#v}" \
+  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+cosign verify "$IMAGE_REPO/charts/agent-workspace:${RELEASE#v}" \
+  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Chart OCI tags drop the leading `v` (`${RELEASE#v}`) to match the chart `version`, while runtime image tags keep it.
 
 ## Provenance And SBOM Attestations
 

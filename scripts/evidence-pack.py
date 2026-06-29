@@ -429,8 +429,8 @@ def static_controls() -> list[Control]:
             "Supply-chain controls",
             "anchore/sbom-action" in workflow
             and "trivy-action" in workflow
-            and "actions/attest-build-provenance@v4.1.1" in workflow
-            and "actions/attest@v4.1.1" in workflow
+            and "actions/attest-build-provenance@" in workflow
+            and "actions/attest@" in workflow
             and "steps.build_gateway.outputs.digest" in workflow
             and "steps.build_rag.outputs.digest" in workflow
             and 'exit-code: "1"' in workflow

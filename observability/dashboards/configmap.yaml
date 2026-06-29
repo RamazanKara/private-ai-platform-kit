@@ -234,3 +234,145 @@ metadata:
     grafana_dashboard: '1'
   name: grafana-dashboard-restore-drill-dashboard
   namespace: monitoring
+---
+apiVersion: v1
+data:
+  vllm-gpu-dashboard.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "id": 1,
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_GPU_UTIL",
+              "legendFormat": "gpu {{gpu}} {{Hostname}}"
+            }
+          ],
+          "title": "GPU utilization",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "decmbytes"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "id": 2,
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_FB_USED",
+              "legendFormat": "used gpu {{gpu}} {{Hostname}}"
+            },
+            {
+              "expr": "DCGM_FI_DEV_FB_FREE",
+              "legendFormat": "free gpu {{gpu}} {{Hostname}}"
+            }
+          ],
+          "title": "GPU VRAM used and free",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "celsius"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "id": 3,
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_GPU_TEMP",
+              "legendFormat": "gpu {{gpu}} {{Hostname}}"
+            }
+          ],
+          "title": "GPU temperature",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "watt"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "id": 4,
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_POWER_USAGE",
+              "legendFormat": "gpu {{gpu}} {{Hostname}}"
+            }
+          ],
+          "title": "GPU power usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+          "id": 5,
+          "targets": [
+            {
+              "expr": "sum(vllm:num_requests_running) by (model_name)",
+              "legendFormat": "running {{model_name}}"
+            },
+            {
+              "expr": "sum(vllm:num_requests_waiting) by (model_name)",
+              "legendFormat": "waiting {{model_name}}"
+            }
+          ],
+          "title": "vLLM requests running and waiting",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+          "id": 6,
+          "targets": [
+            {
+              "expr": "sum(vllm:gpu_cache_usage_perc) by (model_name)",
+              "legendFormat": "kv-cache {{model_name}}"
+            }
+          ],
+          "title": "vLLM KV-cache usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+          "id": 7,
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le, model_name))",
+              "legendFormat": "p95 ttft {{model_name}}"
+            }
+          ],
+          "title": "vLLM time to first token p95",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "tps"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+          "id": 8,
+          "targets": [
+            {
+              "expr": "sum(rate(vllm:generation_tokens_total[5m])) by (model_name)",
+              "legendFormat": "generation tokens/s {{model_name}}"
+            }
+          ],
+          "title": "vLLM generation throughput",
+          "type": "timeseries"
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["private-ai-platform-kit", "vllm", "gpu"],
+      "title": "Private AI Platform Kit vLLM and GPU",
+      "uid": "ai-platform-vllm-gpu",
+      "version": 1
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: private-ai-platform-kit
+    grafana_dashboard: '1'
+  name: grafana-dashboard-vllm-gpu-dashboard
+  namespace: monitoring

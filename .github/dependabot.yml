@@ -1,0 +1,71 @@
+version: 2
+updates:
+  # GitHub Actions — keeps SHA-pinned `uses:` refs current via the trailing
+  # version comment on each pin.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # pip — one entry per directory that holds a pip-compiled lockfile.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      pip-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: pip
+    directory: "/services/inference-gateway"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      pip-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: pip
+    directory: "/services/rag-service"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      pip-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # docker — base-image digests for the two service Dockerfiles.
+  - package-ecosystem: docker
+    directory: "/services/inference-gateway"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      docker-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: docker
+    directory: "/services/rag-service"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      docker-minor-patch:
+        update-types:
+          - minor
+          - patch

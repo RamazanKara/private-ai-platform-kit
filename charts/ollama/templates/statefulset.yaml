@@ -35,7 +35,7 @@ spec:
       {{- if .Values.model.pullOnStart }}
       initContainers:
         - name: pull-model
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "ollama.image" .Values.image | quote }}
           command: ["/bin/sh", "-c"]
           args:
             - ollama serve >/tmp/ollama.log 2>&1 & sleep 5; ollama pull {{ .Values.model.name | quote }}
@@ -60,7 +60,7 @@ spec:
       {{- end }}
       containers:
         - name: ollama
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "ollama.image" .Values.image | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: OLLAMA_MODELS

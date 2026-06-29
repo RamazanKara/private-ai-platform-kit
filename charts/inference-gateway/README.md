@@ -56,7 +56,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"]` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` |
-| `image.tag` | `v0.8.0` |
+| `image.tag` | `v0.9.0` |
 | `keda.enabled` | `true` |
 | `keda.maxReplicaCount` | `5` |
 | `keda.minReplicaCount` | `1` |
@@ -104,6 +104,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `serviceMonitor.enabled` | `true` |
 | `serviceMonitor.interval` | `30s` |
 | `tests.enabled` | `true` |
+| `tests.image.digest` | `sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028` |
 | `tests.image.repository` | `busybox` |
 | `tests.image.tag` | `1.37.0` |
 | `topologySpread.enabled` | `true` |

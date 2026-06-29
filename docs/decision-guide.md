@@ -32,6 +32,10 @@ Choose another path when you need:
 | Ray Serve | Strong distributed serving and Python-native scaling. | Less focused on locked-down Kubernetes tenant operations and evidence packs. |
 | Hosted gateway | Low operational burden. | Data, control plane, and model-routing policy usually leave the customer-owned boundary. |
 
+## Architecture Support
+
+Container images are published multi-arch (`linux/amd64` and `linux/arm64`), so the kit runs unchanged on Apple Silicon developer laptops and on arm64 nodes (AWS Graviton, Azure/GCP Ampere) as well as x86_64 clusters.
+
 ## Maturity Position
 
 The project is usable as a reference implementation and local/customer lab. Treat production use as a controlled handoff: replace sample evidence with current evidence, wire customer identity and secrets, size runtime capacity, validate backups, and run strict release gates.

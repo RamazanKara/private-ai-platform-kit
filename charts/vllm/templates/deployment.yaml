@@ -42,7 +42,7 @@ spec:
       {{- end }}
       containers:
         - name: vllm
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "vllm.image" .Values.image | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --model

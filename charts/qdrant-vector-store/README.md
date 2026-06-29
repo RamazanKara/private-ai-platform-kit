@@ -7,6 +7,7 @@ Optional local vector store profile for Private AI Platform Kit RAG.
 
 | Value | Default |
 | --- | --- |
+| `image.digest` | `sha256:45f8e3ddc2570a4d029877e1b5ec1045c19b3852b4e22a55c7f43b05aea0ca89` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `qdrant/qdrant` |
 | `image.tag` | `v1.18.1` |

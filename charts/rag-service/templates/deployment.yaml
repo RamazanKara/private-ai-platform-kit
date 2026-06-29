@@ -35,7 +35,7 @@ spec:
       {{- end }}
       containers:
         - name: rag
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "rag-service.image" .Values.image | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: RAG_DOCUMENT_DIR

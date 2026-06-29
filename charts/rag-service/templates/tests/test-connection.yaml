@@ -19,7 +19,7 @@ spec:
       type: RuntimeDefault
   containers:
     - name: healthz
-      image: "{{ .Values.tests.image.repository }}:{{ .Values.tests.image.tag }}"
+      image: {{ include "rag-service.image" .Values.tests.image | quote }}
       command: ["wget"]
       args:
         - "-q"

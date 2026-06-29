@@ -24,7 +24,7 @@ from app.tracing import configure_tracing, trace_request
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.8.0"
+SERVICE_VERSION = "0.9.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "

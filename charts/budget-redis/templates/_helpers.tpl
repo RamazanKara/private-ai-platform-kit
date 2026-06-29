@@ -27,6 +27,19 @@ app.kubernetes.io/name: {{ include "budget-redis.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
+{{- /*
+Render a container image reference. Pin by digest when `.digest` is set,
+otherwise fall back to the mutable tag. Call with the image map as context,
+e.g. {{ include "budget-redis.image" .Values.image }}.
+*/ -}}
+{{- define "budget-redis.image" -}}
+{{- if .digest -}}
+{{- printf "%s@%s" .repository .digest -}}
+{{- else -}}
+{{- printf "%s:%s" .repository .tag -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "budget-redis.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
 {{- default (include "budget-redis.fullname" .) .Values.serviceAccount.name -}}

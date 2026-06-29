@@ -95,6 +95,37 @@ spec:
             severity: warning
           annotations:
             summary: A sandbox is above 80 percent of a configured gateway budget.
+        - alert: InferenceRuntimeBackendAbsent
+          expr: sum(up{job=~"vllm|ollama"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: No inference runtime backend (vLLM or Ollama) is reporting up; see runbooks/incident-inference-runtime.md.
+        - alert: VllmRuntimeAbsent
+          expr: absent(up{job="vllm"})
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: The vLLM GPU runtime backend has no scrape target reporting up; follow runbooks/incident-inference-runtime.md and runbooks/gpu-capacity.md.
+        - alert: OllamaRuntimeAbsent
+          expr: absent(up{job="ollama"})
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: The Ollama runtime backend has no scrape target reporting up; follow runbooks/incident-inference-runtime.md.
+        - alert: InferenceGatewayNoReadyEndpoints
+          expr: |
+            max(
+              kube_deployment_status_replicas_available{deployment=~".*inference-gateway.*"}
+            ) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: The inference gateway has zero ready endpoints; clients cannot reach any runtime. See runbooks/incident-inference-runtime.md.
         - alert: RestoreDrillFailed
           expr: restore_drill_validation_passed == 0
           for: 5m

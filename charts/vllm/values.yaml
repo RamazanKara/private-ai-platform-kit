@@ -2,7 +2,9 @@ replicaCount: 1
 
 image:
   repository: vllm/vllm-openai
+  # tag is kept as documentation; digest pins the multi-arch manifest list.
   tag: "v0.22.0"
+  digest: "sha256:0fec7ec5f3e6bc168e54899935fb0557da908a4832a1dbc88e2debcf2f889416"
   pullPolicy: IfNotPresent
 
 model:

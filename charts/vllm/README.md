@@ -25,6 +25,7 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `externalSecrets.huggingFaceTokenSecretName` | `hf-token` |
 | `extraArgs` | `["--tensor-parallel-size", "4", "--enable-auto-tool-choice", "--tool-call-parser", "qwen3_coder"]` |
 | `extraEnv` | `[]` |
+| `image.digest` | `sha256:0fec7ec5f3e6bc168e54899935fb0557da908a4832a1dbc88e2debcf2f889416` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `vllm/vllm-openai` |
 | `image.tag` | `v0.22.0` |

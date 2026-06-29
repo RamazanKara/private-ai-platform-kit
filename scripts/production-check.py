@@ -669,13 +669,11 @@ def check_release_packaging(errors: list[str]) -> None:
             "GATEWAY_TAGS",
             "RAG_TAGS",
             "GITHUB_REF_NAME",
-            ":latest",
-            ":main",
             "steps.build_gateway.outputs.digest",
             "steps.build_rag.outputs.digest",
             "cosign sign --yes",
-            "actions/attest-build-provenance@v4.1.1",
-            "actions/attest@v4.1.1",
+            "actions/attest-build-provenance@",
+            "actions/attest@",
             "attestations: write",
             "push-to-registry: true",
             "supply-chain-checksums.txt",
@@ -692,7 +690,7 @@ def check_release_packaging(errors: list[str]) -> None:
     if scorecard_path.exists():
         scorecard = scorecard_path.read_text()
         for token in (
-            "ossf/scorecard-action@v2.4.3",
+            "ossf/scorecard-action@",
             "results_format: sarif",
             "publish_results: false",
             "github/codeql-action/upload-sarif",

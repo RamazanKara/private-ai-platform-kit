@@ -31,7 +31,7 @@ spec:
       {{- end }}
       containers:
         - name: gateway
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "inference-gateway.image" .Values.image | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: RUNTIME_BACKEND
