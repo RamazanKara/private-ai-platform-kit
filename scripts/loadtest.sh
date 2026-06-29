@@ -11,6 +11,6 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="results/loadtest/loadtest-${STAMP}.json"
 SUMMARY="results/loadtest/summary-${STAMP}.md"
 
-PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}" k6 run --summary-export "$OUT" tests/load/chat-completions.js
-python3 tests/load/summarize.py "$OUT" "$SUMMARY"
+PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}" k6 run --summary-export "$OUT" loadtest/chat-completions.js
+python3 loadtest/summarize.py "$OUT" "$SUMMARY"
 log "wrote ${OUT} and ${SUMMARY}"

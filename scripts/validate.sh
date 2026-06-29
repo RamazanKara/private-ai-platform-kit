@@ -157,7 +157,7 @@ if require_optional_or_full restore-drill "restore-drill validates drill config 
 fi
 
 if require_optional_or_full k6 "k6 is needed for load-test syntax validation."; then
-  k6 inspect tests/load/chat-completions.js >/dev/null
+  k6 inspect loadtest/chat-completions.js >/dev/null
 fi
 
 if require_optional_or_full syft "Syft is needed for SBOM smoke validation."; then

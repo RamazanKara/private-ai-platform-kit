@@ -42,7 +42,7 @@ DIRECTORIES: dict[str, str] = {
     "api-contracts": "Captured OpenAPI contract snapshots for the services.",
     "config-contracts": "Captured runtime configuration contract snapshots.",
     "tools": "Validation toolchain manifest and pinned tool versions.",
-    "tests": "Cross-cutting tests (k6 load tests and the mock runtime).",
+    "loadtest": "k6 load tests and the mock runtime.",
     "scripts": "Automation, governance gates, and tooling.",
     "runbooks": "Operational runbooks (also shipped as Prometheus runbook_url targets).",
     "docs": "User-facing documentation and the mkdocs site source.",

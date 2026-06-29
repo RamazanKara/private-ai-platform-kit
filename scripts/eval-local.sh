@@ -63,7 +63,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 log "starting local mock runtime on 127.0.0.1:${MOCK_RUNTIME_PORT}"
-python3 tests/load/mock-runtime.py --port "$MOCK_RUNTIME_PORT" >"$LOG_DIR/mock-runtime.log" 2>&1 &
+python3 loadtest/mock-runtime.py --port "$MOCK_RUNTIME_PORT" >"$LOG_DIR/mock-runtime.log" 2>&1 &
 MOCK_RUNTIME_PID=$!
 wait_http "http://127.0.0.1:${MOCK_RUNTIME_PORT}/healthz"
 

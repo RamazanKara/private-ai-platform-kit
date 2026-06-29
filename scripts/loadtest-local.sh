@@ -64,7 +64,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 log "starting local mock runtime on 127.0.0.1:${MOCK_RUNTIME_PORT}"
-python3 tests/load/mock-runtime.py --port "$MOCK_RUNTIME_PORT" >"$LOG_DIR/mock-runtime.log" 2>&1 &
+python3 loadtest/mock-runtime.py --port "$MOCK_RUNTIME_PORT" >"$LOG_DIR/mock-runtime.log" 2>&1 &
 MOCK_RUNTIME_PID=$!
 wait_http "http://127.0.0.1:${MOCK_RUNTIME_PORT}/healthz"
 
@@ -96,6 +96,6 @@ RUNTIME_BACKEND=local-mock \
 DURATION="$LOADTEST_DURATION" \
 VUS="$LOADTEST_VUS" \
 PLATFORM_API_KEY="$PLATFORM_API_KEY" \
-  k6 run --summary-export "$OUT" tests/load/chat-completions.js
-python3 tests/load/summarize.py "$OUT" "$SUMMARY"
+  k6 run --summary-export "$OUT" loadtest/chat-completions.js
+python3 loadtest/summarize.py "$OUT" "$SUMMARY"
 log "wrote ${OUT} and ${SUMMARY}"

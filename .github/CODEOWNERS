@@ -3,7 +3,7 @@
 
 # Runtime services and tests.
 /services/ @RamazanKara
-/tests/ @RamazanKara
+/loadtest/ @RamazanKara
 
 # Kubernetes, GitOps, and customer deployment surface.
 /charts/ @RamazanKara

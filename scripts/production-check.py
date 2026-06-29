@@ -1043,11 +1043,11 @@ def check_values_and_docs(errors: list[str]) -> None:
     require(errors, os.access(ROOT / "scripts/agent-lab-up.sh", os.X_OK), "scripts/agent-lab-up.sh must be executable")
     require(errors, os.access(ROOT / "scripts/agent-smoke.sh", os.X_OK), "scripts/agent-smoke.sh must be executable")
     require(errors, os.access(ROOT / "scripts/loadtest-local.sh", os.X_OK), "scripts/loadtest-local.sh must be executable")
-    require(errors, (ROOT / "tests/load/mock-runtime.py").exists(), "local load test mock runtime must exist")
-    loadtest = (ROOT / "tests/load/chat-completions.js").read_text()
+    require(errors, (ROOT / "loadtest/mock-runtime.py").exists(), "local load test mock runtime must exist")
+    loadtest = (ROOT / "loadtest/chat-completions.js").read_text()
     require(errors, "summaryTrendStats" in loadtest and "p(99)" in loadtest, "load test must export p99 latency evidence")
     loadtest_local = (ROOT / "scripts/loadtest-local.sh").read_text()
-    for phrase in ("tests/load/mock-runtime.py", "uvicorn app.main:app", "API_KEY_AUTH_ENABLED=true", "k6 run --summary-export"):
+    for phrase in ("loadtest/mock-runtime.py", "uvicorn app.main:app", "API_KEY_AUTH_ENABLED=true", "k6 run --summary-export"):
         require(errors, phrase in loadtest_local, f"local load test harness missing {phrase}")
 
 
