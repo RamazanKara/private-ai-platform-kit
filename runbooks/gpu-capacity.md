@@ -29,6 +29,22 @@ Use these profiles as starting points:
 
 For AMD ROCm vLLM, use an ROCm-compatible vLLM image and verify that the worker nodes have ROCm-capable AMD GPUs, drivers, and the AMD Kubernetes device plugin.
 
+## Sizing Estimates
+
+These are planning estimates to size a starting point, not guarantees. Always validate the chosen GPU class, parallelism, and replica count with a real load test (`make loadtest-local` against the customer profile) before committing to capacity. VRAM figures assume a quantized or BF16/FP16 serving build; actual usage depends on weight precision, KV-cache size at your context length and batch, and the serving runtime. Concurrency is rough simultaneous in-flight requests at a usable interactive latency, not a throughput ceiling.
+
+| Model (class) | Approx weight VRAM | Recommended GPU class | Rough concurrency |
+| --- | --- | --- | --- |
+| 7-8B dense (e.g. an 8B chat model) | ~16-20 GB (FP16) / ~6-8 GB (4-bit) | 1x 24 GB (L4 / RTX 4090 / A10) | ~8-16 requests per replica |
+| 30-35B MoE, ~3B active (e.g. `Qwen/Qwen3.6-35B-A3B`) | ~70-80 GB (FP16) / ~20-24 GB (4-bit) | 1-2x 80 GB (A100 / H100), or 2x 48 GB | ~4-8 requests per replica |
+| `Qwen/Qwen3-Coder-Next` coding profile (long context) | ~140-180 GB across GPUs at FP16 | 4x 48-80 GB with tensor parallelism (default profile requests 4 GPUs per replica) | ~2-6 concurrent coding sessions per replica |
+
+Notes:
+
+- KV-cache, not weights, usually dominates at long context. The Qwen3 Coder Next profile defaults to a large context window, so size memory headroom for the context length you actually enable (`model.maxModelLen`) rather than the model maximum.
+- 4-bit quantization roughly halves or quarters weight VRAM but can reduce quality; validate evals before relying on it for coding agents.
+- To fit smaller clusters, reduce `accelerator.count`, `--tensor-parallel-size`, `model.maxModelLen`, replicas, or the model itself, as described under Mitigation.
+
 ## Evidence
 
 Capture pod events, node labels, node allocatable GPU resources, NVIDIA or AMD device plugin logs, and the vLLM values used for scheduling.

@@ -21,6 +21,7 @@ spec:
             severity: warning
           annotations:
             summary: Inference gateway error rate is above 5 percent.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: InferenceGatewayErrorBudgetFastBurn
           expr: |
             (
@@ -39,6 +40,7 @@ spec:
             severity: critical
           annotations:
             summary: Inference gateway is burning the 99.5 percent availability error budget quickly.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: InferenceGatewayErrorBudgetSlowBurn
           expr: |
             (
@@ -57,6 +59,7 @@ spec:
             severity: warning
           annotations:
             summary: Inference gateway is steadily burning the 99.5 percent availability error budget.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: InferenceGatewayHighLatency
           expr: histogram_quantile(0.95, sum(rate(inference_gateway_request_duration_seconds_bucket[5m])) by (le)) > 10
           for: 10m
@@ -64,6 +67,7 @@ spec:
             severity: warning
           annotations:
             summary: Inference gateway p95 latency is above 10 seconds.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: InferenceGatewaySandboxErrors
           expr: |
             sum(rate(inference_gateway_sandbox_requests_total{status!="200"}[5m])) by (sandbox)
@@ -75,6 +79,7 @@ spec:
             severity: warning
           annotations:
             summary: A traceable sandbox has an inference gateway error rate above 5 percent.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: InferenceGatewayAdmissionRejections
           expr: sum(rate(inference_gateway_admission_rejections_total[5m])) by (sandbox, reason) > 0.1
           for: 10m
@@ -82,6 +87,7 @@ spec:
             severity: warning
           annotations:
             summary: A sandbox is sending requests rejected by gateway admission policy.
+            runbook_url: runbooks/budget-controls.md
         - alert: InferenceGatewaySandboxBudgetNearLimit
           expr: |
             (
@@ -95,6 +101,7 @@ spec:
             severity: warning
           annotations:
             summary: A sandbox is above 80 percent of a configured gateway budget.
+            runbook_url: runbooks/budget-controls.md
         - alert: InferenceRuntimeBackendAbsent
           expr: sum(up{job=~"vllm|ollama"}) == 0
           for: 5m
@@ -102,6 +109,7 @@ spec:
             severity: critical
           annotations:
             summary: No inference runtime backend (vLLM or Ollama) is reporting up; see runbooks/incident-inference-runtime.md.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: VllmRuntimeAbsent
           expr: absent(up{job="vllm"})
           for: 5m
@@ -109,6 +117,7 @@ spec:
             severity: critical
           annotations:
             summary: The vLLM GPU runtime backend has no scrape target reporting up; follow runbooks/incident-inference-runtime.md and runbooks/gpu-capacity.md.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: OllamaRuntimeAbsent
           expr: absent(up{job="ollama"})
           for: 5m
@@ -116,6 +125,7 @@ spec:
             severity: critical
           annotations:
             summary: The Ollama runtime backend has no scrape target reporting up; follow runbooks/incident-inference-runtime.md.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: InferenceGatewayNoReadyEndpoints
           expr: |
             max(
@@ -126,6 +136,7 @@ spec:
             severity: critical
           annotations:
             summary: The inference gateway has zero ready endpoints; clients cannot reach any runtime. See runbooks/incident-inference-runtime.md.
+            runbook_url: runbooks/incident-inference-runtime.md
         - alert: RestoreDrillFailed
           expr: restore_drill_validation_passed == 0
           for: 5m
@@ -133,6 +144,7 @@ spec:
             severity: critical
           annotations:
             summary: Latest restore-drill validation failed.
+            runbook_url: runbooks/restore-drill.md
         - alert: RestoreDrillStale
           expr: time() - restore_drill_last_success_timestamp > 93600
           for: 15m
@@ -140,6 +152,7 @@ spec:
             severity: warning
           annotations:
             summary: No successful restore drill has completed in the last 26 hours.
+            runbook_url: runbooks/restore-drill.md
     - name: backup.rules
       rules:
         - alert: VeleroBackupFailed
@@ -151,6 +164,7 @@ spec:
             severity: critical
           annotations:
             summary: A scheduled Velero backup has failed or partially failed.
+            runbook_url: runbooks/restore-drill.md
         - alert: VeleroBackupStale
           expr: time() - max(velero_backup_last_successful_timestamp) by (schedule) > 93600
           for: 15m
@@ -158,6 +172,7 @@ spec:
             severity: warning
           annotations:
             summary: No successful Velero backup has completed in the last 26 hours.
+            runbook_url: runbooks/restore-drill.md
     - name: rag.rules
       rules:
         - alert: RagServiceHighErrorRate
@@ -171,6 +186,7 @@ spec:
             severity: warning
           annotations:
             summary: RAG service query error rate is above 5 percent.
+            runbook_url: runbooks/rag-service.md
         - alert: RagServiceHighLatency
           expr: histogram_quantile(0.95, sum(rate(rag_service_request_duration_seconds_bucket[5m])) by (le)) > 1
           for: 10m
@@ -178,3 +194,4 @@ spec:
             severity: warning
           annotations:
             summary: RAG service p95 latency is above 1 second.
+            runbook_url: runbooks/rag-service.md

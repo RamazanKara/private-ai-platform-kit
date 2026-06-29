@@ -1,23 +1,50 @@
 # Changelog
 
+All notable changes to this project are documented in this file. The format is based on
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## v0.9.0 - 2026-06-29
+
+A platform-hardening release that closes the gap between "claims rigor" and "demonstrably rigorous": controls that enforce rather than appear, a reproducible serving benchmark, and end-to-end supply-chain and operations polish.
 
 ### Added
 
-- Added proposed model-catalog entries for newer self-hostable vLLM models: `Qwen/Qwen3.6-35B-A3B`, `zai-org/GLM-5.2`, and `deepseek-ai/DeepSeek-V4-Flash`, pending provenance and promotion (see `runbooks/model-governance.md`).
-- Added an OpenSSF Scorecard triage runbook, a Qdrant collection migration (dry-run + rollback) runbook, regulated-offline and GPU coding-agent tenant example walkthroughs, and per-chart install-profile sections in every chart README.
+- Reproducible serving benchmark: `scripts/benchmark-ollama.sh` and `make benchmark-local`, plus a documented reference table in `docs/benchmarks-and-evals.md` (qwen2.5:0.5b sustains ~55 tokens/s at p50 0.53s / p95 0.56s on a Ryzen 7 5800X3D, CPU only).
+- vLLM/GPU Grafana dashboard (DCGM GPU metrics + vLLM serving metrics) and critical runtime-backend-down alerts; a `runbook_url` annotation on every alert.
+- `make model-provenance-verify`, which fetches each model-artifact digest from its source registry and asserts it reproduces (qwen2.5:0.5b and qwen3.5:0.8b verified).
+- Optional image digest pinning in every chart, with the third-party images (Qdrant, vLLM, Ollama, Redis, busybox) pinned by their multi-arch manifest-list digest; multi-arch (amd64+arm64) first-party images with OCI labels.
+- `.github/dependabot.yml` (github-actions, pip, docker) to keep the new commit-SHA action pins fresh.
+- `values.schema.json` for the gateway, RAG, vLLM, and Qdrant charts; `kubeVersion`, `maintainers`, `sources`, and `home` metadata on every `Chart.yaml`.
+- `/readyz` endpoints on the gateway and RAG service; optional Redis AUTH for the budget store.
+- An Argo CD `AppProject` that locks the customer GitOps source repo and in-cluster destination; an admission-time Kyverno policy denying broad egress CIDRs plus a render-time `catalogRef` requirement for agent-workspace egress.
+- Operations runbooks: an upgrade/rollback runbook, an incident-response index (severity tiers + escalation), and a `runbooks/README.md` index; AI-specific threats (indirect/RAG prompt injection, model-weight tampering), a build-pipeline trust boundary, and a data-residency note in the threat model.
+- A real Qdrant seed/snapshot/restore data-recovery drill and a true fault-injection drill (scale Qdrant to 0, assert graceful RAG degradation).
+- OSS-health files: `NOTICE`, `.github/SUPPORT.md`, a Code of Conduct reporting contact, a GPU sizing table, and a fair named-alternatives comparison (LiteLLM, BentoML/OpenLLM, KServe, KubeAI).
+- A real security disclosure channel (GitHub Private Vulnerability Reporting + `security@fluentorbit.de`, with an acknowledgement SLA and coordinated-disclosure policy) and visible fluentorbit stewardship (`GOVERNANCE.md`, `MAINTAINERS.md`, `.github/FUNDING.yml`).
+- Proposed model-catalog entries for newer self-hostable vLLM models (`Qwen/Qwen3.6-35B-A3B`, `zai-org/GLM-5.2`, `deepseek-ai/DeepSeek-V4-Flash`); OpenSSF Scorecard triage, Qdrant migration, and tenant-example runbooks; per-chart install-profile sections.
 
 ### Changed
 
-- Set the default local Ollama smoke model to `qwen2.5:0.5b`, a fast non-reasoning model so the laptop CPU quickstart completes in seconds (verified live: ~4s per completion), and made the larger `qwen3.5:0.8b` reasoning model the customer Ollama profile default. `qwen3.5:0.8b` reasons past the gateway timeout on a CPU-only laptop, so it is not suited to the local smoke. Both models carry reproducible Ollama-registry model-layer provenance digests and promotion requests; the old `qwen3:0.6b` is fully removed. The customer coding-agent default `Qwen/Qwen3-Coder-Next` is unchanged (still the latest dedicated Qwen coder).
+- Default local Ollama smoke model is now `qwen2.5:0.5b` (fast, non-reasoning) so the laptop CPU quickstart completes in seconds; the larger `qwen3.5:0.8b` reasoning model is the customer Ollama default. Both carry reproducible Ollama-registry model-layer provenance digests and promotion requests. The customer coding-agent default `Qwen/Qwen3-Coder-Next` is unchanged.
+- Kyverno image-signature verification flipped from Audit to **Enforce** (it now gates the published, signed images at admission; local-built and third-party images are unaffected).
+- Velero backups now protect the data-bearing namespaces (Qdrant, agent workspaces, Argo CD) and capture PVC contents, with backup-failure and staleness alerts; the customer overlay documents the backup prerequisite.
+- The model-promotion gate enforces eval-model match (or a documented, justified proxy) and separation of duties; provenance requires a pinned source revision; `production-check` is decoupled from specific model IDs so customers can swap models without editing the gate.
+- All GitHub Actions pinned to commit SHAs; Trivy image scans broadened to vuln + secret + misconfig; Helm chart OCI artifacts are now cosign-signed.
+- Blocking `httpx` calls in async handlers converted to `httpx.AsyncClient` (RAG retriever/embeddings, gateway JWKS, with last-known-good caching and 503-vs-401 distinction); streaming requests now record metrics/usage/audit at end-of-stream and surface mid-stream/pre-first-byte upstream errors as 502; readiness probes point at `/readyz`.
+- vLLM autoscales on queue depth via a KEDA ScaledObject (not CPU), runs as an explicit non-root user, and has startup + liveness probes; the AMD profile pins the correct ROCm image digest.
+- The customer GitOps overlay is pinned to an immutable tag (the configurator rejects HEAD/branch); the Argo CD bootstrap manifest is pinned to a release tag; agent-workspace RBAC is split so the viewer group is strictly read-only.
 
 ### Fixed
 
-- Fixed the Argo CD quickstart path so `make quickstart` works non-interactively (without `QUICKSTART_DIRECT_APPLY=1`). `scripts/sync.sh` now runs the Argo CD CLI in `--core` mode, which talks directly to the Kubernetes API and removes the `Argo CD server address unspecified` failure that occurred because the CLI was never logged in. The sync also now waits for the smoke-critical runtime workloads (gateway, Ollama, RAG, Qdrant, budget Redis) to roll out before returning, so the gateway and RAG smoke tests no longer race the asynchronous reconcile and connect before the gateway exists. Verified end to end on a fresh `kind` cluster: the GitOps sync brings the platform up and the gateway smoke returns `qwen2.5:0.5b` content.
+- The Argo CD quickstart path now works non-interactively: `scripts/sync.sh` runs the CLI in `--core` mode (no login needed) and waits for the smoke-critical runtime workloads to roll out before returning, so the smoke no longer races the reconcile.
+- The `rag-service` NetworkPolicy denied all egress (including DNS) in the default lexical mode; DNS is now always allowed and vector-store/embedding egress is conditional. Qdrant now allows its exposed gRPC ingress port.
+- `evidence-pack.py` referenced a long-renamed promotion request, which had silently broken `make validate`.
+- Documentation accuracy: removed a vendor-tool reference, corrected the Ollama model-library links, aligned the Python version to 3.12+, and synced the ROADMAP coverage figures with the enforced floors.
 
 ### Removed
 
-- Removed the Dependabot configuration and its repository-hygiene checks. Dependabot's single-package bumps could not satisfy the strict `make validate-full` gate (hashed lockfiles plus regenerated API, chart, and config snapshots), so dependency updates are handled manually with `pip-compile`.
+- Dropped the mutable `:latest`/`:main` published image tags (banned by the platform's own Kyverno block-latest policy); removed the superseded `qwen3:0.6b` model.
 
 ## v0.8.0 - 2026-06-28
 

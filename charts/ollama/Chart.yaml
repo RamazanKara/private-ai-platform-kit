@@ -4,3 +4,11 @@ description: Local-first private LLM runtime.
 type: application
 version: 0.9.0
 appVersion: "0.24.0"
+kubeVersion: ">=1.25.0"
+home: https://github.com/RamazanKara/private-ai-platform-kit
+sources:
+  - https://github.com/RamazanKara/private-ai-platform-kit
+  - https://github.com/ollama/ollama
+maintainers:
+  - name: Ramazan Kara
+    url: https://fluentorbit.de

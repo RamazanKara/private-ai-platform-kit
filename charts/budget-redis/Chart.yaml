@@ -4,3 +4,11 @@ description: Local Redis-compatible store for shared sandbox budget accounting.
 type: application
 version: 0.9.0
 appVersion: "8.0"
+kubeVersion: ">=1.25.0"
+home: https://github.com/RamazanKara/private-ai-platform-kit
+sources:
+  - https://github.com/RamazanKara/private-ai-platform-kit
+  - https://github.com/redis/redis
+maintainers:
+  - name: Ramazan Kara
+    url: https://fluentorbit.de

@@ -4,3 +4,10 @@ description: Isolated namespace template for coding agents that use the Private 
 type: application
 version: 0.9.0
 appVersion: "0.9.0"
+kubeVersion: ">=1.25.0"
+home: https://github.com/RamazanKara/private-ai-platform-kit
+sources:
+  - https://github.com/RamazanKara/private-ai-platform-kit
+maintainers:
+  - name: Ramazan Kara
+    url: https://fluentorbit.de

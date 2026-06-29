@@ -24,13 +24,18 @@ Choose another path when you need:
 
 ## Comparison
 
-| Option | Strength | Tradeoff |
+The kit is not the best tool for every job. Several mature open-source projects do parts of this better, and you should reach for them when their focus matches your need.
+
+| Option | Does better than this kit | Tradeoff versus this kit |
 | --- | --- | --- |
-| Plain Ollama or vLLM chart | Fastest way to serve a model. | Leaves auth, budgets, evidence, tenant isolation, RAG, and operations to you. |
-| Private AI Platform Kit | End-to-end operating model for private LLM and coding-agent workloads. | Requires Kubernetes, Helm, and platform ownership. |
-| KubeAI-style platform | Higher-level model serving abstraction. | May not include the same governance, evidence, and customer-handoff controls. |
-| Ray Serve | Strong distributed serving and Python-native scaling. | Less focused on locked-down Kubernetes tenant operations and evidence packs. |
-| Hosted gateway | Low operational burden. | Data, control plane, and model-routing policy usually leave the customer-owned boundary. |
+| Private AI Platform Kit | End-to-end operating model: gateway, RAG, coding-agent tenancy, governance, and release evidence in one repo. | Requires Kubernetes, Helm, and platform ownership; opinionated rather than a drop-in library. |
+| Plain Ollama or vLLM chart | Fastest way to serve a single model with the least moving parts. | Leaves auth, budgets, evidence, tenant isolation, RAG, and operations to you. |
+| [LiteLLM](https://github.com/BerriAI/litellm) | Far broader provider/model routing, a polished proxy, and richer per-key spend tracking and rate limiting out of the box. | Is a gateway/proxy, not a full Kubernetes operating model: no bundled RAG, tenant isolation manifests, or release-evidence pipeline. |
+| [BentoML / OpenLLM](https://github.com/bentoml/OpenLLM) | Smoother model packaging and serving developer experience, with flexible Python service composition and autoscaling. | Centered on serving and packaging, not locked-down multi-tenant cluster operations, egress governance, or customer-handoff evidence. |
+| [KServe](https://github.com/kserve/kserve) | More general, standards-based model serving (multi-framework, canary, payload logging) at large scale on Kubernetes. | Heavier and lower-level; you still assemble the gateway policy, RAG, budgets, and evidence story yourself. |
+| [KubeAI](https://github.com/substratusai/kubeai) | Simpler, more turnkey Kubernetes model serving with built-in OpenAI-compatible endpoints and autoscaling, including scale-from-zero. | Focuses on serving and scaling, so it does not include the same governance, evidence, tenant-isolation, and customer-handoff controls. |
+| [Ray Serve](https://github.com/ray-project/ray) | Strong distributed serving and Python-native scaling for custom multi-model pipelines. | Less focused on locked-down Kubernetes tenant operations and evidence packs. |
+| Hosted gateway (managed SaaS) | Low operational burden, managed identity, billing, and support. | Data, control plane, and model-routing policy usually leave the customer-owned boundary. |
 
 ## Architecture Support
 
