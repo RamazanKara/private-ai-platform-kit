@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-docs.txt
-      # Non-strict until the Stage C physical doc moves make every cross-link site-relative.
+      # docs-build.sh build runs mkdocs --strict, so broken links or nav drift fail the deploy.
       - run: ./scripts/docs-build.sh build
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1

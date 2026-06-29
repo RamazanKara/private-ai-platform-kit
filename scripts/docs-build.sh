@@ -6,7 +6,7 @@
 # docs/runbooks/ (git-ignored) at build time so the site includes and searches them without
 # moving the source of truth.
 #
-#   scripts/docs-build.sh build [--strict]   # build into site/
+#   scripts/docs-build.sh build              # build into site/ (runs --strict)
 #   scripts/docs-build.sh serve              # live-reload dev server
 set -euo pipefail
 
@@ -35,4 +35,11 @@ cp runbooks/*.md docs/runbooks/
 
 CMD="${1:-build}"
 shift || true
-"$MKDOCS" "$CMD" "$@"
+
+# A plain build is strict so broken links or nav drift fail the build (and CI). serve stays
+# non-strict so the live-reload dev loop is not interrupted while editing.
+EXTRA=()
+if [ "$CMD" = "build" ]; then
+  EXTRA+=(--strict)
+fi
+"$MKDOCS" "$CMD" ${EXTRA[@]+"${EXTRA[@]}"} "$@"

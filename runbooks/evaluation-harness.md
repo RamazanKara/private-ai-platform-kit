@@ -2,7 +2,7 @@
 
 Use this runbook when running repeatable prompt checks against the local lab or a customer-owned gateway.
 
-For benchmark and eval interpretation, including what the included suites do and do not prove, see [Benchmarks and evals](../docs/benchmarks-and-evals.md).
+For benchmark and eval interpretation, including what the included suites do and do not prove, see [Benchmarks and evals](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/benchmarks-and-evals.md).
 
 ## What The Harness Checks
 

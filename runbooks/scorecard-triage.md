@@ -1,6 +1,6 @@
 # OpenSSF Scorecard Triage And Remediation
 
-The [Scorecard workflow](../.github/workflows/scorecard.yml) runs weekly and on pushes to `main`,
+The [Scorecard workflow](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/.github/workflows/scorecard.yml) runs weekly and on pushes to `main`,
 uploading SARIF to GitHub code scanning (`publish_results: false`, so results stay private to the
 repo). Use this runbook to read the findings and decide what to fix.
 
@@ -25,8 +25,8 @@ Score each finding by exploitability, not just the raw number. Work top-down:
    hashed lockfiles, signs images with Cosign, and gates on Trivy, so these should stay green;
    investigate any regression as a pinning or lockfile drift.
 3. **Process checks** — `Code-Review`, `Maintained`, `CI-Tests`, `Fuzzing`, `SAST`,
-   `Security-Policy`. `SAST` is satisfied by the [CodeQL workflow](../.github/workflows/codeql.yml);
-   `Security-Policy` by [SECURITY.md](../SECURITY.md).
+   `Security-Policy`. `SAST` is satisfied by the [CodeQL workflow](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/.github/workflows/codeql.yml);
+   `Security-Policy` by [SECURITY.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/SECURITY.md).
 
 ## Remediation Patterns
 
@@ -37,7 +37,7 @@ Score each finding by exploitability, not just the raw number. Work top-down:
 | `Dangerous-Workflow` | Remove `pull_request_target` + untrusted checkout patterns; never interpolate untrusted input into `run:`. |
 | `Branch-Protection` | Enable required reviews and required status checks on `main` in repo settings. |
 | `Vulnerabilities` | Bump the offending dependency and regenerate locks; confirm `make image-scan` is clean. |
-| `Signed-Releases` | Already handled by Cosign signing in [ci.yml](../.github/workflows/ci.yml); confirm the signing step ran. |
+| `Signed-Releases` | Already handled by Cosign signing in [ci.yml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/.github/workflows/ci.yml); confirm the signing step ran. |
 
 ## Accepting A Finding
 

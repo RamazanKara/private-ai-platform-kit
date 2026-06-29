@@ -61,6 +61,12 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
+# docs/README.md is a GitHub-browse map (repo-relative links validated by repo-hygiene) that
+# duplicates the site landing page; keep it out of the built site. The leading slash anchors the
+# pattern to the docs root so runbooks/README.md (the Runbooks nav page) is not excluded.
+exclude_docs: |
+  /README.md
+
 validation:
   nav:
     omitted_files: ignore

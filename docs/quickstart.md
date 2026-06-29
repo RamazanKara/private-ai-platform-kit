@@ -1,46 +1,62 @@
-# Quickstart
+# Your first private AI platform
 
-This path is for a first evaluator who wants to prove the local lab works before reading the full operations docs.
+This tutorial takes you from an empty machine to a **working private chat completion** served from your own Kubernetes cluster — no cloud account, no external API, nothing leaving your laptop.
 
-Expected time is 15-30 minutes after Docker images and the default Ollama model are cached. The first run can take longer because `kind`, platform images, and `qwen2.5:0.5b` may need to be pulled. Plan for several GB of free disk space.
+By the end you will have:
 
-## Prerequisites
+- a local `kind` cluster running the platform's Helm charts,
+- an OpenAI-compatible gateway in front of a local Ollama model (`qwen2.5:0.5b`),
+- a retrieval-augmented (RAG) service answering a grounded query,
+- and the same evidence and smoke checks the project uses on customer clusters.
 
-Required for the local lab:
+Everything here runs with a single command. The goal is a guaranteed first success — the [how-to guides](getting-started.md) come next, once you have seen the platform work.
+
+!!! note "Time and space"
+    Plan for **15–30 minutes** once Docker images and the default model are cached. The *first* run is slower because `kind`, the platform images, and `qwen2.5:0.5b` are pulled fresh. Keep several GB of free disk available.
+
+## Before you begin
+
+Install these on your machine:
 
 - Python 3.12+
-- Docker
+- Docker (running, with enough CPU, memory, and disk for a small cluster)
 - kind
 - kubectl
 - Helm
 - Go
 - Syft
 
-The strict production-readiness path also uses kubeconform, Kyverno CLI, restore-drill, k6, Syft, Argo CD CLI, Cosign, and Trivy.
+That is everything the tutorial needs. The stricter production-readiness path additionally uses kubeconform, the Kyverno CLI, the Argo CD CLI, Cosign, Trivy, and k6 — you do not need them yet.
 
-## Fast Path
+If you would rather have the project manage the optional validation CLIs for you under `.tools/bin`, you can let the quickstart install them in the next step.
 
-Check the toolchain, run static validation, create the local cluster, sync the platform, then run gateway and RAG smoke tests:
+## Step 1 — Bring up the platform
+
+From the repository root, run:
 
 ```bash
 make quickstart
 ```
 
-If optional validation tools are missing and you want repo-managed validation CLIs under `.tools/bin`, run:
+That one command checks your toolchain, runs static validation, creates the local cluster, syncs the platform through GitOps, then runs the gateway and RAG smoke tests. Leave it running — it is doing the work you would otherwise do by hand.
 
-```bash
-QUICKSTART_INSTALL_TOOLS=1 make quickstart
-```
+A few variants for common situations:
 
-If Argo CD is not useful for a quick workstation check, render and apply the charts directly:
+!!! tip "Let the project install validation tools"
+    ```bash
+    QUICKSTART_INSTALL_TOOLS=1 make quickstart
+    ```
+    Fetches the optional validation CLIs into `.tools/bin` first.
 
-```bash
-QUICKSTART_DIRECT_APPLY=1 make quickstart
-```
+!!! tip "Skip Argo CD for a fast workstation check"
+    ```bash
+    QUICKSTART_DIRECT_APPLY=1 make quickstart
+    ```
+    Renders and applies the charts directly instead of bootstrapping GitOps — useful if Argo CD is overkill for a quick look.
 
-## Expected Output
+## Step 2 — Confirm it worked
 
-A successful run ends with:
+When the run finishes, the last lines should read:
 
 ```text
 [private-ai-platform-kit] smoke test completed for ollama
@@ -48,40 +64,49 @@ A successful run ends with:
 [private-ai-platform-kit] quickstart completed
 ```
 
-The gateway smoke response should include an OpenAI-compatible `choices` array. The RAG smoke response should include `results`, `grounded_messages`, `query_sha256`, `X-Request-ID`, and `X-Sandbox-ID`.
+That is your private platform answering real requests:
 
-### Captured Artifacts
+- The **gateway smoke** response includes an OpenAI-compatible `choices` array — a chat completion produced entirely on your machine.
+- The **RAG smoke** response includes `results`, `grounded_messages`, `query_sha256`, `X-Request-ID`, and `X-Sandbox-ID` — a grounded answer with an auditable request trail.
 
-The repo commits real captures under [assets/quickstart-screenshots/](assets/quickstart-screenshots/) as the canonical expected output:
+If you see those three lines, you are done — you have a private AI platform running. The rest of this page helps you understand what you just built and where to go next.
 
-- [quickstart-success.txt](assets/quickstart-screenshots/quickstart-success.txt): gateway and RAG smoke output.
-- [agent-smoke.txt](assets/quickstart-screenshots/agent-smoke.txt): coding-agent smoke output.
+## Step 3 — Compare against the recorded run
 
-Captures for the other follow-up steps also live there: [argocd-apps.txt](assets/quickstart-screenshots/argocd-apps.txt), [grafana-dashboard.txt](assets/quickstart-screenshots/grafana-dashboard.txt), and [evidence-report.txt](assets/quickstart-screenshots/evidence-report.txt).
+The repository commits a real capture of a successful run as the canonical expected output, so you can confirm yours matches:
 
-## What Quickstart Does
+- [quickstart-success.txt](assets/quickstart-screenshots/README.md) — gateway and RAG smoke output.
+- [agent-smoke.txt](assets/quickstart-screenshots/README.md) — coding-agent smoke output.
 
-`make quickstart` runs these steps:
+Captures for the follow-up steps live alongside them — Argo CD applications, the Grafana dashboard, and an evidence report — in [docs/assets/quickstart-screenshots/](assets/quickstart-screenshots/README.md).
 
-1. `make toolchain-doctor TOOLCHAIN_PROFILE=local`
-2. `make validate`, unless `QUICKSTART_SKIP_VALIDATE=1`
-3. `make local-up`
-4. `make bootstrap-argocd` and `make sync`, unless `QUICKSTART_DIRECT_APPLY=1`
-5. `make smoke RUNTIME_BACKEND=ollama`
-6. `make rag-smoke`, unless `QUICKSTART_SKIP_RAG=1`
+## What just happened
 
-The script leaves the cluster running so you can inspect it.
+`make quickstart` ran these steps in order:
 
-## Useful Follow-Ups
+1. `make toolchain-doctor TOOLCHAIN_PROFILE=local` — check the local toolchain.
+2. `make validate` — static validation (skipped if `QUICKSTART_SKIP_VALIDATE=1`).
+3. `make local-up` — create the local `kind` cluster.
+4. `make bootstrap-argocd` and `make sync` — install Argo CD and sync the platform (skipped if `QUICKSTART_DIRECT_APPLY=1`).
+5. `make smoke RUNTIME_BACKEND=ollama` — a chat completion through the gateway.
+6. `make rag-smoke` — a grounded RAG query (skipped if `QUICKSTART_SKIP_RAG=1`).
+
+The cluster is left running so you can inspect it. This is the same flow — same charts, policies, and checks — that runs against customer clusters; only the runtime backend and GPU profile change.
+
+## Keep exploring
+
+With the cluster up, try the other smoke paths and generate evidence:
 
 ```bash
-make sandbox-smoke
-make tenant-smoke
-make agent-smoke
-make evidence LIVE=1
+make sandbox-smoke    # traceable sandbox controls
+make tenant-smoke     # a team tenant lab
+make agent-smoke      # a locked-down coding-agent workspace
+make evidence LIVE=1  # customer-style evidence pack against the live cluster
 ```
 
-Clean up the local cluster:
+## Clean up
+
+When you are finished, tear the cluster down:
 
 ```bash
 make local-down
@@ -89,30 +114,34 @@ make local-down
 
 ## Troubleshooting
 
-Docker: confirm `docker info` works and Docker has enough CPU, memory, and disk for a kind cluster plus model/runtime images.
+**Docker** — confirm `docker info` works and Docker has enough CPU, memory, and disk for a kind cluster plus the model and runtime images.
 
-kind: run `kind get clusters`; if the cluster is broken, use `make local-down` and rerun `make local-up`.
+**kind** — run `kind get clusters`; if the cluster is broken, `make local-down` then `make local-up`.
 
-kubectl: confirm `kubectl config current-context` points at `kind-private-ai-platform-kit` after `make local-up`.
+**kubectl** — after `make local-up`, confirm `kubectl config current-context` points at `kind-private-ai-platform-kit`.
 
-Helm: run `helm version --short`; `make validate` lints and renders every chart before the cluster path.
+**Helm** — run `helm version --short`; `make validate` lints and renders every chart before the cluster path.
 
-Argo CD: if bootstrap or sync is blocked by a local CLI issue, retry with `QUICKSTART_DIRECT_APPLY=1 make quickstart`.
+**Argo CD** — if bootstrap or sync is blocked by a local CLI issue, rerun with `QUICKSTART_DIRECT_APPLY=1 make quickstart`.
 
-Model pull: the first Ollama pull of `qwen2.5:0.5b` can dominate runtime. Check `kubectl -n ollama logs statefulset/ollama` for progress.
+**Model pull** — the first Ollama pull of `qwen2.5:0.5b` can dominate the runtime. Watch progress with `kubectl -n ollama logs statefulset/ollama`.
 
-API keys: local smoke scripts send `X-API-Key: local-development-only`. Customer overlays should source SHA-256 API-key hashes from External Secrets instead of committing plaintext keys.
+**API keys** — local smoke scripts send `X-API-Key: local-development-only`. Customer overlays should source SHA-256 API-key hashes from External Secrets instead of committing plaintext keys.
 
-Port-forwarding: smoke tests bind localhost ports such as `18080` and `18083`. Override `LOCAL_PORT` if a port is already in use. Use `LOCAL_PORT` for smoke-test localhost port-forward conflicts, and `LOCAL_GATEWAY_HOST_PORT` (below) for the kind-to-host `8080` mapping conflict.
-
-Kind nodePort mapping: the local cluster maps gateway nodePort `30080` to host port `8080` by default. If another process already owns `8080`, run quickstart with an alternate port:
+**Port conflicts** — smoke tests bind localhost ports such as `18080` and `18083`; override `LOCAL_PORT` if one is already in use. The cluster also maps gateway nodePort `30080` to host port `8080`; if another process owns `8080`, set `LOCAL_GATEWAY_HOST_PORT`:
 
 ```bash
 LOCAL_GATEWAY_HOST_PORT=18080 QUICKSTART_DIRECT_APPLY=1 make quickstart
 ```
 
-Kind node image: Docker hosts using cgroup v1 are automatically given a compatible local node image. To force a specific image, set `LOCAL_KIND_NODE_IMAGE`:
+**Kind node image** — Docker hosts on cgroup v1 are automatically given a compatible node image. To force a specific one, set `LOCAL_KIND_NODE_IMAGE`:
 
 ```bash
 LOCAL_KIND_NODE_IMAGE=kindest/node:v1.31.4 QUICKSTART_DIRECT_APPLY=1 make quickstart
 ```
+
+## Where to next
+
+- **Operate the lab** — the [how-to guides](getting-started.md) cover evals, load tests, governance checks, and the customer-cluster path.
+- **Decide if it fits** — the [decision guide](decision-guide.md) explains who this is and is not for.
+- **Understand the controls** — the [production-readiness matrix](production-readiness.md) maps every claim to where it is enforced.

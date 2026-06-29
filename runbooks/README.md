@@ -50,4 +50,4 @@ Operational procedures, incident playbooks, and governance runbooks for Private 
 | [Restore drill](restore-drill.md) | Backup restore-tooling smoke and real data-recovery drill |
 | [OIDC / JWKS rotation](oidc-jwks-rotation.md) | Identity-provider key rotation |
 
-For the documentation map (setup, customer handoff, contracts), see [docs/README.md](../docs/README.md).
+For the documentation map (setup, customer handoff, contracts), see [docs/README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/README.md).

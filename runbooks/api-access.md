@@ -2,7 +2,7 @@
 
 Use this runbook when configuring or rotating access to the inference gateway or RAG service.
 
-For security boundaries and threat modeling, see [Threat model](../docs/threat-model.md).
+For security boundaries and threat modeling, see [Threat model](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/threat-model.md).
 
 ## Authentication Model
 

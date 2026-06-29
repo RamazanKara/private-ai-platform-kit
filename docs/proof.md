@@ -23,7 +23,7 @@ For release reviews, attach or link:
 
 ## Supported Tool Versions
 
-The source of truth is [tools/validation-toolchain.yaml](../tools/validation-toolchain.yaml). Run:
+The source of truth is [tools/validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/tools/validation-toolchain.yaml). Run:
 
 ```bash
 make toolchain-report TOOLCHAIN_PROFILE=strict

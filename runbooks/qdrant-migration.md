@@ -6,7 +6,7 @@ logical `collectionVersion`, so migrations are done by writing a new collection 
 over, never by mutating the live collection in place.
 
 See [Vector RAG](vector-rag.md) for the steady-state profile and
-[scripts/rag-ingest.py](../scripts/rag-ingest.py) for the ingestion job this runbook drives.
+[scripts/rag-ingest.py](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/rag-ingest.py) for the ingestion job this runbook drives.
 
 ## Key Settings
 

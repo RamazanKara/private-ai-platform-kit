@@ -3,8 +3,8 @@
 This walkthrough onboards a coding-agent tenant for a regulated, air-gapped team: confidential data
 classification, **no external egress**, a private registry, and long evidence retention. It renders
 from the reviewed spec
-[tenants/onboarding/regulated-offline-coding-agents.yaml](../tenants/onboarding/regulated-offline-coding-agents.yaml)
-using the same onboarding flow as [Tenant labs](../runbooks/tenant-labs.md).
+[tenants/onboarding/regulated-offline-coding-agents.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/tenants/onboarding/regulated-offline-coding-agents.yaml)
+using the same onboarding flow as [Tenant labs](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/tenant-labs.md).
 
 ## What This Profile Enforces
 
