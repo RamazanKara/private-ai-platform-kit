@@ -1,0 +1,32 @@
+{
+  "experiment": "audit-chain",
+  "synthetic": {
+    "records": 200,
+    "head": "0a90065772e1716184cc7710de12744d06fa7c960a46109f4a1c39bf442be35a",
+    "clean_verify": {
+      "ok": true,
+      "records": 200,
+      "head": "0a90065772e1716184cc7710de12744d06fa7c960a46109f4a1c39bf442be35a"
+    },
+    "query_by_request_id": {
+      "request_id": "req-00042",
+      "found": 1,
+      "seq": 42
+    },
+    "query_by_window": {
+      "matched": 10,
+      "slice_verify": true
+    },
+    "tamper_naive": {
+      "edited_seq": 88,
+      "detected": true,
+      "reason": "record_hash_mismatch",
+      "detected_seq": 88
+    },
+    "tamper_rechained": {
+      "internal_ok": true,
+      "anchor_detected": true,
+      "reason": "anchor_mismatch"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "system": {
+    "python": "3.12.3",
+    "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "fastapi": "0.138.0",
+    "cpu_model": "AMD Ryzen 7 5800X3D 8-Core Processor",
+    "cpu_threads": 16
+  },
+  "params": {
+    "warmup_s": 2.0,
+    "duration_s": 8.0,
+    "repeats": 5,
+    "smoke": false
+  },
+  "c1": {
+    "direct_p50": 2.166,
+    "gw_min_p50": 18.281,
+    "gw_full_p50": 18.901,
+    "governance_delta_p50_ms": 0.62,
+    "gw_min_p95": 20.72,
+    "gw_full_p95": 21.082,
+    "governance_delta_p95_ms": 0.362,
+    "gw_min_rps": 53.325,
+    "gw_full_rps": 51.925
+  },
+  "max_rps": {
+    "direct": 2446.7,
+    "gw-min": 61.5,
+    "gw-full": 60.0
+  },
+  "overhead_vs_delay": [
+    {
+      "delay_ms": 0,
+      "gw_min_p50": 18.281,
+      "gw_full_p50": 18.901,
+      "governance_delta_ms": 0.62,
+      "governance_pct_of_full": 3.28
+    },
+    {
+      "delay_ms": 50,
+      "gw_min_p50": 69.855,
+      "gw_full_p50": 69.906,
+      "governance_delta_ms": 0.051,
+      "governance_pct_of_full": 0.073
+    },
+    {
+      "delay_ms": 200,
+      "gw_min_p50": 234.315,
+      "gw_full_p50": 234.082,
+      "governance_delta_ms": -0.233,
+      "governance_pct_of_full": -0.1
+    },
+    {
+      "delay_ms": 500,
+      "gw_min_p50": 561.966,
+      "gw_full_p50": 564.996,
+      "governance_delta_ms": 3.03,
+      "governance_pct_of_full": 0.536
+    }
+  ],
+  "micro_us": {
+    "auth_api_key": 0.515,
+    "admission_with_secret_detection": 14.663,
+    "admission_without_secret_detection": 0.7,
+    "model_allowlist": 0.126,
+    "model_routing_resolve": 0.125,
+    "budget_reserve": 3.811,
+    "audit_fingerprint": 4.43,
+    "audit_fingerprint_and_serialize": 9.276
+  },
+  "full_governance_us": 28.39
+}

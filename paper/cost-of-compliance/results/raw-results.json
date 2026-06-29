@@ -1,0 +1,3720 @@
+{
+  "experiment": "cost-of-compliance",
+  "system": {
+    "python": "3.12.3",
+    "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "fastapi": "0.138.0",
+    "cpu_model": "AMD Ryzen 7 5800X3D 8-Core Processor",
+    "cpu_threads": 16
+  },
+  "params": {
+    "warmup_s": 2.0,
+    "duration_s": 8.0,
+    "repeats": 5,
+    "smoke": false
+  },
+  "runs": [
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 0,
+      "requests": 3723,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 465.375,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 2.128,
+        "p90": 2.28,
+        "p95": 2.328,
+        "p99": 2.427,
+        "mean": 2.148,
+        "min": 1.972,
+        "max": 8.244
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 1,
+      "requests": 3604,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 450.5,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 2.196,
+        "p90": 2.339,
+        "p95": 2.404,
+        "p99": 2.589,
+        "mean": 2.219,
+        "min": 2.004,
+        "max": 13.435
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 2,
+      "requests": 3602,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 450.25,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 2.198,
+        "p90": 2.35,
+        "p95": 2.408,
+        "p99": 2.556,
+        "mean": 2.22,
+        "min": 2.012,
+        "max": 8.504
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 3,
+      "requests": 3592,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 449.0,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 2.185,
+        "p90": 2.394,
+        "p95": 2.508,
+        "p99": 2.725,
+        "mean": 2.227,
+        "min": 1.99,
+        "max": 13.941
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 4,
+      "requests": 3659,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 457.375,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 2.172,
+        "p90": 2.299,
+        "p95": 2.342,
+        "p99": 2.462,
+        "mean": 2.186,
+        "min": 1.978,
+        "max": 8.159
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 0,
+      "requests": 7126,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 890.75,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 2.22,
+        "p90": 2.393,
+        "p95": 2.459,
+        "p99": 2.7,
+        "mean": 2.245,
+        "min": 1.979,
+        "max": 10.017
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 1,
+      "requests": 7144,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 893.0,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 2.221,
+        "p90": 2.384,
+        "p95": 2.447,
+        "p99": 2.595,
+        "mean": 2.239,
+        "min": 1.967,
+        "max": 7.35
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 2,
+      "requests": 7038,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 879.75,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 2.254,
+        "p90": 2.422,
+        "p95": 2.485,
+        "p99": 2.65,
+        "mean": 2.273,
+        "min": 1.981,
+        "max": 7.297
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 3,
+      "requests": 7251,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 906.375,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 2.19,
+        "p90": 2.334,
+        "p95": 2.385,
+        "p99": 2.503,
+        "mean": 2.206,
+        "min": 1.968,
+        "max": 7.158
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 4,
+      "requests": 7211,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 901.375,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 2.199,
+        "p90": 2.355,
+        "p95": 2.413,
+        "p99": 2.551,
+        "mean": 2.219,
+        "min": 1.948,
+        "max": 9.021
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 0,
+      "requests": 12660,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 1582.5,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 2.484,
+        "p90": 2.857,
+        "p95": 2.984,
+        "p99": 3.256,
+        "mean": 2.527,
+        "min": 1.992,
+        "max": 8.704
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 1,
+      "requests": 13418,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 1677.25,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 2.349,
+        "p90": 2.619,
+        "p95": 2.719,
+        "p99": 3.002,
+        "mean": 2.384,
+        "min": 1.941,
+        "max": 9.375
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 2,
+      "requests": 13237,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 1654.625,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 2.375,
+        "p90": 2.679,
+        "p95": 2.801,
+        "p99": 3.177,
+        "mean": 2.417,
+        "min": 1.946,
+        "max": 9.629
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 3,
+      "requests": 13318,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 1664.75,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 2.37,
+        "p90": 2.649,
+        "p95": 2.751,
+        "p99": 3.012,
+        "mean": 2.403,
+        "min": 1.968,
+        "max": 8.371
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 4,
+      "requests": 13296,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 1662.0,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 2.374,
+        "p90": 2.653,
+        "p95": 2.749,
+        "p99": 2.983,
+        "mean": 2.406,
+        "min": 1.975,
+        "max": 9.175
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 19725,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2465.625,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.216,
+        "p90": 3.672,
+        "p95": 3.81,
+        "p99": 4.116,
+        "mean": 3.244,
+        "min": 2.27,
+        "max": 9.861
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 18873,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2359.125,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.357,
+        "p90": 3.829,
+        "p95": 3.988,
+        "p99": 4.424,
+        "mean": 3.391,
+        "min": 2.334,
+        "max": 10.886
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 18648,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2331.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.405,
+        "p90": 3.912,
+        "p95": 4.061,
+        "p99": 4.395,
+        "mean": 3.431,
+        "min": 2.237,
+        "max": 11.363
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 19537,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2442.125,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.252,
+        "p90": 3.711,
+        "p95": 3.851,
+        "p99": 4.144,
+        "mean": 3.275,
+        "min": 2.279,
+        "max": 11.532
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 18999,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2374.875,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.339,
+        "p90": 3.835,
+        "p95": 4.0,
+        "p99": 4.368,
+        "mean": 3.368,
+        "min": 2.332,
+        "max": 10.99
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 0,
+      "requests": 19346,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2418.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 6.568,
+        "p90": 7.287,
+        "p95": 7.587,
+        "p99": 9.252,
+        "mean": 6.616,
+        "min": 3.245,
+        "max": 13.822
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 1,
+      "requests": 20291,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2536.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 6.261,
+        "p90": 6.927,
+        "p95": 7.177,
+        "p99": 8.825,
+        "mean": 6.307,
+        "min": 3.05,
+        "max": 13.701
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 2,
+      "requests": 19056,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2382.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 6.642,
+        "p90": 7.634,
+        "p95": 7.98,
+        "p99": 9.163,
+        "mean": 6.716,
+        "min": 2.896,
+        "max": 13.455
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 3,
+      "requests": 19149,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2393.625,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 6.636,
+        "p90": 7.355,
+        "p95": 7.626,
+        "p99": 9.235,
+        "mean": 6.684,
+        "min": 3.099,
+        "max": 15.424
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 4,
+      "requests": 20027,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2503.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 6.352,
+        "p90": 7.038,
+        "p95": 7.29,
+        "p99": 8.684,
+        "mean": 6.391,
+        "min": 3.126,
+        "max": 15.522
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 0,
+      "requests": 18889,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2361.125,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 13.416,
+        "p90": 14.623,
+        "p95": 15.169,
+        "p99": 18.846,
+        "mean": 13.555,
+        "min": 9.046,
+        "max": 34.077
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 1,
+      "requests": 17910,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2238.75,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 14.157,
+        "p90": 15.251,
+        "p95": 15.725,
+        "p99": 19.687,
+        "mean": 14.295,
+        "min": 10.459,
+        "max": 30.599
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 2,
+      "requests": 18426,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2303.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 13.763,
+        "p90": 14.947,
+        "p95": 15.389,
+        "p99": 18.461,
+        "mean": 13.894,
+        "min": 9.899,
+        "max": 30.746
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 3,
+      "requests": 18906,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2363.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 13.396,
+        "p90": 14.44,
+        "p95": 14.916,
+        "p99": 19.61,
+        "mean": 13.542,
+        "min": 9.896,
+        "max": 29.789
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 4,
+      "requests": 18190,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2273.75,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 13.951,
+        "p90": 15.162,
+        "p95": 15.629,
+        "p99": 19.107,
+        "mean": 14.075,
+        "min": 9.862,
+        "max": 29.821
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 0,
+      "requests": 422,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.75,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.594,
+        "p90": 20.37,
+        "p95": 20.714,
+        "p99": 21.169,
+        "mean": 18.933,
+        "min": 17.789,
+        "max": 21.747
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 1,
+      "requests": 426,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.25,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.379,
+        "p90": 20.001,
+        "p95": 20.219,
+        "p99": 22.271,
+        "mean": 18.792,
+        "min": 17.766,
+        "max": 32.112
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 2,
+      "requests": 423,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.875,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.491,
+        "p90": 20.331,
+        "p95": 20.73,
+        "p99": 21.617,
+        "mean": 18.879,
+        "min": 17.823,
+        "max": 25.066
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 3,
+      "requests": 418,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.25,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.697,
+        "p90": 20.613,
+        "p95": 20.906,
+        "p99": 22.117,
+        "mean": 19.133,
+        "min": 17.96,
+        "max": 31.846
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 4,
+      "requests": 426,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.25,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.401,
+        "p90": 20.087,
+        "p95": 20.335,
+        "p99": 20.843,
+        "mean": 18.755,
+        "min": 17.788,
+        "max": 23.637
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 0,
+      "requests": 462,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 57.75,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 34.532,
+        "p90": 35.912,
+        "p95": 36.206,
+        "p99": 37.794,
+        "mean": 34.604,
+        "min": 32.487,
+        "max": 45.749
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 1,
+      "requests": 458,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 57.25,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 35.062,
+        "p90": 36.501,
+        "p95": 36.881,
+        "p99": 38.118,
+        "mean": 35.02,
+        "min": 32.715,
+        "max": 39.363
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 2,
+      "requests": 462,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 57.75,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 34.52,
+        "p90": 35.843,
+        "p95": 36.352,
+        "p99": 38.186,
+        "mean": 34.577,
+        "min": 32.345,
+        "max": 45.021
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 3,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 34.244,
+        "p90": 35.761,
+        "p95": 36.249,
+        "p99": 43.037,
+        "mean": 34.434,
+        "min": 32.321,
+        "max": 46.491
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 4,
+      "requests": 462,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 57.75,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 34.365,
+        "p90": 35.768,
+        "p95": 36.51,
+        "p99": 44.68,
+        "mean": 34.571,
+        "min": 32.399,
+        "max": 45.394
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 0,
+      "requests": 484,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.5,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 65.304,
+        "p90": 67.484,
+        "p95": 68.624,
+        "p99": 78.145,
+        "mean": 65.813,
+        "min": 63.297,
+        "max": 88.908
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 1,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 64.067,
+        "p90": 65.816,
+        "p95": 66.235,
+        "p99": 68.794,
+        "mean": 64.418,
+        "min": 62.671,
+        "max": 75.785
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 2,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 66.138,
+        "p90": 69.411,
+        "p95": 70.67,
+        "p99": 73.277,
+        "mean": 66.692,
+        "min": 64.439,
+        "max": 77.642
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 3,
+      "requests": 484,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.5,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 65.727,
+        "p90": 67.547,
+        "p95": 69.829,
+        "p99": 80.226,
+        "mean": 66.274,
+        "min": 63.3,
+        "max": 91.314
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 4,
+      "requests": 490,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.25,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 64.863,
+        "p90": 66.235,
+        "p95": 66.486,
+        "p99": 77.599,
+        "mean": 65.126,
+        "min": 63.085,
+        "max": 87.562
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 475,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 132.605,
+        "p90": 138.751,
+        "p95": 147.051,
+        "p99": 155.241,
+        "mean": 134.192,
+        "min": 119.563,
+        "max": 158.991
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 131.317,
+        "p90": 138.83,
+        "p95": 140.384,
+        "p99": 153.915,
+        "mean": 132.685,
+        "min": 126.829,
+        "max": 154.19
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.428,
+        "p90": 132.178,
+        "p95": 136.569,
+        "p99": 153.489,
+        "mean": 130.418,
+        "min": 126.482,
+        "max": 153.751
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 131.697,
+        "p90": 136.129,
+        "p95": 139.117,
+        "p99": 172.032,
+        "mean": 132.433,
+        "min": 125.301,
+        "max": 173.678
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.155,
+        "p90": 135.32,
+        "p95": 136.243,
+        "p99": 157.713,
+        "mean": 131.454,
+        "min": 127.231,
+        "max": 159.919
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 0,
+      "requests": 482,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 262.537,
+        "p90": 268.158,
+        "p95": 276.38,
+        "p99": 279.792,
+        "mean": 263.18,
+        "min": 254.211,
+        "max": 280.243
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 1,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 258.652,
+        "p90": 278.169,
+        "p95": 286.953,
+        "p99": 297.059,
+        "mean": 262.995,
+        "min": 252.063,
+        "max": 299.244
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 2,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 260.398,
+        "p90": 270.044,
+        "p95": 281.157,
+        "p99": 300.691,
+        "mean": 262.111,
+        "min": 228.967,
+        "max": 302.255
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 3,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 262.137,
+        "p90": 264.707,
+        "p95": 265.252,
+        "p99": 276.959,
+        "mean": 262.032,
+        "min": 254.494,
+        "max": 278.174
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 4,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 263.102,
+        "p90": 272.15,
+        "p95": 276.079,
+        "p99": 281.773,
+        "mean": 264.528,
+        "min": 255.613,
+        "max": 282.901
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 0,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 541.311,
+        "p90": 563.443,
+        "p95": 571.407,
+        "p99": 572.348,
+        "mean": 541.776,
+        "min": 501.047,
+        "max": 572.57
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 1,
+      "requests": 495,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.875,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 524.153,
+        "p90": 543.84,
+        "p95": 549.594,
+        "p99": 553.358,
+        "mean": 527.492,
+        "min": 503.321,
+        "max": 554.742
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 2,
+      "requests": 512,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 64.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 521.178,
+        "p90": 535.5,
+        "p95": 538.612,
+        "p99": 539.581,
+        "mean": 523.494,
+        "min": 492.041,
+        "max": 539.751
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 3,
+      "requests": 485,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.625,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 533.606,
+        "p90": 566.131,
+        "p95": 589.84,
+        "p99": 592.037,
+        "mean": 534.674,
+        "min": 115.033,
+        "max": 593.382
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 4,
+      "requests": 490,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 523.882,
+        "p90": 545.075,
+        "p95": 546.994,
+        "p99": 550.761,
+        "mean": 524.385,
+        "min": 491.424,
+        "max": 551.198
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 0,
+      "requests": 411,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 51.375,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.95,
+        "p90": 20.77,
+        "p95": 21.12,
+        "p99": 26.18,
+        "mean": 19.445,
+        "min": 18.182,
+        "max": 32.814
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 1,
+      "requests": 409,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 51.125,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 19.101,
+        "p90": 21.001,
+        "p95": 21.428,
+        "p99": 23.66,
+        "mean": 19.541,
+        "min": 18.361,
+        "max": 25.593
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 2,
+      "requests": 416,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.0,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.788,
+        "p90": 20.512,
+        "p95": 20.984,
+        "p99": 22.479,
+        "mean": 19.222,
+        "min": 18.142,
+        "max": 33.453
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 3,
+      "requests": 419,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.375,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.785,
+        "p90": 20.386,
+        "p95": 20.555,
+        "p99": 21.495,
+        "mean": 19.11,
+        "min": 18.142,
+        "max": 23.983
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 4,
+      "requests": 415,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 51.875,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.801,
+        "p90": 20.561,
+        "p95": 20.919,
+        "p99": 24.259,
+        "mean": 19.278,
+        "min": 18.177,
+        "max": 29.602
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 0,
+      "requests": 456,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 57.0,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 34.9,
+        "p90": 35.857,
+        "p95": 36.374,
+        "p99": 38.133,
+        "mean": 35.072,
+        "min": 33.273,
+        "max": 41.236
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 1,
+      "requests": 450,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 56.25,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 35.29,
+        "p90": 36.453,
+        "p95": 37.215,
+        "p99": 48.641,
+        "mean": 35.626,
+        "min": 34.037,
+        "max": 50.042
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 2,
+      "requests": 452,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 56.5,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 34.944,
+        "p90": 36.46,
+        "p95": 37.935,
+        "p99": 46.061,
+        "mean": 35.389,
+        "min": 33.434,
+        "max": 55.472
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 3,
+      "requests": 452,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 56.5,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 35.004,
+        "p90": 35.905,
+        "p95": 36.478,
+        "p99": 48.054,
+        "mean": 35.425,
+        "min": 33.378,
+        "max": 51.957
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 2,
+      "repeat": 4,
+      "requests": 440,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 55.0,
+      "client_processes": 2,
+      "latency_ms": {
+        "p50": 35.661,
+        "p90": 38.274,
+        "p95": 40.164,
+        "p99": 49.45,
+        "mean": 36.277,
+        "min": 33.22,
+        "max": 51.993
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 0,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 68.297,
+        "p90": 70.609,
+        "p95": 73.721,
+        "p99": 81.063,
+        "mean": 68.767,
+        "min": 65.83,
+        "max": 82.193
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 1,
+      "requests": 446,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 55.75,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 70.249,
+        "p90": 77.037,
+        "p95": 79.945,
+        "p99": 95.426,
+        "mean": 71.473,
+        "min": 66.195,
+        "max": 97.419
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 2,
+      "requests": 460,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 57.5,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 68.378,
+        "p90": 72.479,
+        "p95": 78.808,
+        "p99": 93.481,
+        "mean": 69.747,
+        "min": 66.047,
+        "max": 99.059
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 3,
+      "requests": 453,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 56.625,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 69.013,
+        "p90": 75.974,
+        "p95": 79.064,
+        "p99": 84.269,
+        "mean": 70.444,
+        "min": 66.07,
+        "max": 85.845
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 4,
+      "repeat": 4,
+      "requests": 472,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.0,
+      "client_processes": 4,
+      "latency_ms": {
+        "p50": 67.456,
+        "p90": 68.94,
+        "p95": 70.055,
+        "p99": 74.628,
+        "mean": 67.777,
+        "min": 65.839,
+        "max": 75.82
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 471,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.875,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 135.808,
+        "p90": 140.992,
+        "p95": 147.413,
+        "p99": 152.755,
+        "mean": 136.661,
+        "min": 120.732,
+        "max": 153.514
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 136.621,
+        "p90": 141.336,
+        "p95": 144.203,
+        "p99": 167.451,
+        "mean": 137.37,
+        "min": 125.419,
+        "max": 175.837
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 448,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 56.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 140.447,
+        "p90": 147.75,
+        "p95": 165.42,
+        "p99": 183.685,
+        "mean": 143.029,
+        "min": 135.296,
+        "max": 183.96
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 136.208,
+        "p90": 142.418,
+        "p95": 144.864,
+        "p99": 174.704,
+        "mean": 137.515,
+        "min": 122.144,
+        "max": 174.969
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 472,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 134.615,
+        "p90": 139.888,
+        "p95": 144.636,
+        "p99": 148.999,
+        "mean": 135.844,
+        "min": 131.003,
+        "max": 149.423
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 0,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 271.374,
+        "p90": 279.423,
+        "p95": 286.155,
+        "p99": 289.733,
+        "mean": 272.352,
+        "min": 264.184,
+        "max": 291.464
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 1,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 269.701,
+        "p90": 279.289,
+        "p95": 281.92,
+        "p99": 293.24,
+        "mean": 271.121,
+        "min": 263.559,
+        "max": 294.02
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 2,
+      "requests": 400,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 50.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 294.086,
+        "p90": 397.217,
+        "p95": 414.758,
+        "p99": 496.448,
+        "mean": 320.824,
+        "min": 265.936,
+        "max": 501.723
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 3,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 265.658,
+        "p90": 281.551,
+        "p95": 295.391,
+        "p99": 302.535,
+        "mean": 269.097,
+        "min": 256.247,
+        "max": 304.688
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 16,
+      "repeat": 4,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 269.871,
+        "p90": 282.193,
+        "p95": 285.89,
+        "p99": 305.837,
+        "mean": 271.608,
+        "min": 260.531,
+        "max": 306.936
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 0,
+      "requests": 478,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.75,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 541.822,
+        "p90": 580.589,
+        "p95": 625.376,
+        "p99": 628.224,
+        "mean": 550.331,
+        "min": 510.027,
+        "max": 635.922
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 1,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 543.983,
+        "p90": 557.39,
+        "p95": 560.785,
+        "p99": 561.765,
+        "mean": 542.591,
+        "min": 510.333,
+        "max": 563.703
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 2,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 543.509,
+        "p90": 564.293,
+        "p95": 572.957,
+        "p99": 576.374,
+        "mean": 548.679,
+        "min": 514.207,
+        "max": 578.484
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 3,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 529.738,
+        "p90": 546.185,
+        "p95": 549.871,
+        "p99": 559.716,
+        "mean": 530.792,
+        "min": 500.435,
+        "max": 560.591
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 0,
+      "concurrency": 32,
+      "repeat": 4,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 531.145,
+        "p90": 542.069,
+        "p95": 548.824,
+        "p99": 550.244,
+        "mean": 531.596,
+        "min": 499.01,
+        "max": 551.267
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 0,
+      "requests": 430,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.75,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.292,
+        "p90": 19.848,
+        "p95": 20.068,
+        "p99": 20.481,
+        "mean": 18.614,
+        "min": 17.737,
+        "max": 22.107
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 1,
+      "requests": 427,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.375,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.366,
+        "p90": 19.949,
+        "p95": 20.318,
+        "p99": 21.908,
+        "mean": 18.738,
+        "min": 17.664,
+        "max": 32.78
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 2,
+      "requests": 427,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.375,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.23,
+        "p90": 20.014,
+        "p95": 20.664,
+        "p99": 22.813,
+        "mean": 18.737,
+        "min": 17.587,
+        "max": 31.078
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 3,
+      "requests": 433,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 54.125,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.176,
+        "p90": 19.749,
+        "p95": 19.922,
+        "p99": 20.353,
+        "mean": 18.494,
+        "min": 17.466,
+        "max": 21.227
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 4,
+      "requests": 430,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.75,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.294,
+        "p90": 19.903,
+        "p95": 20.069,
+        "p99": 20.596,
+        "mean": 18.614,
+        "min": 17.558,
+        "max": 25.683
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 472,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 132.881,
+        "p90": 147.317,
+        "p95": 151.833,
+        "p99": 162.443,
+        "mean": 135.484,
+        "min": 127.367,
+        "max": 162.835
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 131.971,
+        "p90": 140.795,
+        "p95": 147.764,
+        "p99": 153.985,
+        "mean": 133.777,
+        "min": 124.329,
+        "max": 154.956
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.876,
+        "p90": 134.575,
+        "p95": 137.808,
+        "p99": 160.555,
+        "mean": 131.174,
+        "min": 126.643,
+        "max": 161.406
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 128.981,
+        "p90": 132.072,
+        "p95": 134.857,
+        "p99": 151.446,
+        "mean": 129.458,
+        "min": 125.559,
+        "max": 154.06
+      }
+    },
+    {
+      "config": "gw-auth",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 490,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.437,
+        "p90": 132.825,
+        "p95": 134.61,
+        "p99": 141.264,
+        "mean": 129.963,
+        "min": 126.032,
+        "max": 142.063
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 0,
+      "requests": 412,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 51.5,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 19.065,
+        "p90": 20.697,
+        "p95": 20.934,
+        "p99": 21.571,
+        "mean": 19.397,
+        "min": 18.126,
+        "max": 23.699
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 1,
+      "requests": 410,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 51.25,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 19.019,
+        "p90": 20.799,
+        "p95": 21.117,
+        "p99": 25.062,
+        "mean": 19.513,
+        "min": 18.447,
+        "max": 33.134
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 2,
+      "requests": 409,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 51.125,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 19.066,
+        "p90": 20.758,
+        "p95": 21.119,
+        "p99": 24.854,
+        "mean": 19.537,
+        "min": 18.463,
+        "max": 33.195
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 3,
+      "requests": 413,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 51.625,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.998,
+        "p90": 20.677,
+        "p95": 20.928,
+        "p99": 21.421,
+        "mean": 19.34,
+        "min": 18.468,
+        "max": 24.136
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 4,
+      "requests": 412,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 51.5,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 19.05,
+        "p90": 20.676,
+        "p95": 20.924,
+        "p99": 21.349,
+        "mean": 19.38,
+        "min": 18.469,
+        "max": 21.93
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 465,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.125,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 136.404,
+        "p90": 139.235,
+        "p95": 142.308,
+        "p99": 153.026,
+        "mean": 136.771,
+        "min": 130.057,
+        "max": 154.853
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 472,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 135.598,
+        "p90": 140.1,
+        "p95": 141.208,
+        "p99": 158.599,
+        "mean": 136.396,
+        "min": 132.011,
+        "max": 159.588
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 472,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 135.317,
+        "p90": 137.997,
+        "p95": 138.421,
+        "p99": 148.016,
+        "mean": 135.688,
+        "min": 130.806,
+        "max": 152.733
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 466,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 135.713,
+        "p90": 140.845,
+        "p95": 144.561,
+        "p99": 163.959,
+        "mean": 136.957,
+        "min": 122.178,
+        "max": 176.291
+      }
+    },
+    {
+      "config": "gw-audit",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 456,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 57.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 139.568,
+        "p90": 146.287,
+        "p95": 149.299,
+        "p99": 161.739,
+        "mean": 140.409,
+        "min": 133.823,
+        "max": 165.928
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 0,
+      "requests": 430,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.75,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.287,
+        "p90": 19.894,
+        "p95": 20.1,
+        "p99": 20.399,
+        "mean": 18.624,
+        "min": 17.75,
+        "max": 20.962
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 1,
+      "requests": 422,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.75,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.47,
+        "p90": 20.235,
+        "p95": 20.505,
+        "p99": 26.508,
+        "mean": 18.959,
+        "min": 17.794,
+        "max": 33.129
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 2,
+      "requests": 422,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.75,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.448,
+        "p90": 20.224,
+        "p95": 20.603,
+        "p99": 24.077,
+        "mean": 18.928,
+        "min": 17.82,
+        "max": 32.788
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 3,
+      "requests": 423,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.875,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.417,
+        "p90": 20.26,
+        "p95": 20.639,
+        "p99": 24.175,
+        "mean": 18.922,
+        "min": 17.782,
+        "max": 32.013
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 4,
+      "requests": 423,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 52.875,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.547,
+        "p90": 20.235,
+        "p95": 20.521,
+        "p99": 21.182,
+        "mean": 18.9,
+        "min": 17.794,
+        "max": 32.172
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.448,
+        "p90": 132.12,
+        "p95": 132.78,
+        "p99": 142.433,
+        "mean": 129.94,
+        "min": 126.657,
+        "max": 143.753
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.029,
+        "p90": 137.197,
+        "p95": 138.745,
+        "p99": 153.069,
+        "mean": 131.664,
+        "min": 127.098,
+        "max": 154.287
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 482,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.278,
+        "p90": 134.409,
+        "p95": 141.71,
+        "p99": 155.78,
+        "mean": 131.757,
+        "min": 127.42,
+        "max": 160.542
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 491,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.837,
+        "p90": 132.597,
+        "p95": 135.166,
+        "p99": 142.375,
+        "mean": 130.591,
+        "min": 127.675,
+        "max": 142.868
+      }
+    },
+    {
+      "config": "gw-secret",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.059,
+        "p90": 133.895,
+        "p95": 136.807,
+        "p99": 144.067,
+        "mean": 130.704,
+        "min": 125.518,
+        "max": 146.236
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 0,
+      "requests": 424,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.0,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.409,
+        "p90": 20.111,
+        "p95": 20.418,
+        "p99": 24.72,
+        "mean": 18.85,
+        "min": 17.73,
+        "max": 31.772
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 1,
+      "requests": 427,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.375,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.392,
+        "p90": 19.956,
+        "p95": 20.275,
+        "p99": 20.62,
+        "mean": 18.716,
+        "min": 17.801,
+        "max": 31.042
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 2,
+      "requests": 429,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.625,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.332,
+        "p90": 19.892,
+        "p95": 20.092,
+        "p99": 20.738,
+        "mean": 18.655,
+        "min": 17.765,
+        "max": 22.782
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 3,
+      "requests": 429,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.625,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.267,
+        "p90": 19.938,
+        "p95": 20.135,
+        "p99": 20.855,
+        "mean": 18.648,
+        "min": 17.661,
+        "max": 25.722
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 4,
+      "requests": 427,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.375,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.301,
+        "p90": 19.97,
+        "p95": 20.283,
+        "p99": 21.892,
+        "mean": 18.722,
+        "min": 17.62,
+        "max": 32.404
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 502,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.75,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 127.485,
+        "p90": 129.334,
+        "p95": 131.479,
+        "p99": 139.54,
+        "mean": 128.019,
+        "min": 125.16,
+        "max": 139.795
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 128.852,
+        "p90": 131.945,
+        "p95": 132.991,
+        "p99": 142.141,
+        "mean": 128.941,
+        "min": 123.466,
+        "max": 142.505
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 504,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 63.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 125.87,
+        "p90": 127.65,
+        "p95": 135.301,
+        "p99": 152.799,
+        "mean": 126.865,
+        "min": 123.318,
+        "max": 153.586
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 505,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 63.125,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 125.737,
+        "p90": 127.713,
+        "p95": 128.743,
+        "p99": 137.905,
+        "mean": 126.292,
+        "min": 123.443,
+        "max": 138.264
+      }
+    },
+    {
+      "config": "gw-allowlist",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 504,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 63.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 126.095,
+        "p90": 127.102,
+        "p95": 127.772,
+        "p99": 139.781,
+        "mean": 126.355,
+        "min": 124.164,
+        "max": 140.824
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 0,
+      "requests": 429,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.625,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.294,
+        "p90": 19.864,
+        "p95": 20.077,
+        "p99": 20.561,
+        "mean": 18.64,
+        "min": 17.76,
+        "max": 23.985
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 1,
+      "requests": 429,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.625,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.225,
+        "p90": 19.789,
+        "p95": 19.911,
+        "p99": 23.314,
+        "mean": 18.629,
+        "min": 17.669,
+        "max": 25.561
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 2,
+      "requests": 430,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.75,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.241,
+        "p90": 19.821,
+        "p95": 20.054,
+        "p99": 20.801,
+        "mean": 18.605,
+        "min": 17.757,
+        "max": 31.809
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 3,
+      "requests": 430,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 53.75,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.273,
+        "p90": 19.82,
+        "p95": 19.96,
+        "p99": 20.288,
+        "mean": 18.597,
+        "min": 17.71,
+        "max": 21.102
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 1,
+      "repeat": 4,
+      "requests": 433,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 54.125,
+      "client_processes": 1,
+      "latency_ms": {
+        "p50": 18.188,
+        "p90": 19.718,
+        "p95": 19.909,
+        "p99": 20.28,
+        "mean": 18.487,
+        "min": 17.67,
+        "max": 24.539
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 504,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 63.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 126.898,
+        "p90": 128.299,
+        "p95": 129.438,
+        "p99": 139.89,
+        "mean": 127.311,
+        "min": 124.06,
+        "max": 140.6
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.154,
+        "p90": 131.098,
+        "p95": 136.223,
+        "p99": 162.142,
+        "mean": 129.548,
+        "min": 124.157,
+        "max": 165.652
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 504,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 63.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 126.978,
+        "p90": 130.085,
+        "p95": 130.754,
+        "p99": 142.397,
+        "mean": 127.964,
+        "min": 124.254,
+        "max": 143.228
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.29,
+        "p90": 131.17,
+        "p95": 131.856,
+        "p99": 142.893,
+        "mean": 129.118,
+        "min": 124.919,
+        "max": 143.24
+      }
+    },
+    {
+      "config": "gw-budget",
+      "delay_ms": 0,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.241,
+        "p90": 133.467,
+        "p95": 134.617,
+        "p99": 145.999,
+        "mean": 130.415,
+        "min": 114.302,
+        "max": 147.743
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 19667,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2458.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.228,
+        "p90": 3.677,
+        "p95": 3.811,
+        "p99": 4.094,
+        "mean": 3.254,
+        "min": 2.221,
+        "max": 9.751
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 19700,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2462.5,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.221,
+        "p90": 3.665,
+        "p95": 3.801,
+        "p99": 4.12,
+        "mean": 3.248,
+        "min": 2.282,
+        "max": 11.149
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 19805,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2475.625,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.208,
+        "p90": 3.649,
+        "p95": 3.791,
+        "p99": 4.068,
+        "mean": 3.231,
+        "min": 2.205,
+        "max": 11.199
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 19798,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2474.75,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.206,
+        "p90": 3.649,
+        "p95": 3.787,
+        "p99": 4.074,
+        "mean": 3.232,
+        "min": 2.227,
+        "max": 11.598
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 19805,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2475.625,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.209,
+        "p90": 3.651,
+        "p95": 3.785,
+        "p99": 4.036,
+        "mean": 3.231,
+        "min": 2.267,
+        "max": 9.735
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 495,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.875,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.109,
+        "p90": 132.754,
+        "p95": 136.495,
+        "p99": 141.803,
+        "mean": 130.462,
+        "min": 118.651,
+        "max": 142.533
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 127.453,
+        "p90": 131.406,
+        "p95": 133.435,
+        "p99": 157.843,
+        "mean": 128.93,
+        "min": 124.603,
+        "max": 158.577
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 127.874,
+        "p90": 130.92,
+        "p95": 132.659,
+        "p99": 153.377,
+        "mean": 128.874,
+        "min": 114.929,
+        "max": 163.316
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 127.521,
+        "p90": 130.397,
+        "p95": 131.296,
+        "p99": 144.187,
+        "mean": 128.391,
+        "min": 125.822,
+        "max": 144.527
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 495,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.875,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.173,
+        "p90": 132.094,
+        "p95": 133.919,
+        "p99": 161.028,
+        "mean": 129.927,
+        "min": 125.96,
+        "max": 161.377
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 476,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.5,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 133.037,
+        "p90": 141.184,
+        "p95": 143.6,
+        "p99": 164.44,
+        "mean": 134.606,
+        "min": 115.634,
+        "max": 170.248
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 131.452,
+        "p90": 135.129,
+        "p95": 136.37,
+        "p99": 143.136,
+        "mean": 132.16,
+        "min": 129.103,
+        "max": 143.281
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.836,
+        "p90": 132.511,
+        "p95": 133.647,
+        "p99": 140.696,
+        "mean": 130.577,
+        "min": 126.703,
+        "max": 141.321
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.94,
+        "p90": 133.11,
+        "p95": 133.824,
+        "p99": 144.714,
+        "mean": 131.104,
+        "min": 126.321,
+        "max": 145.898
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 50,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 480,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 131.229,
+        "p90": 135.349,
+        "p95": 136.685,
+        "p99": 165.75,
+        "mean": 132.357,
+        "min": 127.664,
+        "max": 166.572
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 19667,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2458.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.226,
+        "p90": 3.68,
+        "p95": 3.819,
+        "p99": 4.082,
+        "mean": 3.254,
+        "min": 2.27,
+        "max": 10.665
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 16891,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2111.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.53,
+        "p90": 4.592,
+        "p95": 5.771,
+        "p99": 8.474,
+        "mean": 3.787,
+        "min": 2.349,
+        "max": 17.321
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 16998,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2124.75,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.672,
+        "p90": 4.399,
+        "p95": 4.753,
+        "p99": 5.81,
+        "mean": 3.765,
+        "min": 2.089,
+        "max": 11.302
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 18515,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2314.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.422,
+        "p90": 3.905,
+        "p95": 4.071,
+        "p99": 4.445,
+        "mean": 3.456,
+        "min": 2.391,
+        "max": 11.935
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 19631,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2453.875,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.231,
+        "p90": 3.694,
+        "p95": 3.849,
+        "p99": 4.188,
+        "mean": 3.26,
+        "min": 2.295,
+        "max": 9.747
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 132.964,
+        "p90": 153.176,
+        "p95": 157.312,
+        "p99": 181.733,
+        "mean": 137.377,
+        "min": 126.803,
+        "max": 182.745
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 479,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.875,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 131.058,
+        "p90": 149.258,
+        "p95": 152.943,
+        "p99": 173.77,
+        "mean": 134.674,
+        "min": 126.286,
+        "max": 179.343
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.309,
+        "p90": 137.74,
+        "p95": 143.191,
+        "p99": 146.813,
+        "mean": 131.647,
+        "min": 126.874,
+        "max": 148.825
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 128.029,
+        "p90": 130.521,
+        "p95": 131.187,
+        "p99": 139.69,
+        "mean": 128.551,
+        "min": 125.42,
+        "max": 140.229
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 485,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.625,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.871,
+        "p90": 138.881,
+        "p95": 147.433,
+        "p99": 154.429,
+        "mean": 132.097,
+        "min": 115.824,
+        "max": 158.383
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 485,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.625,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 132.251,
+        "p90": 136.697,
+        "p95": 138.194,
+        "p99": 145.61,
+        "mean": 132.988,
+        "min": 127.417,
+        "max": 146.253
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 484,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 60.5,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 131.906,
+        "p90": 136.291,
+        "p95": 136.846,
+        "p99": 147.359,
+        "mean": 132.452,
+        "min": 114.763,
+        "max": 149.058
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 474,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.25,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 132.735,
+        "p90": 140.148,
+        "p95": 144.164,
+        "p99": 151.973,
+        "mean": 133.655,
+        "min": 118.814,
+        "max": 152.78
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 472,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 133.13,
+        "p90": 144.08,
+        "p95": 146.215,
+        "p99": 159.254,
+        "mean": 135.473,
+        "min": 128.935,
+        "max": 159.577
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 200,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 130.724,
+        "p90": 134.187,
+        "p95": 138.781,
+        "p99": 145.202,
+        "mean": 131.467,
+        "min": 115.688,
+        "max": 145.88
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 20113,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2514.125,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.144,
+        "p90": 3.586,
+        "p95": 3.728,
+        "p99": 4.079,
+        "mean": 3.182,
+        "min": 2.306,
+        "max": 9.669
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 19787,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2473.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.202,
+        "p90": 3.666,
+        "p95": 3.812,
+        "p99": 4.177,
+        "mean": 3.233,
+        "min": 2.263,
+        "max": 12.328
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 19638,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2454.75,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.228,
+        "p90": 3.694,
+        "p95": 3.843,
+        "p99": 4.142,
+        "mean": 3.259,
+        "min": 2.239,
+        "max": 12.015
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 20051,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2506.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.168,
+        "p90": 3.599,
+        "p95": 3.728,
+        "p99": 3.987,
+        "mean": 3.192,
+        "min": 2.216,
+        "max": 11.326
+      }
+    },
+    {
+      "config": "direct",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 19864,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 2483.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 3.197,
+        "p90": 3.628,
+        "p95": 3.769,
+        "p99": 4.044,
+        "mean": 3.221,
+        "min": 2.213,
+        "max": 11.053
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 128.311,
+        "p90": 132.5,
+        "p95": 135.161,
+        "p99": 141.435,
+        "mean": 128.835,
+        "min": 112.234,
+        "max": 141.912
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 494,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.75,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.46,
+        "p90": 133.035,
+        "p95": 134.616,
+        "p99": 170.739,
+        "mean": 130.394,
+        "min": 124.492,
+        "max": 171.822
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 496,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 62.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 129.231,
+        "p90": 131.248,
+        "p95": 133.651,
+        "p99": 140.942,
+        "mean": 129.346,
+        "min": 124.688,
+        "max": 141.528
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 504,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 63.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 126.307,
+        "p90": 128.814,
+        "p95": 129.302,
+        "p99": 137.417,
+        "mean": 126.732,
+        "min": 123.818,
+        "max": 137.598
+      }
+    },
+    {
+      "config": "gw-min",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 504,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 63.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 126.221,
+        "p90": 129.117,
+        "p95": 129.674,
+        "p99": 136.028,
+        "mean": 126.724,
+        "min": 124.049,
+        "max": 136.988
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 0,
+      "requests": 459,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 57.375,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 132.936,
+        "p90": 152.251,
+        "p95": 158.118,
+        "p99": 165.61,
+        "mean": 138.224,
+        "min": 124.547,
+        "max": 176.115
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 1,
+      "requests": 472,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 134.175,
+        "p90": 141.893,
+        "p95": 143.221,
+        "p99": 158.856,
+        "mean": 135.918,
+        "min": 129.794,
+        "max": 159.78
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 2,
+      "requests": 488,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 61.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 131.051,
+        "p90": 134.012,
+        "p95": 137.063,
+        "p99": 146.656,
+        "mean": 131.883,
+        "min": 127.879,
+        "max": 147.876
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 3,
+      "requests": 472,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 59.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 132.007,
+        "p90": 139.813,
+        "p95": 143.091,
+        "p99": 187.904,
+        "mean": 134.198,
+        "min": 129.652,
+        "max": 188.152
+      }
+    },
+    {
+      "config": "gw-full",
+      "delay_ms": 500,
+      "concurrency": 8,
+      "repeat": 4,
+      "requests": 464,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 58.0,
+      "client_processes": 8,
+      "latency_ms": {
+        "p50": 132.019,
+        "p90": 153.409,
+        "p95": 155.551,
+        "p99": 159.977,
+        "mean": 136.942,
+        "min": 129.298,
+        "max": 160.489
+      }
+    }
+  ],
+  "wall_seconds": 1739.9
+}

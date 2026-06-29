@@ -1,0 +1,83 @@
+{
+  "experiment": "conformance",
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "check": "authorized_request_succeeds",
+      "expected_status": 200,
+      "actual_status": 200,
+      "expected_reason": null,
+      "actual_reason": null,
+      "passed": true
+    },
+    {
+      "check": "unauthenticated_rejected",
+      "expected_status": 401,
+      "actual_status": 401,
+      "expected_reason": null,
+      "actual_reason": "invalid_or_missing_api_key",
+      "passed": true
+    },
+    {
+      "check": "unapproved_model_rejected",
+      "expected_status": 400,
+      "actual_status": 400,
+      "expected_reason": "model_not_allowed",
+      "actual_reason": "model_not_allowed",
+      "passed": true
+    },
+    {
+      "check": "oversized_prompt_rejected",
+      "expected_status": 400,
+      "actual_status": 400,
+      "expected_reason": "prompt_too_large",
+      "actual_reason": "prompt_too_large",
+      "passed": true
+    },
+    {
+      "check": "prompt_secret_rejected",
+      "expected_status": 400,
+      "actual_status": 400,
+      "expected_reason": "prompt_secret_detected",
+      "actual_reason": "prompt_secret_detected",
+      "passed": true
+    },
+    {
+      "check": "streaming_disabled_rejected",
+      "expected_status": 400,
+      "actual_status": 400,
+      "expected_reason": "streaming_disabled",
+      "actual_reason": "streaming_disabled",
+      "passed": true
+    },
+    {
+      "check": "too_many_messages_rejected",
+      "expected_status": 400,
+      "actual_status": 400,
+      "expected_reason": "too_many_messages",
+      "actual_reason": "too_many_messages",
+      "passed": true
+    },
+    {
+      "check": "max_tokens_too_large_rejected",
+      "expected_status": 400,
+      "actual_status": 400,
+      "expected_reason": "max_tokens_too_large",
+      "actual_reason": "max_tokens_too_large",
+      "passed": true
+    },
+    {
+      "check": "sandbox_budget_throttles",
+      "expected_status": 429,
+      "actual_status": 429,
+      "expected_reason": "sandbox_request_budget_exceeded",
+      "actual_reason": "sandbox_request_budget_exceeded",
+      "first_request_status": 200,
+      "passed": true
+    }
+  ]
+}

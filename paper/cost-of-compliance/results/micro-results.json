@@ -1,0 +1,77 @@
+{
+  "experiment": "governance-microbenchmark",
+  "system": {
+    "python": "3.12.3",
+    "cpu_model": "AMD Ryzen 7 5800X3D 8-Core Processor",
+    "cpu_threads": 16
+  },
+  "prompt_chars": 237,
+  "controls": {
+    "auth_api_key": {
+      "ns_per_op": 499.5,
+      "ns_min": 496.3,
+      "ns_stdev": 10.2,
+      "ops_per_sec": 2002170,
+      "iters": 200000,
+      "trials": 7
+    },
+    "admission_with_secret_detection": {
+      "ns_per_op": 14905.6,
+      "ns_min": 14461.7,
+      "ns_stdev": 1466.6,
+      "ops_per_sec": 67089,
+      "iters": 200000,
+      "trials": 7
+    },
+    "admission_without_secret_detection": {
+      "ns_per_op": 696.0,
+      "ns_min": 685.7,
+      "ns_stdev": 4.1,
+      "ops_per_sec": 1436719,
+      "iters": 200000,
+      "trials": 7
+    },
+    "model_allowlist": {
+      "ns_per_op": 129.1,
+      "ns_min": 128.1,
+      "ns_stdev": 0.4,
+      "ops_per_sec": 7744374,
+      "iters": 200000,
+      "trials": 7
+    },
+    "model_routing_resolve": {
+      "ns_per_op": 111.7,
+      "ns_min": 111.3,
+      "ns_stdev": 0.3,
+      "ops_per_sec": 8956294,
+      "iters": 200000,
+      "trials": 7
+    },
+    "budget_reserve": {
+      "ns_per_op": 3789.5,
+      "ns_min": 3722.9,
+      "ns_stdev": 46.0,
+      "ops_per_sec": 263885,
+      "iters": 200000,
+      "trials": 7
+    },
+    "audit_fingerprint": {
+      "ns_per_op": 4282.6,
+      "ns_min": 4275.1,
+      "ns_stdev": 4.0,
+      "ops_per_sec": 233501,
+      "iters": 200000,
+      "trials": 7
+    },
+    "audit_fingerprint_and_serialize": {
+      "ns_per_op": 8912.9,
+      "ns_min": 8835.8,
+      "ns_stdev": 64.5,
+      "ops_per_sec": 112198,
+      "iters": 200000,
+      "trials": 7
+    }
+  },
+  "full_governance_ns_per_request": 28219.2,
+  "full_governance_us_per_request": 28.219
+}
