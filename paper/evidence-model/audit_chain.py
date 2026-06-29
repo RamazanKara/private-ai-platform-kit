@@ -20,6 +20,7 @@ Outputs results/audit-chain-evidence.json.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 from pathlib import Path
 from typing import Any
@@ -187,7 +188,7 @@ def verify_slice(entries: list[dict[str, Any]], slice_entries: list[dict[str, An
     """Re-verify that a returned window is an untampered contiguous sub-chain."""
     if not slice_entries:
         return True
-    for a, b in zip(slice_entries, slice_entries[1:]):
+    for a, b in itertools.pairwise(slice_entries):
         if b["prev_hash"] != a["record_hash"]:
             return False
         if record_hash(a["record_hash"], b["record"]) != b["record_hash"]:

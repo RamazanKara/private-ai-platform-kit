@@ -28,13 +28,13 @@ import sys
 import time
 from pathlib import Path
 
-import httpx
-
 import bench
+import httpx
 
 HERE = Path(__file__).resolve().parent
 RESULTS_DIR = HERE / "results"
-GATEWAY_DIR = Path(os.environ.get("GATEWAY_DIR", str(Path(__file__).resolve().parents[2] / "src" / "inference-gateway")))
+_DEFAULT_GATEWAY_DIR = str(Path(__file__).resolve().parents[2] / "src" / "inference-gateway")
+GATEWAY_DIR = Path(os.environ.get("GATEWAY_DIR", _DEFAULT_GATEWAY_DIR))
 PYTHON = sys.executable
 
 MOCK_PORT = int(os.environ.get("MOCK_PORT", "9099"))
@@ -120,7 +120,7 @@ def wait_healthy(url: str, timeout: float = 25.0) -> None:
             if r.status_code == 200:
                 return
             last = r.status_code
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             last = type(exc).__name__
         time.sleep(0.25)
     raise RuntimeError(f"service at {url} not healthy (last={last})")
@@ -284,10 +284,10 @@ def system_info() -> dict:
         "processor": platform.processor(),
     }
     try:
-        import fastapi  # noqa: PLC0415
+        import fastapi
 
         info["fastapi"] = fastapi.__version__
-    except Exception:  # noqa: BLE001
+    except Exception:
         info["fastapi"] = "unknown"
     cpuinfo = Path("/proc/cpuinfo")
     if cpuinfo.exists():
