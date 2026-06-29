@@ -3,6 +3,7 @@
 [![CI](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/RamazanKara/private-ai-platform-kit?include_prereleases)](https://github.com/RamazanKara/private-ai-platform-kit/releases)
 [![License](https://img.shields.io/github/license/RamazanKara/private-ai-platform-kit)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21039342.svg)](https://doi.org/10.5281/zenodo.21039342)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-GitOps-326CE5)
 ![Helm](https://img.shields.io/badge/Helm-charts-0F1689)
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB)
