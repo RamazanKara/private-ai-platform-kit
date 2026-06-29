@@ -14,7 +14,7 @@ CUSTOMER_REVISION ?= v0.9.0
 CUSTOMER_GPU_PROFILE ?= nvidia
 TOOLCHAIN_BIN_DIR ?= $(CURDIR)/.tools/bin
 PYTHONDONTWRITEBYTECODE ?= 1
-PYTHON := services/inference-gateway/.venv/bin/python
+PYTHON := src/inference-gateway/.venv/bin/python
 
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
@@ -70,7 +70,7 @@ help:
 
 clean:
 	rm -rf .coverage htmlcov .pytest_cache
-	rm -rf services/inference-gateway/.venv services/rag-service/.venv
+	rm -rf src/inference-gateway/.venv src/rag-service/.venv
 	find . -path ./.git -prune -o -type d -name __pycache__ -prune -exec rm -rf {} +
 	find . -path ./.git -prune -o -type d -name .pytest_cache -prune -exec rm -rf {} +
 	find . -path ./.git -prune -o -type d -name .ruff_cache -prune -exec rm -rf {} +
@@ -237,8 +237,8 @@ repo-security-scan:
 		--skip-dirs results \
 		--skip-dirs tenants/generated \
 		--skip-dirs policies/kyverno/tests/resources \
-		--skip-dirs services/inference-gateway/.venv \
-		--skip-dirs services/rag-service/.venv \
+		--skip-dirs src/inference-gateway/.venv \
+		--skip-dirs src/rag-service/.venv \
 		.
 
 dependency-lock-check:

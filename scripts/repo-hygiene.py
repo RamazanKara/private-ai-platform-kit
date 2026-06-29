@@ -94,7 +94,7 @@ IGNORED_MARKDOWN_PARTS = {
     ".pytest_cache",
     ".tools",
     ".venv",
-    "services",
+    "src",
     "tenants/generated",
 }
 
@@ -217,7 +217,7 @@ def tracked_file_modes(errors: list[str]) -> dict[str, str]:
 
 def check_runtime_dependencies(errors: list[str]) -> None:
     for service in ("inference-gateway", "rag-service"):
-        base = ROOT / "services" / service
+        base = ROOT / "src" / service
         runtime_requirements = base / "requirements.txt"
         dev_requirements = base / "requirements-dev.txt"
         runtime_lock = base / "requirements.lock"

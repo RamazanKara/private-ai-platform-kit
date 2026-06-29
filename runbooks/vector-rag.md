@@ -70,7 +70,7 @@ The RAG health endpoint reports the selected backend and collection metadata:
 
 Run a dry ingestion check before writing:
 
-    services/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
+    src/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
       --source rag/sources/platform-knowledge.yaml \
       --backend qdrant \
       --collection-version v1 \

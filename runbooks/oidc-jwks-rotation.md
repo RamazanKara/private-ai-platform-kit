@@ -75,5 +75,5 @@ not key selection.
 ## Validation
 
 Key selection, signature verification, claim validation, and rotation behavior are covered by
-`services/inference-gateway/tests/test_jwt_auth.py`, including the rotated-key case where a
+`src/inference-gateway/tests/test_jwt_auth.py`, including the rotated-key case where a
 retired `kid` is rejected while the active `kid` validates.

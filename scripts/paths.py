@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # rendered manifest reads as an architecture map (services -> platform ->
 # governance inputs -> contracts -> tooling -> docs/evidence).
 DIRECTORIES: dict[str, str] = {
-    "services": "Python FastAPI services (inference gateway and RAG service).",
+    "src": "Python FastAPI services (inference gateway and RAG service).",
     "charts": "Helm charts for every platform component.",
     "clusters": "Per-environment cluster overlays (local lab and customer).",
     "gitops": "Argo CD app-of-apps GitOps definitions.",

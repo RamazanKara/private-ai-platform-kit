@@ -31,8 +31,8 @@ REQUIRED_DASHBOARDS = (
 METRIC_PATTERN = re.compile(r"(?:inference_gateway|rag_service)_[a-z0-9_]+")
 HISTOGRAM_SUFFIXES = ("_bucket", "_sum", "_count")
 SERVICE_SOURCES = {
-    "inference_gateway": ROOT / "services/inference-gateway/app",
-    "rag_service": ROOT / "services/rag-service/app",
+    "inference_gateway": ROOT / "src/inference-gateway/app",
+    "rag_service": ROOT / "src/rag-service/app",
 }
 
 

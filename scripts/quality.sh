@@ -26,18 +26,18 @@ ensure_tools() {
 }
 
 run_lint() {
-  echo "[quality] ruff lint (services + scripts)"
+  echo "[quality] ruff lint (src + scripts)"
   "$PYBIN" -m ruff check .
 }
 
 run_format_check() {
-  echo "[quality] ruff format check (services)"
-  "$PYBIN" -m ruff format --check services
+  echo "[quality] ruff format check (src)"
+  "$PYBIN" -m ruff format --check src
 }
 
 run_format_fix() {
-  echo "[quality] ruff format + autofix (services)"
-  "$PYBIN" -m ruff format services
+  echo "[quality] ruff format + autofix (src)"
+  "$PYBIN" -m ruff format src
   "$PYBIN" -m ruff check . --fix
 }
 
@@ -47,7 +47,7 @@ run_typecheck() {
   for service in inference-gateway rag-service; do
     echo "[quality] mypy (${service})"
     (
-      cd "services/${service}"
+      cd "src/${service}"
       MYPYPATH="$PWD" "$PYBIN" -m mypy app --config-file "$ROOT/pyproject.toml"
     )
   done

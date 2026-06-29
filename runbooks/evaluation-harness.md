@@ -21,8 +21,8 @@ The default smoke suite is intentionally small. The coding-agent suite adds chec
 
 Run this without a live cluster:
 
-    services/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/smoke-suite.yaml --check-config
-    services/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/coding-agent-suite.yaml --check-config
+    src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/smoke-suite.yaml --check-config
+    src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/coding-agent-suite.yaml --check-config
 
 Expected output:
 

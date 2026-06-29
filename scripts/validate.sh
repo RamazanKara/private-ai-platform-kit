@@ -12,7 +12,7 @@ log "bootstrapping Python validation environment"
 ./scripts/bootstrap-python.sh
 
 log "checking validation toolchain manifest"
-services/inference-gateway/.venv/bin/python scripts/toolchain-doctor.py --profile validate --check
+src/inference-gateway/.venv/bin/python scripts/toolchain-doctor.py --profile validate --check
 
 log "running inference gateway tests"
 ./scripts/test-gateway.sh
@@ -50,7 +50,7 @@ for chart in charts/agent-workspace charts/budget-redis charts/inference-gateway
 done
 
 log "checking YAML syntax with Python"
-services/inference-gateway/.venv/bin/python - <<'PY'
+src/inference-gateway/.venv/bin/python - <<'PY'
 from pathlib import Path
 import yaml
 
@@ -73,55 +73,55 @@ log "checking repository hygiene"
 python3 scripts/repo-hygiene.py --check
 
 log "checking generated chart docs"
-services/inference-gateway/.venv/bin/python scripts/chart-docs.py --check
+src/inference-gateway/.venv/bin/python scripts/chart-docs.py --check
 
 log "checking API contracts"
-services/inference-gateway/.venv/bin/python scripts/api-contract.py --check
+src/inference-gateway/.venv/bin/python scripts/api-contract.py --check
 
 log "checking configuration contracts"
-services/inference-gateway/.venv/bin/python scripts/config-contract.py --check
+src/inference-gateway/.venv/bin/python scripts/config-contract.py --check
 
 log "checking observability dashboards"
-services/inference-gateway/.venv/bin/python scripts/dashboard-check.py --check
+src/inference-gateway/.venv/bin/python scripts/dashboard-check.py --check
 
 log "checking production readiness controls"
-services/inference-gateway/.venv/bin/python scripts/production-check.py
+src/inference-gateway/.venv/bin/python scripts/production-check.py
 
 log "checking evidence pack inputs"
-services/inference-gateway/.venv/bin/python scripts/evidence-pack.py --check
+src/inference-gateway/.venv/bin/python scripts/evidence-pack.py --check
 
 log "checking egress governance"
-services/inference-gateway/.venv/bin/python scripts/egress-governance.py --check
+src/inference-gateway/.venv/bin/python scripts/egress-governance.py --check
 
 log "checking data retention governance"
-services/inference-gateway/.venv/bin/python scripts/retention-check.py --check
+src/inference-gateway/.venv/bin/python scripts/retention-check.py --check
 
 log "checking SLO and error budget governance"
-services/inference-gateway/.venv/bin/python scripts/slo-report.py --check
+src/inference-gateway/.venv/bin/python scripts/slo-report.py --check
 
 log "checking quota and chargeback governance"
-services/inference-gateway/.venv/bin/python scripts/quota-check.py --check
+src/inference-gateway/.venv/bin/python scripts/quota-check.py --check
 
 log "checking release gates"
-services/inference-gateway/.venv/bin/python scripts/release-gate.py --check
+src/inference-gateway/.venv/bin/python scripts/release-gate.py --check
 
 log "checking tenant onboarding spec"
-services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check
-services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check --spec tenants/onboarding/regulated-offline-coding-agents.yaml
-services/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check --spec tenants/onboarding/gpu-coding-agents.yaml
+src/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check
+src/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check --spec tenants/onboarding/regulated-offline-coding-agents.yaml
+src/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check --spec tenants/onboarding/gpu-coding-agents.yaml
 
 log "checking customer overlay configuration"
-services/inference-gateway/.venv/bin/python scripts/configure-customer-overlay.py --check
+src/inference-gateway/.venv/bin/python scripts/configure-customer-overlay.py --check
 
 log "checking model catalog governance"
-services/inference-gateway/.venv/bin/python scripts/model-catalog.py --check
+src/inference-gateway/.venv/bin/python scripts/model-catalog.py --check
 
 log "checking model provenance governance"
-services/inference-gateway/.venv/bin/python scripts/model-provenance.py --check
+src/inference-gateway/.venv/bin/python scripts/model-provenance.py --check
 
 log "checking eval suite syntax"
-services/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/smoke-suite.yaml --check-config
-services/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/coding-agent-suite.yaml --check-config
+src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/smoke-suite.yaml --check-config
+src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite evals/coding-agent-suite.yaml --check-config
 
 if require_optional_or_full kubeconform "kubeconform is needed for Kubernetes schema validation."; then
   kubeconform -summary -ignore-missing-schemas "${rendered_manifests[@]}"
@@ -161,8 +161,8 @@ if require_optional_or_full k6 "k6 is needed for load-test syntax validation."; 
 fi
 
 if require_optional_or_full syft "Syft is needed for SBOM smoke validation."; then
-  syft dir:services/inference-gateway -o spdx-json >/tmp/inference-gateway.sbom.json
-  syft dir:services/rag-service -o spdx-json >/tmp/rag-service.sbom.json
+  syft dir:src/inference-gateway -o spdx-json >/tmp/inference-gateway.sbom.json
+  syft dir:src/rag-service -o spdx-json >/tmp/rag-service.sbom.json
 fi
 
 if require_optional_or_full argocd "Argo CD CLI is needed for GitOps client validation."; then
@@ -184,8 +184,8 @@ if require_optional_or_full trivy "Trivy is needed for filesystem secret and con
     --skip-dirs results \
     --skip-dirs tenants/generated \
     --skip-dirs policies/kyverno/tests/resources \
-    --skip-dirs services/inference-gateway/.venv \
-    --skip-dirs services/rag-service/.venv \
+    --skip-dirs src/inference-gateway/.venv \
+    --skip-dirs src/rag-service/.venv \
     . >"$trivy_output"; then
     cat "$trivy_output"
     exit 1

@@ -530,5 +530,5 @@
   ],
   "helm_chart": "charts/inference-gateway",
   "service": "inference-gateway",
-  "service_settings": "services/inference-gateway/app/settings.py"
+  "service_settings": "src/inference-gateway/app/settings.py"
 }

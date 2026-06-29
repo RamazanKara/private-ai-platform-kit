@@ -14,7 +14,7 @@ import httpx
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-RAG_SERVICE_DIR = ROOT / "services/rag-service"
+RAG_SERVICE_DIR = ROOT / "src/rag-service"
 sys.path.insert(0, str(RAG_SERVICE_DIR))
 
 from app.embeddings import EmbeddingProvider, build_embedding_provider  # noqa: E402

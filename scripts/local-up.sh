@@ -57,11 +57,11 @@ else
 fi
 
 log "building gateway image ${GATEWAY_IMAGE}"
-docker build -t "$GATEWAY_IMAGE" services/inference-gateway
+docker build -t "$GATEWAY_IMAGE" src/inference-gateway
 kind load docker-image "$GATEWAY_IMAGE" --name "$CLUSTER_NAME"
 
 log "building RAG service image ${RAG_IMAGE}"
-docker build -t "$RAG_IMAGE" services/rag-service
+docker build -t "$RAG_IMAGE" src/rag-service
 kind load docker-image "$RAG_IMAGE" --name "$CLUSTER_NAME"
 
 log "ensuring Argo CD namespace exists"

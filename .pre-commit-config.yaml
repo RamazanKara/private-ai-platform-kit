@@ -10,7 +10,7 @@ repos:
         args: [--fix]
       - id: ruff-format
         name: ruff (format)
-        files: ^services/
+        files: ^src/
   - repo: local
     hooks:
       - id: mypy

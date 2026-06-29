@@ -6,7 +6,7 @@ $ make quickstart
 [private-ai-platform-kit] checking local toolchain profile
 make[1]: Entering directory '/home/rambo/git/private-ai-platform-kit'
 ./scripts/bootstrap-python.sh
-services/inference-gateway/.venv/bin/python scripts/toolchain-doctor.py --profile "local" --check
+src/inference-gateway/.venv/bin/python scripts/toolchain-doctor.py --profile "local" --check
 validation toolchain profile local: 7/7 required present, 7/7 optional present
 make[1]: Leaving directory '/home/rambo/git/private-ai-platform-kit'
 [private-ai-platform-kit] skipping make validate because QUICKSTART_SKIP_VALIDATE=1

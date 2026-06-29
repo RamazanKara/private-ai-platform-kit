@@ -730,7 +730,7 @@ def check_release_packaging(errors: list[str]) -> None:
         text = (ROOT / path).read_text()
         require(errors, f"CUSTOMER_REVISION={release_tag}" in text, f"{path} must show CUSTOMER_REVISION={release_tag}")
 
-    for path in ("services/inference-gateway/app/main.py", "services/rag-service/app/main.py"):
+    for path in ("src/inference-gateway/app/main.py", "src/rag-service/app/main.py"):
         text = (ROOT / path).read_text()
         require(errors, f'SERVICE_VERSION = "{release_version}"' in text, f"{path} SERVICE_VERSION must match latest CHANGELOG version")
 
@@ -739,12 +739,12 @@ def check_release_packaging(errors: list[str]) -> None:
         require(errors, nested(api, "info", "version") == release_version, f"{path} info.version must match latest CHANGELOG version")
 
     for service in ("inference-gateway", "rag-service"):
-        dockerignore = ROOT / f"services/{service}/.dockerignore"
-        dockerfile = ROOT / f"services/{service}/Dockerfile"
-        requirements = ROOT / f"services/{service}/requirements.txt"
-        dev_requirements = ROOT / f"services/{service}/requirements-dev.txt"
-        runtime_lock = ROOT / f"services/{service}/requirements.lock"
-        dev_lock = ROOT / f"services/{service}/requirements-dev.lock"
+        dockerignore = ROOT / f"src/{service}/.dockerignore"
+        dockerfile = ROOT / f"src/{service}/Dockerfile"
+        requirements = ROOT / f"src/{service}/requirements.txt"
+        dev_requirements = ROOT / f"src/{service}/requirements-dev.txt"
+        runtime_lock = ROOT / f"src/{service}/requirements.lock"
+        dev_lock = ROOT / f"src/{service}/requirements-dev.lock"
         require(errors, dockerfile.exists(), f"{service} Dockerfile must exist")
         if dockerfile.exists():
             dockerfile_text = dockerfile.read_text()

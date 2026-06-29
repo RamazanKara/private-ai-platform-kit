@@ -308,5 +308,5 @@
   ],
   "helm_chart": "charts/rag-service",
   "service": "rag-service",
-  "service_settings": "services/rag-service/app/settings.py"
+  "service_settings": "src/rag-service/app/settings.py"
 }

@@ -7,7 +7,7 @@ cd "$ROOT"
 
 require_cmd python3 "Python 3 is required for eval execution."
 
-if [[ ! -x services/inference-gateway/.venv/bin/python ]]; then
+if [[ ! -x src/inference-gateway/.venv/bin/python ]]; then
   log "creating inference gateway Python environment for evals"
   ./scripts/test-gateway.sh >/dev/null
 fi
@@ -31,7 +31,7 @@ if [[ -z "$GATEWAY_URL" ]]; then
 fi
 
 log "running eval suite ${SUITE} against ${GATEWAY_URL}"
-services/inference-gateway/.venv/bin/python scripts/eval-suite.py \
+src/inference-gateway/.venv/bin/python scripts/eval-suite.py \
   --suite "$SUITE" \
   --gateway-url "$GATEWAY_URL" \
   --output-json "$output_json" \

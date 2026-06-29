@@ -54,7 +54,7 @@ Customer document ingestion starts with a `platform.ai/v1alpha1` `RagSourceManif
 
 Validate a source manifest locally without writing vectors:
 
-    services/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
+    src/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
       --source rag/sources/platform-knowledge.yaml \
       --backend qdrant \
       --collection-version v1 \
@@ -63,7 +63,7 @@ Validate a source manifest locally without writing vectors:
 Write to Qdrant only after source ownership, classification, retention class, and embedding model have been approved:
 
     QDRANT_URL=http://qdrant-vector-store.vector.svc.cluster.local:6333 \
-    services/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
+    src/inference-gateway/.venv/bin/python scripts/rag-ingest.py \
       --source rag/sources/platform-knowledge.yaml \
       --backend qdrant \
       --collection-version v1 \

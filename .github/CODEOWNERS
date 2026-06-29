@@ -1,8 +1,8 @@
 # Default ownership for platform-wide changes.
 * @RamazanKara
 
-# Runtime services and tests.
-/services/ @RamazanKara
+# Runtime services and load tests.
+/src/ @RamazanKara
 /loadtest/ @RamazanKara
 
 # Kubernetes, GitOps, and customer deployment surface.

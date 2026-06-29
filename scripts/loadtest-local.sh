@@ -70,7 +70,7 @@ wait_http "http://127.0.0.1:${MOCK_RUNTIME_PORT}/healthz"
 
 log "starting inference gateway on 127.0.0.1:${GATEWAY_PORT}"
 (
-  cd services/inference-gateway
+  cd src/inference-gateway
   PYTHONPATH="$PWD" \
     RUNTIME_BACKEND=ollama \
     OLLAMA_BASE_URL="http://127.0.0.1:${MOCK_RUNTIME_PORT}" \

@@ -28,10 +28,10 @@ SUMMARY_JSON="${OUTPUT_DIR}/supply-chain-summary-${STAMP}.json"
 SUMMARY_MD="${OUTPUT_DIR}/supply-chain-summary-${STAMP}.md"
 
 log "building inference gateway image for vulnerability scan"
-docker build --pull -t "$GATEWAY_IMAGE" services/inference-gateway
+docker build --pull -t "$GATEWAY_IMAGE" src/inference-gateway
 
 log "building RAG service image for vulnerability scan"
-docker build --pull -t "$RAG_IMAGE" services/rag-service
+docker build --pull -t "$RAG_IMAGE" src/rag-service
 
 scan_image() {
   local image="$1"

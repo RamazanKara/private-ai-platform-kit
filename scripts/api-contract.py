@@ -35,7 +35,7 @@ class ServiceContract:
 
 CONTRACTS = {
     "inference-gateway": ServiceContract(
-        service_dir=ROOT / "services/inference-gateway",
+        service_dir=ROOT / "src/inference-gateway",
         title="Private AI Platform Kit Inference Gateway",
         version="0.9.0",
         snapshot=ROOT / "api-contracts/inference-gateway.openapi.json",
@@ -68,7 +68,7 @@ CONTRACTS = {
         },
     ),
     "rag-service": ServiceContract(
-        service_dir=ROOT / "services/rag-service",
+        service_dir=ROOT / "src/rag-service",
         title="Private AI Platform Kit RAG Service",
         version="0.9.0",
         snapshot=ROOT / "api-contracts/rag-service.openapi.json",

@@ -177,22 +177,22 @@ def static_controls() -> list[Control]:
         ),
         control(
             "OpenAI-compatible gateway and API authentication",
-            exists("services/inference-gateway/app/main.py", "charts/inference-gateway/templates/deployment.yaml")
+            exists("src/inference-gateway/app/main.py", "charts/inference-gateway/templates/deployment.yaml")
             and nested(local_gateway, "auth", "enabled") is True
             and nested(customer_gateway, "auth", "enabled") is True
             and nested(customer_gateway, "auth", "existingSecret", "name"),
             "Gateway business endpoints require API keys in local and customer values.",
-            ["services/inference-gateway/app/main.py", "charts/inference-gateway/", "clusters/customer/values/inference-gateway.yaml"],
+            ["src/inference-gateway/app/main.py", "charts/inference-gateway/", "clusters/customer/values/inference-gateway.yaml"],
             "Back customer key hashes with the customer's secret manager and rotate through External Secrets.",
         ),
         control(
             "RAG service for coding-agent grounding",
-            exists("services/rag-service/app/main.py", "charts/rag-service/templates/deployment.yaml")
+            exists("src/rag-service/app/main.py", "charts/rag-service/templates/deployment.yaml")
             and nested(local_rag, "auth", "enabled") is True
             and nested(customer_rag, "auth", "enabled") is True
             and nested(customer_rag, "autoscaling", "enabled") is True,
             "The RAG service exposes approved context and grounded messages with the same API-key pattern.",
-            ["services/rag-service/app/main.py", "charts/rag-service/", "runbooks/rag-service.md"],
+            ["src/rag-service/app/main.py", "charts/rag-service/", "runbooks/rag-service.md"],
             "Replace or extend the bundled knowledge documents with customer-approved internal context.",
         ),
         control(
@@ -314,7 +314,7 @@ def static_controls() -> list[Control]:
             and "private_key" in nested(customer_gateway, "guardrails", "promptSecretDetection", "patterns", default=[])
             and exists("runbooks/guardrails.md"),
             "Gateway admission rejects obvious credential material before prompts reach Ollama or vLLM.",
-            ["services/inference-gateway/app/settings.py", "clusters/customer/values/inference-gateway.yaml", "runbooks/guardrails.md"],
+            ["src/inference-gateway/app/settings.py", "clusters/customer/values/inference-gateway.yaml", "runbooks/guardrails.md"],
             "Keep secret detection enabled for coding-agent workspaces and tune pattern lists only after review.",
         ),
         control(

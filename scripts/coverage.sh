@@ -16,7 +16,7 @@ RAG_COVERAGE_MIN="${RAG_COVERAGE_MIN:-84}"
 
 run_service_coverage() {
   local service="$1" floor="$2"
-  local dir="$ROOT/services/${service}"
+  local dir="$ROOT/src/${service}"
   echo "[coverage] ${service} (floor ${floor}%)"
   cd "$dir"
   python3 -m venv .venv

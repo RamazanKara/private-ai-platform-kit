@@ -69,7 +69,7 @@ wait_http "http://127.0.0.1:${MOCK_RUNTIME_PORT}/healthz"
 
 log "starting inference gateway on 127.0.0.1:${GATEWAY_PORT}"
 (
-  cd services/inference-gateway
+  cd src/inference-gateway
   PYTHONPATH="$PWD" \
     RUNTIME_BACKEND=ollama \
     OLLAMA_BASE_URL="http://127.0.0.1:${MOCK_RUNTIME_PORT}" \
@@ -89,7 +89,7 @@ OUT="results/evals/eval-${STAMP}.json"
 SUMMARY="results/evals/eval-${STAMP}.md"
 
 log "running eval suite ${SUITE} against local mock-backed gateway"
-services/inference-gateway/.venv/bin/python scripts/eval-suite.py \
+src/inference-gateway/.venv/bin/python scripts/eval-suite.py \
   --suite "$SUITE" \
   --gateway-url "http://127.0.0.1:${GATEWAY_PORT}" \
   --output-json "$OUT" \

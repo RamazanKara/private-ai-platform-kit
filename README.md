@@ -145,7 +145,7 @@ The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-age
 | `charts/` | Helm charts for gateway, runtimes, RAG, vector store, budget Redis, and agent workspaces |
 | `clusters/local/` | Local `kind` and Argo CD values |
 | `clusters/customer/` | Provider-neutral customer cluster values |
-| `services/` | Gateway and RAG service code |
+| `src/` | Gateway and RAG service code |
 | `api-contracts/` | Versioned OpenAPI snapshots for customer-facing services |
 | `config-contracts/` | Versioned runtime configuration snapshots for services and Helm charts |
 | `runbooks/` | Operational procedures and incident drills |

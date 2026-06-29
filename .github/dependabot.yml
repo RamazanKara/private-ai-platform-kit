@@ -26,7 +26,7 @@ updates:
           - patch
 
   - package-ecosystem: pip
-    directory: "/services/inference-gateway"
+    directory: "/src/inference-gateway"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -37,7 +37,7 @@ updates:
           - patch
 
   - package-ecosystem: pip
-    directory: "/services/rag-service"
+    directory: "/src/rag-service"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -49,7 +49,7 @@ updates:
 
   # docker — base-image digests for the two service Dockerfiles.
   - package-ecosystem: docker
-    directory: "/services/inference-gateway"
+    directory: "/src/inference-gateway"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -60,7 +60,7 @@ updates:
           - patch
 
   - package-ecosystem: docker
-    directory: "/services/rag-service"
+    directory: "/src/rag-service"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
