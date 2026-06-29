@@ -70,6 +70,9 @@ spec:
       status: approved
       source: huggingface
       sourceUri: https://huggingface.co/Qwen/Qwen3-Coder-Next
+      # Pin to a specific Hugging Face commit before production; this scope is a source
+      # pointer the customer replaces with their own pinned model-store revision + checksum.
+      revision: main
       immutableRef: huggingface://Qwen/Qwen3-Coder-Next@sha256:71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06
       digest:
         algorithm: sha256

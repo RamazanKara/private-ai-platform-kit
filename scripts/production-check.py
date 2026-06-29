@@ -396,8 +396,9 @@ def check_model_catalog(errors: list[str]) -> None:
     catalog = yaml.safe_load(catalog_path.read_text())
     models = nested(catalog, "spec", "models", default=[])
     model_ids = {model.get("id") for model in models}
-    require(errors, "qwen2.5:0.5b" in model_ids, "model catalog must include the local Ollama smoke model")
-    require(errors, "Qwen/Qwen3-Coder-Next" in model_ids, "model catalog must include the vLLM customer lab model")
+    approved_runtimes = {model.get("runtime") for model in models if model.get("status") == "approved"}
+    require(errors, "ollama" in approved_runtimes, "model catalog must include at least one approved ollama model for the local smoke")
+    require(errors, "vllm" in approved_runtimes, "model catalog must include at least one approved vllm model for the customer GPU profile")
     for model in models:
         model_id = model.get("id", "<unknown>")
         require(errors, bool(model.get("owner")), f"model catalog entry {model_id} must define owner")
@@ -419,9 +420,11 @@ def check_model_governance(errors: list[str]) -> None:
     require(errors, os.access(script, os.X_OK), "scripts/model-catalog.py must be executable")
     require(errors, (ROOT / "runbooks/model-governance.md").exists(), "model governance runbook must exist")
     require(errors, (ROOT / "results/model-catalog/sample-summary.md").exists(), "model catalog sample summary must exist")
-    require(errors, (ROOT / "model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml").exists(), "Qwen2.5 local model promotion request must exist")
-    require(errors, (ROOT / "model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml").exists(), "Qwen3.5 customer model promotion request must exist")
-    require(errors, (ROOT / "model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml").exists(), "Qwen3 Coder model promotion request must exist")
+    catalog_models = nested(yaml.safe_load((ROOT / "model-catalog/models.yaml").read_text()), "spec", "models", default=[])
+    for model in catalog_models:
+        if model.get("status") == "approved":
+            promotion_request = model.get("promotionRequest")
+            require(errors, bool(promotion_request) and (ROOT / str(promotion_request)).exists(), f"approved model {model.get('id')} must reference an existing promotion request")
 
 
 def check_sandbox(errors: list[str]) -> None:
@@ -894,8 +897,9 @@ def check_model_provenance_governance(errors: list[str]) -> None:
         require(errors, policy.get("kind") == "ModelProvenanceSet", "model provenance policy kind must be ModelProvenanceSet")
         artifacts = nested(policy, "spec", "artifacts", default=[])
         model_ids = {item.get("modelId") for item in artifacts if isinstance(item, dict)}
-        expected = {"qwen2.5:0.5b", "qwen3.5:0.8b", "Qwen/Qwen3-Coder-Next"}
-        require(errors, expected <= model_ids, f"model provenance policy missing {sorted(expected - model_ids)}")
+        catalog_models = nested(yaml.safe_load((ROOT / "model-catalog/models.yaml").read_text()), "spec", "models", default=[])
+        expected = {model.get("id") for model in catalog_models if model.get("status") == "approved"}
+        require(errors, expected <= model_ids, f"model provenance must cover all approved catalog models; missing {sorted(expected - model_ids)}")
         required = set(nested(policy, "spec", "requiredEvidence", default=[]))
         required_fields = {"sourceUri", "immutableRef", "digest", "license", "dataClassification", "riskTier", "promotionRequest", "servingProfiles"}
         require(errors, required_fields <= required, f"model provenance policy missing required evidence {sorted(required_fields - required)}")

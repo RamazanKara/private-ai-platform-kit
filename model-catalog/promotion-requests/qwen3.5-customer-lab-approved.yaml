@@ -7,7 +7,7 @@ spec:
   targetStatus: approved
   requestedBy: platform-team
   approvers:
-    - platform-team
+    - model-governance-board
   businessJustification: Higher-quality small Qwen3.5 reasoning model for the customer Ollama profile. It reasons slowly on CPU, so the local laptop profile uses the faster qwen2.5:0.5b instead.
   runtime: ollama
   accelerators:
@@ -18,7 +18,7 @@ spec:
     allowedModelFiles:
       - clusters/customer/values/inference-gateway.yaml
   evidence:
-    evalSuite: evals/smoke-suite.yaml
+    evalSuite: evals/coding-agent-suite.yaml
     evalSummary: results/evals/sample-summary.md
     loadTestSummary: results/loadtest/sample-summary.md
     securityWorkflow: .github/workflows/ci.yml

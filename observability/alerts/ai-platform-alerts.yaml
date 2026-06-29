@@ -109,6 +109,24 @@ spec:
             severity: warning
           annotations:
             summary: No successful restore drill has completed in the last 26 hours.
+    - name: backup.rules
+      rules:
+        - alert: VeleroBackupFailed
+          expr: |
+            increase(velero_backup_failure_total[1h]) > 0
+            or increase(velero_backup_partial_failure_total[1h]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: A scheduled Velero backup has failed or partially failed.
+        - alert: VeleroBackupStale
+          expr: time() - max(velero_backup_last_successful_timestamp) by (schedule) > 93600
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: No successful Velero backup has completed in the last 26 hours.
     - name: rag.rules
       rules:
         - alert: RagServiceHighErrorRate

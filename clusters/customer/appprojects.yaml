@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: private-ai-platform
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: private-ai-platform
+    app.kubernetes.io/part-of: private-ai-platform-kit
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: >-
+    Locks the GitOps source for the private AI platform to the customer repo and
+    the in-cluster destination. Application sync is restricted to the repos in
+    sourceRepos and the in-cluster API server; namespace scoping can be tightened
+    per workload by narrowing destinations and the resource whitelists.
+  sourceRepos:
+    - https://github.com/RamazanKara/private-ai-platform-kit.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

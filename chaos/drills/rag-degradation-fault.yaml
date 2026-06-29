@@ -1,0 +1,41 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: rag-degradation-fault
+spec:
+  # TRUE FAULT-INJECTION DRILL (not a rollout restart).
+  # Removes the Qdrant dependency (scale to 0) under the running RAG service and
+  # asserts RAG degrades gracefully -- the Deployment stays Available and the
+  # PDB/error-budget holds rather than the service crashing -- then restores
+  # Qdrant and asserts recovery via the real RAG smoke. The *-rollout drills in
+  # this directory only prove graceful restart; this one proves fault tolerance.
+  description: >-
+    Fault injection: scale Qdrant to zero under the running RAG service, assert
+    RAG stays Available (graceful degradation, PDB holds), then restore Qdrant
+    and assert recovery.
+  mode: fault-injection
+  faultInjection:
+    type: dependency-removal
+    inject: scale qdrant-vector-store to 0 replicas
+    revert: scale qdrant-vector-store back to its original replica count
+  target:
+    # Tagged capacity-preflight (not rollout-restart): the drill does not
+    # `rollout restart` a workload; it scales the Qdrant dependency to 0 and
+    # back. The real behaviour is described under mode/faultInjection above.
+    namespace: rag
+    kind: Deployment
+    name: rag-service-rag-service
+  action: capacity-preflight
+  validation:
+    command: DRILL=rag-degradation-fault make chaos-drill
+    expected: >-
+      With Qdrant scaled to 0 the RAG Deployment stays Available and the PDB
+      holds; after Qdrant is restored, RAG smoke passes against the qdrant
+      backend.
+  safety:
+    # Reversible: the original Qdrant replica count is restored on exit even if
+    # an assertion fails. requiresConfirmation because it removes a live
+    # dependency from a running service.
+    destructive: false
+    requiresConfirmation: true
+    maxDurationSeconds: 600

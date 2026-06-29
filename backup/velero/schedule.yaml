@@ -6,11 +6,21 @@ metadata:
 spec:
   schedule: "0 2 * * *"
   template:
+    # Back up data-bearing namespaces only. Stateless/re-pullable runtime
+    # namespaces (inference, vllm) hold no unique data and are excluded; they
+    # are reconstructed by GitOps + image/model pulls. budget is also excluded
+    # because the Redis there is ephemeral cache.
     includedNamespaces:
-      - inference
-      - ollama
-      - vllm
-      - restore-drill
+      - vector        # Qdrant vector store PVCs (RAG embeddings)
+      - ai-agents     # agent workspace PVCs
+      - argocd        # GitOps/Argo CD application and sync state
+      - ollama        # local model store
+      - restore-drill # restore-drill evidence consumed by the smoke test
     ttl: 168h0m0s
     storageLocation: default
+    # Capture PVC contents, not just object metadata. Without this a restore
+    # resurrects empty data stores. CSI volume snapshots are preferred wherever
+    # a snapshotter/VolumeSnapshotClass exists; set volumeSnapshotLocations and
+    # rely on CSI there. File-system backup is the portable fallback.
+    defaultVolumesToFsBackup: true
 

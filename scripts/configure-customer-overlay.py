@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_APP = ROOT / "gitops/argocd/root-app-customer.yaml"
 CUSTOMER_APPS = ROOT / "clusters/customer/apps.yaml"
+APPPROJECTS = ROOT / "clusters/customer/appprojects.yaml"
 VLLM_VALUE_FILES = {
     "default": "../../clusters/customer/values/vllm.yaml",
     "nvidia": "../../clusters/customer/values/vllm-nvidia.yaml",
@@ -20,6 +22,14 @@ VLLM_VALUE_FILES = {
 
 def valid_git_url(value: str) -> bool:
     return value.startswith(("https://", "ssh://", "git@"))
+
+
+def is_pinned_revision(rev: str) -> bool:
+    """True only for an immutable ref: a semver-ish tag or a commit SHA."""
+    return bool(
+        re.fullmatch(r"v?\d+\.\d+\.\d+([.-].+)?", rev)
+        or re.fullmatch(r"[0-9a-f]{7,40}", rev)
+    )
 
 
 def load_yaml_documents(path: Path) -> list[dict[str, Any]]:
@@ -71,6 +81,26 @@ def check_overlay() -> list[str]:
     require(errors, nested(root, "spec", "source", "path") == "clusters/customer", "customer root app must point at clusters/customer")
     require(errors, isinstance(root_repo, str) and valid_git_url(root_repo), "customer root repoURL must be a Git URL")
     require(errors, isinstance(root_revision, str) and bool(root_revision), "customer root targetRevision must be set")
+    require(errors, is_pinned_revision(str(root_revision)), "customer root targetRevision must be pinned to a tag or commit SHA, not HEAD or a branch")
+
+    require(errors, APPPROJECTS.exists(), "clusters/customer/appprojects.yaml must exist")
+    if APPPROJECTS.exists():
+        try:
+            project_docs = load_yaml_documents(APPPROJECTS)
+        except (OSError, ValueError, yaml.YAMLError) as exc:
+            project_docs = []
+            errors.append(str(exc))
+        platform_project = next(
+            (doc for doc in project_docs if nested(doc, "metadata", "name") == "private-ai-platform"),
+            None,
+        )
+        require(errors, platform_project is not None, "appprojects.yaml must contain an AppProject named private-ai-platform")
+        if platform_project is not None:
+            require(
+                errors,
+                nested(platform_project, "spec", "sourceRepos") == [root_repo],
+                "private-ai-platform AppProject sourceRepos must equal the customer root repoURL",
+            )
 
     application_names: set[str] = set()
     runtime_vllm: dict[str, Any] | None = None
@@ -85,6 +115,7 @@ def check_overlay() -> list[str]:
         require(errors, isinstance(source, dict), f"{name}: spec.source must be set")
         require(errors, nested(application, "spec", "source", "repoURL") == root_repo, f"{name}: repoURL must match root-app-customer.yaml")
         require(errors, nested(application, "spec", "source", "targetRevision") == root_revision, f"{name}: targetRevision must match root-app-customer.yaml")
+        require(errors, nested(application, "spec", "project") == "private-ai-platform", f"{name}: must use the private-ai-platform AppProject, not project: default")
         source_path = nested(application, "spec", "source", "path")
         require(errors, isinstance(source_path, str) and (ROOT / source_path).exists(), f"{name}: source.path must exist")
         value_files = nested(application, "spec", "source", "helm", "valueFiles") or []
@@ -138,6 +169,13 @@ def configure_overlay(repo_url: str, target_revision: str, gpu_profile: str, dry
         write_yaml_documents(ROOT_APP, root_docs)
         write_yaml_documents(CUSTOMER_APPS, app_docs)
 
+    if APPPROJECTS.exists():
+        project_docs = load_yaml_documents(APPPROJECTS)
+        for project in project_docs:
+            project.setdefault("spec", {})["sourceRepos"] = [repo_url]
+        if not dry_run:
+            write_yaml_documents(APPPROJECTS, project_docs)
+
     action = "would configure" if dry_run else "configured"
     print(f"{action} customer overlay: repo={repo_url}, revision={target_revision}, gpu_profile={gpu_profile}")
 
@@ -145,7 +183,7 @@ def configure_overlay(repo_url: str, target_revision: str, gpu_profile: str, dry
 def main() -> int:
     parser = argparse.ArgumentParser(description="Configure and validate the customer-owned Kubernetes GitOps overlay.")
     parser.add_argument("--repo-url", default="https://github.com/RamazanKara/private-ai-platform-kit.git")
-    parser.add_argument("--target-revision", default="HEAD")
+    parser.add_argument("--target-revision", default="v0.9.0")
     parser.add_argument("--gpu-profile", choices=sorted(VLLM_VALUE_FILES), default="nvidia")
     parser.add_argument("--check", action="store_true", help="Validate the current overlay without modifying files.")
     parser.add_argument("--dry-run", action="store_true", help="Print the requested configuration without writing files.")

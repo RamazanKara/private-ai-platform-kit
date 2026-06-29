@@ -50,6 +50,11 @@ spec:
         - protocol: TCP
           port: {{ .Values.networkPolicy.rag.port }}
     {{- range .Values.networkPolicy.allowedEgressCidrs }}
+    {{- /* Reject ungoverned egress at render time: every CIDR must cite a catalogRef
+           reviewed in network/egress-catalog.yaml. The CI egress-governance check only
+           scans the reviewed tenant spec files, so this closes the --set / out-of-band
+           overlay bypass. */}}
+    {{- $catalogRef := required (printf "agent-workspace: allowedEgressCidrs entry %s must set a non-empty catalogRef governed by network/egress-catalog.yaml" .cidr) .catalogRef }}
     - to:
         - ipBlock:
             cidr: {{ .cidr | quote }}

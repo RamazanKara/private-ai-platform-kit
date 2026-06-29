@@ -4,7 +4,11 @@ metadata:
   name: private-ai-platform-kit-local-release
 spec:
   profile: local-customer-handoff
-  description: Minimum evidence required before using the local lab for a customer demo, release review, restore-drill review, or production-readiness handoff.
+  description: >-
+    Minimum evidence required before using the local lab for a customer demo,
+    release review, restore-drill review, or production-readiness handoff. Note:
+    the restore gate is satisfied by the restore-tooling smoke (synthetic Redis
+    fixture) unless the real Qdrant data-recovery drill report is present.
   gates:
     eval:
       required: true
@@ -24,8 +28,14 @@ spec:
       maxP95LatencyMs: 10000
       maxP99LatencyMs: 15000
     restore:
+      # By default this gate is satisfied by the restore-tooling SMOKE (a
+      # synthetic Redis AOF fixture that proves the restore pipeline runs). It
+      # does NOT prove production data is recoverable until the real Qdrant
+      # data-recovery drill report (qdrant-data-restore-*.json, produced by
+      # RESTORE_DRILL_QDRANT_DATA=1) is present in the evidence below.
       required: true
       evidence:
+        - results/restore-drill/qdrant-data-restore-*.json
         - results/restore-drill/restore-drill-run-*.json
         - results/restore-drill/sample-redis-run.json
       minPassRate: 1.0

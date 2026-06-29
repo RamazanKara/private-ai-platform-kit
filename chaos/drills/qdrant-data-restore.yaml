@@ -1,0 +1,35 @@
+apiVersion: platform.ai/v1alpha1
+kind: ChaosDrill
+metadata:
+  name: qdrant-data-restore
+spec:
+  # REAL DATA-RECOVERY DRILL (not a rollout, not a fixture smoke).
+  # Seeds a known set of vectors into a throwaway probe collection, exports a
+  # Qdrant snapshot, deletes the collection, restores it from the snapshot, and
+  # asserts the point count is non-trivially recovered. This proves real vector
+  # data is recoverable, which the synthetic Redis AOF fixture smoke does not.
+  description: >-
+    Real data-recovery drill: seed, snapshot, delete, and restore a Qdrant
+    collection and assert the vectors are recovered. Operates only on an
+    ephemeral probe collection, never on production knowledge.
+  mode: data-restore
+  target:
+    # Non-rollout: classified as capacity-preflight because it does not restart
+    # or mutate any production Deployment; it only touches its own probe
+    # collection via the Qdrant snapshot API.
+    namespace: vector
+    kind: Collection
+    name: restore-drill-data-probe
+  action: capacity-preflight
+  validation:
+    command: RUNTIME=local RESTORE_DRILL_QDRANT_DATA=1 make restore-drill
+    expected: >-
+      The probe collection is seeded with N vectors, snapshotted, deleted, and
+      restored, and the recovered point count equals N (non-trivially > 0).
+  safety:
+    # Non-destructive to production data: the drill creates and operates on its
+    # own ephemeral probe collection only. Guarded behind RUNTIME=local and the
+    # explicit RESTORE_DRILL_QDRANT_DATA=1 flag so it never runs by accident.
+    destructive: false
+    requiresConfirmation: true
+    maxDurationSeconds: 300

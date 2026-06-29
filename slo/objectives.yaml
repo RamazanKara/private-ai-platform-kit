@@ -50,18 +50,28 @@ spec:
       customerAction: Extend the suite with customer coding-agent tasks before production use.
     - id: restore-verification
       service: restore-drill
-      description: Application-data restore verification should pass for critical lab state.
+      # Honest scope: with the default evidence this objective reflects the
+      # restore-tooling SMOKE only -- a synthetic Redis AOF fixture replayed to
+      # prove the restore pipeline runs. It does NOT prove production data is
+      # recoverable until the real data-recovery drill
+      # (chaos/drills/qdrant-data-restore.yaml, RESTORE_DRILL_QDRANT_DATA=1) has
+      # run and its report is included in the evidence below.
+      description: >-
+        Restore verification passes. Default evidence proves the restore tooling
+        works against a synthetic fixture (restore-tooling smoke); add the
+        Qdrant data-restore report to prove real stored data is recoverable.
       indicator: restore-pass-rate
       target:
         minPassRate: 1.0
         requireValidationPassed: true
       evidence:
+        - results/restore-drill/qdrant-data-restore-*.json
         - results/restore-drill/restore-drill-run-*.json
         - results/restore-drill/sample-redis-run.json
       alertRefs:
         - RestoreDrillFailed
         - RestoreDrillStale
-      customerAction: Schedule restore drills for each customer data store and retain reports under the retention policy.
+      customerAction: Run the real Qdrant data-recovery drill (not just the fixture smoke) for each customer data store, and retain both reports under the retention policy.
     - id: agent-platform-readiness
       service: coding-agent-platform
       description: Static and optional live evidence should prove the platform controls needed by coding agents.

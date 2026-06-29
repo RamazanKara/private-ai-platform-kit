@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Drill taxonomy (be honest about what each drill actually does):
+#   *-rollout drills are ROLLOUT/RECOVERY drills -- they `kubectl rollout
+#     restart` a workload and assert it comes back healthy. They prove
+#     graceful restart and post-restart smoke, NOT resilience to faults.
+#   gpu-capacity-preflight is a non-mutating capacity check.
+#   rag-degradation-fault is a TRUE FAULT-INJECTION drill -- it removes the
+#     Qdrant dependency (scale to 0) under the running RAG service and asserts
+#     RAG degrades gracefully (the service stays up and the PDB/health hold),
+#     then restores Qdrant and asserts recovery.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT/scripts/common.sh"
 
@@ -45,7 +55,54 @@ for name, vendor, available in matches:
 PY
   rm -f "$node_json"
   trap - RETURN
-  log "chaos drill ${DRILL} completed"
+  log "rollout/recovery drill ${DRILL} completed"
+}
+
+rag_degradation_fault() {
+  # TRUE FAULT INJECTION: take the Qdrant dependency away from a running RAG
+  # service and assert RAG degrades gracefully rather than hard-failing, then
+  # restore Qdrant and assert recovery. This is a real fault, not a restart.
+  local rag_ns="${RAG_NAMESPACE:-rag}"
+  local rag_deploy="${RAG_DEPLOYMENT:-deployment/rag-service-rag-service}"
+  local qdrant_ns="${QDRANT_NAMESPACE:-vector}"
+  local qdrant_deploy="${QDRANT_DEPLOYMENT:-deployment/qdrant-vector-store}"
+  local timeout="${FAULT_TIMEOUT:-5m}"
+
+  log "starting fault-injection drill ${DRILL}: removing Qdrant (${qdrant_ns}/${qdrant_deploy}) under load"
+  local original
+  original="$(kubectl -n "$qdrant_ns" get "$qdrant_deploy" -o jsonpath='{.spec.replicas}')"
+  original="${original:-1}"
+
+  # Always attempt to restore Qdrant, even if an assertion fails mid-drill.
+  restore_qdrant() {
+    log "restoring Qdrant to ${original} replica(s)"
+    kubectl -n "$qdrant_ns" scale "$qdrant_deploy" --replicas="$original" >/dev/null 2>&1 || true
+    kubectl -n "$qdrant_ns" rollout status "$qdrant_deploy" --timeout="$timeout" || true
+  }
+  trap restore_qdrant EXIT
+
+  # Inject the fault: scale the vector store to zero.
+  kubectl -n "$qdrant_ns" scale "$qdrant_deploy" --replicas=0
+  kubectl -n "$qdrant_ns" rollout status "$qdrant_deploy" --timeout="$timeout" || true
+
+  # Assert graceful degradation: RAG pods must stay Available (PDB/error-budget
+  # holds) -- the service must not crash just because retrieval is unavailable.
+  log "asserting RAG stays available with Qdrant down (graceful degradation)"
+  if ! kubectl -n "$rag_ns" rollout status "$rag_deploy" --timeout=60s; then
+    die "fault-injection drill ${DRILL} FAILED: RAG did not stay available while Qdrant was down"
+  fi
+  if ! kubectl -n "$rag_ns" wait --for=condition=Available "$rag_deploy" --timeout=60s; then
+    die "fault-injection drill ${DRILL} FAILED: RAG lost Availability under the Qdrant fault"
+  fi
+
+  # Restore the dependency and assert recovery via the real RAG smoke.
+  restore_qdrant
+  trap - EXIT
+  if [[ "$RUN_SMOKE" == "1" ]]; then
+    log "asserting RAG recovers after Qdrant is restored"
+    EXPECTED_RAG_BACKEND="${EXPECTED_RAG_BACKEND:-qdrant}" "$ROOT/scripts/rag-smoke.sh"
+  fi
+  log "fault-injection drill ${DRILL} completed: RAG degraded gracefully and recovered"
 }
 
 run_post_smoke() {
@@ -104,12 +161,16 @@ case "$DRILL" in
     gpu_capacity_preflight
     exit 0
     ;;
+  rag-degradation-fault)
+    rag_degradation_fault
+    exit 0
+    ;;
   *)
-    die "unknown DRILL '${DRILL}'. Use gateway-rollout, budget-redis-rollout, ollama-rollout, rag-service-rollout, qdrant-vector-store-rollout, vllm-runtime-rollout, or gpu-capacity-preflight."
+    die "unknown DRILL '${DRILL}'. Use gateway-rollout, budget-redis-rollout, ollama-rollout, rag-service-rollout, qdrant-vector-store-rollout, vllm-runtime-rollout, gpu-capacity-preflight, or rag-degradation-fault."
     ;;
 esac
 
-log "starting chaos drill ${DRILL}: restarting ${namespace}/${resource}"
+log "starting rollout/recovery drill ${DRILL}: restarting ${namespace}/${resource}"
 kubectl -n "$namespace" rollout restart "$resource"
 kubectl -n "$namespace" rollout status "$resource" --timeout="$timeout"
 

@@ -252,7 +252,17 @@ metadata:
     policies.kyverno.io/title: Verify signed AI Platform images
     policies.kyverno.io/category: Private AI Platform Kit
 spec:
-  validationFailureAction: Audit
+  # Enforce: signed-image verification is the cluster-boundary check that makes the
+  # CI signing investment a real runtime guarantee. It applies only to images matching
+  # imageReferences below (the published project images) in non-infra namespaces, so
+  # locally built images and third-party images are unaffected. Air-gapped clusters
+  # that cannot reach the transparency log should point this at a Rekor mirror or
+  # switch to key-based verification. Forks that republish images to their own registry
+  # must update imageReferences + the keyless subject/issuer below to their own identity
+  # (see "Security policy customization for forks" in clusters/customer/README.md). This
+  # is a deliberate, explicit step rather than an auto-rewrite: a signature-verification
+  # identity should never be silently mutated by tooling.
+  validationFailureAction: Enforce
   background: false
   rules:
     - name: verify-ghcr-project-images
@@ -283,3 +293,59 @@ spec:
                 - keyless:
                     subject: https://github.com/RamazanKara/private-ai-platform-kit/.github/workflows/ci.yml@refs/heads/main
                     issuer: https://token.actions.githubusercontent.com
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ai-platform-restrict-egress-cidrs
+  annotations:
+    policies.kyverno.io/title: Restrict broad egress CIDRs
+    policies.kyverno.io/category: Private AI Platform Kit
+    policies.kyverno.io/description: >-
+      Admission-time backstop for the CI egress-governance check: denies NetworkPolicy
+      egress rules that open the internet (0.0.0.0/0, ::/0) or a broad RFC1918 supernet
+      in platform and tenant namespaces, so an ungoverned --set or out-of-band overlay
+      cannot grant arbitrary egress the catalog (network/egress-catalog.yaml) never
+      approved. The CI check enforces the full /24-or-narrower + catalog-membership rule;
+      this policy is the in-cluster safety net for the worst bypasses.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: deny-broad-egress-cidrs
+      match:
+        any:
+          - resources:
+              kinds:
+                - NetworkPolicy
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: >-
+          Egress NetworkPolicy must not allow 0.0.0.0/0, ::/0, or a broad RFC1918
+          supernet (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16). Approved external egress
+          must be a /24-or-narrower entry from the governed catalog
+          (network/egress-catalog.yaml).
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.spec.egress[].to[].ipBlock.cidr || `[]` }}"
+                operator: AnyIn
+                value:
+                  - "0.0.0.0/0"
+                  - "::/0"
+                  - "10.0.0.0/8"
+                  - "172.16.0.0/12"
+                  - "192.168.0.0/16"

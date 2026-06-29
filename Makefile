@@ -10,7 +10,7 @@ TENANT_OUTPUT ?= tenants/generated
 TOOLCHAIN_PROFILE ?= validate
 RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS ?= 24
 CUSTOMER_REPO_URL ?= https://github.com/RamazanKara/private-ai-platform-kit.git
-CUSTOMER_REVISION ?= HEAD
+CUSTOMER_REVISION ?= v0.9.0
 CUSTOMER_GPU_PROFILE ?= nvidia
 TOOLCHAIN_BIN_DIR ?= $(CURDIR)/.tools/bin
 PYTHONDONTWRITEBYTECODE ?= 1
@@ -19,7 +19,7 @@ PYTHON := services/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval eval-local loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag lint format format-check typecheck quality coverage dashboard-check dashboard-update
+.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval eval-local loadtest loadtest-local restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag lint format format-check typecheck quality coverage dashboard-check dashboard-update
 
 help:
 	@printf '%s\n' \
@@ -205,6 +205,9 @@ model-provenance-check: python-env
 
 model-provenance-report: python-env
 	$(PYTHON) scripts/model-provenance.py --check --report
+
+model-provenance-verify: python-env
+	$(PYTHON) scripts/model-provenance.py --verify
 
 image-scan:
 	./scripts/image-scan.sh

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -96,6 +97,8 @@ def check_policy_shape(policy: dict[str, Any], errors: list[str]) -> list[dict[s
         require(errors, bool(HEX_SHA256.match(digest_value)), f"{model_id}: digest.value must be a 64-character lowercase sha256 hex string")
         require(errors, f"sha256:{digest_value}" in str(artifact.get("immutableRef", "")), f"{model_id}: immutableRef must include digest value")
         require(errors, nested(digest, "scope") in {"source-reference", "model-artifact"}, f"{model_id}: digest.scope must be source-reference or model-artifact")
+        if nested(digest, "scope") == "source-reference":
+            require(errors, bool(artifact.get("revision")), f"{model_id}: source-reference provenance must pin an explicit source revision (revision: <git tag or model commit>); a source-reference digest is a pointer the customer replaces, not a CI-reproducible artifact hash")
         require(errors, bool(nested(digest, "verificationMode")), f"{model_id}: digest.verificationMode is required")
         require(errors, bool(nested(digest, "verificationCommand")), f"{model_id}: digest.verificationCommand is required")
         serving_profiles = artifact.get("servingProfiles")
@@ -183,17 +186,82 @@ def write_markdown(path: Path, report: ProvenanceReport) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
+def _ollama_manifest_url(source_uri: str) -> str | None:
+    # ollama://qwen2.5:0.5b -> https://registry.ollama.ai/v2/library/qwen2.5/manifests/0.5b
+    if not source_uri.startswith("ollama://"):
+        return None
+    ref = source_uri[len("ollama://") :]
+    if ":" not in ref:
+        return None
+    name, tag = ref.rsplit(":", 1)
+    return f"https://registry.ollama.ai/v2/library/{name}/manifests/{tag}"
+
+
+def verify_reproducible_digests(policy_path: Path) -> int:
+    """Opt-in: fetch each model-artifact digest from its source and assert it reproduces.
+
+    Network is required. Only auto-reproducible scopes (currently the Ollama registry
+    model-weights layer) are checked end to end; source-reference pointers are reported
+    as manual-verification and never counted as artifact-verified.
+    """
+    policy = load_yaml(policy_path)
+    artifacts = nested(policy, "spec", "artifacts", default=[])
+    checked = 0
+    failures: list[str] = []
+    for artifact in artifacts if isinstance(artifacts, list) else []:
+        digest = artifact.get("digest", {}) or {}
+        model_id = str(artifact.get("modelId"))
+        if nested(digest, "scope") != "model-artifact":
+            print(f"  skip {model_id}: scope '{nested(digest, 'scope')}' is a source pointer; verify manually with the documented command")
+            continue
+        mode = nested(digest, "verificationMode")
+        value = str(nested(digest, "value", default=""))
+        if mode != "ollama-registry-model-layer":
+            print(f"  skip {model_id}: verificationMode '{mode}' is not auto-reproducible here; run the documented verificationCommand")
+            continue
+        url = _ollama_manifest_url(str(artifact.get("sourceUri", "")))
+        if not url:
+            failures.append(f"{model_id}: cannot derive a registry manifest URL from sourceUri")
+            continue
+        try:
+            request = urllib.request.Request(url, headers={"Accept": "application/vnd.docker.distribution.manifest.v2+json"})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                manifest = json.loads(response.read().decode())
+            layers = manifest.get("layers", []) if isinstance(manifest, dict) else []
+            produced = next((layer.get("digest") for layer in layers if layer.get("mediaType") == "application/vnd.ollama.image.model"), None)
+        except Exception as exc:
+            failures.append(f"{model_id}: registry fetch failed: {exc}")
+            continue
+        checked += 1
+        if produced == f"sha256:{value}":
+            print(f"  ok   {model_id}: registry model-layer digest reproduces sha256:{value[:12]}...")
+        else:
+            failures.append(f"{model_id}: digest mismatch - provenance {value} vs registry {produced}")
+    if failures:
+        print("model provenance verification FAILED:")
+        for failure in failures:
+            print(f"- {failure}")
+        return 1
+    print(f"model provenance verification OK: {checked} model-artifact digest(s) reproduced from source")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate approved model artifact provenance.")
     parser.add_argument("--policy", default=str(DEFAULT_POLICY))
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--report", action="store_true")
+    parser.add_argument("--verify", action="store_true", help="Fetch each model-artifact digest from its source and assert it reproduces (network required).")
     parser.add_argument("--output-dir", default="results/model-provenance")
     args = parser.parse_args()
 
     policy_path = Path(args.policy)
     if not policy_path.is_absolute():
         policy_path = ROOT / policy_path
+
+    if args.verify:
+        return verify_reproducible_digests(policy_path)
+
     report = run_check(policy_path)
 
     if args.report:

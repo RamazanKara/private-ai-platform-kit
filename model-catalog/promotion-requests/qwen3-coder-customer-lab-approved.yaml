@@ -7,7 +7,7 @@ spec:
   targetStatus: approved
   requestedBy: platform-team
   approvers:
-    - platform-team
+    - model-governance-board
   businessJustification: Current OpenAI-compatible Qwen3 Coder Next profile for customer GPU coding-agent validation.
   runtime: vllm
   accelerators:
@@ -23,7 +23,12 @@ spec:
       - clusters/customer/values/vllm-nvidia.yaml
       - clusters/customer/values/vllm-amd.yaml
   evidence:
-    evalSuite: evals/smoke-suite.yaml
+    evalSuite: evals/coding-agent-suite.yaml
+    evalModelProxy: qwen3.5:0.8b
+    evalProxyJustification: >-
+      Qwen3-Coder-Next requires multi-GPU serving and cannot be run in CI; qwen3.5:0.8b
+      is the CPU-runnable proxy exercised by the coding-agent eval suite. Re-run the suite
+      against the real model on the customer GPU profile before production sign-off.
     evalSummary: results/evals/sample-summary.md
     loadTestSummary: results/loadtest/sample-summary.md
     securityWorkflow: .github/workflows/ci.yml

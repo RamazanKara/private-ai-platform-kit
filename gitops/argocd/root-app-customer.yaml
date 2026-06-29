@@ -10,10 +10,10 @@ spec:
   project: default
   source:
     repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
-    targetRevision: HEAD
+    targetRevision: v0.9.0
     path: clusters/customer
     directory:
-      include: apps.yaml
+      include: '{apps.yaml,appprojects.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

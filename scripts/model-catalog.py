@@ -212,6 +212,7 @@ def validate_promotion_requests(models: dict[str, dict[str, Any]], allowlists: d
         require(errors, bool(spec.get("requestedBy")), f"{rel(path)}: requestedBy is required")
         approvers = spec.get("approvers")
         require(errors, isinstance(approvers, list) and bool(approvers), f"{rel(path)}: approvers must be a non-empty list")
+        require(errors, spec.get("requestedBy") not in (approvers if isinstance(approvers, list) else []), f"{rel(path)}: separation of duties - requestedBy '{spec.get('requestedBy')}' must not also be an approver")
         require(errors, bool(spec.get("businessJustification")), f"{rel(path)}: businessJustification is required")
         if model:
             require(errors, spec.get("targetStatus") == model.get("status"), f"{rel(path)}: targetStatus must match catalog status for {model_id}")
@@ -226,6 +227,19 @@ def validate_promotion_requests(models: dict[str, dict[str, Any]], allowlists: d
             require(errors, bool(evidence_path), f"{rel(path)}: evidence.{field} is required")
             if evidence_path:
                 require(errors, (ROOT / str(evidence_path)).exists(), f"{rel(path)}: evidence.{field} path {evidence_path} must exist")
+        # Eval-model match: the cited eval suite must exercise the promoted model, or the
+        # promotion must declare an explicit, justified proxy model (e.g. a CPU-runnable
+        # stand-in for a multi-GPU model that cannot be served in CI).
+        eval_suite_path = evidence.get("evalSuite")
+        if eval_suite_path and (ROOT / str(eval_suite_path)).exists() and model_id:
+            suite = load_yaml(ROOT / str(eval_suite_path))
+            suite_model = nested(suite, "spec", "model") or suite.get("model")
+            proxy = evidence.get("evalModelProxy")
+            if proxy:
+                require(errors, suite_model == proxy, f"{rel(path)}: evidence.evalModelProxy '{proxy}' must equal the eval suite model '{suite_model}'")
+                require(errors, bool(evidence.get("evalProxyJustification")), f"{rel(path)}: evidence.evalProxyJustification is required when evalModelProxy is set")
+            else:
+                require(errors, suite_model == model_id, f"{rel(path)}: eval suite '{eval_suite_path}' model '{suite_model}' must match promoted model '{model_id}' (or declare evidence.evalModelProxy + evalProxyJustification)")
         rollout = spec.get("rollout", {})
         for values_path in rollout.get("allowedModelFiles", []):
             full_path = ROOT / str(values_path)

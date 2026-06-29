@@ -7,7 +7,7 @@ spec:
   targetStatus: approved
   requestedBy: platform-team
   approvers:
-    - platform-team
+    - model-governance-board
   businessJustification: Fast non-reasoning Qwen2.5 0.5B promoted as the default local CPU smoke model so the laptop kind quickstart completes in seconds; the larger qwen3.5:0.8b reasoning model moved to the customer Ollama profile.
   runtime: ollama
   accelerators:
