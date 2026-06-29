@@ -7,7 +7,8 @@ This project is implemented from the platform behavior described in the README, 
 - AMD ROCm vLLM inference image: https://rocm.docs.amd.com/en/develop/how-to/rocm-for-ai/inference/benchmark-docker/vllm.html
 - AMD GPU Device Plugin for Kubernetes: https://instinct.docs.amd.com/projects/k8s-device-plugin/en/latest/index.html
 - Ollama OpenAI compatibility: https://docs.ollama.com/openai
-- Ollama Qwen3 model library: https://ollama.com/library/qwen3
+- Ollama Qwen2.5 model library: https://ollama.com/library/qwen2.5
+- Ollama Qwen3.5 model library: https://ollama.com/library/qwen3.5
 - Qwen3 Coder Next model card: https://huggingface.co/Qwen/Qwen3-Coder-Next
 - Qdrant collections API: https://api.qdrant.tech/api-reference/collections/create-collection
 - Qdrant query points API: https://api.qdrant.tech/api-reference/search/query-points

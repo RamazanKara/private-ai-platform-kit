@@ -137,6 +137,12 @@ networkPolicy:
     enabled: true
     namespace: vector
     port: 6333
+  # Enable when retrieval.embedding.provider is not `hash` and embedding.baseUrl
+  # points at an in-cluster embedding service; allows egress to that namespace/port.
+  embeddingEgress:
+    enabled: false
+    namespace: ""
+    port: 8080
 
 autoscaling:
   enabled: false

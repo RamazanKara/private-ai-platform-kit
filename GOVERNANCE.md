@@ -1,6 +1,6 @@
 # Governance
 
-Private AI Platform Kit is maintained as an operational platform project. Maintainers optimize for secure, reproducible customer-owned Kubernetes handoff.
+Private AI Platform Kit is maintained as an operational platform project. The project is maintained by fluentorbit (https://fluentorbit.de) as its steward. Maintainers optimize for secure, reproducible customer-owned Kubernetes handoff.
 
 ## Maintainer Authority
 
@@ -21,3 +21,7 @@ Small compatible changes can merge after maintainer review and passing checks. L
 ## Release Process
 
 Releases should include current validation evidence, changelog entries, image scan evidence, SBOMs, checksums, and signed immutable image digests.
+
+## Continuity
+
+fluentorbit (https://fluentorbit.de) is the appointing organization for maintainer succession and for coordinating security response if the current maintainer is unavailable.

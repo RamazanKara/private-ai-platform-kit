@@ -14,13 +14,25 @@ Security fixes should cover:
 
 ## Reporting
 
-Do not open public issues containing secrets, exploit details, customer data, or private prompt content. Report privately to the repository owner and include:
+Do not open public issues containing secrets, exploit details, customer data, or private prompt content. Report privately through one of these channels:
+
+- **Primary:** GitHub Private Vulnerability Reporting. Open the repository's **Security** tab and choose **"Report a vulnerability"**.
+  <!-- Maintainer: if "Report a vulnerability" is not available, enable Private Vulnerability Reporting in repo Settings -> Security & analysis. -->
+- **Alternate:** email [security@fluentorbit.de](mailto:security@fluentorbit.de).
+
+Include:
 
 - affected component or path
 - reproduction steps
 - impact and severity
 - whether a credential, model artifact, customer document, or generated evidence file is exposed
 - suggested mitigation when known
+
+We acknowledge reports within 2 business days and aim to provide a triage update within 7 days.
+
+## Coordinated Disclosure
+
+Please do not publicly disclose a vulnerability until a fix is released. We follow a default 90-day disclosure window and will coordinate timing with you.
 
 ## Handling Rules
 

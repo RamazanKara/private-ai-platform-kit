@@ -12,6 +12,8 @@ spec:
   policyTypes:
     - Ingress
     - Egress
+  # Egress is intentionally denied: Qdrant is a leaf store that makes no outbound
+  # calls, so no egress rules (including DNS) are required.
   ingress:
     - from:
         {{- range .Values.networkPolicy.allowedIngressNamespaces }}
@@ -20,6 +22,10 @@ spec:
               kubernetes.io/metadata.name: {{ . | quote }}
         {{- end }}
       ports:
+        # Allow both the REST (http) and gRPC ports the Service exposes, scoped to
+        # the same trusted namespaces, so gRPC clients are not silently blocked.
         - protocol: TCP
           port: http
+        - protocol: TCP
+          port: grpc
 {{- end }}

@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/RamazanKara/private-ai-platform-kit)](LICENSE)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-GitOps-326CE5)
 ![Helm](https://img.shields.io/badge/Helm-charts-0F1689)
-![Python](https://img.shields.io/badge/Python-3.14-3776AB)
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB)
 
 Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs, RAG, and coding-agent workspaces. It starts on a local `kind` cluster with Ollama, then uses the same Helm charts, GitOps layout, policies, runbooks, and evidence checks on customer-owned clusters with vLLM and GPU nodes.
 
@@ -164,6 +164,7 @@ make quota-check
 make model-check
 make model-provenance-check
 make loadtest-local
+make eval-local
 make toolchain-report TOOLCHAIN_PROFILE=strict
 make api-contract
 make config-contract

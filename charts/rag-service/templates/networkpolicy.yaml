@@ -28,8 +28,11 @@ spec:
       ports:
         - protocol: TCP
           port: http
-  {{- if and (eq .Values.retrieval.backend "qdrant") .Values.networkPolicy.vectorStoreEgress.enabled }}
   egress:
+    # DNS is always allowed: it is required by any non-`hash` embedding provider
+    # or Qdrant lookup, and is harmless when the service makes no outbound calls.
+    # (Rendering it unconditionally avoids a deny-all-egress footgun in lexical mode,
+    # where policyTypes still lists Egress.)
     - to:
         - namespaceSelector:
             matchLabels:
@@ -39,6 +42,7 @@ spec:
           port: {{ .Values.networkPolicy.dnsEgress.port }}
         - protocol: TCP
           port: {{ .Values.networkPolicy.dnsEgress.port }}
+  {{- if and (eq .Values.retrieval.backend "qdrant") .Values.networkPolicy.vectorStoreEgress.enabled }}
     - to:
         - namespaceSelector:
             matchLabels:
@@ -46,5 +50,14 @@ spec:
       ports:
         - protocol: TCP
           port: {{ .Values.networkPolicy.vectorStoreEgress.port }}
+  {{- end }}
+  {{- if .Values.networkPolicy.embeddingEgress.enabled }}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.embeddingEgress.namespace | quote }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.networkPolicy.embeddingEgress.port }}
   {{- end }}
 {{- end }}

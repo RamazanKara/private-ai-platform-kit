@@ -53,6 +53,9 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `networkPolicy.allowedIngressNamespaces` | `["ai-agents", "ai-sandbox", "monitoring"]` |
 | `networkPolicy.dnsEgress.namespace` | `kube-system` |
 | `networkPolicy.dnsEgress.port` | `53` |
+| `networkPolicy.embeddingEgress.enabled` | `false` |
+| `networkPolicy.embeddingEgress.namespace` | `""` |
+| `networkPolicy.embeddingEgress.port` | `8080` |
 | `networkPolicy.enabled` | `true` |
 | `networkPolicy.vectorStoreEgress.enabled` | `true` |
 | `networkPolicy.vectorStoreEgress.namespace` | `vector` |

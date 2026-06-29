@@ -8,7 +8,7 @@ Expected time is 15-30 minutes after Docker images and the default Ollama model 
 
 Required for the local lab:
 
-- Python 3
+- Python 3.12+
 - Docker
 - kind
 - kubectl
@@ -16,7 +16,7 @@ Required for the local lab:
 - Go
 - Syft
 
-The strict production-readiness path also uses kubeconform, Kyverno CLI, restore-drill, k6, Argo CD CLI, Cosign, and Trivy.
+The strict production-readiness path also uses kubeconform, Kyverno CLI, restore-drill, k6, Syft, Argo CD CLI, Cosign, and Trivy.
 
 ## Fast Path
 
@@ -26,7 +26,7 @@ Check the toolchain, run static validation, create the local cluster, sync the p
 make quickstart
 ```
 
-If optional validation tools are missing and you want Codex-managed binaries under `.tools/bin`, run:
+If optional validation tools are missing and you want repo-managed validation CLIs under `.tools/bin`, run:
 
 ```bash
 QUICKSTART_INSTALL_TOOLS=1 make quickstart
@@ -49,6 +49,15 @@ A successful run ends with:
 ```
 
 The gateway smoke response should include an OpenAI-compatible `choices` array. The RAG smoke response should include `results`, `grounded_messages`, `query_sha256`, `X-Request-ID`, and `X-Sandbox-ID`.
+
+### Captured Artifacts
+
+The repo commits real captures under [assets/quickstart-screenshots/](assets/quickstart-screenshots/) as the canonical expected output:
+
+- [quickstart-success.txt](assets/quickstart-screenshots/quickstart-success.txt): gateway and RAG smoke output.
+- [agent-smoke.txt](assets/quickstart-screenshots/agent-smoke.txt): coding-agent smoke output.
+
+Captures for the other follow-up steps also live there: [argocd-apps.txt](assets/quickstart-screenshots/argocd-apps.txt), [grafana-dashboard.txt](assets/quickstart-screenshots/grafana-dashboard.txt), and [evidence-report.txt](assets/quickstart-screenshots/evidence-report.txt).
 
 ## What Quickstart Does
 
@@ -94,7 +103,7 @@ Model pull: the first Ollama pull of `qwen2.5:0.5b` can dominate runtime. Check 
 
 API keys: local smoke scripts send `X-API-Key: local-development-only`. Customer overlays should source SHA-256 API-key hashes from External Secrets instead of committing plaintext keys.
 
-Port-forwarding: smoke tests bind localhost ports such as `18080` and `18083`. Override `LOCAL_PORT` if a port is already in use.
+Port-forwarding: smoke tests bind localhost ports such as `18080` and `18083`. Override `LOCAL_PORT` if a port is already in use. Use `LOCAL_PORT` for smoke-test localhost port-forward conflicts, and `LOCAL_GATEWAY_HOST_PORT` (below) for the kind-to-host `8080` mapping conflict.
 
 Kind nodePort mapping: the local cluster maps gateway nodePort `30080` to host port `8080` by default. If another process already owns `8080`, run quickstart with an alternate port:
 

@@ -12,7 +12,7 @@ make quickstart
 
 Local validation needs:
 
-- Python 3
+- Python 3.12+
 - Docker
 - kind
 - kubectl
