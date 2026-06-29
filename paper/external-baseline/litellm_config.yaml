@@ -1,0 +1,12 @@
+# LiteLLM proxy config for the external-baseline comparison.
+# Routes an OpenAI-compatible model to the same mock runtime the gateway uses,
+# so the only difference measured is the proxy layer itself.
+model_list:
+  - model_name: bench-model
+    litellm_params:
+      model: openai/bench-model
+      api_base: http://127.0.0.1:9099/v1
+      api_key: sk-noop
+litellm_settings:
+  drop_params: true
+  set_verbose: false

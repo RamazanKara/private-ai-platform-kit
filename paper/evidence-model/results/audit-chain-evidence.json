@@ -28,5 +28,15 @@
       "anchor_detected": true,
       "reason": "anchor_mismatch"
     }
+  },
+  "real_gateway_log": {
+    "source": "gateway-gw-full-d0.log",
+    "records": 112127,
+    "clean_verify_ok": true,
+    "head": "2a034b3c7a1c7e75174ac9957fb77fa99373fde1deb70ae1c48a3a6bb79a9924",
+    "tamper_edited_seq": 56063,
+    "tamper_detected": true,
+    "tamper_detected_seq": 56063,
+    "tamper_reason": "record_hash_mismatch"
   }
 }

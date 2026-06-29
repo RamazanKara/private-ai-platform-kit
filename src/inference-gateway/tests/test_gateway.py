@@ -1381,8 +1381,8 @@ def test_runtime_client_retries_non_streaming_requests(monkeypatch):
     calls = {"count": 0}
 
     class FlakyAsyncClient:
-        def __init__(self, timeout):
-            self.timeout = timeout
+        def __init__(self, *args, **kwargs):
+            self.timeout = kwargs.get("timeout")
 
         async def __aenter__(self):
             return self
@@ -1427,8 +1427,8 @@ def test_runtime_client_opens_circuit_after_failures(monkeypatch):
     calls = {"count": 0}
 
     class FailingAsyncClient:
-        def __init__(self, timeout):
-            self.timeout = timeout
+        def __init__(self, *args, **kwargs):
+            self.timeout = kwargs.get("timeout")
 
         async def __aenter__(self):
             return self

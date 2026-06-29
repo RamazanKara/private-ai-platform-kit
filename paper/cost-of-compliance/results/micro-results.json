@@ -8,70 +8,70 @@
   "prompt_chars": 237,
   "controls": {
     "auth_api_key": {
-      "ns_per_op": 499.5,
-      "ns_min": 496.3,
-      "ns_stdev": 10.2,
-      "ops_per_sec": 2002170,
+      "ns_per_op": 514.6,
+      "ns_min": 511.9,
+      "ns_stdev": 1.7,
+      "ops_per_sec": 1943079,
       "iters": 200000,
       "trials": 7
     },
     "admission_with_secret_detection": {
-      "ns_per_op": 14905.6,
-      "ns_min": 14461.7,
-      "ns_stdev": 1466.6,
-      "ops_per_sec": 67089,
+      "ns_per_op": 14663.3,
+      "ns_min": 14443.1,
+      "ns_stdev": 109.4,
+      "ops_per_sec": 68197,
       "iters": 200000,
       "trials": 7
     },
     "admission_without_secret_detection": {
-      "ns_per_op": 696.0,
-      "ns_min": 685.7,
-      "ns_stdev": 4.1,
-      "ops_per_sec": 1436719,
+      "ns_per_op": 699.6,
+      "ns_min": 694.1,
+      "ns_stdev": 2.9,
+      "ops_per_sec": 1429416,
       "iters": 200000,
       "trials": 7
     },
     "model_allowlist": {
-      "ns_per_op": 129.1,
-      "ns_min": 128.1,
-      "ns_stdev": 0.4,
-      "ops_per_sec": 7744374,
+      "ns_per_op": 126.3,
+      "ns_min": 125.4,
+      "ns_stdev": 0.5,
+      "ops_per_sec": 7918676,
       "iters": 200000,
       "trials": 7
     },
     "model_routing_resolve": {
-      "ns_per_op": 111.7,
-      "ns_min": 111.3,
-      "ns_stdev": 0.3,
-      "ops_per_sec": 8956294,
+      "ns_per_op": 125.0,
+      "ns_min": 124.1,
+      "ns_stdev": 1.0,
+      "ops_per_sec": 7998280,
       "iters": 200000,
       "trials": 7
     },
     "budget_reserve": {
-      "ns_per_op": 3789.5,
-      "ns_min": 3722.9,
-      "ns_stdev": 46.0,
-      "ops_per_sec": 263885,
+      "ns_per_op": 3811.3,
+      "ns_min": 3776.7,
+      "ns_stdev": 40.0,
+      "ops_per_sec": 262374,
       "iters": 200000,
       "trials": 7
     },
     "audit_fingerprint": {
-      "ns_per_op": 4282.6,
-      "ns_min": 4275.1,
-      "ns_stdev": 4.0,
-      "ops_per_sec": 233501,
+      "ns_per_op": 4429.6,
+      "ns_min": 4418.4,
+      "ns_stdev": 12.5,
+      "ops_per_sec": 225753,
       "iters": 200000,
       "trials": 7
     },
     "audit_fingerprint_and_serialize": {
-      "ns_per_op": 8912.9,
-      "ns_min": 8835.8,
-      "ns_stdev": 64.5,
-      "ops_per_sec": 112198,
+      "ns_per_op": 9276.1,
+      "ns_min": 9001.9,
+      "ns_stdev": 140.0,
+      "ops_per_sec": 107804,
       "iters": 200000,
       "trials": 7
     }
   },
-  "full_governance_ns_per_request": 28219.2,
-  "full_governance_us_per_request": 28.219
+  "full_governance_ns_per_request": 28390.3,
+  "full_governance_us_per_request": 28.39
 }

@@ -1,5 +1,6 @@
 """Async HTTP client for Ollama/vLLM runtimes with retries and a circuit breaker."""
 
+import socket
 from asyncio import sleep
 from time import time
 from typing import Any
@@ -9,6 +10,11 @@ import httpx
 from app.settings import Settings
 
 REDACTED_MESSAGE_FIELDS = {"reasoning", "reasoning_content", "thinking"}
+
+# Disable Nagle on the upstream sockets. The gateway proxies small JSON bodies over
+# keep-alive connections; Nagle plus delayed ACKs can otherwise add a per-request
+# stall on low-latency links. TCP_NODELAY keeps the upstream hop tight.
+_SOCKET_OPTIONS = [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)]
 
 
 def sanitize_chat_completion(data: dict[str, Any]) -> dict[str, Any]:
@@ -34,12 +40,36 @@ def sanitize_chat_completion(data: dict[str, Any]) -> dict[str, Any]:
 
 
 class RuntimeClient:
-    """Routes chat-completion calls to a runtime backend with resilience controls."""
+    """Routes chat-completion calls to a runtime backend with resilience controls.
+
+    A single :class:`httpx.AsyncClient` is created lazily and reused for the lifetime
+    of the gateway process. Reusing the client keeps the connection pool warm and
+    avoids reconstructing the client (and its TLS context) on every request, which
+    otherwise dominates per-request cost on a busy gateway.
+    """
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self._failures: dict[str, int] = {}
         self._opened_until: dict[str, float] = {}
+        self._client: httpx.AsyncClient | None = None
+
+    def _client_instance(self) -> httpx.AsyncClient:
+        """Return the shared async client, creating it on first use."""
+        if self._client is None:
+            limits = httpx.Limits(max_connections=256, max_keepalive_connections=128)
+            transport = httpx.AsyncHTTPTransport(limits=limits, socket_options=_SOCKET_OPTIONS)
+            self._client = httpx.AsyncClient(
+                transport=transport,
+                timeout=httpx.Timeout(self.settings.request_timeout_seconds),
+            )
+        return self._client
+
+    async def aclose(self) -> None:
+        """Close the shared client; called on gateway shutdown."""
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
 
     def _chat_completion_body(self, payload: dict[str, Any]) -> dict[str, Any]:
         body = dict(payload)
@@ -81,21 +111,20 @@ class RuntimeClient:
     ) -> dict[str, Any]:
         """Send a chat-completion request, retrying transient errors, and sanitize the result."""
         body = self._chat_completion_body(payload)
-        timeout = httpx.Timeout(self.settings.request_timeout_seconds)
         resolved_backend = backend or self.settings.runtime_backend
         attempts = self.settings.runtime_max_retries + 1
         last_error: httpx.HTTPError | None = None
+        client = self._client_instance()
         for attempt in range(attempts):
             self._check_circuit(resolved_backend)
             try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.post(
-                        self._chat_completions_url(resolved_backend),
-                        json=body,
-                        headers=headers,
-                    )
-                    response.raise_for_status()
-                    data = response.json()
+                response = await client.post(
+                    self._chat_completions_url(resolved_backend),
+                    json=body,
+                    headers=headers,
+                )
+                response.raise_for_status()
+                data = response.json()
                 self._record_success(resolved_backend)
                 break
             except httpx.HTTPStatusError:
@@ -121,18 +150,15 @@ class RuntimeClient:
     ):
         """Yield raw streamed response chunks from the runtime chat-completions endpoint."""
         body = self._chat_completion_body(payload)
-        timeout = httpx.Timeout(self.settings.request_timeout_seconds)
         resolved_backend = backend or self.settings.runtime_backend
         self._check_circuit(resolved_backend)
-        async with (
-            httpx.AsyncClient(timeout=timeout) as client,
-            client.stream(
-                "POST",
-                self._chat_completions_url(resolved_backend),
-                json=body,
-                headers=headers,
-            ) as response,
-        ):
+        client = self._client_instance()
+        async with client.stream(
+            "POST",
+            self._chat_completions_url(resolved_backend),
+            json=body,
+            headers=headers,
+        ) as response:
             response.raise_for_status()
             self._record_success(resolved_backend)
             async for chunk in response.aiter_bytes():
@@ -143,15 +169,15 @@ class RuntimeClient:
         resolved_backend = backend or self.settings.runtime_backend
         timeout = httpx.Timeout(min(self.settings.request_timeout_seconds, 10.0))
         self._check_circuit(resolved_backend)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.get(f"{self._base_url(resolved_backend)}/healthz")
-            if response.status_code == 404:
-                response = await client.get(f"{self._base_url(resolved_backend)}/health")
-            response.raise_for_status()
-            try:
-                data = response.json()
-            except ValueError:
-                data = {"status": "ok"}
+        client = self._client_instance()
+        response = await client.get(f"{self._base_url(resolved_backend)}/healthz", timeout=timeout)
+        if response.status_code == 404:
+            response = await client.get(f"{self._base_url(resolved_backend)}/health", timeout=timeout)
+        response.raise_for_status()
+        try:
+            data = response.json()
+        except ValueError:
+            data = {"status": "ok"}
         if not isinstance(data, dict):
             data = {"status": "ok"}
         self._record_success(resolved_backend)

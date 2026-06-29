@@ -396,6 +396,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved
     app.state.runtime_client = RuntimeClient(resolved)
+    app.router.add_event_handler("shutdown", app.state.runtime_client.aclose)
     app.state.budget_tracker = build_sandbox_budget_tracker(resolved)
     app.state.model_routing_policy = (
         ModelRoutingPolicy.from_path(resolved.model_routing_policy_path, resolved)

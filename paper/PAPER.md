@@ -4,7 +4,7 @@ This document maps each numbered claim, figure, and table in the paper to the co
 that regenerates it. Every result comes from the runnable `private-ai-platform-kit`
 gateway and the harness under `paper/`. Nothing here needs a GPU.
 
-The evaluated revision is tagged `v1.0.0-paper` in
+The evaluated revision is tagged `v1.1.0-paper` in
 <https://github.com/RamazanKara/private-ai-platform-kit>; check out that tag to
 reproduce the numbers in the paper.
 
@@ -15,6 +15,8 @@ reproduce the numbers in the paper.
 - Python 3.12+ for the harness. `matplotlib` is needed only to render the figures.
 - Set `GATEWAY_DIR` to the gateway directory if it is not at the default path used by
   the scripts.
+- The external baseline needs LiteLLM in its own environment (`pip install 'litellm[proxy]'`);
+  point the runner at it with `LITELLM_BIN=/path/to/venv/bin/litellm`.
 
 The harness drives the gateway as an external process, so it measures the real
 service rather than a reimplementation.
@@ -27,6 +29,7 @@ service rather than a reimplementation.
 | §6.2, Fig. 3 | End-to-end governed-vs-ungoverned latency and throughput; overhead vs inference think-time | `python paper/cost-of-compliance/run_experiment.py` then `analyze.py` |
 | §6.1 (tamper-evidence) | A single mutated audit record out of thousands is detected | `python paper/evidence-model/audit_chain.py` |
 | §6.1 (access enforcement) | Every forbidden action is blocked; a legitimate request passes | `python paper/conformance/conformance.py` |
+| §6.2 (external baseline) | LiteLLM proxy adds more latency than the fully governed gateway | `LITELLM_BIN=<litellm> python paper/external-baseline/litellm_baseline.py` |
 | §5 (evidence pack, gates) | One command regenerates all evidence; strict gate fails closed | `make evidence` / `make release-gate-strict` (in the kit) |
 | §5 (provenance) | Every approved model has a reproducible provenance digest | `make model-provenance-check` (in the kit) |
 | §5 (supply chain) | Images are signed, carry SBOM and attestations, pass scans | `make supply-chain-check` / `make image-scan` (in the kit) |
