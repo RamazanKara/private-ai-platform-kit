@@ -65,6 +65,7 @@ GATEWAY_VARS = (
     ConfigVar("RATE_LIMIT_REQUESTS_PER_WINDOW", "rate_limit_requests_per_window", "integer", 0, "rateLimit.requestsPerWindow", 0, "Max requests per sandbox per rate-limit window; zero means unlimited."),
     ConfigVar("RATE_LIMIT_WINDOW_SECONDS", "rate_limit_window_seconds", "integer", 60, "rateLimit.windowSeconds", 60, "Rate-limit fixed-window length in seconds."),
     ConfigVar("MAX_CONCURRENT_REQUESTS", "max_concurrent_requests", "integer", 0, "concurrency.maxConcurrentRequests", 0, "Max in-flight requests before load shedding with 503; zero disables the limit."),
+    ConfigVar("MAX_BATCH_REQUESTS", "max_batch_requests", "integer", 32, "concurrency.maxBatchRequests", 32, "Maximum number of chat requests accepted in one /v1/batches call."),
     ConfigVar("RESPONSE_CACHE_ENABLED", "response_cache_enabled", "boolean", False, "responseCache.enabled", False, "Whether the exact-match per-sandbox response cache is enabled for non-streaming chat."),
     ConfigVar("RESPONSE_CACHE_TTL_SECONDS", "response_cache_ttl_seconds", "integer", 60, "responseCache.ttlSeconds", 60, "Response cache entry time-to-live in seconds."),
     ConfigVar("RESPONSE_CACHE_MAX_ENTRIES", "response_cache_max_entries", "integer", 1024, "responseCache.maxEntries", 1024, "Maximum cached responses before LRU eviction."),

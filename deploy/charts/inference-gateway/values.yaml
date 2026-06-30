@@ -51,6 +51,8 @@ rateLimit:
 # queued). 0 disables the limit.
 concurrency:
   maxConcurrentRequests: 0
+  # Maximum chat requests accepted in one POST /v1/batches call.
+  maxBatchRequests: 32
 
 # Exact-match per-sandbox response cache for non-streaming chat completions.
 responseCache:

@@ -45,6 +45,48 @@ Notes:
 - 4-bit quantization roughly halves or quarters weight VRAM but can reduce quality; validate evals before relying on it for coding agents.
 - To fit smaller clusters, reduce `accelerator.count`, `--tensor-parallel-size`, `model.maxModelLen`, replicas, or the model itself, as described under Mitigation.
 
+## Multi-Node Serving (Models Larger Than One Node)
+
+Single-node tensor parallelism (`--tensor-parallel-size`, via the chart's `extraArgs`) scales
+across the GPUs of one node. For a model too large for any single node, combine
+tensor-parallel within a node with **pipeline parallelism across nodes**
+(`--pipeline-parallel-size`, also via `extraArgs`) and a gang-scheduled leader/worker topology.
+
+This needs a multi-pod primitive the single Deployment chart does not provide — the
+[LeaderWorkerSet](https://github.com/kubernetes-sigs/lws) operator (or Ray). Install the LWS
+controller, then run vLLM as a `LeaderWorkerSet` whose leader and workers form one Ray cluster:
+
+```yaml
+apiVersion: leaderworkerset.x-k8s.io/v1
+kind: LeaderWorkerSet
+metadata:
+  name: vllm-multinode
+  namespace: vllm
+spec:
+  replicas: 1
+  leaderWorkerTemplate:
+    size: 2                 # 1 leader + 1 worker node (set to the pipeline-parallel size)
+    leaderTemplate:
+      spec:
+        containers:
+          - name: vllm
+            image: vllm/vllm-openai
+            args: ["--model", "Qwen/Qwen3-Coder-Next",
+                   "--tensor-parallel-size", "8", "--pipeline-parallel-size", "2"]
+            resources: { limits: { nvidia.com/gpu: "8" } }
+    workerTemplate:
+      spec:
+        containers:
+          - name: vllm
+            image: vllm/vllm-openai
+            resources: { limits: { nvidia.com/gpu: "8" } }
+```
+
+Set `tensor-parallel-size` to the GPUs per node and `pipeline-parallel-size` to the node
+count (`size`); point the gateway's `VLLM_BASE_URL` at the leader Service. This is an
+operator-supplied topology — validate the per-node GPU fit and the Ray cluster formation
+before promotion.
+
 ## Evidence
 
 Capture pod events, node labels, node allocatable GPU resources, NVIDIA or AMD device plugin logs, and the vLLM values used for scheduling.

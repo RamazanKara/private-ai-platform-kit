@@ -190,6 +190,7 @@ class Settings:
     rate_limit_requests_per_window: int = 0
     rate_limit_window_seconds: int = 60
     max_concurrent_requests: int = 0
+    max_batch_requests: int = 32
     response_cache_enabled: bool = False
     response_cache_ttl_seconds: int = 60
     response_cache_max_entries: int = 1024
@@ -239,6 +240,8 @@ class Settings:
             raise ValueError("rate_limit_window_seconds must be greater than zero")
         if self.max_concurrent_requests < 0:
             raise ValueError("max_concurrent_requests must be zero or greater")
+        if self.max_batch_requests <= 0:
+            raise ValueError("max_batch_requests must be greater than zero")
         if self.response_cache_ttl_seconds <= 0:
             raise ValueError("response_cache_ttl_seconds must be greater than zero")
         if self.response_cache_max_entries <= 0:
@@ -330,6 +333,7 @@ class Settings:
             rate_limit_requests_per_window=_int_from_env("RATE_LIMIT_REQUESTS_PER_WINDOW", 0),
             rate_limit_window_seconds=_positive_int_from_env("RATE_LIMIT_WINDOW_SECONDS", 60),
             max_concurrent_requests=_int_from_env("MAX_CONCURRENT_REQUESTS", 0),
+            max_batch_requests=_positive_int_from_env("MAX_BATCH_REQUESTS", 32),
             response_cache_enabled=_bool_from_env("RESPONSE_CACHE_ENABLED", False),
             response_cache_ttl_seconds=_positive_int_from_env("RESPONSE_CACHE_TTL_SECONDS", 60),
             response_cache_max_entries=_positive_int_from_env("RESPONSE_CACHE_MAX_ENTRIES", 1024),

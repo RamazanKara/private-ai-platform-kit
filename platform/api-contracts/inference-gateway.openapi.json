@@ -1,6 +1,24 @@
 {
   "components": {
     "schemas": {
+      "BatchRequest": {
+        "additionalProperties": true,
+        "description": "A batch of chat-completion requests processed in one call.\n\nEach item runs through the same auth (the batch is one authenticated request), model\nallowlist, admission, and budget controls; items are processed concurrently and the\nresponse reports per-item success or error so one bad item does not fail the batch.",
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/ChatCompletionRequest"
+            },
+            "title": "Requests",
+            "type": "array"
+          }
+        },
+        "required": [
+          "requests"
+        ],
+        "title": "BatchRequest",
+        "type": "object"
+      },
       "ChatCompletionRequest": {
         "additionalProperties": true,
         "description": "Request body for an OpenAI-compatible chat completion call.\n\nTool/function-calling and structured-output fields are modelled explicitly so\nthey survive ``model_dump`` to the runtime (the flagship coding-agent path),\nand ``extra=\"allow\"`` forwards any other OpenAI sampling parameter (``top_p``,\n``stop``, ``seed``, ``stream_options``, ...) verbatim instead of silently\ndropping it.",
@@ -433,6 +451,57 @@
         "summary": "Check gateway and configured runtime readiness",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/batches": {
+      "post": {
+        "operationId": "createBatch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Createbatch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Process a batch of chat completions",
+        "tags": [
+          "inference"
         ]
       }
     },

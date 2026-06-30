@@ -57,6 +57,10 @@ CONTRACTS = {
                 "post",
                 request_schema="ModerationRequest",
             ),
+            "/v1/batches": RouteContract(
+                "post",
+                request_schema="BatchRequest",
+            ),
         },
         protected_paths=frozenset({
             "/readyz",
@@ -65,6 +69,7 @@ CONTRACTS = {
             "/v1/chat/completions",
             "/v1/embeddings",
             "/v1/moderations",
+            "/v1/batches",
         }),
         required_schemas={
             "ChatCompletionRequest": {
@@ -94,6 +99,10 @@ CONTRACTS = {
             "ModerationRequest": {
                 "properties": {"model", "input"},
                 "required": {"input"},
+            },
+            "BatchRequest": {
+                "properties": {"requests"},
+                "required": {"requests"},
             },
         },
     ),

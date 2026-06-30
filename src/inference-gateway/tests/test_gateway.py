@@ -888,6 +888,72 @@ def test_shadow_request_is_scheduled(monkeypatch):
     assert captured["shadow_model"] == "shadow-model"
 
 
+def test_batch_processes_multiple_requests():
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(
+        response={"id": "x", "object": "chat.completion", "choices": [{"message": {"content": "ok"}}]}
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/batches",
+        json={
+            "requests": [
+                {"messages": [{"role": "user", "content": "one"}]},
+                {"messages": [{"role": "user", "content": "two"}]},
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["object"] == "batch"
+    assert body["count"] == 2
+    statuses = sorted(item["status_code"] for item in body["results"])
+    assert statuses == [200, 200]
+
+
+def test_batch_rejects_oversized_batch():
+    app = create_app(_tool_settings(max_batch_requests=1))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/batches",
+        json={
+            "requests": [
+                {"messages": [{"role": "user", "content": "one"}]},
+                {"messages": [{"role": "user", "content": "two"}]},
+            ]
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "batch_too_large"
+
+
+def test_batch_reports_per_item_errors_without_failing_batch():
+    app = create_app(_tool_settings(allowed_models=("approved-model",)))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/batches",
+        json={
+            "requests": [
+                {"model": "approved-model", "messages": [{"role": "user", "content": "ok"}]},
+                {"model": "rogue-model", "messages": [{"role": "user", "content": "bad"}]},
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    results = {item["index"]: item for item in response.json()["results"]}
+    assert results[0]["status_code"] == 200
+    assert results[1]["status_code"] == 400
+    assert results[1]["error"]["reason"] == "model_not_allowed"
+
+
 def test_chat_completion_metrics_use_endpoint_route_label():
     # Regression: the handler reused the `route` variable for both the Prometheus label
     # ("/v1/chat/completions") and the resolved ModelRoute, so a successful request

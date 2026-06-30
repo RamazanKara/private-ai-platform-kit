@@ -55,6 +55,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `budget.redisUrl` | `redis://budget-redis.budget.svc.cluster.local:6379/0` |
 | `budget.requestLimit` | `1000` |
 | `budget.windowSeconds` | `86400` |
+| `concurrency.maxBatchRequests` | `32` |
 | `concurrency.maxConcurrentRequests` | `0` |
 | `guardrails.blockedContentTerms` | `[]` |
 | `guardrails.promptSecretDetection.enabled` | `true` |

@@ -267,6 +267,19 @@ class ModerationRequest(BaseModel):
     model: str | None = None
 
 
+class BatchRequest(BaseModel):
+    """A batch of chat-completion requests processed in one call.
+
+    Each item runs through the same auth (the batch is one authenticated request), model
+    allowlist, admission, and budget controls; items are processed concurrently and the
+    response reports per-item success or error so one bad item does not fail the batch.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    requests: list[ChatCompletionRequest]
+
+
 def _request_id_from_header(request: Request) -> str:
     """Return a validated X-Request-ID header value, generating a UUID when absent."""
     request_id = request.headers.get("x-request-id", "").strip()
@@ -1288,6 +1301,103 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 backend=resolved.runtime_backend,
                 error=error,
             )
+
+    @app.post(
+        "/v1/batches",
+        tags=["inference"],
+        summary="Process a batch of chat completions",
+        operation_id="createBatch",
+    )
+    async def batches(request: Request, payload: BatchRequest) -> dict[str, Any]:
+        route = "/v1/batches"
+        start = perf_counter()
+        status = "200"
+        status_code = 200
+        error = None
+        try:
+            if len(payload.requests) > resolved.max_batch_requests:
+                raise AdmissionPolicyError(
+                    "batch_too_large",
+                    f"batch has {len(payload.requests)} requests; limit is {resolved.max_batch_requests}",
+                )
+            policy: ModelRoutingPolicy = request.app.state.model_routing_policy
+            sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
+            effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
+            tracker: SandboxBudgetTracker = request.app.state.budget_tracker
+            client: RuntimeClient = request.app.state.runtime_client
+            # Bound per-batch fan-out so one batch cannot saturate the upstream pool.
+            semaphore = asyncio.Semaphore(min(8, max(1, len(payload.requests))))
+
+            async def _process(index: int, item: ChatCompletionRequest) -> dict[str, Any]:
+                item_dict = item.model_dump(exclude_none=True)
+                item_dict.pop("stream", None)
+                async with semaphore:
+                    try:
+                        try:
+                            model_route = policy.resolve(item_dict.get("model"), effective.model_id)
+                        except ValueError as exc:
+                            raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
+                        item_dict["model"] = model_route.model_id
+                        effective.validate_admission(item_dict)
+                        tracker.reserve(request.state.sandbox_id, item_dict, effective)
+                        response = await client.chat_completions(
+                            item_dict, headers=_runtime_headers(request), backend=model_route.backend
+                        )
+                        return {"index": index, "status_code": 200, "response": response}
+                    except AdmissionPolicyError as exc:
+                        item_code, _ = _admission_status(exc.reason, resolved)
+                        return {
+                            "index": index,
+                            "status_code": item_code,
+                            "error": {"reason": exc.reason, "message": str(exc)},
+                        }
+                    except httpx.HTTPStatusError as exc:
+                        return {
+                            "index": index,
+                            "status_code": 502,
+                            "error": {
+                                "message": "runtime returned an error",
+                                "runtime_status": exc.response.status_code,
+                            },
+                        }
+                    except (httpx.HTTPError, ValueError):
+                        return {"index": index, "status_code": 502, "error": {"message": "runtime request failed"}}
+
+            results = await asyncio.gather(*[_process(index, item) for index, item in enumerate(payload.requests)])
+            return {"object": "batch", "count": len(results), "results": list(results)}
+        except AdmissionPolicyError as exc:
+            status_code, headers = _admission_status(exc.reason, resolved)
+            status = str(status_code)
+            error = str(exc)
+            raise HTTPException(
+                status_code=status_code,
+                detail={
+                    "message": error,
+                    "reason": exc.reason,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+                headers=headers,
+            ) from exc
+        finally:
+            REQUESTS.labels(route, resolved.runtime_backend, status).inc()
+            SANDBOX_REQUESTS.labels(request.state.sandbox_id, resolved.runtime_backend, status).inc()
+            latency_seconds = perf_counter() - start
+            LATENCY.labels(route, resolved.runtime_backend).observe(latency_seconds)
+            if resolved.audit_log_enabled:
+                event = {
+                    "event": "batch_request",
+                    "request_id": request.state.request_id,
+                    "traceparent": request.state.traceparent,
+                    "sandbox_id": request.state.sandbox_id,
+                    "principal": getattr(request.state, "principal", None),
+                    "batch_size": len(payload.requests),
+                    "status_code": status_code,
+                    "latency_ms": round(latency_seconds * 1000, 2),
+                    "error": error,
+                }
+                _chain_audit_event(request, event)
+                AUDIT_LOGGER.info(json.dumps(event, sort_keys=True))
 
     _install_openapi_contract(app, resolved)
     return app

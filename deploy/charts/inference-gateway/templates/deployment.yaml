@@ -86,6 +86,8 @@ spec:
               value: {{ .Values.rateLimit.windowSeconds | quote }}
             - name: MAX_CONCURRENT_REQUESTS
               value: {{ .Values.concurrency.maxConcurrentRequests | quote }}
+            - name: MAX_BATCH_REQUESTS
+              value: {{ .Values.concurrency.maxBatchRequests | quote }}
             - name: RESPONSE_CACHE_ENABLED
               value: {{ .Values.responseCache.enabled | quote }}
             - name: RESPONSE_CACHE_TTL_SECONDS
