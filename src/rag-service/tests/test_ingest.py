@@ -9,6 +9,7 @@ from app.ingest import (
     SourceRecord,
     build_chunks,
     chunk_text,
+    delete_source,
     ensure_collection,
     iter_document_paths,
     load_manifest,
@@ -212,6 +213,27 @@ def test_upsert_chunks_embeds_and_writes_points(tmp_path, monkeypatch):
     assert summary["collection_status"] == "created"
     assert len(captured["points"][0]["vector"]) == 8
     assert captured["points"][0]["payload"]["source_id"] == "handbook"
+
+
+def test_delete_source_issues_filtered_points_delete(monkeypatch):
+    captured = {}
+
+    def handler(request):
+        captured["path"] = request.url.path
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"result": {"status": "completed", "operation_id": 1}})
+
+    real_client = httpx.Client
+    monkeypatch.setattr(ingest.httpx, "Client", lambda *a, **k: real_client(transport=httpx.MockTransport(handler)))
+
+    summary = delete_source("platform-docs", "http://qdrant:6333", "kb", 5.0, "v2")
+
+    assert summary["status"] == "deleted"
+    assert summary["deleted_source_id"] == "platform-docs"
+    assert captured["path"].endswith("/collections/kb/points/delete")
+    must = captured["body"]["filter"]["must"]
+    assert {"key": "source_id", "match": {"value": "platform-docs"}} in must
+    assert {"key": "collection_version", "match": {"value": "v2"}} in must
 
 
 def test_main_check_mode_reports_summary(tmp_path, monkeypatch, capsys):

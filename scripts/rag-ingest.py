@@ -191,11 +191,7 @@ def _collection_dimensions(payload: dict[str, Any]) -> int | None:
     result = payload.get("result") if isinstance(payload, dict) else None
     if not isinstance(result, dict):
         return None
-    vectors = (
-        result.get("config", {})
-        .get("params", {})
-        .get("vectors")
-    )
+    vectors = result.get("config", {}).get("params", {}).get("vectors")
     if isinstance(vectors, dict):
         size = vectors.get("size")
         if isinstance(size, int):
@@ -221,9 +217,7 @@ def ensure_collection(
     response.raise_for_status()
     existing_dimensions = _collection_dimensions(response.json())
     if existing_dimensions is not None and existing_dimensions != dimensions:
-        raise ValueError(
-            f"collection {collection} has {existing_dimensions} dimensions; expected {dimensions}"
-        )
+        raise ValueError(f"collection {collection} has {existing_dimensions} dimensions; expected {dimensions}")
     return "ready"
 
 
@@ -258,20 +252,56 @@ def upsert_chunks(
     }
 
 
+def delete_source(
+    source_id: str,
+    base_url: str,
+    collection: str,
+    timeout_seconds: float,
+    collection_version: str | None = None,
+) -> dict[str, Any]:
+    """Delete every point for a source id from Qdrant (right-to-erasure / source removal)."""
+    must: list[dict[str, Any]] = [{"key": "source_id", "match": {"value": source_id}}]
+    if collection_version:
+        must.append({"key": "collection_version", "match": {"value": collection_version}})
+    with httpx.Client(timeout=timeout_seconds) as client:
+        response = client.post(
+            f"{base_url.rstrip('/')}/collections/{collection}/points/delete",
+            params={"wait": "true"},
+            json={"filter": {"must": must}},
+        )
+        response.raise_for_status()
+    return {
+        "status": "deleted",
+        "collection": collection,
+        "deleted_source_id": source_id,
+        "collection_version": collection_version or "all",
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate and ingest platform.ai/v1alpha1 RAG source manifests into Qdrant.",
+        description="Validate, ingest, or purge platform.ai/v1alpha1 RAG source manifests in Qdrant.",
     )
-    parser.add_argument("--source", required=True, type=Path, help="RagSourceManifest YAML path.")
+    parser.add_argument("--source", type=Path, help="RagSourceManifest YAML path.")
+    parser.add_argument("--source-id", default="", help="Source id to purge with --delete.")
     parser.add_argument("--backend", choices=("qdrant",), default="qdrant")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--check", action="store_true", help="Validate and summarize without writing.")
     mode.add_argument("--write", action="store_true", help="Write chunks into Qdrant.")
+    mode.add_argument("--delete", action="store_true", help="Delete all points for --source-id from Qdrant.")
     parser.add_argument("--qdrant-url", default=_env_first(("QDRANT_URL", "VECTOR_STORE_URL"), ""))
-    parser.add_argument("--collection", default=_env_first(("QDRANT_COLLECTION", "VECTOR_COLLECTION"), "private-ai-platform-kit"))
-    parser.add_argument("--collection-version", default=_env_first(("QDRANT_COLLECTION_VERSION", "VECTOR_COLLECTION_VERSION"), "v1"))
+    parser.add_argument(
+        "--collection", default=_env_first(("QDRANT_COLLECTION", "VECTOR_COLLECTION"), "private-ai-platform-kit")
+    )
+    parser.add_argument(
+        "--collection-version", default=_env_first(("QDRANT_COLLECTION_VERSION", "VECTOR_COLLECTION_VERSION"), "v1")
+    )
     parser.add_argument("--dimensions", type=int, default=int(os.getenv("QDRANT_VECTOR_DIMENSIONS", "384")))
-    parser.add_argument("--timeout-seconds", type=float, default=float(_env_first(("QDRANT_TIMEOUT_SECONDS", "VECTOR_TIMEOUT_SECONDS"), "5")))
+    parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        default=float(_env_first(("QDRANT_TIMEOUT_SECONDS", "VECTOR_TIMEOUT_SECONDS"), "5")),
+    )
     parser.add_argument("--embedding-provider", default=os.getenv("RAG_EMBEDDING_PROVIDER", "hash"))
     parser.add_argument("--embedding-base-url", default=os.getenv("RAG_EMBEDDING_BASE_URL", ""))
     parser.add_argument("--embedding-model", default=os.getenv("RAG_EMBEDDING_MODEL", "hash-text-v1"))
@@ -284,6 +314,28 @@ def main() -> int:
         raise SystemExit("--dimensions must be greater than zero")
     if not args.collection_version.strip():
         raise SystemExit("--collection-version must not be empty")
+
+    if args.delete:
+        if not args.source_id.strip():
+            raise SystemExit("--source-id is required with --delete")
+        if not args.qdrant_url:
+            raise SystemExit("--qdrant-url or QDRANT_URL is required with --delete")
+        summary = delete_source(
+            args.source_id.strip(),
+            args.qdrant_url,
+            args.collection,
+            args.timeout_seconds,
+            args.collection_version,
+        )
+        rendered = json.dumps(summary, indent=2, sort_keys=True) + "\n"
+        print(rendered, end="")
+        if args.status_file:
+            args.status_file.parent.mkdir(parents=True, exist_ok=True)
+            args.status_file.write_text(rendered, encoding="utf-8")
+        return 0
+
+    if not args.source:
+        raise SystemExit("--source is required with --check or --write")
     if args.chunk_chars <= 0:
         raise SystemExit("--chunk-chars must be greater than zero")
     if args.overlap_chars < 0 or args.overlap_chars >= args.chunk_chars:

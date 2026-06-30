@@ -249,16 +249,49 @@ def upsert_chunks(
     }
 
 
+def delete_source(
+    source_id: str,
+    base_url: str,
+    collection: str,
+    timeout_seconds: float,
+    collection_version: str | None = None,
+) -> dict[str, Any]:
+    """Delete every point for a source id from Qdrant.
+
+    Enables right-to-erasure and source removal: dropping a source from the manifest
+    otherwise orphans its vectors forever. Optionally scope the delete to one
+    collection version; omit it to purge the source across all versions.
+    """
+    must: list[dict[str, Any]] = [{"key": "source_id", "match": {"value": source_id}}]
+    if collection_version:
+        must.append({"key": "collection_version", "match": {"value": collection_version}})
+    with httpx.Client(timeout=timeout_seconds) as client:
+        response = client.post(
+            f"{base_url.rstrip('/')}/collections/{collection}/points/delete",
+            params={"wait": "true"},
+            json={"filter": {"must": must}},
+        )
+        response.raise_for_status()
+    return {
+        "status": "deleted",
+        "collection": collection,
+        "deleted_source_id": source_id,
+        "collection_version": collection_version or "all",
+    }
+
+
 def main() -> int:
-    """Parse CLI arguments, then check or write manifest chunks to Qdrant."""
+    """Parse CLI arguments, then check, write, or delete manifest chunks in Qdrant."""
     parser = argparse.ArgumentParser(
-        description="Validate and ingest platform.ai/v1alpha1 RAG source manifests into Qdrant.",
+        description="Validate, ingest, or purge platform.ai/v1alpha1 RAG source manifests in Qdrant.",
     )
-    parser.add_argument("--source", required=True, type=Path)
+    parser.add_argument("--source", type=Path)
+    parser.add_argument("--source-id", default="", help="Source id to purge with --delete.")
     parser.add_argument("--backend", choices=("qdrant",), default="qdrant")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--write", action="store_true")
+    mode.add_argument("--delete", action="store_true", help="Delete all points for --source-id from Qdrant.")
     parser.add_argument("--qdrant-url", default="")
     parser.add_argument("--collection", default="private-ai-platform-kit")
     parser.add_argument("--collection-version", default="v1")
@@ -275,6 +308,24 @@ def main() -> int:
         raise SystemExit("--dimensions must be greater than zero")
     if not args.collection_version.strip():
         raise SystemExit("--collection-version must not be empty")
+
+    if args.delete:
+        if not args.source_id.strip():
+            raise SystemExit("--source-id is required with --delete")
+        if not args.qdrant_url:
+            raise SystemExit("--qdrant-url is required with --delete")
+        delete_summary = delete_source(
+            args.source_id.strip(),
+            args.qdrant_url,
+            args.collection,
+            args.timeout_seconds,
+            args.collection_version,
+        )
+        print(json.dumps(delete_summary, indent=2, sort_keys=True))
+        return 0
+
+    if not args.source:
+        raise SystemExit("--source is required with --check or --write")
     if args.chunk_chars <= 0:
         raise SystemExit("--chunk-chars must be greater than zero")
     if args.overlap_chars < 0 or args.overlap_chars >= args.chunk_chars:

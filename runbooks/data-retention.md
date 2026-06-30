@@ -36,6 +36,30 @@ Before handoff, confirm:
 - agent workspace PVCs have an offboarding and purge process
 - model governance reports are retained with model approval evidence
 
+## Erasing a RAG Source (Right-to-Erasure)
+
+Ingestion is upsert-only, so removing a source from the manifest leaves its vectors in
+Qdrant. To purge a source's vectors (right-to-erasure or source decommission), delete by
+`source_id`:
+
+```bash
+# Purge across all collection versions:
+python scripts/rag-ingest.py --delete --source-id <source-id> \
+  --qdrant-url "$QDRANT_URL" --collection "$QDRANT_COLLECTION"
+
+# Or scope the delete to one collection version:
+python scripts/rag-ingest.py --delete --source-id <source-id> \
+  --qdrant-url "$QDRANT_URL" --collection "$QDRANT_COLLECTION" --collection-version v2
+```
+
+This issues a filtered Qdrant `points/delete` on the `source_id` payload field written at
+ingest time. To re-index a source after a content change, run `--delete --source-id <id>`
+followed by `--write`. Record the deletion in the retention evidence for the environment.
+
+Age-based automatic purge is not yet enforced from the service: the chunk payload does not
+carry an ingestion timestamp, so the `retentionDays` policy is enforced operationally via
+the delete-by-source procedure above plus collection-version rotation, not by a scheduled job.
+
 ## Changing Retention
 
 Tune `retentionDays` and classifications only through reviewed changes to `platform/governance/data-retention.yaml`. If a customer requires longer retention or stricter classification, update the policy first and regenerate `make retention-report`.
