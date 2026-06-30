@@ -85,6 +85,7 @@ nav:
       - First private AI platform: quickstart.md
   - How-to guides:
       - Local lab and operations: getting-started.md
+      - Client API examples: client-examples.md
       - Customer cluster handoff: customer-handoff-example.md
       - Regulated offline tenant: regulated-offline-tenant-example.md
       - GPU coding-agent tenant: gpu-coding-agent-tenant-example.md

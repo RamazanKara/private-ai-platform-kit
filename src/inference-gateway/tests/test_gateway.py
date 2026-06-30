@@ -612,6 +612,29 @@ def test_response_cache_disabled_by_default():
     assert fake.calls == 2
 
 
+def test_audit_events_form_tamper_evident_chain(caplog):
+    caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    body = {"messages": [{"role": "user", "content": "hi"}]}
+
+    client.post("/v1/chat/completions", json=body)
+    client.post("/v1/chat/completions", json=body)
+
+    events = [json.loads(r.getMessage()) for r in caplog.records if '"event": "inference_request"' in r.getMessage()]
+    assert len(events) >= 2
+    genesis = hashlib.sha256(b"genesis").hexdigest()
+    prev = genesis
+    for event in events:
+        assert event["prev_hash"] == prev
+        record = {k: v for k, v in event.items() if k not in ("prev_hash", "record_hash")}
+        canonical = json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        expected = hashlib.sha256(prev.encode("ascii") + canonical).hexdigest()
+        assert event["record_hash"] == expected
+        prev = event["record_hash"]
+
+
 def test_rate_limit_disabled_by_default_allows_burst():
     app = create_app(_tool_settings())
     app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})

@@ -32,6 +32,10 @@ from app.tracing import configure_tracing, trace_request
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
+# Tamper-evident audit chain: h_0 = SHA-256("genesis"); h_i = SHA-256(h_{i-1} ||
+# canonical(record_i)). Matches paper/evidence-model/audit_chain.py so the live audit log
+# is verifiable by the same auditor tooling. The chain is per-process (per gateway replica).
+AUDIT_GENESIS = hashlib.sha256(b"genesis").hexdigest()
 SERVICE_VERSION = "0.11.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
@@ -493,6 +497,23 @@ def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
     return response
 
 
+def _chain_audit_event(request: Request, event: dict[str, Any]) -> None:
+    """Link the audit event into the per-process tamper-evident hash chain in place.
+
+    Computes ``record_hash = SHA-256(prev_hash || canonical(event))`` over the event
+    before the chain fields are added, then stamps ``prev_hash`` and ``record_hash`` onto
+    the event and advances the stored head. Any edit, insertion, deletion, or reordering
+    of the emitted records breaks the chain and is detectable by the auditor tooling.
+    """
+    state = request.app.state
+    prev = getattr(state, "audit_prev_hash", AUDIT_GENESIS)
+    canonical = json.dumps(event, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    record_hash = hashlib.sha256(prev.encode("ascii") + canonical).hexdigest()
+    event["prev_hash"] = prev
+    event["record_hash"] = record_hash
+    state.audit_prev_hash = record_hash
+
+
 def _payload_fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
     """Summarize a chat payload into redacted audit fields (counts, roles, prompt hash)."""
     messages = payload.get("messages") or []
@@ -638,6 +659,7 @@ def _write_audit_log(
         "budget": getattr(request.state, "budget_reservation", None),
     }
     event.update(_payload_fingerprint(payload))
+    _chain_audit_event(request, event)
     line = json.dumps(event, sort_keys=True)
     AUDIT_LOGGER.info(line)
     logging.getLogger("uvicorn.error").info(line)
@@ -659,6 +681,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.budget_tracker = build_sandbox_budget_tracker(resolved)
     app.state.rate_limiter = build_rate_limiter(resolved)
     app.state.inflight = 0
+    app.state.audit_prev_hash = AUDIT_GENESIS
     app.state.response_cache = ResponseCache(resolved.response_cache_max_entries, resolved.response_cache_ttl_seconds)
     app.state.model_routing_policy = (
         ModelRoutingPolicy.from_path(resolved.model_routing_policy_path, resolved)

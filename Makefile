@@ -19,7 +19,7 @@ PYTHON := src/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval eval-local rag-eval rag-eval-check loadtest loadtest-local benchmark-local docs-install docs-serve docs-build restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag lint format format-check typecheck quality coverage dashboard-check dashboard-update paths paths-check
+.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke sandbox-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu tenant-offboard customer-overlay customer-overlay-check agent-lab-up agent-smoke chaos-drill eval eval-local rag-eval rag-eval-check loadtest loadtest-local benchmark-local docs-install docs-serve docs-build restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag lint format format-check typecheck quality coverage dashboard-check dashboard-update paths paths-check
 
 help:
 	@printf '%s\n' \
@@ -121,6 +121,9 @@ tenant-onboard-regulated: python-env
 
 tenant-onboard-gpu: python-env
 	$(PYTHON) scripts/tenant-onboard.py --spec tenants/onboarding/gpu-coding-agents.yaml --output-dir "$(TENANT_OUTPUT)"
+
+tenant-offboard: python-env
+	$(PYTHON) scripts/tenant-offboard.py --spec "$(TENANT_SPEC)"
 
 customer-overlay: python-env
 	$(PYTHON) scripts/configure-customer-overlay.py --repo-url "$(CUSTOMER_REPO_URL)" --target-revision "$(CUSTOMER_REVISION)" --gpu-profile "$(CUSTOMER_GPU_PROFILE)"

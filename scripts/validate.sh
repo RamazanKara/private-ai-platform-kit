@@ -118,6 +118,11 @@ src/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check
 src/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check --spec tenants/onboarding/regulated-offline-coding-agents.yaml
 src/inference-gateway/.venv/bin/python scripts/tenant-onboard.py --check --spec tenants/onboarding/gpu-coding-agents.yaml
 
+log "checking tenant offboarding plan"
+src/inference-gateway/.venv/bin/python scripts/tenant-offboard.py --check --spec tenants/onboarding/coding-agents.yaml
+src/inference-gateway/.venv/bin/python scripts/tenant-offboard.py --check --spec tenants/onboarding/regulated-offline-coding-agents.yaml
+src/inference-gateway/.venv/bin/python scripts/tenant-offboard.py --check --spec tenants/onboarding/gpu-coding-agents.yaml
+
 log "checking customer overlay configuration"
 src/inference-gateway/.venv/bin/python scripts/configure-customer-overlay.py --check
 
