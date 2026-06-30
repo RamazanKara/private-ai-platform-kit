@@ -4,6 +4,42 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+A feature-gap remediation pass closing the highest-impact items from an audit of the
+gateway, RAG, deployment, and governance surfaces.
+
+### Added
+
+- Gateway: tool/function-calling and OpenAI passthrough params now survive to the runtime
+  (the schema previously dropped them), and `Message.content` accepts content-part arrays
+  for vision-capable runtimes. Tool count/size are bounded by admission.
+- Gateway: governed `POST /v1/embeddings` (auth/policy/budget/audit) and a dependency-free
+  OpenAI-compatible `POST /v1/moderations` (credential/PII/blocked-term classification).
+- Gateway: short-window per-sandbox rate limiting (Redis or in-memory), cross-runtime
+  fallback/failover routing, and the authenticated principal is now propagated into the
+  audit trail with optional JWT-claim-bound sandbox identity.
+- Gateway: opt-in PII detectors (email/us_ssn/credit_card) and a blocked-term denylist.
+- RAG: retrieval-quality evaluation (`make rag-eval`) scoring recall@k/MRR/nDCG/grounding
+  against a golden set, and delete-by-source ingestion (`--delete --source-id`) for
+  right-to-erasure.
+- vLLM: optional persistent model-weight cache (PVC) and `model.revision` pinning.
+- Observability: a Promtail log-shipper Application feeding Loki, GPU-saturation and
+  request-queue alerts, SLI recording rules, and a default Alertmanager routing tree.
+
+### Changed
+
+- Gateway runtime retries now cover transient 5xx/429 (and pre-first-byte streaming) with
+  exponential backoff + jitter and `Retry-After`; default retries raised from 0 to 2.
+- The default customer vLLM profile uses KEDA queue-scaling instead of a CPU-target HPA
+  (the wrong signal for a GPU server); `production-check` now renders and gates it.
+
+### Fixed
+
+- Version strings aligned to v0.11.0 so `make production-check` passes; several other
+  pre-existing offline `make validate` breakages (paper/ lint scope, mkdocs YAML parse,
+  undeclared `paper/` directory) resolved.
+
 ## v0.11.0 - 2026-06-30
 
 ### Changed
