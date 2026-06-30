@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
 import os
 import socket
@@ -128,10 +129,8 @@ async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> 
             if not keep_alive:
                 break
     finally:
-        try:
+        with contextlib.suppress(OSError):
             writer.close()
-        except OSError:
-            pass
 
 
 async def serve(host: str, port: int) -> None:

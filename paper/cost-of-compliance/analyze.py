@@ -102,7 +102,9 @@ def main() -> int:
                 "gw_min_p50": gm["p50_ms"]["mean"],
                 "gw_full_p50": gf["p50_ms"]["mean"],
                 "governance_delta_ms": round(delta, 3),
-                "governance_pct_of_full": round(100.0 * delta / gf["p50_ms"]["mean"], 3) if gf["p50_ms"]["mean"] else None,
+                "governance_pct_of_full": (
+                    round(100.0 * delta / gf["p50_ms"]["mean"], 3) if gf["p50_ms"]["mean"] else None
+                ),
             })
     numbers["overhead_vs_delay"] = overhead_vs_delay
 

@@ -20,10 +20,6 @@ extend-exclude = [
     ".tools",
     "results",
     ".out/tenants",
-    # The paper/ artifact is a frozen reproducibility snapshot mirroring the exact
-    # revisions cited by the companion paper; it is not maintained service/script code,
-    # so it is out of lint scope (matching the "services + scripts" intent above).
-    "paper",
 ]
 
 [tool.ruff.lint]

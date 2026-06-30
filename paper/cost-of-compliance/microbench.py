@@ -20,7 +20,8 @@ import sys
 import time
 from pathlib import Path
 
-GATEWAY_DIR = Path(os.environ.get("GATEWAY_DIR", str(Path(__file__).resolve().parents[2] / "src" / "inference-gateway")))
+_DEFAULT_GATEWAY_DIR = str(Path(__file__).resolve().parents[2] / "src" / "inference-gateway")
+GATEWAY_DIR = Path(os.environ.get("GATEWAY_DIR", _DEFAULT_GATEWAY_DIR))
 sys.path.insert(0, str(GATEWAY_DIR))
 
 from app.budget import InMemorySandboxBudgetTracker  # noqa: E402

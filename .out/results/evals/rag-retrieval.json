@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-06-30T11:20:17.211932+00:00",
+  "metrics": {
+    "grounding_rate": 0.0,
+    "mrr": 0.0,
+    "ndcg_at_k": 0.0,
+    "recall_at_k": 0.0
+  },
+  "rag_url": "http://127.0.0.1:18083",
+  "results": [
+    {
+      "case_id": "default-local-runtime",
+      "error": "[Errno 111] Connection refused",
+      "grounded": false,
+      "mrr": 0.0,
+      "ndcg_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "retrieved": []
+    },
+    {
+      "case_id": "coding-agent-headers",
+      "error": "[Errno 111] Connection refused",
+      "grounded": false,
+      "mrr": 0.0,
+      "ndcg_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "retrieved": []
+    },
+    {
+      "case_id": "platform-controls",
+      "error": "[Errno 111] Connection refused",
+      "grounded": false,
+      "mrr": 0.0,
+      "ndcg_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "retrieved": []
+    },
+    {
+      "case_id": "gpu-resource-request",
+      "error": "[Errno 111] Connection refused",
+      "grounded": false,
+      "mrr": 0.0,
+      "ndcg_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "retrieved": []
+    },
+    {
+      "case_id": "what-is-the-platform",
+      "error": "[Errno 111] Connection refused",
+      "grounded": false,
+      "mrr": 0.0,
+      "ndcg_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "retrieved": []
+    }
+  ],
+  "suite": "rag-retrieval-smoke",
+  "thresholds": {
+    "minGroundingRate": 0.75,
+    "minMrr": 0.6,
+    "minRecallAtK": 0.75
+  }
+}

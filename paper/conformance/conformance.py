@@ -24,7 +24,8 @@ import httpx
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 COC = HERE.parent / "cost-of-compliance"
-GATEWAY_DIR = Path(os.environ.get("GATEWAY_DIR", str(Path(__file__).resolve().parents[2] / "src" / "inference-gateway")))
+_DEFAULT_GATEWAY_DIR = str(Path(__file__).resolve().parents[2] / "src" / "inference-gateway")
+GATEWAY_DIR = Path(os.environ.get("GATEWAY_DIR", _DEFAULT_GATEWAY_DIR))
 PYTHON = sys.executable
 
 MOCK_PORT = int(os.environ.get("CONF_MOCK_PORT", "9088"))
@@ -62,7 +63,7 @@ def wait_healthy(url: str, timeout: float = 25.0) -> None:
         try:
             if httpx.get(f"{url}/healthz", timeout=2.0).status_code == 200:
                 return
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         time.sleep(0.2)
     raise RuntimeError(f"{url} not healthy")
@@ -85,7 +86,7 @@ def reason_of(resp: httpx.Response) -> str | None:
         detail = resp.json().get("detail")
         if isinstance(detail, dict):
             return detail.get("reason")
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
     return None
 

@@ -12,7 +12,7 @@ if [[ ! -x src/inference-gateway/.venv/bin/python ]]; then
   ./scripts/test-gateway.sh >/dev/null
 fi
 
-SUITE="${SUITE:-evals/smoke-suite.yaml}"
+SUITE="${SUITE:-platform/evals/smoke-suite.yaml}"
 GATEWAY_URL="${GATEWAY_URL:-}"
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 output_json="results/evals/eval-${timestamp}.json"

@@ -50,7 +50,7 @@ def wait_ok(url: str, timeout: float = 60.0) -> None:
                 if r.status_code < 500:
                     return
                 last = r.status_code
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 last = type(exc).__name__
         time.sleep(0.5)
     raise RuntimeError(f"{url} not ready (last={last})")
@@ -88,8 +88,10 @@ def main() -> int:
     try:
         wait_ok(MOCK_URL)
         wait_ok(LITELLM_URL)
-        print("=== direct ==="); rows += measure(MOCK_URL, "direct")
-        print("=== litellm ==="); rows += measure(LITELLM_URL, "litellm")
+        print("=== direct ===")
+        rows += measure(MOCK_URL, "direct")
+        print("=== litellm ===")
+        rows += measure(LITELLM_URL, "litellm")
     finally:
         for p in (litellm, mock):
             p.terminate()

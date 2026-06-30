@@ -8,7 +8,7 @@ require_cmd helm "Helm is required to install the agent workspace chart."
 require_cmd kubectl "kubectl is required to provision agent workspaces."
 
 ENVIRONMENT="${ENVIRONMENT:-local}"
-VALUES_FILE="$ROOT/clusters/${ENVIRONMENT}/values/agent-workspace.yaml"
+VALUES_FILE="$ROOT/deploy/clusters/${ENVIRONMENT}/values/agent-workspace.yaml"
 NAMESPACE="${AGENT_NAMESPACE:-ai-agents}"
 
 if [[ ! -f "$VALUES_FILE" ]]; then
@@ -16,7 +16,7 @@ if [[ ! -f "$VALUES_FILE" ]]; then
 fi
 
 log "installing agent workspace into ${NAMESPACE} using ${ENVIRONMENT} values"
-helm upgrade --install agent-workspace "$ROOT/charts/agent-workspace" \
+helm upgrade --install agent-workspace "$ROOT/deploy/charts/agent-workspace" \
   --namespace "$NAMESPACE" \
   --create-namespace \
   --values "$VALUES_FILE"

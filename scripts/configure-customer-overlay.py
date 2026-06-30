@@ -183,7 +183,7 @@ def configure_overlay(repo_url: str, target_revision: str, gpu_profile: str, dry
 def main() -> int:
     parser = argparse.ArgumentParser(description="Configure and validate the customer-owned Kubernetes GitOps overlay.")
     parser.add_argument("--repo-url", default="https://github.com/RamazanKara/private-ai-platform-kit.git")
-    parser.add_argument("--target-revision", default="v0.10.0")
+    parser.add_argument("--target-revision", default="v0.11.0")
     parser.add_argument("--gpu-profile", choices=sorted(VLLM_VALUE_FILES), default="nvidia")
     parser.add_argument("--check", action="store_true", help="Validate the current overlay without modifying files.")
     parser.add_argument("--dry-run", action="store_true", help="Print the requested configuration without writing files.")

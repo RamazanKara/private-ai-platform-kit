@@ -13,7 +13,7 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
@@ -87,7 +87,7 @@ def fig_overhead():
     ax2.set_ylabel("% of end-to-end latency", color=ACCENT)
     ax2.set_ylim(0, max(pct) * 1.3)
     ax2.grid(False)
-    for xi, p in zip(x, pct):
+    for xi, p in zip(x, pct, strict=True):
         ax2.annotate(f"{p:.1f}%", (xi, p), textcoords="offset points", xytext=(0, 5),
                      fontsize=6.5, color=ACCENT, ha="center")
     fig.tight_layout(pad=0.4)

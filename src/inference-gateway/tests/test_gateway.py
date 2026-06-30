@@ -1365,6 +1365,31 @@ def test_chat_completion_requires_api_key_when_auth_is_enabled():
     assert fake.calls == 1
 
 
+def test_health_and_readiness_probes_bypass_api_key_auth():
+    # Kubernetes probes cannot present an API key; /healthz and /readyz must stay
+    # reachable when API-key auth is enabled, or the gateway pod never goes Ready.
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+        allowed_models=("default-model",),
+        api_key_auth_enabled=True,
+        api_key_sha256s=(hashlib.sha256(b"secret-key").hexdigest(),),
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient()
+    client = TestClient(app)
+
+    healthz = client.get("/healthz")
+    readyz = client.get("/readyz")
+
+    assert healthz.status_code == 200
+    assert readyz.status_code == 200
+    assert readyz.json()["status"] == "ready"
+
+
 def test_bearer_api_key_is_accepted_when_auth_is_enabled():
     settings = Settings(
         runtime_backend="ollama",

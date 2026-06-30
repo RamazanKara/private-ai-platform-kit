@@ -38,7 +38,7 @@ def _percentile(values: list[float], pct: float) -> float:
         return ordered[0]
     if pct >= 100:
         return ordered[-1]
-    rank = max(1, int(round(pct / 100.0 * len(ordered))))
+    rank = max(1, round(pct / 100.0 * len(ordered)))
     return ordered[min(rank, len(ordered)) - 1]
 
 
