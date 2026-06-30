@@ -120,6 +120,8 @@ spec:
   volumeClaimTemplates:
     - metadata:
         name: data
+        labels:
+          platform.ai/encryption-at-rest: "true"
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:

@@ -5,6 +5,7 @@ metadata:
   name: {{ include "vllm.fullname" . }}-model-cache
   labels:
     {{- include "vllm.labels" . | nindent 4 }}
+    platform.ai/encryption-at-rest: "true"
 spec:
   accessModes:
     - {{ .Values.cache.persistence.accessMode }}

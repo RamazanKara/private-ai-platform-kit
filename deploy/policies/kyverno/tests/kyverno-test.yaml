@@ -10,6 +10,8 @@ resources:
   - resources/privileged-pod.yaml
   - resources/missing-resources-pod.yaml
   - resources/writable-root-pod.yaml
+  - resources/encrypted-pvc.yaml
+  - resources/unencrypted-pvc.yaml
 results:
   - policy: ai-platform-required-labels
     rule: require-platform-labels
@@ -40,4 +42,16 @@ results:
     resources:
       - writable-root-pod
     kind: Pod
+    result: fail
+  - policy: ai-platform-pvc-encryption-at-rest
+    rule: require-encryption-at-rest-label
+    resources:
+      - encrypted-pvc
+    kind: PersistentVolumeClaim
+    result: pass
+  - policy: ai-platform-pvc-encryption-at-rest
+    rule: require-encryption-at-rest-label
+    resources:
+      - unencrypted-pvc
+    kind: PersistentVolumeClaim
     result: fail

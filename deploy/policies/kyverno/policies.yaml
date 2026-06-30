@@ -349,3 +349,35 @@ spec:
                   - "10.0.0.0/8"
                   - "172.16.0.0/12"
                   - "192.168.0.0/16"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ai-platform-pvc-encryption-at-rest
+  annotations:
+    policies.kyverno.io/title: PVC encryption-at-rest attestation
+    policies.kyverno.io/category: Private AI Platform Kit
+    policies.kyverno.io/description: >-
+      Platform data lives on PersistentVolumeClaims (Qdrant vectors, vLLM weights, agent
+      workspaces). Encryption at rest is the storage class's responsibility and varies by
+      provider, so this is provider-neutral: a PVC must attest it lands on an encrypting
+      storage class via the platform.ai/encryption-at-rest=true label. Audit mode surfaces
+      unencrypted claims in policy reports without blocking workloads; flip to Enforce once
+      every storage class in use encrypts at rest. The chart PVCs carry the label by default.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: require-encryption-at-rest-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - PersistentVolumeClaim
+      validate:
+        message: >-
+          PVCs must set platform.ai/encryption-at-rest=true to attest an encrypting storage class.
+        pattern:
+          metadata:
+            labels:
+              platform.ai/encryption-at-rest: "true"

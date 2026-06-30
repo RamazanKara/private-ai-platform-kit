@@ -5,6 +5,7 @@ metadata:
   name: {{ include "qdrant-vector-store.fullname" . }}-storage
   labels:
     {{- include "qdrant-vector-store.labels" . | nindent 4 }}
+    platform.ai/encryption-at-rest: "true"
 spec:
   accessModes:
     - ReadWriteOnce

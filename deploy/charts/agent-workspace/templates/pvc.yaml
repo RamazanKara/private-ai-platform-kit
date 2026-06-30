@@ -6,6 +6,7 @@ metadata:
   namespace: {{ .Values.namespace.name }}
   labels:
     {{- include "agent-workspace.labels" . | nindent 4 }}
+    platform.ai/encryption-at-rest: "true"
 spec:
   accessModes:
     {{- toYaml .Values.workspace.pvc.accessModes | nindent 4 }}

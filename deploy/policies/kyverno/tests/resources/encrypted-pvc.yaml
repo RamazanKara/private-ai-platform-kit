@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: encrypted-pvc
+  namespace: vllm
+  labels:
+    app.kubernetes.io/name: vllm
+    platform.ai/encryption-at-rest: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
