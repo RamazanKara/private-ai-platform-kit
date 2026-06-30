@@ -4,6 +4,7 @@ import json
 import logging
 
 import httpx
+import pytest
 from app.embeddings import HashEmbeddingProvider, OpenAICompatibleEmbeddingProvider
 from app.ingest import build_chunks, load_manifest
 from app.main import create_app
@@ -186,7 +187,8 @@ def test_qdrant_retriever_bootstraps_and_queries_with_rest_api(tmp_path, monkeyp
             return httpx.Response(200, json={"status": "ok", "result": {"status": "acknowledged"}})
         if request.method == "POST" and request.url.path == "/collections/lab/points/query":
             body = json.loads(request.content)
-            assert body["limit"] == 1
+            # Over-fetch candidates (top_k * candidate_multiplier) for the hybrid rerank.
+            assert body["limit"] == 4
             assert body["with_payload"] is True
             assert len(body["query"]) == 16
             assert body["filter"]["must"][0]["key"] == "collection_version"
@@ -228,9 +230,85 @@ def test_qdrant_retriever_bootstraps_and_queries_with_rest_api(tmp_path, monkeyp
     results = asyncio.run(retriever.query("gateway", top_k=1, max_context_chars=200))
 
     assert results[0].document.id == "agents"
-    assert results[0].score == 0.87
+    # Hybrid score: 0.5 * dense(0.87) + 0.5 * lexical_overlap(1.0) = 0.935.
+    assert results[0].score == pytest.approx(0.935)
     assert ("PUT", "/collections/lab/points") in calls
     assert ("POST", "/collections/lab/points/query") in calls
+
+
+def test_qdrant_hybrid_rerank_promotes_lexically_relevant_doc(tmp_path, monkeypatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/collections/lab/points/query":
+            return httpx.Response(
+                200,
+                json={
+                    "result": {
+                        "points": [
+                            {
+                                "id": "11111111-1111-5111-8111-111111111111",
+                                "score": 0.90,
+                                "payload": {"document_id": "unrelated", "content": "weather and cooking tips"},
+                            },
+                            {
+                                "id": "22222222-2222-5222-8222-222222222222",
+                                "score": 0.70,
+                                "payload": {
+                                    "document_id": "gateway-doc",
+                                    "content": "the inference gateway routes traffic",
+                                },
+                            },
+                        ]
+                    }
+                },
+            )
+        return httpx.Response(500)
+
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+    )
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    results = asyncio.run(retriever.query("inference gateway", top_k=2, max_context_chars=200))
+
+    # Dense ranks "unrelated" (0.90) first, but it has zero query-term overlap; the
+    # hybrid rerank promotes the lexically-relevant "gateway-doc".
+    assert results[0].document.id == "gateway-doc"
+
+
+def test_qdrant_classification_filter_scopes_retrieval(tmp_path, monkeypatch):
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/collections/lab/points/query":
+            captured["filter"] = json.loads(request.content)["filter"]
+            return httpx.Response(200, json={"result": {"points": []}})
+        return httpx.Response(500)
+
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+        allowed_classifications=("internal", "public"),
+    )
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    asyncio.run(retriever.query("anything", top_k=1, max_context_chars=200))
+
+    conditions = captured["filter"]["must"]
+    classification = next(c for c in conditions if c["key"] == "classification")
+    assert classification["match"]["any"] == ["internal", "public"]
 
 
 def test_rag_query_returns_grounded_messages_and_trace_headers(tmp_path):

@@ -32,6 +32,13 @@ retrieval:
   defaultTopK: 3
   maxTopK: 8
   maxContextChars: 6000
+  # Hybrid retrieval (Qdrant backend): over-fetch candidateMultiplier x topK dense
+  # candidates, then rerank by dense score blended with lexical query-term overlap
+  # (lexicalWeight 0..1; 0 = pure dense). allowedClassifications (when set) access-scopes
+  # retrieval to documents whose classification is in the list; empty returns all.
+  candidateMultiplier: 4
+  lexicalWeight: 0.5
+  allowedClassifications: []
   vectorStore:
     url: ""
     collection: private-ai-platform-kit

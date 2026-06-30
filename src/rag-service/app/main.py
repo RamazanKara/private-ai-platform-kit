@@ -260,6 +260,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             resolved.vector_dimensions,
             resolved.vector_bootstrap_enabled,
             embedding_provider,
+            candidate_multiplier=resolved.retrieval_candidate_multiplier,
+            lexical_weight=resolved.retrieval_lexical_weight,
+            allowed_classifications=resolved.retrieval_allowed_classifications,
         )
     else:
         app.state.retriever = LexicalRetriever.from_directory(resolved.document_dir)

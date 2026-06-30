@@ -55,6 +55,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `budget.redisUrl` | `redis://budget-redis.budget.svc.cluster.local:6379/0` |
 | `budget.requestLimit` | `1000` |
 | `budget.windowSeconds` | `86400` |
+| `concurrency.maxConcurrentRequests` | `0` |
 | `guardrails.blockedContentTerms` | `[]` |
 | `guardrails.promptSecretDetection.enabled` | `true` |
 | `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"]` |
@@ -88,6 +89,9 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `resources.limits.memory` | `512Mi` |
 | `resources.requests.cpu` | `100m` |
 | `resources.requests.memory` | `128Mi` |
+| `responseCache.enabled` | `false` |
+| `responseCache.maxEntries` | `1024` |
+| `responseCache.ttlSeconds` | `60` |
 | `routing.policy.enabled` | `false` |
 | `routing.policy.models` | `[]` |
 | `routing.policyPath` | `""` |

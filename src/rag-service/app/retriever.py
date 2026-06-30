@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 import httpx
@@ -139,6 +140,9 @@ class QdrantRetriever:
         vector_dimensions: int,
         bootstrap_from_knowledge: bool,
         embedding_provider: EmbeddingProvider | None = None,
+        candidate_multiplier: int = 4,
+        lexical_weight: float = 0.5,
+        allowed_classifications: tuple[str, ...] = (),
     ) -> None:
         self.documents = documents
         self.base_url = base_url.rstrip("/")
@@ -148,6 +152,9 @@ class QdrantRetriever:
         self.vector_dimensions = vector_dimensions
         self.bootstrap_from_knowledge = bootstrap_from_knowledge
         self.embedding_provider = embedding_provider or HashEmbeddingProvider(vector_dimensions)
+        self.candidate_multiplier = candidate_multiplier
+        self.lexical_weight = lexical_weight
+        self.allowed_classifications = allowed_classifications
         self._bootstrapped = False
         self.last_sync_status = "pending" if bootstrap_from_knowledge else "disabled"
         self.last_sync_error = ""
@@ -163,6 +170,9 @@ class QdrantRetriever:
         vector_dimensions: int,
         bootstrap_from_knowledge: bool,
         embedding_provider: EmbeddingProvider | None = None,
+        candidate_multiplier: int = 4,
+        lexical_weight: float = 0.5,
+        allowed_classifications: tuple[str, ...] = (),
     ) -> QdrantRetriever:
         """Build a Qdrant retriever seeded with documents loaded from a directory."""
         return cls(
@@ -174,6 +184,9 @@ class QdrantRetriever:
             vector_dimensions=vector_dimensions,
             bootstrap_from_knowledge=bootstrap_from_knowledge,
             embedding_provider=embedding_provider,
+            candidate_multiplier=candidate_multiplier,
+            lexical_weight=lexical_weight,
+            allowed_classifications=allowed_classifications,
         )
 
     def status(self) -> dict[str, str | int | bool]:
@@ -267,28 +280,54 @@ class QdrantRetriever:
             return False
         return True
 
+    def _query_filter(self) -> dict[str, Any]:
+        """Build the Qdrant filter: collection version, plus a classification allowlist.
+
+        ``allowed_classifications`` (when set) access-scopes retrieval so a caller only
+        sees documents whose ``classification`` payload field is in the allowlist; empty
+        returns every classification.
+        """
+        must: list[dict[str, Any]] = [{"key": "collection_version", "match": {"value": self.collection_version}}]
+        if self.allowed_classifications:
+            must.append({"key": "classification", "match": {"any": list(self.allowed_classifications)}})
+        return {"must": must}
+
+    def _hybrid_score(self, dense_score: float, query_terms: set[str], content: str) -> float:
+        """Blend the dense cosine score with lexical query-term overlap.
+
+        Lexical overlap (the fraction of query terms present in the document) complements
+        the dense signal, which materially improves ranking under the default hashed-vector
+        embedding. ``lexical_weight`` of 0 reproduces pure dense ranking.
+        """
+        dense = max(0.0, dense_score)
+        if not query_terms:
+            return dense
+        # Substring match (not exact token-set intersection): the tokenizer keeps trailing
+        # punctuation, so "gateway." would otherwise miss the query term "gateway".
+        content_lower = content.lower()
+        hits = sum(1 for term in query_terms if term in content_lower)
+        overlap = hits / len(query_terms)
+        weight = self.lexical_weight
+        return (1.0 - weight) * dense + weight * overlap
+
     async def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
-        """Embed the query and return the top-k matching points from Qdrant."""
-        if not tokenize(query):
+        """Embed the query, fetch candidates, and return the hybrid-reranked top-k points."""
+        terms = set(tokenize(query))
+        if not terms:
             return []
         await self._ensure_bootstrapped()
         vector = await self.embedding_provider.embed_async(query)
+        # Over-fetch dense candidates so the lexical rerank has room to reorder.
+        candidate_limit = max(top_k, top_k * self.candidate_multiplier)
         try:
             async with self._client() as client:
                 response = await client.post(
                     f"{self.base_url}/collections/{self.collection}/points/query",
                     json={
                         "query": vector,
-                        "limit": top_k,
+                        "limit": candidate_limit,
                         "with_payload": True,
-                        "filter": {
-                            "must": [
-                                {
-                                    "key": "collection_version",
-                                    "match": {"value": self.collection_version},
-                                }
-                            ]
-                        },
+                        "filter": self._query_filter(),
                     },
                 )
                 response.raise_for_status()
@@ -304,7 +343,6 @@ class QdrantRetriever:
         else:
             points = []
 
-        terms = set(tokenize(query))
         matches: list[RetrievalResult] = []
         for point in points:
             if not isinstance(point, dict):
@@ -316,6 +354,7 @@ class QdrantRetriever:
             source = str(point_payload.get("source") or "qdrant")
             doc_id = str(point_payload.get("document_id") or point_payload.get("id") or point.get("id"))
             title = str(point_payload.get("title") or doc_id)
+            combined = self._hybrid_score(float(point.get("score") or 0.0), terms, content)
             matches.append(
                 RetrievalResult(
                     document=KnowledgeDocument(
@@ -325,11 +364,12 @@ class QdrantRetriever:
                         content=content,
                         tokens=Counter(tokenize(content)),
                     ),
-                    score=float(point.get("score") or 0.0),
+                    score=combined,
                     excerpt=_excerpt(content or title, terms, max_context_chars),
                 )
             )
-        return matches
+        matches.sort(key=lambda match: (-match.score, match.document.id))
+        return matches[:top_k]
 
 
 def build_context(results: list[RetrievalResult], max_context_chars: int) -> str:

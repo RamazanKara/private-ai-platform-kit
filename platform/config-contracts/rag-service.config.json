@@ -277,6 +277,18 @@
       "type": "string"
     },
     {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": [],
+      "chart_default": [],
+      "chart_value": "retrieval.allowedClassifications",
+      "description": "Access-scope retrieval to documents whose classification is in this list; empty returns all.",
+      "field": "retrieval_allowed_classifications",
+      "name": "RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS",
+      "sensitive": false,
+      "type": "csv"
+    },
+    {
       "aliases": [
         "RETRIEVAL_BACKEND"
       ],
@@ -292,6 +304,30 @@
       "name": "RAG_RETRIEVAL_BACKEND",
       "sensitive": false,
       "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 4,
+      "chart_default": 4,
+      "chart_value": "retrieval.candidateMultiplier",
+      "description": "Dense candidates over-fetched (x topK) before the hybrid lexical rerank.",
+      "field": "retrieval_candidate_multiplier",
+      "name": "RAG_RETRIEVAL_CANDIDATE_MULTIPLIER",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0.5,
+      "chart_default": 0.5,
+      "chart_value": "retrieval.lexicalWeight",
+      "description": "Weight (0..1) of lexical query-term overlap blended with the dense score.",
+      "field": "retrieval_lexical_weight",
+      "name": "RAG_RETRIEVAL_LEXICAL_WEIGHT",
+      "sensitive": false,
+      "type": "float"
     },
     {
       "aliases": [],

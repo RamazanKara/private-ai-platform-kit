@@ -74,11 +74,14 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `resources.limits.memory` | `256Mi` |
 | `resources.requests.cpu` | `50m` |
 | `resources.requests.memory` | `96Mi` |
+| `retrieval.allowedClassifications` | `[]` |
 | `retrieval.backend` | `lexical` |
+| `retrieval.candidateMultiplier` | `4` |
 | `retrieval.defaultTopK` | `3` |
 | `retrieval.embedding.baseUrl` | `""` |
 | `retrieval.embedding.model` | `hash-text-v1` |
 | `retrieval.embedding.provider` | `hash` |
+| `retrieval.lexicalWeight` | `0.5` |
 | `retrieval.maxContextChars` | `6000` |
 | `retrieval.maxQueryChars` | `2048` |
 | `retrieval.maxTopK` | `8` |

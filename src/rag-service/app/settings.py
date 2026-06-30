@@ -36,6 +36,16 @@ def _positive_int_from_env(name: str, default: int) -> int:
     return value
 
 
+def _float_from_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number") from exc
+
+
 def _positive_float_from_env_first(names: tuple[str, ...], default: float) -> float:
     for name in names:
         raw = os.getenv(name)
@@ -99,6 +109,9 @@ class Settings:
     vector_timeout_seconds: float = 1.0
     vector_dimensions: int = DEFAULT_VECTOR_DIMENSIONS
     vector_bootstrap_enabled: bool = True
+    retrieval_candidate_multiplier: int = 4
+    retrieval_lexical_weight: float = 0.5
+    retrieval_allowed_classifications: tuple[str, ...] = ()
     embedding_provider: str = "hash"
     embedding_base_url: str = ""
     embedding_model: str = "hash-text-v1"
@@ -135,6 +148,10 @@ class Settings:
             raise ValueError("vector_timeout_seconds must be greater than zero")
         if self.vector_dimensions <= 0:
             raise ValueError("vector_dimensions must be greater than zero")
+        if self.retrieval_candidate_multiplier < 1:
+            raise ValueError("retrieval_candidate_multiplier must be one or greater")
+        if not 0.0 <= self.retrieval_lexical_weight <= 1.0:
+            raise ValueError("retrieval_lexical_weight must be between 0 and 1")
         if self.embedding_provider not in VALID_EMBEDDING_PROVIDERS:
             raise ValueError(f"embedding_provider must be one of {sorted(VALID_EMBEDDING_PROVIDERS)}")
         if self.embedding_provider == "openai-compatible" and not self.embedding_base_url:
@@ -173,6 +190,9 @@ class Settings:
             ),
             vector_dimensions=_positive_int_from_env("QDRANT_VECTOR_DIMENSIONS", DEFAULT_VECTOR_DIMENSIONS),
             vector_bootstrap_enabled=_bool_from_env("QDRANT_BOOTSTRAP_FROM_KNOWLEDGE", True),
+            retrieval_candidate_multiplier=_positive_int_from_env("RAG_RETRIEVAL_CANDIDATE_MULTIPLIER", 4),
+            retrieval_lexical_weight=_float_from_env("RAG_RETRIEVAL_LEXICAL_WEIGHT", 0.5),
+            retrieval_allowed_classifications=_csv_from_env("RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS", ()),
             embedding_provider=os.getenv("RAG_EMBEDDING_PROVIDER", "hash").strip().lower(),
             embedding_base_url=os.getenv("RAG_EMBEDDING_BASE_URL", "").strip(),
             embedding_model=os.getenv("RAG_EMBEDDING_MODEL", "hash-text-v1").strip(),

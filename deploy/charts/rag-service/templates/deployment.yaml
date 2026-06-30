@@ -66,6 +66,12 @@ spec:
               value: {{ .Values.retrieval.vectorStore.dimensions | quote }}
             - name: QDRANT_BOOTSTRAP_FROM_KNOWLEDGE
               value: {{ .Values.retrieval.vectorStore.bootstrapFromKnowledge | quote }}
+            - name: RAG_RETRIEVAL_CANDIDATE_MULTIPLIER
+              value: {{ .Values.retrieval.candidateMultiplier | quote }}
+            - name: RAG_RETRIEVAL_LEXICAL_WEIGHT
+              value: {{ .Values.retrieval.lexicalWeight | quote }}
+            - name: RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS
+              value: {{ join "," .Values.retrieval.allowedClassifications | quote }}
             - name: RAG_EMBEDDING_PROVIDER
               value: {{ .Values.retrieval.embedding.provider | quote }}
             - name: RAG_EMBEDDING_BASE_URL
