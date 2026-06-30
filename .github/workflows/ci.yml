@@ -364,6 +364,24 @@ jobs:
           make tenant-smoke
           make agent-smoke
           make evidence LIVE=1
+      - name: Diagnose on failure
+        if: failure()
+        run: |
+          set +e
+          echo "===== PODS (all namespaces) ====="
+          kubectl get pods -A -o wide
+          echo "===== inference-gateway deployment ====="
+          kubectl -n inference describe deploy/inference-gateway-inference-gateway
+          echo "===== inference-gateway pods (probe events) ====="
+          kubectl -n inference describe pods -l app.kubernetes.io/name=inference-gateway
+          echo "===== inference-gateway logs ====="
+          kubectl -n inference logs deploy/inference-gateway-inference-gateway --all-containers --tail=200
+          echo "===== ollama pods + logs ====="
+          kubectl -n ollama get pods
+          kubectl -n ollama describe pods
+          kubectl -n ollama logs statefulset/ollama --all-containers --tail=100
+          echo "===== recent cluster events ====="
+          kubectl get events -A --sort-by=.lastTimestamp | tail -80
       - name: Cleanup local cluster
         if: always()
         run: make local-down
