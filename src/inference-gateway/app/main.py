@@ -84,6 +84,59 @@ RATE_LIMITED = Counter(
     "Total gateway requests rejected by the per-sandbox rate limiter.",
     ["sandbox"],
 )
+RUNTIME_FALLBACKS = Counter(
+    "inference_gateway_runtime_fallbacks_total",
+    "Total times a request failed over from one runtime route to a fallback.",
+    ["from_backend", "to_backend"],
+)
+
+
+def _is_failover_worthy(exc: Exception) -> bool:
+    """Return whether an upstream failure should trigger a fallback to the next route.
+
+    Connection/transport errors and an open circuit always fail over; an HTTP status
+    error fails over only for retryable server-side statuses (5xx/429), never a client
+    error like 400/404 that the next runtime would also reject.
+    """
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code >= 500 or exc.response.status_code == 429
+    return isinstance(exc, httpx.HTTPError)
+
+
+async def _open_stream_with_fallback(
+    client: RuntimeClient,
+    chain: list[Any],
+    payload_dict: dict[str, Any],
+    request: Request,
+) -> tuple[Any, str, str, bytes | None]:
+    """Open a chat stream, failing over to the next route on a pre-first-byte error.
+
+    Returns the live stream generator, the backend and model id that served it, and the
+    primed first chunk (``None`` for an empty stream). Once the first chunk is returned
+    the response is committed; later failures are handled by the stream body itself.
+    """
+    last_exc: httpx.HTTPError | None = None
+    for index, candidate in enumerate(chain):
+        attempt = dict(payload_dict)
+        attempt["model"] = candidate.model_id
+        candidate_stream = client.stream_chat_completions(
+            attempt,
+            headers=_runtime_headers(request),
+            backend=candidate.backend,
+        )
+        try:
+            first_chunk = await candidate_stream.__anext__()
+        except StopAsyncIteration:
+            return candidate_stream, candidate.backend, candidate.model_id, None
+        except httpx.HTTPError as exc:
+            await candidate_stream.aclose()
+            last_exc = exc
+            if _is_failover_worthy(exc) and index + 1 < len(chain):
+                RUNTIME_FALLBACKS.labels(candidate.backend, chain[index + 1].backend).inc()
+                continue
+            raise
+        return candidate_stream, candidate.backend, candidate.model_id, first_chunk
+    raise last_exc or RuntimeError("no runtime route available")
 
 
 class Message(BaseModel):
@@ -729,9 +782,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
             effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
             try:
-                model_route = policy.resolve(payload_dict.get("model"), effective.model_id)
+                chain = policy.resolve_chain(payload_dict.get("model"), effective.model_id)
             except ValueError as exc:
                 raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
+            model_route = chain[0]
             backend = model_route.backend
             payload_dict["model"] = model_route.model_id
             effective.validate_admission(payload_dict)
@@ -741,20 +795,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             _record_budget_reservation(reservation, effective)
             client: RuntimeClient = request.app.state.runtime_client
             if payload_dict.get("stream"):
-                stream = client.stream_chat_completions(
-                    payload_dict,
-                    headers=_runtime_headers(request),
-                    backend=backend,
+                # Open the stream with cross-runtime fallback: a pre-first-byte failure
+                # on the primary route retries the next route in the chain. Once a byte
+                # is yielded the response is committed and cannot fail over.
+                stream, stream_backend, used_model, first_chunk = await _open_stream_with_fallback(
+                    client, chain, payload_dict, request
                 )
-                stream_backend = backend
-                # Prime the stream: pull the first chunk before responding so a
-                # pre-first-byte upstream failure (e.g. raise_for_status) surfaces here
-                # as a 502 instead of a 200 carrying an error body. An empty stream
-                # (StopAsyncIteration) is a valid 200 with no chunks.
-                try:
-                    first_chunk: bytes | None = await stream.__anext__()
-                except StopAsyncIteration:
-                    first_chunk = None
+                backend = stream_backend
+                payload_dict["model"] = used_model
                 stream_owns_recording = True
 
                 async def stream_body() -> Any:
@@ -803,14 +851,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 # FastAPI streams this Response object directly; the dict[str, Any] return
                 # annotation describes the JSON path and drives the OpenAPI response schema.
                 return StreamingResponse(stream_body(), media_type="text/event-stream")  # type: ignore[return-value]
-            runtime_response = await client.chat_completions(
-                payload_dict,
-                headers=_runtime_headers(request),
-                backend=backend,
-            )
-            # Bind before returning: the finally block reads runtime_response for token
-            # usage metrics and the audit log, so this assignment is not redundant.
-            return runtime_response  # noqa: RET504
+            # Non-streaming: try each route in the chain, failing over to the next on a
+            # retryable/connection error or open circuit. `backend` and the payload model
+            # are updated to the route that actually served, so metrics and audit reflect it.
+            last_exc: httpx.HTTPError | None = None
+            for index, candidate in enumerate(chain):
+                attempt = dict(payload_dict)
+                attempt["model"] = candidate.model_id
+                backend = candidate.backend
+                try:
+                    runtime_response = await client.chat_completions(
+                        attempt,
+                        headers=_runtime_headers(request),
+                        backend=candidate.backend,
+                    )
+                    payload_dict["model"] = candidate.model_id
+                    break
+                except httpx.HTTPError as exc:
+                    last_exc = exc
+                    if _is_failover_worthy(exc) and index + 1 < len(chain):
+                        RUNTIME_FALLBACKS.labels(candidate.backend, chain[index + 1].backend).inc()
+                        continue
+                    raise
+            if runtime_response is None:
+                raise last_exc or RuntimeError("no runtime route available")
+            # The finally block reads runtime_response for token-usage metrics and the
+            # audit log, so it is bound above rather than returned inline.
+            return runtime_response
         except AdmissionPolicyError as exc:
             status_code, headers = _admission_status(exc.reason, resolved)
             status = str(status_code)

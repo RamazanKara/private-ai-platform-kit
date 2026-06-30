@@ -15,11 +15,17 @@ VALID_BACKENDS = {"ollama", "vllm"}
 
 @dataclass(frozen=True)
 class ModelRoute:
-    """An approved model mapped to a runtime backend with optional aliases."""
+    """An approved model mapped to a runtime backend with optional aliases.
+
+    ``fallbacks`` is an ordered list of other model ids to try (in order) when this
+    route's runtime fails with a retryable/connection error or its circuit is open,
+    enabling cross-runtime failover (e.g. vLLM -> Ollama).
+    """
 
     model_id: str
     backend: str
     aliases: tuple[str, ...] = ()
+    fallbacks: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -61,6 +67,7 @@ class ModelRoutingPolicy:
             model_id = str(item.get("id") or "").strip()
             backend = str(item.get("backend") or settings.runtime_backend).strip().lower()
             aliases = tuple(str(alias).strip() for alias in item.get("aliases", []) if str(alias).strip())
+            fallbacks = tuple(str(fb).strip() for fb in item.get("fallbacks", []) if str(fb).strip())
             if not model_id:
                 raise ValueError(f"ModelRoutingPolicy spec.models[{index}].id is required")
             if backend not in VALID_BACKENDS:
@@ -69,7 +76,7 @@ class ModelRoutingPolicy:
                 if name in seen:
                     raise ValueError(f"ModelRoutingPolicy duplicate model or alias: {name}")
                 seen.add(name)
-            routes.append(ModelRoute(model_id=model_id, backend=backend, aliases=aliases))
+            routes.append(ModelRoute(model_id=model_id, backend=backend, aliases=aliases, fallbacks=fallbacks))
         return cls(tuple(routes))
 
     def model_ids(self) -> tuple[str, ...]:
@@ -87,6 +94,30 @@ class ModelRoutingPolicy:
             return ModelRoute(requested_model, backend)
         allowed = ", ".join(self.model_ids())
         raise ValueError(f"model '{model}' is not approved by ModelRoutingPolicy; allowed models: {allowed}")
+
+    def _route_for(self, model: str) -> ModelRoute | None:
+        """Return the route whose id or alias matches, or None when unknown."""
+        for route in self.routes:
+            if model == route.model_id or model in route.aliases:
+                return route
+        return None
+
+    def resolve_chain(self, requested_model: str | None, default_model: str) -> list[ModelRoute]:
+        """Resolve the primary route plus its (deduplicated) fallback routes, in order.
+
+        The primary is resolved as in :meth:`resolve`; each configured fallback id is
+        appended when it maps to a known route and is not already in the chain. Unknown
+        fallback ids are skipped rather than failing the request.
+        """
+        primary = self.resolve(requested_model, default_model)
+        chain = [primary]
+        seen = {primary.model_id}
+        for fallback_id in primary.fallbacks:
+            route = self._route_for(fallback_id)
+            if route is not None and route.model_id not in seen:
+                chain.append(route)
+                seen.add(route.model_id)
+        return chain
 
     def openai_models(self) -> list[dict[str, Any]]:
         """Return the routes formatted as OpenAI ``/v1/models`` list entries."""

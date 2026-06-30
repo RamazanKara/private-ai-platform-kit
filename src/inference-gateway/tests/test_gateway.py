@@ -11,6 +11,7 @@ import pytest
 from app.budget import RedisSandboxBudgetTracker
 from app.jwt_auth import JwksCache
 from app.main import create_app
+from app.policy import ModelRoute, ModelRoutingPolicy
 from app.runtime_client import RuntimeClient, sanitize_chat_completion
 from app.settings import AdmissionPolicyError, Settings
 from cryptography.hazmat.primitives import hashes
@@ -556,6 +557,99 @@ def test_rate_limit_disabled_by_default_allows_burst():
         assert client.post("/v1/chat/completions", json=body).status_code == 200
 
 
+class _BackendAwareFake:
+    """Fake runtime client that fails on configured backends and records call order."""
+
+    def __init__(self, fail_backends, error):
+        self.fail_backends = set(fail_backends)
+        self.error = error
+        self.backends_called = []
+
+    async def chat_completions(self, payload, headers=None, backend=None):
+        self.backends_called.append(backend)
+        if backend in self.fail_backends:
+            raise self.error
+        return {
+            "id": "x",
+            "object": "chat.completion",
+            "choices": [{"message": {"role": "assistant", "content": f"from {backend}"}}],
+        }
+
+    async def stream_chat_completions(self, payload, headers=None, backend=None):
+        self.backends_called.append(backend)
+        if backend in self.fail_backends:
+            raise self.error
+            yield b""  # pragma: no cover - marks this an async generator
+        yield b'data: {"choices":[]}\n\n'
+
+    async def health(self, backend=None):
+        return {"status": "ok", "backend": backend}
+
+
+def _status_error(status_code):
+    request = httpx.Request("POST", "http://runtime/v1/chat/completions")
+    return httpx.HTTPStatusError("upstream", request=request, response=httpx.Response(status_code, request=request))
+
+
+def _fallback_app(allow_streaming=False):
+    app = create_app(_tool_settings(allow_streaming=allow_streaming))
+    app.state.model_routing_policy = ModelRoutingPolicy(
+        routes=(
+            ModelRoute("primary-model", "vllm", fallbacks=("backup-model",)),
+            ModelRoute("backup-model", "ollama"),
+        )
+    )
+    return app
+
+
+def test_chat_completion_fails_over_to_fallback_runtime():
+    app = _fallback_app()
+    fake = _BackendAwareFake(fail_backends={"vllm"}, error=_status_error(503))
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"model": "primary-model", "messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["choices"][0]["message"]["content"] == "from ollama"
+    assert fake.backends_called == ["vllm", "ollama"]
+
+
+def test_chat_completion_does_not_fail_over_on_client_error():
+    app = _fallback_app()
+    fake = _BackendAwareFake(fail_backends={"vllm"}, error=_status_error(400))
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"model": "primary-model", "messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    # A 4xx is a client error the fallback runtime would also reject: no failover.
+    assert response.status_code == 502
+    assert response.json()["detail"]["runtime_status"] == 400
+    assert fake.backends_called == ["vllm"]
+
+
+def test_streaming_fails_over_before_first_byte():
+    app = _fallback_app(allow_streaming=True)
+    fake = _BackendAwareFake(fail_backends={"vllm"}, error=_status_error(503))
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"stream": True, "model": "primary-model", "messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 200
+    assert fake.backends_called == ["vllm", "ollama"]
+
+
 def test_chat_completion_metrics_use_endpoint_route_label():
     # Regression: the handler reused the `route` variable for both the Prometheus label
     # ("/v1/chat/completions") and the resolved ModelRoute, so a successful request
@@ -729,14 +823,18 @@ def test_streaming_mid_stream_upstream_error_emits_terminal_event_and_records_50
     client = TestClient(app)
 
     def _requests_502() -> float:
+        # Sum across backend label-sets: more than one backend can have a 502 series
+        # for this route (e.g. once cross-runtime fallback records a fallback backend),
+        # so picking the first matching line would be ambiguous.
+        total = 0.0
         for line in client.get("/metrics").text.splitlines():
             if (
                 line.startswith("inference_gateway_requests_total")
                 and 'route="/v1/chat/completions"' in line
                 and 'status="502"' in line
             ):
-                return float(line.rsplit(" ", 1)[1])
-        return 0.0
+                total += float(line.rsplit(" ", 1)[1])
+        return total
 
     before_502 = _requests_502()
 
