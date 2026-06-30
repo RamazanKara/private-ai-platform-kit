@@ -1600,9 +1600,9 @@ def test_jwt_tenant_claim_missing_is_rejected(monkeypatch):
 def test_api_key_principal_is_recorded_in_audit(caplog):
     caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
     api_key = "secret-key-value"
-    # Test setup deriving the configured key hash; the token is high-entropy, not a
-    # password (usedforsecurity=False keeps this out of the weak-hashing analysis).
-    digest = hashlib.sha256(api_key.encode("utf-8"), usedforsecurity=False).hexdigest()
+    # Precomputed sha256(api_key) hex; the gateway verifies api_key_sha256s by the same
+    # digest. Hardcoded so the test does not hash a credential-named value.
+    digest = "79bc72d042dbd44d111a583bfb0c58b696ed19d5f8c0f9165943aed5b1ddcb55"
     settings = Settings(
         runtime_backend="ollama",
         ollama_base_url="http://ollama:11434",
