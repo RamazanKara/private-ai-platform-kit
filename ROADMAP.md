@@ -58,23 +58,23 @@ Run `scripts/seed-roadmap-issues.sh` to print the seed commands, or `scripts/see
 
 ## Deferred Larger Efforts
 
-These audit-identified gaps are real but were scoped out of the recent feature-gap pass
-because each is a multi-week effort or a quality improvement that is lower-leverage until a
-prerequisite lands. Tracked here so they are not lost:
+The recent feature-gap pass closed most audit findings (see CHANGELOG Unreleased). The
+remaining items below are genuinely multi-week, large-system efforts; they are tracked here
+so they are not lost:
 
-- `rag`: Ship a governed reference embedding model (TEI/Infinity or vLLM embedding mode)
-  with model-catalog + provenance entries, then add hybrid (dense+sparse) retrieval,
-  reranking, and tenant-scoped retrieval. Real-embedding quality is the prerequisite for
-  the retrieval-quality improvements.
-- `security`: Encryption-at-rest enforced via Kyverno on platform data stores, and wire the
-  tamper-evident audit hash chain (currently a paper demo) into the running services.
-- `rag`: Age-based retention purge from the service (needs an ingestion timestamp in the
-  chunk payload); today erasure is delete-by-source plus collection-version rotation.
-- `runtime`: Response/semantic caching, concurrency limiting / load shedding, request
-  prioritization, and a batch/async inference API.
-- `runtime`: Progressive model delivery (canary/shadow/weighted A-B) and LoRA/adapter
-  lifecycle management — the project cedes canary to KServe today.
-- `tenant`: Self-service onboarding controller and tenant offboarding/deprovisioning, plus
-  workspace idle-TTL / scale-to-zero.
-- `dx`: A client SDK / app-developer example, an admin/usage console, and Ingress /
-  Gateway-API / TLS chart wiring (port-forward is the only shipped access path).
+- `runtime`: Progressive model delivery (canary / shadow / weighted A-B) and full LoRA /
+  adapter *lifecycle governance* (registration, promotion, eval) — the chart already serves
+  LoRA via extraArgs; the gap is the governance/rollout system. The project cedes canary to
+  KServe today.
+- `runtime`: Multi-node distributed serving (pipeline-parallel, LeaderWorkerSet, or Ray) for
+  models larger than one node, and a batch / async inference job API.
+- `tenant`: A self-service onboarding *controller* (the spec-driven render-review-apply
+  pipeline and the offboarding plan generator exist; the gap is a reconciling controller/API).
+- `dx`: A first-party client SDK package and an admin/usage console UI (a client-examples doc
+  ships today; the console is a separate web app).
+- `security`: Encryption-at-rest enforced via Kyverno on platform data stores (provider-neutral
+  enforcement requires a labeling/storage-class convention), and full age-based RAG retention
+  purge (needs an ingestion timestamp in the chunk payload; today erasure is delete-by-source
+  plus collection-version rotation).
+- `rag`: Promote the governed reference embedding model to `approved` with a real provenance
+  digest + promotion request, replacing the hashed-vector default in the shipped profiles.

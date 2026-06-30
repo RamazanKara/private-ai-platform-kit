@@ -26,6 +26,16 @@ gateway, RAG, deployment, and governance surfaces.
 - vLLM: optional persistent model-weight cache (PVC) and `model.revision` pinning.
 - Observability: a Promtail log-shipper Application feeding Loki, GPU-saturation and
   request-queue alerts, SLI recording rules, and a default Alertmanager routing tree.
+- Gateway: bounded-concurrency load shedding (503), an exact-match per-sandbox response
+  cache, and a per-process tamper-evident audit hash chain (prev_hash + record_hash,
+  verifiable by the paper's auditor tooling).
+- RAG: hybrid dense+lexical retrieval with rerank and classification-scoped retrieval
+  access control.
+- Deployment/DX: an optional gateway Ingress (host + TLS), a tenant offboarding/
+  deprovisioning plan generator (scripts/tenant-offboard.py), and a client API examples
+  doc (curl / openai SDK / httpx).
+- Governance: the RAG embedding model is now represented in the model catalog
+  (modality: embedding), closing the chat/embeddings governance asymmetry.
 
 ### Changed
 
