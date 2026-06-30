@@ -60,6 +60,11 @@ responseCache:
   ttlSeconds: 60
   maxEntries: 1024
 
+# Token-to-cost model surfaced by GET /v1/usage. 0 disables the cost estimate.
+cost:
+  usdPer1kTokens: 0
+  currency: USD
+
 guardrails:
   promptSecretDetection:
     enabled: true

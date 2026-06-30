@@ -11,6 +11,7 @@ CLI:
   paths.py --check     Verify the on-disk layout matches this declaration and
                        flag any undeclared top-level directory (layout drift).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,6 +35,7 @@ DIRECTORIES: dict[str, str] = {
     "docs": "User-facing documentation and the mkdocs site source.",
     "results": "Sample evidence (tracked) and generated reports (git-ignored except sample-*).",
     "paper": "Frozen reproducibility artifact for the companion paper (cited revisions; out of lint scope).",
+    "sdk": "First-party, dependency-light client SDKs for the gateway API.",
 }
 
 # Rendered tenant artifacts go to the git-ignored .out/tenants tree; .out is a

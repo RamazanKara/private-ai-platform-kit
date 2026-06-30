@@ -891,6 +891,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return tracker.snapshot(request.state.sandbox_id, effective)
 
     @app.get(
+        "/v1/usage",
+        tags=["sandbox"],
+        summary="Get sandbox usage and estimated cost",
+        operation_id="getSandboxUsage",
+    )
+    async def sandbox_usage(request: Request) -> dict[str, Any]:
+        # Per-sandbox usage plus an estimated monetary cost (the data layer an admin/usage
+        # console renders). USD_PER_1K_TOKENS of 0 leaves the cost model off (cost = 0).
+        tracker: SandboxBudgetTracker = request.app.state.budget_tracker
+        policy_set: SandboxPolicySet = request.app.state.sandbox_policy_set
+        effective = policy_set.effective_settings(resolved, request.state.sandbox_id)
+        snapshot = tracker.snapshot(request.state.sandbox_id, effective)
+        usage = snapshot.get("usage") or {}
+        estimated_tokens = usage.get("estimated_tokens", 0) if isinstance(usage, dict) else 0
+        estimated_cost = round((estimated_tokens / 1000.0) * resolved.usd_per_1k_tokens, 6)
+        return {
+            "sandbox_id": request.state.sandbox_id,
+            "usage": usage,
+            "limits": snapshot.get("limits"),
+            "estimated_cost": estimated_cost,
+            "currency": resolved.cost_currency,
+            "usd_per_1k_tokens": resolved.usd_per_1k_tokens,
+        }
+
+    @app.get(
         "/v1/models",
         tags=["inference"],
         summary="List approved private models",

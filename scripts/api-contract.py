@@ -44,6 +44,7 @@ CONTRACTS = {
             "/readyz": RouteContract("get"),
             "/metrics": RouteContract("get"),
             "/v1/sandbox/budget": RouteContract("get"),
+            "/v1/usage": RouteContract("get"),
             "/v1/models": RouteContract("get"),
             "/v1/chat/completions": RouteContract(
                 "post",
@@ -66,6 +67,7 @@ CONTRACTS = {
             "/readyz",
             "/v1/models",
             "/v1/sandbox/budget",
+            "/v1/usage",
             "/v1/chat/completions",
             "/v1/embeddings",
             "/v1/moderations",

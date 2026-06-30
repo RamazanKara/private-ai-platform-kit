@@ -807,6 +807,35 @@ def test_streaming_fails_over_before_first_byte():
     assert fake.backends_called == ["vllm", "ollama"]
 
 
+def test_usage_endpoint_reports_usage_and_estimated_cost():
+    app = create_app(
+        _tool_settings(
+            sandbox_budget_enabled=True,
+            sandbox_estimated_token_budget=1000,
+            usd_per_1k_tokens=2.0,
+        )
+    )
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    # Drive some usage, then read it back with the cost estimate.
+    client.post(
+        "/v1/chat/completions",
+        headers={"X-Sandbox-ID": "team-a"},
+        json={"messages": [{"role": "user", "content": "hello there"}], "max_tokens": 100},
+    )
+    usage = client.get("/v1/usage", headers={"X-Sandbox-ID": "team-a"})
+
+    assert usage.status_code == 200
+    body = usage.json()
+    assert body["sandbox_id"] == "team-a"
+    assert body["currency"] == "USD"
+    assert body["usd_per_1k_tokens"] == 2.0
+    tokens = body["usage"]["estimated_tokens"]
+    assert tokens > 0
+    assert body["estimated_cost"] == round((tokens / 1000.0) * 2.0, 6)
+
+
 def test_canary_target_selects_by_roll():
     policy = ModelRoutingPolicy(
         routes=(

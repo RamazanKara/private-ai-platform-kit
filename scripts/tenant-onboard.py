@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 import ipaddress
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -56,7 +58,16 @@ def validate_spec(spec: dict[str, Any]) -> None:
         validate_dns_label(str(tenant[field]), f"spec.tenant.{field}")
 
     quotas = nested(spec, "spec", "quotas", default={})
-    for field in ("requestsCpu", "requestsMemory", "limitsCpu", "limitsMemory", "pods", "persistentVolumeClaims", "secrets", "configMaps"):
+    for field in (
+        "requestsCpu",
+        "requestsMemory",
+        "limitsCpu",
+        "limitsMemory",
+        "pods",
+        "persistentVolumeClaims",
+        "secrets",
+        "configMaps",
+    ):
         if not isinstance(quotas, dict) or quotas.get(field) in (None, ""):
             raise ValueError(f"spec.quotas.{field} is required")
 
@@ -133,7 +144,9 @@ def labels(tenant: dict[str, Any], name: str, compliance: dict[str, Any] | None 
     return values
 
 
-def metadata(name: str, namespace: str | None, tenant: dict[str, Any], compliance: dict[str, Any] | None = None) -> dict[str, Any]:
+def metadata(
+    name: str, namespace: str | None, tenant: dict[str, Any], compliance: dict[str, Any] | None = None
+) -> dict[str, Any]:
     data: dict[str, Any] = {"name": name, "labels": labels(tenant, name, compliance)}
     if namespace:
         data["namespace"] = namespace
@@ -251,7 +264,10 @@ def tenant_manifest(spec: dict[str, Any]) -> list[dict[str, Any]]:
                     "required-headers": str(platform["requiredHeaders"]),
                     "gateway-url": str(platform["gatewayUrl"]),
                     "rag-url": str(platform["ragUrl"]),
-                    "approved-egress": ", ".join(f"{item.get('catalogRef')}={item['cidr']}" for item in network.get("allowedEgressCidrs", [])) or "none",
+                    "approved-egress": ", ".join(
+                        f"{item.get('catalogRef')}={item['cidr']}" for item in network.get("allowedEgressCidrs", [])
+                    )
+                    or "none",
                     "compliance-profile": str(compliance.get("profile", "standard")),
                     "data-classification": str(compliance.get("dataClassification", "internal")),
                     "external-egress-allowed": str(compliance.get("externalEgressAllowed", True)).lower(),
@@ -264,7 +280,11 @@ def tenant_manifest(spec: dict[str, Any]) -> list[dict[str, Any]]:
                 "kind": "Role",
                 "metadata": metadata("tenant-lab-viewer", namespace, tenant, compliance),
                 "rules": [
-                    {"apiGroups": [""], "resources": ["pods", "pods/log", "services", "configmaps", "events"], "verbs": ["get", "list", "watch"]},
+                    {
+                        "apiGroups": [""],
+                        "resources": ["pods", "pods/log", "services", "configmaps", "events"],
+                        "verbs": ["get", "list", "watch"],
+                    },
                     {"apiGroups": ["batch"], "resources": ["jobs"], "verbs": ["get", "list", "watch"]},
                 ],
             },
@@ -304,8 +324,14 @@ def agent_workspace_values(spec: dict[str, Any]) -> dict[str, Any]:
             "requirePrivateRegistry": bool(compliance.get("requirePrivateRegistry", False)),
             "evidenceRetentionDays": compliance.get("evidenceRetentionDays", ""),
         },
-        "serviceAccount": {"name": workspace.get("serviceAccountName", "agent-runner"), "automountServiceAccountToken": False},
-        "rbac": {"viewerGroup": rbac.get("viewerGroup", tenant["group"]), "allowJobManagement": bool(rbac.get("allowJobManagement", True))},
+        "serviceAccount": {
+            "name": workspace.get("serviceAccountName", "agent-runner"),
+            "automountServiceAccountToken": False,
+        },
+        "rbac": {
+            "viewerGroup": rbac.get("viewerGroup", tenant["group"]),
+            "allowJobManagement": bool(rbac.get("allowJobManagement", True)),
+        },
         "resourceQuota": {
             "requestsCpu": str(quotas["requestsCpu"]),
             "requestsMemory": str(quotas["requestsMemory"]),
@@ -412,6 +438,9 @@ def main() -> int:
     parser.add_argument("--spec", default="tenants/onboarding/coding-agents.yaml")
     parser.add_argument("--output-dir", default=".out/tenants")
     parser.add_argument("--check", action="store_true", help="Validate and render the spec without writing files.")
+    parser.add_argument(
+        "--apply", action="store_true", help="kubectl apply the rendered tenant manifests (self-service end-to-end)."
+    )
     args = parser.parse_args()
 
     spec_path = ROOT / args.spec
@@ -434,6 +463,21 @@ def main() -> int:
     print(f"wrote {display_path(output_dir / 'tenant-lab.yaml')}")
     print(f"wrote {display_path(output_dir / 'agent-workspace-values.yaml')}")
     print(f"wrote {display_path(output_dir / 'README.md')}")
+
+    if args.apply:
+        # Self-service end-to-end: apply the namespace, quota, limit range, and network
+        # policies. The agent workspace is a Helm release, so its install command is printed.
+        if shutil.which("kubectl") is None:
+            raise SystemExit("--apply requires kubectl on PATH")
+        manifest = output_dir / "tenant-lab.yaml"
+        result = subprocess.run(["kubectl", "apply", "-f", str(manifest)], check=False)
+        if result.returncode != 0:
+            raise SystemExit(f"kubectl apply failed with exit code {result.returncode}")
+        print(f"applied tenant '{tenant_id}': namespace, quota, limit range, and network policies")
+        print(
+            "next (agent workspace): helm upgrade --install agent-workspace "
+            f"deploy/charts/agent-workspace -f {display_path(output_dir / 'agent-workspace-values.yaml')}"
+        )
     return 0
 
 

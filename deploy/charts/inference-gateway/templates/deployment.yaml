@@ -88,6 +88,10 @@ spec:
               value: {{ .Values.concurrency.maxConcurrentRequests | quote }}
             - name: MAX_BATCH_REQUESTS
               value: {{ .Values.concurrency.maxBatchRequests | quote }}
+            - name: USD_PER_1K_TOKENS
+              value: {{ .Values.cost.usdPer1kTokens | quote }}
+            - name: COST_CURRENCY
+              value: {{ .Values.cost.currency | quote }}
             - name: RESPONSE_CACHE_ENABLED
               value: {{ .Values.responseCache.enabled | quote }}
             - name: RESPONSE_CACHE_TTL_SECONDS

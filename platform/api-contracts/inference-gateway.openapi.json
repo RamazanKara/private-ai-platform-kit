@@ -719,6 +719,37 @@
           "sandbox"
         ]
       }
+    },
+    "/v1/usage": {
+      "get": {
+        "operationId": "getSandboxUsage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Getsandboxusage",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Get sandbox usage and estimated cost",
+        "tags": [
+          "sandbox"
+        ]
+      }
     }
   },
   "tags": [

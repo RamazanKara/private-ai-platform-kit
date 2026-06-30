@@ -104,6 +104,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": "USD",
+      "chart_default": "USD",
+      "chart_value": "cost.currency",
+      "description": "Currency label for the /v1/usage cost estimate.",
+      "field": "cost_currency",
+      "name": "COST_CURRENCY",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": "local-lab",
       "chart_default": "local-lab",
       "chart_value": "traceability.defaultSandboxId",
@@ -658,6 +670,18 @@
       "name": "SANDBOX_REQUEST_BUDGET",
       "sensitive": false,
       "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0.0,
+      "chart_default": 0,
+      "chart_value": "cost.usdPer1kTokens",
+      "description": "Estimated cost per 1000 tokens surfaced by /v1/usage; zero disables the cost model.",
+      "field": "usd_per_1k_tokens",
+      "name": "USD_PER_1K_TOKENS",
+      "sensitive": false,
+      "type": "float"
     },
     {
       "aliases": [],
