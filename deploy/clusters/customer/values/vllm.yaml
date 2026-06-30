@@ -14,11 +14,23 @@ accelerator:
     - key: nvidia.com/gpu
       operator: Exists
       effect: NoSchedule
+# CPU-based HPA is disabled: vLLM is GPU-bound, so CPU% never reflects real load
+# and would never scale a saturated GPU server (the chart calls CPU the wrong
+# signal). Scale on request-queue depth via KEDA instead (below).
 autoscaling:
-  enabled: true
+  enabled: false
   minReplicas: 2
   maxReplicas: 8
   targetCPUUtilizationPercentage: 70
+# Queue-based GPU autoscaling. Requires the KEDA operator and a Prometheus reachable
+# at prometheusServerAddress scraping vLLM metrics. Adjust the address to this
+# cluster's Prometheus if it differs from the kube-prometheus-stack default.
+keda:
+  enabled: true
+  minReplicaCount: 2
+  maxReplicaCount: 8
+  threshold: "5"
+  prometheusServerAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
 externalSecrets:
   enabled: true
   huggingFaceTokenSecretName: hf-token

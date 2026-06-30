@@ -386,6 +386,15 @@ def check_vllm_render(name: str, docs: list[dict[str, Any]], resource_name: str,
     require(errors, bool(find_kind(docs, "ServiceAccount")), f"{name}: vLLM chart must render a ServiceAccount")
     require(errors, bool(find_kind(docs, "PodDisruptionBudget")), f"{name}: vLLM chart must render a PodDisruptionBudget")
     require(errors, bool(find_kind(docs, "HorizontalPodAutoscaler")) or bool(find_kind(docs, "ScaledObject")), f"{name}: vLLM profile must render autoscaling (HPA or a KEDA ScaledObject on a GPU/queue signal)")
+    # A GPU server must not scale on CPU utilization (the wrong signal: CPU% never
+    # reflects GPU saturation, so the HPA never scales when it should). Use KEDA's
+    # request-queue ScaledObject instead.
+    for hpa in find_kind(docs, "HorizontalPodAutoscaler"):
+        spec = hpa.get("spec", {})
+        cpu_targeted = spec.get("targetCPUUtilizationPercentage") is not None or any(
+            nested(metric, "resource", "name") == "cpu" for metric in spec.get("metrics", [])
+        )
+        require(errors, not cpu_targeted, f"{name}: vLLM must not autoscale on CPU (wrong signal for a GPU server); use the KEDA queue ScaledObject")
 
 
 def check_model_catalog(errors: list[str]) -> None:
@@ -1099,6 +1108,14 @@ def main() -> int:
             "customer-rag-service",
             render_chart("rag-service", ROOT / "deploy/clusters/customer/values/rag-service.yaml"),
             True,
+            errors,
+        )
+        # The default profile is rendered too: it is a complete, applyable overlay,
+        # so its autoscaler must be gated like the vendor profiles (no CPU HPA).
+        check_vllm_render(
+            "customer-vllm-default",
+            render_chart("vllm", ROOT / "deploy/clusters/customer/values/vllm.yaml"),
+            "nvidia.com/gpu",
             errors,
         )
         check_vllm_render(
