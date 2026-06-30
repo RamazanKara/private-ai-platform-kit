@@ -23,7 +23,8 @@ class RateLimiter(Protocol):
 
     settings: Settings
 
-    def check(self, key: str, settings: Settings | None = None) -> tuple[bool, int]: ...
+    def check(self, key: str, settings: Settings | None = None) -> tuple[bool, int]:
+        """Return ``(allowed, retry_after_seconds)`` for one request against ``key``."""
 
 
 def _limit_and_window(settings: Settings) -> tuple[int, int]:

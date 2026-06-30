@@ -736,7 +736,8 @@ class _BackendAwareFake:
         self.backends_called.append(backend)
         if backend in self.fail_backends:
             raise self.error
-            yield b""  # pragma: no cover - marks this an async generator
+        # The yield below makes this an async generator; the failing path raises on
+        # first iteration before reaching it.
         yield b'data: {"choices":[]}\n\n'
 
     async def health(self, backend=None):
@@ -1599,7 +1600,9 @@ def test_jwt_tenant_claim_missing_is_rejected(monkeypatch):
 def test_api_key_principal_is_recorded_in_audit(caplog):
     caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
     api_key = "secret-key-value"
-    digest = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    # Test setup deriving the configured key hash; the token is high-entropy, not a
+    # password (usedforsecurity=False keeps this out of the weak-hashing analysis).
+    digest = hashlib.sha256(api_key.encode("utf-8"), usedforsecurity=False).hexdigest()
     settings = Settings(
         runtime_backend="ollama",
         ollama_base_url="http://ollama:11434",

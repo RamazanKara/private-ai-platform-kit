@@ -405,7 +405,10 @@ def _api_key_principal(request: Request, settings: Settings) -> dict[str, Any]:
     consumers can attribute requests to a specific issued key.
     """
     api_key = _api_key_from_request(request, settings) or ""
-    digest = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    # Non-reversible attribution identifier, not a security control and not password
+    # storage: API keys are high-entropy random tokens, so a digest prefix is a stable
+    # audit handle (usedforsecurity=False marks this a non-cryptographic-control use).
+    digest = hashlib.sha256(api_key.encode("utf-8"), usedforsecurity=False).hexdigest()
     return {"auth": "api_key", "key_id": digest[:12]}
 
 
