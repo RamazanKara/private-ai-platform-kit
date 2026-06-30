@@ -111,6 +111,16 @@ auth:
 service:
   port: 8080
 
+# Optional Ingress for cluster-external clients. Disabled by default (port-forward only).
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: ""
+  tls:
+    enabled: false
+    secretName: ""
+
 serviceAccount:
   create: true
   name: ""

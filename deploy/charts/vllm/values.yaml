@@ -17,6 +17,11 @@ model:
   dtype: auto
   maxModelLen: "262144"
 
+# Additional vLLM CLI flags. The generic passthrough already covers single-node
+# tensor-parallel (`--tensor-parallel-size`, set in the GPU profiles), LoRA serving
+# (`--enable-lora` / `--lora-modules`), and the tool-call parser. Multi-NODE distributed
+# serving and adapter lifecycle governance are tracked as larger efforts in ROADMAP.md.
+
 cache:
   mountPath: /models
   # Persist the model weights so they survive pod restarts and KEDA scale-up instead
@@ -81,6 +86,9 @@ autoscaling:
 # environment-specific (operator + Prometheus address); enable per cluster.
 keda:
   enabled: false
+  # Set minReplicaCount to 0 to scale the GPU runtime to zero when the request queue is
+  # idle (KEDA activates a replica on the first queued request). Costly cold starts make
+  # this best paired with the persistent model-weight cache (cache.persistence).
   minReplicaCount: 1
   maxReplicaCount: 4
   # Scale up once this many requests are queued (waiting, not running) per replica.

@@ -62,6 +62,12 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` |
 | `image.tag` | `v0.11.0` |
+| `ingress.annotations` | `{}` |
+| `ingress.className` | `""` |
+| `ingress.enabled` | `false` |
+| `ingress.host` | `""` |
+| `ingress.tls.enabled` | `false` |
+| `ingress.tls.secretName` | `""` |
 | `keda.enabled` | `true` |
 | `keda.maxReplicaCount` | `5` |
 | `keda.minReplicaCount` | `1` |
