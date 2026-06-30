@@ -47,6 +47,17 @@ rateLimit:
   requestsPerWindow: 0
   windowSeconds: 60
 
+# Bounded in-flight concurrency: requests beyond the limit are shed with 503 (not
+# queued). 0 disables the limit.
+concurrency:
+  maxConcurrentRequests: 0
+
+# Exact-match per-sandbox response cache for non-streaming chat completions.
+responseCache:
+  enabled: false
+  ttlSeconds: 60
+  maxEntries: 1024
+
 guardrails:
   promptSecretDetection:
     enabled: true

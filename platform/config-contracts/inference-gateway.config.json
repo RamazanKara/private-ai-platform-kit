@@ -212,6 +212,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": 0,
+      "chart_default": 0,
+      "chart_value": "concurrency.maxConcurrentRequests",
+      "description": "Max in-flight requests before load shedding with 503; zero disables the limit.",
+      "field": "max_concurrent_requests",
+      "name": "MAX_CONCURRENT_REQUESTS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 16,
       "chart_default": 16,
       "chart_value": "admission.maxMessages",
@@ -412,6 +424,42 @@
       "name": "REQUEST_TIMEOUT_SECONDS",
       "sensitive": false,
       "type": "float"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "responseCache.enabled",
+      "description": "Whether the exact-match per-sandbox response cache is enabled for non-streaming chat.",
+      "field": "response_cache_enabled",
+      "name": "RESPONSE_CACHE_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 1024,
+      "chart_default": 1024,
+      "chart_value": "responseCache.maxEntries",
+      "description": "Maximum cached responses before LRU eviction.",
+      "field": "response_cache_max_entries",
+      "name": "RESPONSE_CACHE_MAX_ENTRIES",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 60,
+      "chart_default": 60,
+      "chart_value": "responseCache.ttlSeconds",
+      "description": "Response cache entry time-to-live in seconds.",
+      "field": "response_cache_ttl_seconds",
+      "name": "RESPONSE_CACHE_TTL_SECONDS",
+      "sensitive": false,
+      "type": "integer"
     },
     {
       "aliases": [],

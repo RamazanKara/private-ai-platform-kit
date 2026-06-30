@@ -84,6 +84,14 @@ spec:
               value: {{ .Values.rateLimit.requestsPerWindow | quote }}
             - name: RATE_LIMIT_WINDOW_SECONDS
               value: {{ .Values.rateLimit.windowSeconds | quote }}
+            - name: MAX_CONCURRENT_REQUESTS
+              value: {{ .Values.concurrency.maxConcurrentRequests | quote }}
+            - name: RESPONSE_CACHE_ENABLED
+              value: {{ .Values.responseCache.enabled | quote }}
+            - name: RESPONSE_CACHE_TTL_SECONDS
+              value: {{ .Values.responseCache.ttlSeconds | quote }}
+            - name: RESPONSE_CACHE_MAX_ENTRIES
+              value: {{ .Values.responseCache.maxEntries | quote }}
             - name: PROMPT_SECRET_DETECTION_ENABLED
               value: {{ .Values.guardrails.promptSecretDetection.enabled | quote }}
             - name: PROMPT_SECRET_PATTERNS

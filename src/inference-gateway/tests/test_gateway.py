@@ -547,6 +547,71 @@ def test_rate_limit_rejects_burst_per_sandbox():
     assert other_sandbox.status_code == 200
 
 
+def test_concurrency_limit_sheds_load():
+    app = create_app(_tool_settings(max_concurrent_requests=1))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    # Simulate one request already in flight so the next is shed.
+    app.state.inflight = 1
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["reason"] == "concurrency_limit"
+    assert int(response.headers["Retry-After"]) >= 1
+
+
+def test_response_cache_returns_cached_without_second_runtime_call():
+    app = create_app(_tool_settings(response_cache_enabled=True))
+    fake = FakeRuntimeClient(
+        response={"id": "x", "object": "chat.completion", "choices": [{"message": {"content": "cached"}}]}
+    )
+    app.state.runtime_client = fake
+    client = TestClient(app)
+    body = {"messages": [{"role": "user", "content": "same question"}]}
+
+    first = client.post("/v1/chat/completions", json=body)
+    second = client.post("/v1/chat/completions", json=body)
+
+    assert first.status_code == 200
+    assert first.headers["X-Cache"] == "MISS"
+    assert second.status_code == 200
+    assert second.headers["X-Cache"] == "HIT"
+    assert second.json()["choices"][0]["message"]["content"] == "cached"
+    assert fake.calls == 1
+
+
+def test_response_cache_is_per_sandbox():
+    app = create_app(_tool_settings(response_cache_enabled=True))
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+    body = {"messages": [{"role": "user", "content": "q"}]}
+
+    client.post("/v1/chat/completions", headers={"X-Sandbox-ID": "team-a"}, json=body)
+    other = client.post("/v1/chat/completions", headers={"X-Sandbox-ID": "team-b"}, json=body)
+
+    assert other.headers["X-Cache"] == "MISS"
+    assert fake.calls == 2
+
+
+def test_response_cache_disabled_by_default():
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+    body = {"messages": [{"role": "user", "content": "q"}]}
+
+    first = client.post("/v1/chat/completions", json=body)
+    client.post("/v1/chat/completions", json=body)
+
+    assert "X-Cache" not in first.headers
+    assert fake.calls == 2
+
+
 def test_rate_limit_disabled_by_default_allows_burst():
     app = create_app(_tool_settings())
     app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})

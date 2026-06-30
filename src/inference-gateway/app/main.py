@@ -16,6 +16,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, ge
 from pydantic import BaseModel, ConfigDict
 
 from app.budget import BudgetReservation, SandboxBudgetTracker, build_sandbox_budget_tracker
+from app.cache import ResponseCache, cache_key
 from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
@@ -94,6 +95,20 @@ RUNTIME_FALLBACKS = Counter(
     "inference_gateway_runtime_fallbacks_total",
     "Total times a request failed over from one runtime route to a fallback.",
     ["from_backend", "to_backend"],
+)
+LOAD_SHED = Counter(
+    "inference_gateway_load_shed_total",
+    "Total requests rejected by the gateway concurrency limit (load shedding).",
+    ["route"],
+)
+INFLIGHT = Gauge(
+    "inference_gateway_inflight_requests",
+    "Current number of in-flight gateway requests subject to the concurrency limit.",
+)
+CACHE_LOOKUPS = Counter(
+    "inference_gateway_response_cache_total",
+    "Response cache lookups by result.",
+    ["result"],
 )
 
 
@@ -412,6 +427,28 @@ def _jwks_unavailable_response(request: Request) -> JSONResponse:
     return response
 
 
+def _overloaded_response(request: Request) -> JSONResponse:
+    """Build a 503 response when the gateway concurrency limit is exceeded (load shed)."""
+    LOAD_SHED.labels(request.url.path).inc()
+    response = JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "message": "gateway is at capacity; retry shortly",
+                "reason": "concurrency_limit",
+                "request_id": request.state.request_id,
+                "sandbox_id": request.state.sandbox_id,
+            }
+        },
+        headers={"Retry-After": "1"},
+    )
+    response.headers["X-Request-ID"] = request.state.request_id
+    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+    if request.state.traceparent:
+        response.headers["traceparent"] = request.state.traceparent
+    return response
+
+
 def _rate_limited_response(request: Request, retry_after: int) -> JSONResponse:
     """Build a 429 response with Retry-After when the per-sandbox rate limit is hit."""
     RATE_LIMITED.labels(request.state.sandbox_id).inc()
@@ -621,6 +658,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.router.add_event_handler("shutdown", app.state.runtime_client.aclose)
     app.state.budget_tracker = build_sandbox_budget_tracker(resolved)
     app.state.rate_limiter = build_rate_limiter(resolved)
+    app.state.inflight = 0
+    app.state.response_cache = ResponseCache(resolved.response_cache_max_entries, resolved.response_cache_ttl_seconds)
     app.state.model_routing_policy = (
         ModelRoutingPolicy.from_path(resolved.model_routing_policy_path, resolved)
         if resolved.model_routing_policy_path
@@ -684,11 +723,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 if not allowed:
                     return _rate_limited_response(request, retry_after)
 
-            response = await call_next(request)
+            # Bounded concurrency with fast-fail load shedding: the check + increment is
+            # synchronous (no await between), so it is atomic on the event loop. Excess
+            # load is rejected with 503 rather than queued behind the httpx pool.
+            limited = resolved.max_concurrent_requests > 0 and _auth_required(request.url.path)
+            if limited:
+                if request.app.state.inflight >= resolved.max_concurrent_requests:
+                    return _overloaded_response(request)
+                request.app.state.inflight += 1
+                INFLIGHT.set(request.app.state.inflight)
+            try:
+                response = await call_next(request)
+            finally:
+                if limited:
+                    request.app.state.inflight -= 1
+                    INFLIGHT.set(request.app.state.inflight)
             response.headers["X-Request-ID"] = request.state.request_id
             response.headers["X-Sandbox-ID"] = request.state.sandbox_id
             if request.state.traceparent:
                 response.headers["traceparent"] = request.state.traceparent
+            if getattr(request.state, "cache_status", None):
+                response.headers["X-Cache"] = request.state.cache_status
             return response
 
         tracer = request.app.state.tracer
@@ -804,6 +859,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             backend = model_route.backend
             payload_dict["model"] = model_route.model_id
             effective.validate_admission(payload_dict)
+            # Exact-match per-sandbox cache (non-streaming only). A hit returns the prior
+            # response without a runtime call or budget reservation.
+            cache_enabled = resolved.response_cache_enabled and not payload_dict.get("stream")
+            cache_id = ""
+            if cache_enabled:
+                cache_id = cache_key(request.state.sandbox_id, payload_dict)
+                cached = request.app.state.response_cache.get(cache_id)
+                if cached is not None:
+                    CACHE_LOOKUPS.labels("hit").inc()
+                    request.state.cache_status = "HIT"
+                    # Bind for the finally block (token-usage metrics + audit), then return.
+                    runtime_response = cached
+                    return cached
+                CACHE_LOOKUPS.labels("miss").inc()
+                request.state.cache_status = "MISS"
             tracker: SandboxBudgetTracker = request.app.state.budget_tracker
             reservation = tracker.reserve(request.state.sandbox_id, payload_dict, effective)
             request.state.budget_reservation = reservation.audit_dict() if reservation is not None else None
@@ -890,6 +960,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     raise
             if runtime_response is None:
                 raise last_exc or RuntimeError("no runtime route available")
+            if cache_enabled:
+                request.app.state.response_cache.set(cache_id, runtime_response)
             # The finally block reads runtime_response for token-usage metrics and the
             # audit log, so it is bound above rather than returned inline.
             return runtime_response

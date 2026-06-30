@@ -189,6 +189,10 @@ class Settings:
     rate_limit_enabled: bool = False
     rate_limit_requests_per_window: int = 0
     rate_limit_window_seconds: int = 60
+    max_concurrent_requests: int = 0
+    response_cache_enabled: bool = False
+    response_cache_ttl_seconds: int = 60
+    response_cache_max_entries: int = 1024
     api_key_auth_enabled: bool = False
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
@@ -233,6 +237,12 @@ class Settings:
             raise ValueError("rate_limit_requests_per_window must be zero or greater")
         if self.rate_limit_window_seconds <= 0:
             raise ValueError("rate_limit_window_seconds must be greater than zero")
+        if self.max_concurrent_requests < 0:
+            raise ValueError("max_concurrent_requests must be zero or greater")
+        if self.response_cache_ttl_seconds <= 0:
+            raise ValueError("response_cache_ttl_seconds must be greater than zero")
+        if self.response_cache_max_entries <= 0:
+            raise ValueError("response_cache_max_entries must be greater than zero")
         if not self.sandbox_budget_key_prefix.strip():
             raise ValueError("sandbox_budget_key_prefix must not be empty")
         if self.api_key_auth_enabled and not self.api_key_sha256s:
@@ -319,6 +329,10 @@ class Settings:
             rate_limit_enabled=_bool_from_env("RATE_LIMIT_ENABLED", False),
             rate_limit_requests_per_window=_int_from_env("RATE_LIMIT_REQUESTS_PER_WINDOW", 0),
             rate_limit_window_seconds=_positive_int_from_env("RATE_LIMIT_WINDOW_SECONDS", 60),
+            max_concurrent_requests=_int_from_env("MAX_CONCURRENT_REQUESTS", 0),
+            response_cache_enabled=_bool_from_env("RESPONSE_CACHE_ENABLED", False),
+            response_cache_ttl_seconds=_positive_int_from_env("RESPONSE_CACHE_TTL_SECONDS", 60),
+            response_cache_max_entries=_positive_int_from_env("RESPONSE_CACHE_MAX_ENTRIES", 1024),
             api_key_auth_enabled=_bool_from_env("API_KEY_AUTH_ENABLED", False),
             api_key_sha256s=_sha256s_from_env("API_KEY_SHA256S"),
             api_key_header=os.getenv("API_KEY_HEADER", "X-API-Key"),
