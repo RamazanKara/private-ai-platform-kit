@@ -35,6 +35,8 @@ admission:
   maxMessages: 16
   maxPromptChars: 8192
   maxCompletionTokens: 1024
+  maxTools: 64
+  maxToolChars: 32768
   allowStreaming: false
 
 guardrails:

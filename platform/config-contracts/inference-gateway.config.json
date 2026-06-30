@@ -212,6 +212,30 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": 64,
+      "chart_default": 64,
+      "chart_value": "admission.maxTools",
+      "description": "Maximum tool/function definitions accepted per request.",
+      "field": "max_tools",
+      "name": "MAX_TOOLS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 32768,
+      "chart_default": 32768,
+      "chart_value": "admission.maxToolChars",
+      "description": "Maximum serialized characters of tool/function definitions per request.",
+      "field": "max_tool_chars",
+      "name": "MAX_TOOL_CHARS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": "qwen3.5:0.8b",
       "chart_default": "qwen3.5:0.8b",
       "chart_value": "runtime.modelId",

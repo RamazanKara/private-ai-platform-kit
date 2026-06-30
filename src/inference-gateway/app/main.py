@@ -13,13 +13,13 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.budget import BudgetReservation, SandboxBudgetTracker, build_sandbox_budget_tracker
 from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.runtime_client import RuntimeClient
-from app.settings import AdmissionPolicyError, Settings, validate_sandbox_id
+from app.settings import AdmissionPolicyError, Settings, extract_text_content, validate_sandbox_id
 from app.tracing import configure_tracing, trace_request
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
@@ -81,20 +81,45 @@ AUTH_FAILURES = Counter(
 
 
 class Message(BaseModel):
-    """A single chat message with an OpenAI-style role and text content."""
+    """A single chat message with an OpenAI-style role and content.
 
-    role: Literal["system", "user", "assistant", "tool"]
-    content: str
+    ``content`` accepts a plain string, an OpenAI-style content-part array (text
+    and ``image_url`` parts, enabling vision-capable runtimes), or ``null`` for an
+    assistant turn that only carries ``tool_calls``. ``extra="allow"`` lets any
+    additional OpenAI message fields pass through to the runtime unchanged.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    role: Literal["system", "developer", "user", "assistant", "tool", "function"]
+    content: str | list[dict[str, Any]] | None = None
+    name: str | None = None
+    tool_calls: list[dict[str, Any]] | None = None
+    tool_call_id: str | None = None
 
 
 class ChatCompletionRequest(BaseModel):
-    """Request body for an OpenAI-compatible chat completion call."""
+    """Request body for an OpenAI-compatible chat completion call.
+
+    Tool/function-calling and structured-output fields are modelled explicitly so
+    they survive ``model_dump`` to the runtime (the flagship coding-agent path),
+    and ``extra="allow"`` forwards any other OpenAI sampling parameter (``top_p``,
+    ``stop``, ``seed``, ``stream_options``, ...) verbatim instead of silently
+    dropping it.
+    """
+
+    model_config = ConfigDict(extra="allow")
 
     model: str | None = None
     messages: list[Message]
     temperature: float | None = None
     max_tokens: int | None = None
     stream: bool | None = False
+    tools: list[dict[str, Any]] | None = None
+    tool_choice: str | dict[str, Any] | None = None
+    functions: list[dict[str, Any]] | None = None
+    function_call: str | dict[str, Any] | None = None
+    response_format: dict[str, Any] | None = None
 
 
 def _request_id_from_header(request: Request) -> str:
@@ -261,19 +286,30 @@ def _payload_fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
     canonical_messages = []
     roles = []
     prompt_chars = 0
+    tool_call_count = 0
     for message in messages:
         role = str(message.get("role", "unknown"))
-        content = str(message.get("content", ""))
+        text = extract_text_content(message.get("content"))
         roles.append(role)
-        prompt_chars += len(content)
-        canonical_messages.append({"role": role, "content": content})
-    canonical = json.dumps(canonical_messages, sort_keys=True, separators=(",", ":"))
-    return {
+        prompt_chars += len(text)
+        # Hash the raw content structure (string or content-part array) so vision
+        # parts and tool fields are covered by the fingerprint, not just text.
+        canonical_messages.append({"role": role, "content": message.get("content")})
+        tool_calls = message.get("tool_calls")
+        if isinstance(tool_calls, list):
+            tool_call_count += len(tool_calls)
+    canonical = json.dumps(canonical_messages, sort_keys=True, separators=(",", ":"), default=str)
+    fingerprint: dict[str, Any] = {
         "message_count": len(messages),
         "message_roles": roles,
         "prompt_chars": prompt_chars,
         "prompt_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
     }
+    if payload.get("tools"):
+        fingerprint["tool_count"] = len(payload["tools"])
+    if tool_call_count:
+        fingerprint["tool_call_count"] = tool_call_count
+    return fingerprint
 
 
 def _record_token_usage(backend: str, runtime_response: dict[str, Any] | None) -> None:

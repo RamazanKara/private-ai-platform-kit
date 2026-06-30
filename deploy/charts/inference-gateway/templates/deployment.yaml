@@ -72,6 +72,10 @@ spec:
               value: {{ .Values.admission.maxPromptChars | quote }}
             - name: MAX_COMPLETION_TOKENS
               value: {{ .Values.admission.maxCompletionTokens | quote }}
+            - name: MAX_TOOLS
+              value: {{ .Values.admission.maxTools | quote }}
+            - name: MAX_TOOL_CHARS
+              value: {{ .Values.admission.maxToolChars | quote }}
             - name: ALLOW_STREAMING
               value: {{ .Values.admission.allowStreaming | quote }}
             - name: PROMPT_SECRET_DETECTION_ENABLED

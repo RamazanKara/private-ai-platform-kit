@@ -58,12 +58,24 @@ CONTRACTS = {
         }),
         required_schemas={
             "ChatCompletionRequest": {
-                "properties": {"model", "messages", "temperature", "max_tokens", "stream"},
+                "properties": {
+                    "model",
+                    "messages",
+                    "temperature",
+                    "max_tokens",
+                    "stream",
+                    "tools",
+                    "tool_choice",
+                    "functions",
+                    "function_call",
+                    "response_format",
+                },
                 "required": {"messages"},
             },
             "Message": {
-                "properties": {"role", "content"},
-                "required": {"role", "content"},
+                # content is optional: an assistant turn may carry only tool_calls.
+                "properties": {"role", "content", "name", "tool_calls", "tool_call_id"},
+                "required": {"role"},
             },
         },
     ),

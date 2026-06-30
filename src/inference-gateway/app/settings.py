@@ -1,9 +1,11 @@
 """Inference gateway settings, admission policy, and environment configuration loading."""
 
+import json
 import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 SANDBOX_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 BUILT_IN_SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
@@ -70,6 +72,32 @@ def _bool_from_env(name: str, default: bool) -> bool:
     raise ValueError(f"{name} must be a boolean")
 
 
+def extract_text_content(content: Any) -> str:
+    """Return the plain text of a chat message ``content`` field.
+
+    Accepts a string, ``None``, or an OpenAI-style content-part array (each part a
+    mapping with a ``text`` field, e.g. ``{"type": "text", "text": "..."}``); non-text
+    parts such as ``image_url`` contribute no characters. Used by admission sizing,
+    secret scanning, and audit fingerprinting so multimodal requests are handled
+    without assuming ``content`` is a bare string.
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for part in content:
+            if isinstance(part, dict):
+                text = part.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+            elif isinstance(part, str):
+                parts.append(part)
+        return "".join(parts)
+    return str(content)
+
+
 def validate_sandbox_id(value: str) -> str:
     """Normalize and validate a sandbox id, raising ValueError when malformed."""
     sandbox_id = value.strip().lower()
@@ -128,6 +156,8 @@ class Settings:
     max_messages: int = 16
     max_prompt_chars: int = 8192
     max_completion_tokens: int = 1024
+    max_tools: int = 64
+    max_tool_chars: int = 32768
     allow_streaming: bool = False
     sandbox_budget_enabled: bool = False
     sandbox_request_budget: int = 0
@@ -229,6 +259,8 @@ class Settings:
             max_messages=_int_from_env("MAX_MESSAGES", 16),
             max_prompt_chars=_int_from_env("MAX_PROMPT_CHARS", 8192),
             max_completion_tokens=_int_from_env("MAX_COMPLETION_TOKENS", 1024),
+            max_tools=_int_from_env("MAX_TOOLS", 64),
+            max_tool_chars=_int_from_env("MAX_TOOL_CHARS", 32768),
             allow_streaming=_bool_from_env("ALLOW_STREAMING", False),
             sandbox_budget_enabled=_bool_from_env("SANDBOX_BUDGET_ENABLED", False),
             sandbox_request_budget=_int_from_env("SANDBOX_REQUEST_BUDGET", 0),
@@ -323,15 +355,16 @@ class Settings:
                 "too_many_messages",
                 f"request has {len(messages)} messages; limit is {self.max_messages}",
             )
-        prompt_chars = sum(len(str(message.get("content", ""))) for message in messages)
+        prompt_chars = sum(len(extract_text_content(message.get("content"))) for message in messages)
         if prompt_chars > self.max_prompt_chars:
             raise AdmissionPolicyError(
                 "prompt_too_large",
                 f"prompt has {prompt_chars} characters; limit is {self.max_prompt_chars}",
             )
+        self._validate_tools(payload)
         if self.prompt_secret_detection_enabled:
             for message in messages:
-                content = str(message.get("content", ""))
+                content = extract_text_content(message.get("content"))
                 for pattern_name in self.prompt_secret_patterns:
                     if BUILT_IN_SECRET_PATTERNS[pattern_name].search(content):
                         raise AdmissionPolicyError(
@@ -369,6 +402,31 @@ class Settings:
                 "streaming_disabled",
                 "streaming responses are disabled for this gateway",
             )
+
+    def _validate_tools(self, payload: dict) -> None:
+        """Bound tool/function definitions by count and serialized size.
+
+        Tool schemas are attacker-influenced free-form JSON forwarded to the
+        runtime; caps keep a caller from smuggling an oversized payload past the
+        prompt-character limit via the ``tools``/``functions`` fields.
+        """
+        for field in ("tools", "functions"):
+            value = payload.get(field)
+            if value is None:
+                continue
+            if not isinstance(value, list):
+                raise AdmissionPolicyError("invalid_tools", f"{field} must be a list")
+            if len(value) > self.max_tools:
+                raise AdmissionPolicyError(
+                    "too_many_tools",
+                    f"request defines {len(value)} {field}; limit is {self.max_tools}",
+                )
+            serialized_chars = len(json.dumps(value, default=str))
+            if serialized_chars > self.max_tool_chars:
+                raise AdmissionPolicyError(
+                    "tools_too_large",
+                    f"{field} serialize to {serialized_chars} characters; limit is {self.max_tool_chars}",
+                )
 
 
 def _path_from_env(name: str) -> Path | None:

@@ -58,6 +58,8 @@ GATEWAY_VARS = (
     ConfigVar("MAX_MESSAGES", "max_messages", "integer", 16, "admission.maxMessages", 16, "Maximum messages accepted per chat request."),
     ConfigVar("MAX_PROMPT_CHARS", "max_prompt_chars", "integer", 8192, "admission.maxPromptChars", 8192, "Maximum aggregate prompt characters accepted per request."),
     ConfigVar("MAX_COMPLETION_TOKENS", "max_completion_tokens", "integer", 1024, "admission.maxCompletionTokens", 1024, "Maximum requested completion tokens."),
+    ConfigVar("MAX_TOOLS", "max_tools", "integer", 64, "admission.maxTools", 64, "Maximum tool/function definitions accepted per request."),
+    ConfigVar("MAX_TOOL_CHARS", "max_tool_chars", "integer", 32768, "admission.maxToolChars", 32768, "Maximum serialized characters of tool/function definitions per request."),
     ConfigVar("ALLOW_STREAMING", "allow_streaming", "boolean", False, "admission.allowStreaming", False, "Whether streaming chat completions are admitted."),
     ConfigVar("PROMPT_SECRET_DETECTION_ENABLED", "prompt_secret_detection_enabled", "boolean", True, "guardrails.promptSecretDetection.enabled", True, "Whether prompt credential-pattern rejection is enabled."),
     ConfigVar("PROMPT_SECRET_PATTERNS", "prompt_secret_patterns", "csv", ["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"], "guardrails.promptSecretDetection.patterns", ["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"], "Built-in secret detector names to apply to prompts."),

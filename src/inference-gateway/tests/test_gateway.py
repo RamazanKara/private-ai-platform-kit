@@ -291,6 +291,167 @@ def test_chat_completion_forwards_openai_payload():
     assert fake.payload["messages"][0]["content"] == "hello"
 
 
+def _tool_settings(**overrides):
+    base = {
+        "runtime_backend": "vllm",
+        "ollama_base_url": "http://ollama:11434",
+        "vllm_base_url": "http://vllm:8000",
+        "model_id": "default-model",
+        "request_timeout_seconds": 5,
+    }
+    base.update(overrides)
+    return Settings(**base)
+
+
+def test_chat_completion_forwards_tool_calling_fields():
+    # Regression: ChatCompletionRequest dropped tools/tool_choice (extra="ignore"),
+    # so coding agents had their function calls silently swallowed before the runtime.
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_weather",
+                "description": "Get the weather",
+                "parameters": {"type": "object", "properties": {"city": {"type": "string"}}},
+            },
+        }
+    ]
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [{"role": "user", "content": "weather in berlin?"}],
+            "tools": tools,
+            "tool_choice": "auto",
+            "response_format": {"type": "json_object"},
+        },
+    )
+
+    assert response.status_code == 200
+    assert fake.payload["tools"] == tools
+    assert fake.payload["tool_choice"] == "auto"
+    assert fake.payload["response_format"] == {"type": "json_object"}
+
+
+def test_chat_completion_forwards_assistant_tool_calls_and_tool_results():
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [
+                {"role": "user", "content": "weather in berlin?"},
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {"name": "get_weather", "arguments": '{"city": "berlin"}'},
+                        }
+                    ],
+                },
+                {"role": "tool", "tool_call_id": "call_1", "content": "18C and sunny"},
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    forwarded = fake.payload["messages"]
+    assert forwarded[1]["tool_calls"][0]["id"] == "call_1"
+    assert forwarded[2]["tool_call_id"] == "call_1"
+
+
+def test_chat_completion_forwards_vision_content_parts():
+    # Regression: Message.content was a bare str, so an OpenAI content-part array
+    # (text + image_url) failed validation before reaching a vision-capable runtime.
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    content = [
+        {"type": "text", "text": "what is in this image?"},
+        {"type": "image_url", "image_url": {"url": "https://example.com/cat.png"}},
+    ]
+    response = client.post(
+        "/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": content}]},
+    )
+
+    assert response.status_code == 200
+    assert fake.payload["messages"][0]["content"] == content
+
+
+def test_chat_completion_forwards_unknown_sampling_params():
+    # extra="allow" makes the gateway a faithful OpenAI proxy instead of silently
+    # dropping any field it does not model explicitly.
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [{"role": "user", "content": "hello"}],
+            "top_p": 0.9,
+            "seed": 42,
+            "stop": ["\n\n"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert fake.payload["top_p"] == 0.9
+    assert fake.payload["seed"] == 42
+    assert fake.payload["stop"] == ["\n\n"]
+
+
+def test_chat_completion_rejects_too_many_tools():
+    app = create_app(_tool_settings(max_tools=1))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [{"role": "user", "content": "hi"}],
+            "tools": [
+                {"type": "function", "function": {"name": "a"}},
+                {"type": "function", "function": {"name": "b"}},
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "too_many_tools"
+
+
+def test_chat_completion_rejects_oversized_tools():
+    app = create_app(_tool_settings(max_tool_chars=64))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [{"role": "user", "content": "hi"}],
+            "tools": [{"type": "function", "function": {"name": "a", "description": "x" * 200}}],
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "tools_too_large"
+
+
 def test_chat_completion_metrics_use_endpoint_route_label():
     # Regression: the handler reused the `route` variable for both the Prometheus label
     # ("/v1/chat/completions") and the resolved ModelRoute, so a successful request

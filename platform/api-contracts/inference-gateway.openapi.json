@@ -2,8 +2,39 @@
   "components": {
     "schemas": {
       "ChatCompletionRequest": {
-        "description": "Request body for an OpenAI-compatible chat completion call.",
+        "additionalProperties": true,
+        "description": "Request body for an OpenAI-compatible chat completion call.\n\nTool/function-calling and structured-output fields are modelled explicitly so\nthey survive ``model_dump`` to the runtime (the flagship coding-agent path),\nand ``extra=\"allow\"`` forwards any other OpenAI sampling parameter (``top_p``,\n``stop``, ``seed``, ``stream_options``, ...) verbatim instead of silently\ndropping it.",
         "properties": {
+          "function_call": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Function Call"
+          },
+          "functions": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Functions"
+          },
           "max_tokens": {
             "anyOf": [
               {
@@ -33,6 +64,18 @@
             ],
             "title": "Model"
           },
+          "response_format": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Format"
+          },
           "stream": {
             "anyOf": [
               {
@@ -55,6 +98,36 @@
               }
             ],
             "title": "Temperature"
+          },
+          "tool_choice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Choice"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tools"
           }
         },
         "required": [
@@ -77,26 +150,79 @@
         "type": "object"
       },
       "Message": {
-        "description": "A single chat message with an OpenAI-style role and text content.",
+        "additionalProperties": true,
+        "description": "A single chat message with an OpenAI-style role and content.\n\n``content`` accepts a plain string, an OpenAI-style content-part array (text\nand ``image_url`` parts, enabling vision-capable runtimes), or ``null`` for an\nassistant turn that only carries ``tool_calls``. ``extra=\"allow\"`` lets any\nadditional OpenAI message fields pass through to the runtime unchanged.",
         "properties": {
           "content": {
-            "title": "Content",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
           "role": {
             "enum": [
               "system",
+              "developer",
               "user",
               "assistant",
-              "tool"
+              "tool",
+              "function"
             ],
             "title": "Role",
             "type": "string"
+          },
+          "tool_call_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Call Id"
+          },
+          "tool_calls": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Calls"
           }
         },
         "required": [
-          "role",
-          "content"
+          "role"
         ],
         "title": "Message",
         "type": "object"
