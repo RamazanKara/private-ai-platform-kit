@@ -122,6 +122,8 @@ spec:
               value: {{ join "," .Values.auth.jwt.requiredScopes | quote }}
             - name: JWT_CACHE_SECONDS
               value: {{ .Values.auth.jwt.cacheSeconds | quote }}
+            - name: JWT_TENANT_CLAIM
+              value: {{ .Values.auth.jwt.tenantClaim | quote }}
             - name: API_KEY_SHA256S
               {{- if .Values.auth.existingSecret.name }}
               valueFrom:

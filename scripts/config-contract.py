@@ -84,6 +84,7 @@ GATEWAY_VARS = (
     ConfigVar("JWT_AUDIENCE", "jwt_audience", "string", "", "auth.jwt.audience", "", "Expected JWT audience when set."),
     ConfigVar("JWT_REQUIRED_SCOPES", "jwt_required_scopes", "csv", [], "auth.jwt.requiredScopes", [], "Scopes required in JWT scope or scp claims."),
     ConfigVar("JWT_CACHE_SECONDS", "jwt_cache_seconds", "integer", 300, "auth.jwt.cacheSeconds", 300, "JWKS cache TTL in seconds."),
+    ConfigVar("JWT_TENANT_CLAIM", "jwt_tenant_claim", "string", "", "auth.jwt.tenantClaim", "", "JWT claim that binds the sandbox id; mismatched or missing values are rejected. Empty disables binding."),
     ConfigVar("OTEL_TRACING_ENABLED", "otel_tracing_enabled", "boolean", False, "observability.tracing.enabled", False, "Whether OpenTelemetry span export is enabled."),
     ConfigVar("OTEL_EXPORTER_OTLP_ENDPOINT", "otel_exporter_otlp_endpoint", "url", "", "observability.tracing.otlpEndpoint", "", "OTLP/HTTP endpoint for span export when tracing is enabled."),
     ConfigVar("OTEL_SERVICE_NAME", "otel_service_name", "string", "inference-gateway", "observability.tracing.serviceName", "inference-gateway", "Service name attribute attached to exported spans."),

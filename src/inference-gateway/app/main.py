@@ -217,23 +217,66 @@ def _valid_api_key(request: Request, settings: Settings) -> bool:
     return any(hmac.compare_digest(digest, expected) for expected in settings.api_key_sha256s)
 
 
-async def _valid_jwt(request: Request, verifier: JwtVerifier) -> bool:
-    """Return whether the request carries a bearer JWT that passes verification.
+async def _valid_jwt(request: Request, verifier: JwtVerifier) -> dict[str, Any] | None:
+    """Return the verified JWT claims, or ``None`` when the token is absent/invalid.
 
-    Propagates :class:`JwksUnavailableError` so the caller can distinguish an
-    unreachable issuer (503) from a rejected token (401).
+    Returning the claims (rather than a bool) lets the caller propagate the
+    authenticated principal into request state and the audit trail. Propagates
+    :class:`JwksUnavailableError` so the caller can distinguish an unreachable
+    issuer (503) from a rejected token (401).
     """
     authorization = request.headers.get("authorization", "").strip()
     if not authorization.lower().startswith("bearer "):
-        return False
+        return None
     token = authorization[7:].strip()
     if not token or token.count(".") != 2:
-        return False
+        return None
     try:
-        await verifier.verify(token)
-        return True
+        return await verifier.verify(token)
     except (JwtAuthError, httpx.HTTPError):
-        return False
+        return None
+
+
+def _api_key_principal(request: Request, settings: Settings) -> dict[str, Any]:
+    """Build a non-reversible audit principal for an API-key caller.
+
+    The key itself is never logged; ``key_id`` is a stable digest prefix so audit
+    consumers can attribute requests to a specific issued key.
+    """
+    api_key = _api_key_from_request(request, settings) or ""
+    digest = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    return {"auth": "api_key", "key_id": digest[:12]}
+
+
+def _jwt_principal(claims: dict[str, Any]) -> dict[str, Any]:
+    """Summarize verified JWT claims into the audit principal (no raw token data)."""
+    principal: dict[str, Any] = {"auth": "jwt"}
+    subject = claims.get("sub")
+    if subject is not None:
+        principal["sub"] = str(subject)
+    client_id = claims.get("azp") or claims.get("client_id")
+    if client_id is not None:
+        principal["client_id"] = str(client_id)
+    issuer = claims.get("iss")
+    if issuer is not None:
+        principal["issuer"] = str(issuer)
+    scopes = JwtVerifier._claim_scopes(claims)
+    if scopes:
+        principal["scopes"] = sorted(scopes)
+    return principal
+
+
+def _bound_sandbox_id(claims: dict[str, Any], claim_name: str) -> str:
+    """Return the sandbox id bound to a JWT tenant claim, raising on missing/invalid.
+
+    Raising surfaces as a 403: when an operator opts into claim binding, a token
+    that lacks the claim or carries a malformed value is not authorized for any
+    sandbox rather than silently falling back to the client-supplied header.
+    """
+    raw = claims.get(claim_name)
+    if raw is None or not str(raw).strip():
+        raise ValueError(f"jwt is missing the tenant claim '{claim_name}'")
+    return validate_sandbox_id(str(raw))
 
 
 def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
@@ -272,6 +315,27 @@ def _jwks_unavailable_response(request: Request) -> JSONResponse:
             }
         },
         headers={"Retry-After": "5"},
+    )
+    response.headers["X-Request-ID"] = request.state.request_id
+    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+    if request.state.traceparent:
+        response.headers["traceparent"] = request.state.traceparent
+    return response
+
+
+def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
+    """Build a 403 when a JWT tenant claim is missing/invalid or contradicts the header."""
+    AUTH_FAILURES.labels(request.url.path, reason).inc()
+    response = JSONResponse(
+        status_code=403,
+        content={
+            "detail": {
+                "message": "sandbox identity is not authorized for this caller",
+                "reason": reason,
+                "request_id": request.state.request_id,
+                "sandbox_id": request.state.sandbox_id,
+            }
+        },
     )
     response.headers["X-Request-ID"] = request.state.request_id
     response.headers["X-Sandbox-ID"] = request.state.sandbox_id
@@ -405,6 +469,7 @@ def _write_audit_log(
         "request_id": request.state.request_id,
         "traceparent": request.state.traceparent,
         "sandbox_id": request.state.sandbox_id,
+        "principal": getattr(request.state, "principal", None),
         "backend": backend,
         "model": payload.get("model") or settings.model_id,
         "status_code": status_code,
@@ -453,22 +518,41 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 request.headers.get("x-sandbox-id", resolved.default_sandbox_id)
             )
             request.state.traceparent = _traceparent_from_header(request)
+            request.state.principal = None
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"detail": str(exc)})
 
         async def dispatch() -> Response:
             if (resolved.api_key_auth_enabled or resolved.jwt_auth_enabled) and _auth_required(request.url.path):
                 api_key_ok = resolved.api_key_auth_enabled and _valid_api_key(request, resolved)
-                jwt_ok = False
+                jwt_claims: dict[str, Any] | None = None
                 if not api_key_ok and resolved.jwt_auth_enabled:
                     try:
-                        jwt_ok = await _valid_jwt(request, request.app.state.jwt_verifier)
+                        jwt_claims = await _valid_jwt(request, request.app.state.jwt_verifier)
                     except JwksUnavailableError:
                         # Issuer JWKS is unreachable: this is a 503 (retry later),
                         # not a 401 token rejection.
                         return _jwks_unavailable_response(request)
-                if not api_key_ok and not jwt_ok:
+                if not api_key_ok and jwt_claims is None:
                     return _auth_failure_response(request, "invalid_or_missing_api_key")
+                # Propagate the authenticated principal so the audit trail records who
+                # called, not just the (client-asserted) sandbox header.
+                if api_key_ok:
+                    request.state.principal = _api_key_principal(request, resolved)
+                elif jwt_claims is not None:
+                    request.state.principal = _jwt_principal(jwt_claims)
+                    # Bind the sandbox to the verified tenant claim when configured,
+                    # so per-sandbox budget/policy/attribution cannot be spoofed via
+                    # the X-Sandbox-ID header.
+                    if resolved.jwt_tenant_claim:
+                        try:
+                            bound = _bound_sandbox_id(jwt_claims, resolved.jwt_tenant_claim)
+                        except ValueError:
+                            return _sandbox_binding_response(request, "sandbox_claim_invalid")
+                        explicit = request.headers.get("x-sandbox-id")
+                        if explicit is not None and validate_sandbox_id(explicit) != bound:
+                            return _sandbox_binding_response(request, "sandbox_identity_mismatch")
+                        request.state.sandbox_id = bound
 
             response = await call_next(request)
             response.headers["X-Request-ID"] = request.state.request_id

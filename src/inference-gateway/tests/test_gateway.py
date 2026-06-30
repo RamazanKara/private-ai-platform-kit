@@ -916,6 +916,156 @@ def test_jwt_bearer_token_is_accepted_when_enabled(monkeypatch):
     assert fake.calls == 1
 
 
+def _hs256_jwt_settings(secret, **overrides):
+    base = {
+        "runtime_backend": "ollama",
+        "ollama_base_url": "http://ollama:11434",
+        "vllm_base_url": "http://vllm:8000",
+        "model_id": "default-model",
+        "request_timeout_seconds": 5,
+        "jwt_auth_enabled": True,
+        "jwt_jwks_url": "https://issuer.example/.well-known/jwks.json",
+    }
+    base.update(overrides)
+    return Settings(**base)
+
+
+def test_jwt_principal_is_recorded_in_audit(monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
+    secret = b"jwt-test-secret"
+
+    async def fake_keys(self):
+        return [{"kty": "oct", "kid": "test-key", "k": _b64url(secret)}]
+
+    monkeypatch.setattr(JwksCache, "keys", fake_keys)
+    app = create_app(_hs256_jwt_settings(secret))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    token = _signed_hs256_jwt(
+        secret,
+        {"sub": "user-123", "azp": "agent-app", "scope": "chat:write", "exp": int(time.time()) + 300},
+    )
+
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 200
+    audit = [r.getMessage() for r in caplog.records if '"event": "inference_request"' in r.getMessage()][-1]
+    event = json.loads(audit)
+    assert event["principal"]["auth"] == "jwt"
+    assert event["principal"]["sub"] == "user-123"
+    assert event["principal"]["client_id"] == "agent-app"
+    assert "chat:write" in event["principal"]["scopes"]
+
+
+def test_jwt_tenant_claim_binds_sandbox(monkeypatch):
+    secret = b"jwt-test-secret"
+
+    async def fake_keys(self):
+        return [{"kty": "oct", "kid": "test-key", "k": _b64url(secret)}]
+
+    monkeypatch.setattr(JwksCache, "keys", fake_keys)
+    app = create_app(_hs256_jwt_settings(secret, jwt_tenant_claim="sandbox"))
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+    token = _signed_hs256_jwt(secret, {"sandbox": "team-a", "exp": int(time.time()) + 300})
+
+    # No header: sandbox is taken from the verified claim.
+    no_header = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": [{"role": "user", "content": "hi"}]},
+    )
+    assert no_header.status_code == 200
+    assert no_header.headers["X-Sandbox-ID"] == "team-a"
+
+    # Matching header is accepted.
+    matching = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}", "X-Sandbox-ID": "team-a"},
+        json={"messages": [{"role": "user", "content": "hi"}]},
+    )
+    assert matching.status_code == 200
+
+
+def test_jwt_tenant_claim_mismatch_is_rejected(monkeypatch):
+    secret = b"jwt-test-secret"
+
+    async def fake_keys(self):
+        return [{"kty": "oct", "kid": "test-key", "k": _b64url(secret)}]
+
+    monkeypatch.setattr(JwksCache, "keys", fake_keys)
+    app = create_app(_hs256_jwt_settings(secret, jwt_tenant_claim="sandbox"))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    token = _signed_hs256_jwt(secret, {"sandbox": "team-a", "exp": int(time.time()) + 300})
+
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}", "X-Sandbox-ID": "team-b"},
+        json={"messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["reason"] == "sandbox_identity_mismatch"
+
+
+def test_jwt_tenant_claim_missing_is_rejected(monkeypatch):
+    secret = b"jwt-test-secret"
+
+    async def fake_keys(self):
+        return [{"kty": "oct", "kid": "test-key", "k": _b64url(secret)}]
+
+    monkeypatch.setattr(JwksCache, "keys", fake_keys)
+    app = create_app(_hs256_jwt_settings(secret, jwt_tenant_claim="sandbox"))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    token = _signed_hs256_jwt(secret, {"exp": int(time.time()) + 300})
+
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["reason"] == "sandbox_claim_invalid"
+
+
+def test_api_key_principal_is_recorded_in_audit(caplog):
+    caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
+    api_key = "secret-key-value"
+    digest = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+        api_key_auth_enabled=True,
+        api_key_sha256s=(digest,),
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={"messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 200
+    audit = [r.getMessage() for r in caplog.records if '"event": "inference_request"' in r.getMessage()][-1]
+    event = json.loads(audit)
+    assert event["principal"]["auth"] == "api_key"
+    assert event["principal"]["key_id"] == digest[:12]
+
+
 @pytest.mark.parametrize(
     ("algorithm", "key_factory", "jwk_factory", "signer"),
     [

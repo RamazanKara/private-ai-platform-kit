@@ -176,6 +176,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": "",
+      "chart_default": "",
+      "chart_value": "auth.jwt.tenantClaim",
+      "description": "JWT claim that binds the sandbox id; mismatched or missing values are rejected. Empty disables binding.",
+      "field": "jwt_tenant_claim",
+      "name": "JWT_TENANT_CLAIM",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 1024,
       "chart_default": 1024,
       "chart_value": "admission.maxCompletionTokens",

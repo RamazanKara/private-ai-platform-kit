@@ -79,6 +79,10 @@ auth:
     audience: ""
     requiredScopes: []
     cacheSeconds: 300
+    # When set, the named JWT claim binds the sandbox id: a mismatched or missing
+    # X-Sandbox-ID is rejected so per-sandbox budget/policy/attribution cannot be
+    # spoofed via the client header. Empty disables binding (header-trusted).
+    tenantClaim: ""
 
 service:
   port: 8080
