@@ -49,6 +49,15 @@ class FakeRuntimeClient:
         for chunk in self.stream_chunks:
             yield chunk
 
+    async def embeddings(self, payload, headers=None, backend=None):
+        self.calls += 1
+        self.payload = payload
+        self.headers = headers or {}
+        self.backend = backend
+        if self.error:
+            raise self.error
+        return self.response
+
     async def health(self, backend=None):
         self.health_backends.append(backend)
         if self.error:
@@ -450,6 +459,67 @@ def test_chat_completion_rejects_oversized_tools():
 
     assert response.status_code == 400
     assert response.json()["detail"]["reason"] == "tools_too_large"
+
+
+def test_embeddings_forwards_through_gateway_controls():
+    # Regression: the gateway exposed no embeddings route, so embeddings bypassed its
+    # auth/budget/audit/model controls entirely.
+    app = create_app(_tool_settings(allowed_models=("default-model",)))
+    fake = FakeRuntimeClient(
+        response={"object": "list", "data": [{"embedding": [0.1, 0.2]}], "usage": {"prompt_tokens": 3}}
+    )
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post("/v1/embeddings", json={"input": "embed this text"})
+
+    assert response.status_code == 200
+    assert response.json()["data"][0]["embedding"] == [0.1, 0.2]
+    assert fake.payload["input"] == "embed this text"
+    assert fake.payload["model"] == "default-model"
+
+
+def test_embeddings_rejects_unapproved_model():
+    app = create_app(_tool_settings(allowed_models=("default-model",)))
+    app.state.runtime_client = FakeRuntimeClient(response={"object": "list", "data": []})
+    client = TestClient(app)
+
+    response = client.post("/v1/embeddings", json={"model": "rogue-model", "input": "hi"})
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "model_not_allowed"
+
+
+def test_embeddings_rejects_secret_input():
+    app = create_app(_tool_settings(allowed_models=("default-model",)))
+    app.state.runtime_client = FakeRuntimeClient(response={"object": "list", "data": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/embeddings",
+        json={"input": "ghp_0123456789abcdefghijABCDEFGHIJ012345"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "prompt_secret_detected"
+
+
+def test_embeddings_records_input_audit_fingerprint(caplog):
+    caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
+    app = create_app(_tool_settings(allowed_models=("default-model",)))
+    app.state.runtime_client = FakeRuntimeClient(
+        response={"object": "list", "data": [{"embedding": [0.0]}], "usage": {"prompt_tokens": 2}}
+    )
+    client = TestClient(app)
+
+    response = client.post("/v1/embeddings", json={"input": ["alpha", "beta"]})
+
+    assert response.status_code == 200
+    audit = [r.getMessage() for r in caplog.records if '"event": "inference_request"' in r.getMessage()][-1]
+    event = json.loads(audit)
+    assert event["input_count"] == 2
+    assert "prompt_sha256" in event
+    assert "alpha" not in audit
 
 
 def test_chat_completion_metrics_use_endpoint_route_label():

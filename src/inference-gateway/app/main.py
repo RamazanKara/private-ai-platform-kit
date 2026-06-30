@@ -122,6 +122,21 @@ class ChatCompletionRequest(BaseModel):
     response_format: dict[str, Any] | None = None
 
 
+class EmbeddingsRequest(BaseModel):
+    """Request body for an OpenAI-compatible embeddings call.
+
+    Routing embeddings through the gateway (rather than calling a separate embedding
+    service directly) subjects them to the same auth, model allowlist, budget, and
+    audit controls as chat completions. ``extra="allow"`` forwards provider params
+    such as ``dimensions`` or ``encoding_format`` unchanged.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    model: str | None = None
+    input: str | list[str]
+
+
 def _request_id_from_header(request: Request) -> str:
     """Return a validated X-Request-ID header value, generating a UUID when absent."""
     request_id = request.headers.get("x-request-id", "").strip()
@@ -347,6 +362,15 @@ def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
 def _payload_fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
     """Summarize a chat payload into redacted audit fields (counts, roles, prompt hash)."""
     messages = payload.get("messages") or []
+    if not messages and payload.get("input") is not None:
+        raw = payload["input"]
+        texts = [str(item) for item in (raw if isinstance(raw, list) else [raw])]
+        canonical = json.dumps(texts, sort_keys=True, separators=(",", ":"))
+        return {
+            "input_count": len(texts),
+            "prompt_chars": sum(len(text) for text in texts),
+            "prompt_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        }
     canonical_messages = []
     roles = []
     prompt_chars = 0
@@ -829,6 +853,125 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     runtime_status_code=runtime_status_code,
                     error=error,
                 )
+
+    @app.post(
+        "/v1/embeddings",
+        tags=["inference"],
+        summary="Create private embeddings",
+        operation_id="createEmbeddings",
+    )
+    async def embeddings(request: Request, payload: EmbeddingsRequest) -> dict[str, Any]:
+        route = "/v1/embeddings"
+        backend = resolved.runtime_backend
+        start = perf_counter()
+        status = "200"
+        status_code = 200
+        runtime_status_code = None
+        runtime_response = None
+        error = None
+        payload_dict = payload.model_dump(exclude_none=True)
+        request.state.budget_reservation = None
+        try:
+            policy: ModelRoutingPolicy = request.app.state.model_routing_policy
+            sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
+            effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
+            try:
+                model_route = policy.resolve(payload_dict.get("model"), effective.model_id)
+            except ValueError as exc:
+                raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
+            backend = model_route.backend
+            payload_dict["model"] = model_route.model_id
+            effective.validate_embedding_admission(payload_dict)
+            # Count embedding inputs against the sandbox budget the same way prompts are.
+            raw_input = payload_dict.get("input")
+            texts = raw_input if isinstance(raw_input, list) else [raw_input]
+            budget_payload = {"messages": [{"content": str(text)} for text in texts], "max_tokens": 0}
+            tracker: SandboxBudgetTracker = request.app.state.budget_tracker
+            reservation = tracker.reserve(request.state.sandbox_id, budget_payload, effective)
+            request.state.budget_reservation = reservation.audit_dict() if reservation is not None else None
+            _record_budget_reservation(reservation, effective)
+            client: RuntimeClient = request.app.state.runtime_client
+            runtime_response = await client.embeddings(
+                payload_dict,
+                headers=_runtime_headers(request),
+                backend=backend,
+            )
+            # Bound before returning: the finally block reads runtime_response for
+            # token usage and the audit log, so this assignment is not redundant.
+            return runtime_response  # noqa: RET504
+        except AdmissionPolicyError as exc:
+            status_code, headers = _admission_status(exc.reason, resolved)
+            status = str(status_code)
+            error = str(exc)
+            ADMISSION_REJECTIONS.labels(exc.reason, backend, request.state.sandbox_id).inc()
+            raise HTTPException(
+                status_code=status_code,
+                detail={
+                    "message": error,
+                    "reason": exc.reason,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+                headers=headers,
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            status = "502"
+            status_code = 502
+            runtime_status_code = exc.response.status_code
+            error = "runtime returned an error"
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "message": error,
+                    "runtime_status": exc.response.status_code,
+                    "backend": backend,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+            ) from exc
+        except httpx.HTTPError as exc:
+            status = "502"
+            status_code = 502
+            error = "runtime request failed"
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "message": error,
+                    "backend": backend,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+            ) from exc
+        except ValueError as exc:
+            status = "502"
+            status_code = 502
+            error = "runtime returned an invalid response"
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "message": error,
+                    "backend": backend,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+            ) from exc
+        finally:
+            REQUESTS.labels(route, backend, status).inc()
+            SANDBOX_REQUESTS.labels(request.state.sandbox_id, backend, status).inc()
+            latency_seconds = perf_counter() - start
+            LATENCY.labels(route, backend).observe(latency_seconds)
+            _record_token_usage(backend, runtime_response)
+            _write_audit_log(
+                resolved,
+                request,
+                payload_dict,
+                status_code=status_code,
+                latency_seconds=latency_seconds,
+                backend=backend,
+                runtime_response=runtime_response,
+                runtime_status_code=runtime_status_code,
+                error=error,
+            )
 
     _install_openapi_contract(app, resolved)
     return app

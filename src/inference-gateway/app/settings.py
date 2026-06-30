@@ -405,6 +405,36 @@ class Settings:
                 "streaming responses are disabled for this gateway",
             )
 
+    def validate_embedding_admission(self, payload: dict) -> None:
+        """Enforce model, input-size, and secret rules for an embeddings request.
+
+        Embeddings now route through the gateway, so the same model allowlist, prompt
+        size limit, and credential-pattern rejection apply to embedding inputs.
+        """
+        self.validate_model(payload.get("model"))
+        raw = payload.get("input")
+        texts = raw if isinstance(raw, list) else [raw]
+        texts = [str(item) for item in texts if item is not None and str(item) != ""]
+        if not texts:
+            raise AdmissionPolicyError(
+                "missing_input",
+                "embeddings request must include non-empty input",
+            )
+        total_chars = sum(len(text) for text in texts)
+        if total_chars > self.max_prompt_chars:
+            raise AdmissionPolicyError(
+                "prompt_too_large",
+                f"embedding input has {total_chars} characters; limit is {self.max_prompt_chars}",
+            )
+        if self.prompt_secret_detection_enabled:
+            for text in texts:
+                for pattern_name in self.prompt_secret_patterns:
+                    if BUILT_IN_SECRET_PATTERNS[pattern_name].search(text):
+                        raise AdmissionPolicyError(
+                            "prompt_secret_detected",
+                            f"embedding input appears to contain credential material matched by {pattern_name}",
+                        )
+
     def _validate_tools(self, payload: dict) -> None:
         """Bound tool/function definitions by count and serialized size.
 

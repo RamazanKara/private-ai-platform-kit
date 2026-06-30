@@ -137,15 +137,18 @@ class RuntimeClient:
         delay = (base / 2.0) + random.random() * (base / 2.0)
         await sleep(delay)
 
-    async def chat_completions(
+    async def _post_json_with_retry(
         self,
-        payload: dict[str, Any],
-        headers: dict[str, str] | None = None,
-        backend: str | None = None,
+        url: str,
+        body: dict[str, Any],
+        headers: dict[str, str] | None,
+        resolved_backend: str,
     ) -> dict[str, Any]:
-        """Send a chat-completion request, retrying transient errors, and sanitize the result."""
-        body = self._chat_completion_body(payload)
-        resolved_backend = backend or self.settings.runtime_backend
+        """POST a JSON body with circuit, retry, and backoff; return the parsed object.
+
+        Shared by the chat, embeddings, and any future non-streaming runtime calls so
+        they get identical resilience behavior.
+        """
         attempts = self.settings.runtime_max_retries + 1
         last_error: httpx.HTTPError | None = None
         data: Any = None
@@ -153,11 +156,7 @@ class RuntimeClient:
         for attempt in range(attempts):
             self._check_circuit(resolved_backend)
             try:
-                response = await client.post(
-                    self._chat_completions_url(resolved_backend),
-                    json=body,
-                    headers=headers,
-                )
+                response = await client.post(url, json=body, headers=headers)
                 # Retry transient upstream errors (5xx / 429) while attempts remain;
                 # a non-retryable status falls through to raise_for_status below.
                 if response.status_code in RETRYABLE_STATUS and attempt + 1 < attempts:
@@ -181,7 +180,35 @@ class RuntimeClient:
             raise last_error or RuntimeError("runtime request failed")
         if not isinstance(data, dict):
             raise ValueError("runtime returned a non-object JSON response")
+        return data
+
+    async def chat_completions(
+        self,
+        payload: dict[str, Any],
+        headers: dict[str, str] | None = None,
+        backend: str | None = None,
+    ) -> dict[str, Any]:
+        """Send a chat-completion request, retrying transient errors, and sanitize the result."""
+        body = self._chat_completion_body(payload)
+        resolved_backend = backend or self.settings.runtime_backend
+        data = await self._post_json_with_retry(
+            self._chat_completions_url(resolved_backend), body, headers, resolved_backend
+        )
         return sanitize_chat_completion(data)
+
+    async def embeddings(
+        self,
+        payload: dict[str, Any],
+        headers: dict[str, str] | None = None,
+        backend: str | None = None,
+    ) -> dict[str, Any]:
+        """Send an embeddings request to the backend's OpenAI-compatible endpoint."""
+        body = dict(payload)
+        body["model"] = body.get("model") or self.settings.model_id
+        resolved_backend = backend or self.settings.runtime_backend
+        return await self._post_json_with_retry(
+            f"{self._base_url(resolved_backend)}/v1/embeddings", body, headers, resolved_backend
+        )
 
     async def stream_chat_completions(
         self,

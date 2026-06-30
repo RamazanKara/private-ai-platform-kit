@@ -49,12 +49,17 @@ CONTRACTS = {
                 "post",
                 request_schema="ChatCompletionRequest",
             ),
+            "/v1/embeddings": RouteContract(
+                "post",
+                request_schema="EmbeddingsRequest",
+            ),
         },
         protected_paths=frozenset({
             "/readyz",
             "/v1/models",
             "/v1/sandbox/budget",
             "/v1/chat/completions",
+            "/v1/embeddings",
         }),
         required_schemas={
             "ChatCompletionRequest": {
@@ -76,6 +81,10 @@ CONTRACTS = {
                 # content is optional: an assistant turn may carry only tool_calls.
                 "properties": {"role", "content", "name", "tool_calls", "tool_call_id"},
                 "required": {"role"},
+            },
+            "EmbeddingsRequest": {
+                "properties": {"model", "input"},
+                "required": {"input"},
             },
         },
     ),
