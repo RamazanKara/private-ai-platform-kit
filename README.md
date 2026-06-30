@@ -12,7 +12,7 @@ Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs
 
 It is designed for teams that want the operating model of a production AI platform without depending on a specific cloud provider.
 
-Current release: `v0.11.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
+Current release: `v0.12.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
 [Docs site](https://ramazankara.github.io/private-ai-platform-kit/) | [Quickstart](docs/quickstart.md) | [Decision guide](docs/decision-guide.md) | [Production readiness](docs/production-readiness.md) | [Proof](docs/proof.md) | [Runbooks](docs/README.md) | [Contributing](CONTRIBUTING.md) | [Security](SECURITY.md)
 
@@ -98,7 +98,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.11.0 \
+  CUSTOMER_REVISION=v0.12.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 

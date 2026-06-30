@@ -208,7 +208,7 @@ For an existing Kubernetes cluster, install Argo CD, configure the customer over
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.11.0 \
+  CUSTOMER_REVISION=v0.12.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
