@@ -160,6 +160,11 @@ spec:
               mountPath: /tmp
       volumes:
         - name: model-cache
+          {{- if .Values.cache.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "vllm.fullname" . }}-model-cache
+          {{- else }}
           emptyDir: {}
+          {{- end }}
         - name: tmp
           emptyDir: {}

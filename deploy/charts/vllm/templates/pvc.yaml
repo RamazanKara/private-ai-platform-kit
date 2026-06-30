@@ -1,0 +1,17 @@
+{{- if .Values.cache.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "vllm.fullname" . }}-model-cache
+  labels:
+    {{- include "vllm.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.cache.persistence.accessMode }}
+  {{- if .Values.cache.persistence.storageClassName }}
+  storageClassName: {{ .Values.cache.persistence.storageClassName | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.cache.persistence.size | quote }}
+{{- end }}

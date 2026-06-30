@@ -37,6 +37,17 @@ keda:
   maxReplicaCount: 8
   threshold: "5"
   prometheusServerAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
+# Persist model weights on a shared volume so the 100+ GB model is not re-downloaded
+# on every pod restart or KEDA scale-up. ReadWriteMany lets the replicas share one
+# copy; set storageClassName to an RWX-capable class (e.g. a cloud filestore/EFS).
+# If only ReadWriteOnce is available, set replicaCount: 1 or pre-bake the weights
+# into the image instead.
+cache:
+  persistence:
+    enabled: true
+    size: 400Gi
+    accessMode: ReadWriteMany
+    storageClassName: ""
 externalSecrets:
   enabled: true
   huggingFaceTokenSecretName: hf-token

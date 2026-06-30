@@ -14,6 +14,17 @@ model:
 
 cache:
   mountPath: /models
+  # Persist the model weights so they survive pod restarts and KEDA scale-up instead
+  # of re-downloading the full 100+ GB model into an emptyDir on every cold start
+  # (the long startup probe exists only to mask that re-download). Multi-replica
+  # sharing needs a ReadWriteMany storage class; with ReadWriteOnce keep replicaCount
+  # at 1 or pre-bake the weights into the image. Disabled by default to preserve the
+  # zero-dependency local behavior.
+  persistence:
+    enabled: false
+    size: 200Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
 
 service:
   port: 8000
