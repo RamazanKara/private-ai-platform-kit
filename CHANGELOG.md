@@ -34,8 +34,15 @@ gateway, RAG, deployment, and governance surfaces.
 - Deployment/DX: an optional gateway Ingress (host + TLS), a tenant offboarding/
   deprovisioning plan generator (scripts/tenant-offboard.py), and a client API examples
   doc (curl / openai SDK / httpx).
-- Governance: the RAG embedding model is now represented in the model catalog
-  (modality: embedding), closing the chat/embeddings governance asymmetry.
+- Governance: the RAG embedding model is now governed in the model catalog and promoted to
+  approved with a model-provenance entry and promotion request (chat/embeddings parity).
+- Gateway: weighted canary / A-B and shadow model routing (progressive delivery), a
+  synchronous batch endpoint (POST /v1/batches), and a usage+cost endpoint (GET /v1/usage)
+  with a token-to-cost model.
+- RAG: age-based retention purge (ingestion timestamp + a --purge --older-than-days mode).
+- Security/policy: a Kyverno encryption-at-rest attestation policy for platform PVCs.
+- DX/tenancy: a first-party Python client SDK (sdk/), tenant-onboard --apply (self-service),
+  and multi-node distributed-serving guidance (LeaderWorkerSet) in the GPU-capacity runbook.
 
 ### Changed
 

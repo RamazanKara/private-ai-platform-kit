@@ -57,6 +57,8 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `budget.windowSeconds` | `86400` |
 | `concurrency.maxBatchRequests` | `32` |
 | `concurrency.maxConcurrentRequests` | `0` |
+| `cost.currency` | `USD` |
+| `cost.usdPer1kTokens` | `0` |
 | `guardrails.blockedContentTerms` | `[]` |
 | `guardrails.promptSecretDetection.enabled` | `true` |
 | `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"]` |

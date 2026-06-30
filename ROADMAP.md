@@ -56,25 +56,22 @@ Run `scripts/seed-roadmap-issues.sh` to print the seed commands, or `scripts/see
 - `tenant`: Add GPU-backed coding-agent tenant walkthrough.
 - `security`: Add Scorecard triage and remediation guidance.
 
-## Deferred Larger Efforts
+## Remaining External / Operator-Owned Work
 
-The recent feature-gap pass closed most audit findings (see CHANGELOG Unreleased). The
-remaining items below are genuinely multi-week, large-system efforts; they are tracked here
-so they are not lost:
+The feature-gap remediation pass closed the audit findings in-tree (see CHANGELOG Unreleased):
+progressive delivery (canary/A-B/shadow), the batch API, age-based retention purge,
+encryption-at-rest policy, the usage+cost API, self-service onboarding apply, the first-party
+SDK, and embedding-model governance all ship. What remains is inherently external to the kit's
+"manifests, charts, service code, validation tooling, and runbooks" boundary:
 
-- `runtime`: Progressive model delivery (canary / shadow / weighted A-B) and full LoRA /
-  adapter *lifecycle governance* (registration, promotion, eval) — the chart already serves
-  LoRA via extraArgs; the gap is the governance/rollout system. The project cedes canary to
-  KServe today.
-- `runtime`: Multi-node distributed serving (pipeline-parallel, LeaderWorkerSet, or Ray) for
-  models larger than one node, and a batch / async inference job API.
-- `tenant`: A self-service onboarding *controller* (the spec-driven render-review-apply
-  pipeline and the offboarding plan generator exist; the gap is a reconciling controller/API).
-- `dx`: A first-party client SDK package and an admin/usage console UI (a client-examples doc
-  ships today; the console is a separate web app).
-- `security`: Encryption-at-rest enforced via Kyverno on platform data stores (provider-neutral
-  enforcement requires a labeling/storage-class convention), and full age-based RAG retention
-  purge (needs an ingestion timestamp in the chunk payload; today erasure is delete-by-source
-  plus collection-version rotation).
-- `rag`: Promote the governed reference embedding model to `approved` with a real provenance
-  digest + promotion request, replacing the hashed-vector default in the shipped profiles.
+- `runtime`: Multi-node distributed serving requires the LeaderWorkerSet (or Ray) operator and
+  a per-cluster GPU topology — the kit ships the working LWS example and the pipeline-parallel
+  flags (runbooks/gpu-capacity.md); the operator installs and sizes it.
+- `runtime`: LoRA/adapter *artifacts* and the embedding/serving model *weights* are the
+  customer's to host and pin — the kit ships the serving flags, catalog governance, and a
+  source-reference provenance digest the customer replaces with their pinned model-store checksum.
+- `dx`: A standalone admin/usage *console UI* is a separate web application; the kit ships the
+  `/v1/usage` data layer, the metrics, and the client SDK it would build on.
+- `security`: Flipping the encryption-at-rest Kyverno policy from Audit to Enforce, and scheduling
+  the age-based retention purge as a CronJob, are per-environment operational decisions; the
+  policy, the labels, and the purge command ship ready to use.
