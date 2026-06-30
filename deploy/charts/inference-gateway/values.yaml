@@ -12,7 +12,7 @@ runtime:
   ollamaBaseUrl: http://ollama.ollama.svc.cluster.local:11434
   vllmBaseUrl: http://vllm.vllm.svc.cluster.local:8000
   requestTimeoutSeconds: "120"
-  maxRetries: 0
+  maxRetries: 2
   retryBackoffSeconds: "0.1"
   circuitFailureThreshold: 0
   circuitResetSeconds: "30"

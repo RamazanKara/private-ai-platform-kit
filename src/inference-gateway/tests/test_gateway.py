@@ -1584,6 +1584,134 @@ def test_runtime_client_retries_non_streaming_requests(monkeypatch):
     assert calls["count"] == 2
 
 
+def _retry_settings(**overrides):
+    base = {
+        "runtime_backend": "ollama",
+        "ollama_base_url": "http://ollama:11434",
+        "vllm_base_url": "http://vllm:8000",
+        "model_id": "default-model",
+        "request_timeout_seconds": 5,
+        "runtime_max_retries": 1,
+        "runtime_retry_backoff_seconds": 0.001,
+    }
+    base.update(overrides)
+    return Settings(**base)
+
+
+def test_runtime_client_retries_retryable_5xx_status(monkeypatch):
+    # Regression: a 503 from a busy GPU runtime raised immediately and surfaced as a
+    # 502; retryable statuses now re-fire while attempts remain.
+    calls = {"count": 0}
+
+    class FlakyStatusClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def post(self, url, json=None, headers=None):
+            calls["count"] += 1
+            request = httpx.Request("POST", url)
+            if calls["count"] == 1:
+                return httpx.Response(503, request=request, text="overloaded")
+            return httpx.Response(
+                200,
+                request=request,
+                json={"id": "x", "object": "chat.completion", "choices": [{"message": {"content": "ok"}}]},
+            )
+
+    monkeypatch.setattr(httpx, "AsyncClient", FlakyStatusClient)
+    client = RuntimeClient(_retry_settings())
+
+    response = asyncio.run(client.chat_completions({"messages": [{"role": "user", "content": "hi"}]}))
+
+    assert response["choices"][0]["message"]["content"] == "ok"
+    assert calls["count"] == 2
+
+
+def test_runtime_client_does_not_retry_client_error(monkeypatch):
+    calls = {"count": 0}
+
+    class ClientErrorClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def post(self, url, json=None, headers=None):
+            calls["count"] += 1
+            request = httpx.Request("POST", url)
+            return httpx.Response(400, request=request, text="bad request")
+
+    monkeypatch.setattr(httpx, "AsyncClient", ClientErrorClient)
+    client = RuntimeClient(_retry_settings())
+
+    with pytest.raises(httpx.HTTPStatusError):
+        asyncio.run(client.chat_completions({"messages": [{"role": "user", "content": "hi"}]}))
+    assert calls["count"] == 1
+
+
+def test_runtime_client_streaming_retries_before_first_byte(monkeypatch):
+    calls = {"count": 0}
+
+    class _StreamCtx:
+        def __init__(self, status_code, chunks):
+            self.status_code = status_code
+            self._chunks = chunks
+            self.headers = {}
+            self.request = httpx.Request("POST", "http://ollama:11434/v1/chat/completions")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise httpx.HTTPStatusError(
+                    "err",
+                    request=self.request,
+                    response=httpx.Response(self.status_code, request=self.request),
+                )
+
+        async def aread(self):
+            return b""
+
+        async def aiter_bytes(self):
+            for chunk in self._chunks:
+                yield chunk
+
+    class FlakyStreamClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def stream(self, method, url, json=None, headers=None):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                return _StreamCtx(503, [])
+            return _StreamCtx(200, [b'data: {"choices":[]}\n\n', b"data: [DONE]\n\n"])
+
+    monkeypatch.setattr(httpx, "AsyncClient", FlakyStreamClient)
+    client = RuntimeClient(_retry_settings())
+
+    async def consume():
+        chunks = []
+        async for chunk in client.stream_chat_completions({"messages": [{"role": "user", "content": "hi"}]}):
+            chunks.append(chunk)
+        return chunks
+
+    chunks = asyncio.run(consume())
+
+    assert calls["count"] == 2
+    assert chunks[0] == b'data: {"choices":[]}\n\n'
+
+
+def test_retry_after_seconds_parses_numeric_header():
+    request = httpx.Request("POST", "http://runtime/v1/chat/completions")
+    with_header = httpx.Response(503, request=request, headers={"Retry-After": "7"})
+    without_header = httpx.Response(503, request=request)
+    assert RuntimeClient._retry_after_seconds(with_header) == 7.0
+    assert RuntimeClient._retry_after_seconds(without_header) is None
+    assert RuntimeClient._retry_after_seconds(None) is None
+
+
 def test_runtime_client_opens_circuit_after_failures(monkeypatch):
     calls = {"count": 0}
 

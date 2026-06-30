@@ -182,7 +182,7 @@ class Settings:
     jwt_audience: str = ""
     jwt_required_scopes: tuple[str, ...] = ()
     jwt_cache_seconds: int = 300
-    runtime_max_retries: int = 0
+    runtime_max_retries: int = 2
     runtime_retry_backoff_seconds: float = 0.1
     runtime_circuit_failure_threshold: int = 0
     runtime_circuit_reset_seconds: float = 30.0
@@ -306,7 +306,7 @@ class Settings:
             jwt_audience=os.getenv("JWT_AUDIENCE", "").strip(),
             jwt_required_scopes=_csv_from_env("JWT_REQUIRED_SCOPES", ()),
             jwt_cache_seconds=_positive_int_from_env("JWT_CACHE_SECONDS", 300),
-            runtime_max_retries=_int_from_env("RUNTIME_MAX_RETRIES", 0),
+            runtime_max_retries=_int_from_env("RUNTIME_MAX_RETRIES", 2),
             runtime_retry_backoff_seconds=_positive_float_from_env(
                 "RUNTIME_RETRY_BACKOFF_SECONDS",
                 0.1,
