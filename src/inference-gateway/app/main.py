@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict
 from app.budget import BudgetReservation, SandboxBudgetTracker, build_sandbox_budget_tracker
 from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
+from app.ratelimit import build_rate_limiter
 from app.runtime_client import RuntimeClient
 from app.settings import AdmissionPolicyError, Settings, extract_text_content, validate_sandbox_id
 from app.tracing import configure_tracing, trace_request
@@ -77,6 +78,11 @@ AUTH_FAILURES = Counter(
     "inference_gateway_auth_failures_total",
     "Total gateway authentication failures by route and reason.",
     ["route", "reason"],
+)
+RATE_LIMITED = Counter(
+    "inference_gateway_rate_limited_total",
+    "Total gateway requests rejected by the per-sandbox rate limiter.",
+    ["sandbox"],
 )
 
 
@@ -338,6 +344,29 @@ def _jwks_unavailable_response(request: Request) -> JSONResponse:
     return response
 
 
+def _rate_limited_response(request: Request, retry_after: int) -> JSONResponse:
+    """Build a 429 response with Retry-After when the per-sandbox rate limit is hit."""
+    RATE_LIMITED.labels(request.state.sandbox_id).inc()
+    response = JSONResponse(
+        status_code=429,
+        content={
+            "detail": {
+                "message": "rate limit exceeded for this sandbox",
+                "reason": "rate_limited",
+                "request_id": request.state.request_id,
+                "sandbox_id": request.state.sandbox_id,
+            }
+        },
+    )
+    if retry_after > 0:
+        response.headers["Retry-After"] = str(retry_after)
+    response.headers["X-Request-ID"] = request.state.request_id
+    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+    if request.state.traceparent:
+        response.headers["traceparent"] = request.state.traceparent
+    return response
+
+
 def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
     """Build a 403 when a JWT tenant claim is missing/invalid or contradicts the header."""
     AUTH_FAILURES.labels(request.url.path, reason).inc()
@@ -523,6 +552,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.runtime_client = RuntimeClient(resolved)
     app.router.add_event_handler("shutdown", app.state.runtime_client.aclose)
     app.state.budget_tracker = build_sandbox_budget_tracker(resolved)
+    app.state.rate_limiter = build_rate_limiter(resolved)
     app.state.model_routing_policy = (
         ModelRoutingPolicy.from_path(resolved.model_routing_policy_path, resolved)
         if resolved.model_routing_policy_path
@@ -577,6 +607,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         if explicit is not None and validate_sandbox_id(explicit) != bound:
                             return _sandbox_binding_response(request, "sandbox_identity_mismatch")
                         request.state.sandbox_id = bound
+
+            # Short-window per-sandbox throttle (distinct from the cumulative budget):
+            # bounds burst abuse. Checked after sandbox binding so the limit applies to
+            # the authenticated tenant, not the spoofable header.
+            if resolved.rate_limit_enabled and _auth_required(request.url.path):
+                allowed, retry_after = request.app.state.rate_limiter.check(request.state.sandbox_id)
+                if not allowed:
+                    return _rate_limited_response(request, retry_after)
 
             response = await call_next(request)
             response.headers["X-Request-ID"] = request.state.request_id

@@ -522,6 +522,40 @@ def test_embeddings_records_input_audit_fingerprint(caplog):
     assert "alpha" not in audit
 
 
+def test_rate_limit_rejects_burst_per_sandbox():
+    app = create_app(
+        _tool_settings(
+            rate_limit_enabled=True,
+            rate_limit_requests_per_window=1,
+            rate_limit_window_seconds=60,
+        )
+    )
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    body = {"messages": [{"role": "user", "content": "hi"}]}
+
+    first = client.post("/v1/chat/completions", headers={"X-Sandbox-ID": "team-a"}, json=body)
+    second = client.post("/v1/chat/completions", headers={"X-Sandbox-ID": "team-a"}, json=body)
+    other_sandbox = client.post("/v1/chat/completions", headers={"X-Sandbox-ID": "team-b"}, json=body)
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.json()["detail"]["reason"] == "rate_limited"
+    assert int(second.headers["Retry-After"]) >= 1
+    # The limit is per sandbox, so a different sandbox is not throttled.
+    assert other_sandbox.status_code == 200
+
+
+def test_rate_limit_disabled_by_default_allows_burst():
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    body = {"messages": [{"role": "user", "content": "hi"}]}
+
+    for _ in range(5):
+        assert client.post("/v1/chat/completions", json=body).status_code == 200
+
+
 def test_chat_completion_metrics_use_endpoint_route_label():
     # Regression: the handler reused the `route` variable for both the Prometheus label
     # ("/v1/chat/completions") and the resolved ModelRoute, so a successful request

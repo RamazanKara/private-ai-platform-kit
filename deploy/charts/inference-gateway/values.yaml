@@ -39,6 +39,14 @@ admission:
   maxToolChars: 32768
   allowStreaming: false
 
+# Short-window per-sandbox request throttle (distinct from the cumulative budget).
+# Uses the same backend as budgets (budget.backend); 0 requests means unlimited.
+# Disabled by default.
+rateLimit:
+  enabled: false
+  requestsPerWindow: 0
+  windowSeconds: 60
+
 guardrails:
   promptSecretDetection:
     enabled: true

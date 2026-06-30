@@ -356,6 +356,42 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "rateLimit.enabled",
+      "description": "Whether the short-window per-sandbox request rate limiter is enabled.",
+      "field": "rate_limit_enabled",
+      "name": "RATE_LIMIT_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0,
+      "chart_default": 0,
+      "chart_value": "rateLimit.requestsPerWindow",
+      "description": "Max requests per sandbox per rate-limit window; zero means unlimited.",
+      "field": "rate_limit_requests_per_window",
+      "name": "RATE_LIMIT_REQUESTS_PER_WINDOW",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 60,
+      "chart_default": 60,
+      "chart_value": "rateLimit.windowSeconds",
+      "description": "Rate-limit fixed-window length in seconds.",
+      "field": "rate_limit_window_seconds",
+      "name": "RATE_LIMIT_WINDOW_SECONDS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 120.0,
       "chart_default": "120",
       "chart_value": "runtime.requestTimeoutSeconds",

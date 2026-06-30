@@ -169,6 +169,9 @@ class Settings:
     sandbox_budget_redis_timeout_seconds: float = 0.5
     sandbox_budget_window_seconds: int = 86400
     sandbox_budget_key_prefix: str = "private-ai-platform-kit:sandbox-budget"
+    rate_limit_enabled: bool = False
+    rate_limit_requests_per_window: int = 0
+    rate_limit_window_seconds: int = 60
     api_key_auth_enabled: bool = False
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
@@ -208,6 +211,10 @@ class Settings:
             raise ValueError("sandbox_budget_window_seconds must be zero or greater")
         if self.sandbox_budget_redis_timeout_seconds <= 0:
             raise ValueError("sandbox_budget_redis_timeout_seconds must be greater than zero")
+        if self.rate_limit_requests_per_window < 0:
+            raise ValueError("rate_limit_requests_per_window must be zero or greater")
+        if self.rate_limit_window_seconds <= 0:
+            raise ValueError("rate_limit_window_seconds must be greater than zero")
         if not self.sandbox_budget_key_prefix.strip():
             raise ValueError("sandbox_budget_key_prefix must not be empty")
         if self.api_key_auth_enabled and not self.api_key_sha256s:
@@ -291,6 +298,9 @@ class Settings:
                 "SANDBOX_BUDGET_KEY_PREFIX",
                 "private-ai-platform-kit:sandbox-budget",
             ),
+            rate_limit_enabled=_bool_from_env("RATE_LIMIT_ENABLED", False),
+            rate_limit_requests_per_window=_int_from_env("RATE_LIMIT_REQUESTS_PER_WINDOW", 0),
+            rate_limit_window_seconds=_positive_int_from_env("RATE_LIMIT_WINDOW_SECONDS", 60),
             api_key_auth_enabled=_bool_from_env("API_KEY_AUTH_ENABLED", False),
             api_key_sha256s=_sha256s_from_env("API_KEY_SHA256S"),
             api_key_header=os.getenv("API_KEY_HEADER", "X-API-Key"),

@@ -78,6 +78,12 @@ spec:
               value: {{ .Values.admission.maxToolChars | quote }}
             - name: ALLOW_STREAMING
               value: {{ .Values.admission.allowStreaming | quote }}
+            - name: RATE_LIMIT_ENABLED
+              value: {{ .Values.rateLimit.enabled | quote }}
+            - name: RATE_LIMIT_REQUESTS_PER_WINDOW
+              value: {{ .Values.rateLimit.requestsPerWindow | quote }}
+            - name: RATE_LIMIT_WINDOW_SECONDS
+              value: {{ .Values.rateLimit.windowSeconds | quote }}
             - name: PROMPT_SECRET_DETECTION_ENABLED
               value: {{ .Values.guardrails.promptSecretDetection.enabled | quote }}
             - name: PROMPT_SECRET_PATTERNS
