@@ -26,6 +26,12 @@ class ModelRoute:
     backend: str
     aliases: tuple[str, ...] = ()
     fallbacks: tuple[str, ...] = ()
+    # Progressive delivery: route ``canary_weight`` (0..1) of this model's traffic to
+    # ``canary_model_id`` (weighted A/B), and mirror every request to ``shadow_model_id``
+    # fire-and-forget (the shadow response is discarded and never affects the caller).
+    canary_model_id: str = ""
+    canary_weight: float = 0.0
+    shadow_model_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -68,15 +74,34 @@ class ModelRoutingPolicy:
             backend = str(item.get("backend") or settings.runtime_backend).strip().lower()
             aliases = tuple(str(alias).strip() for alias in item.get("aliases", []) if str(alias).strip())
             fallbacks = tuple(str(fb).strip() for fb in item.get("fallbacks", []) if str(fb).strip())
+            canary_raw = item.get("canary")
+            canary = canary_raw if isinstance(canary_raw, dict) else {}
+            canary_model_id = str(canary.get("model") or "").strip()
+            canary_weight = float(canary.get("weight", 0.0) or 0.0)
+            shadow_raw = item.get("shadow")
+            shadow = shadow_raw if isinstance(shadow_raw, dict) else {}
+            shadow_model_id = str(shadow.get("model") or "").strip()
             if not model_id:
                 raise ValueError(f"ModelRoutingPolicy spec.models[{index}].id is required")
             if backend not in VALID_BACKENDS:
                 raise ValueError(f"ModelRoutingPolicy model {model_id} backend must be one of {sorted(VALID_BACKENDS)}")
+            if not 0.0 <= canary_weight <= 1.0:
+                raise ValueError(f"ModelRoutingPolicy model {model_id} canary.weight must be between 0 and 1")
             for name in (model_id, *aliases):
                 if name in seen:
                     raise ValueError(f"ModelRoutingPolicy duplicate model or alias: {name}")
                 seen.add(name)
-            routes.append(ModelRoute(model_id=model_id, backend=backend, aliases=aliases, fallbacks=fallbacks))
+            routes.append(
+                ModelRoute(
+                    model_id=model_id,
+                    backend=backend,
+                    aliases=aliases,
+                    fallbacks=fallbacks,
+                    canary_model_id=canary_model_id,
+                    canary_weight=canary_weight,
+                    shadow_model_id=shadow_model_id,
+                )
+            )
         return cls(tuple(routes))
 
     def model_ids(self) -> tuple[str, ...]:
@@ -118,6 +143,24 @@ class ModelRoutingPolicy:
                 chain.append(route)
                 seen.add(route.model_id)
         return chain
+
+    def canary_target(self, route: ModelRoute, roll: float) -> ModelRoute:
+        """Return the canary route when ``roll`` falls in the canary weight, else ``route``.
+
+        ``roll`` is a value in [0, 1) (e.g. ``random.random()``); a request is sent to the
+        canary model with probability ``route.canary_weight``. Falls back to the primary
+        when no canary is configured or the canary id is unknown.
+        """
+        if not route.canary_model_id or roll >= route.canary_weight:
+            return route
+        canary = self._route_for(route.canary_model_id)
+        return canary if canary is not None else route
+
+    def shadow_target(self, route: ModelRoute) -> ModelRoute | None:
+        """Return the route to mirror traffic to fire-and-forget, or None when unset."""
+        if not route.shadow_model_id:
+            return None
+        return self._route_for(route.shadow_model_id)
 
     def openai_models(self) -> list[dict[str, Any]]:
         """Return the routes formatted as OpenAI ``/v1/models`` list entries."""

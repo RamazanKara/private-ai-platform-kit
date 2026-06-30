@@ -8,6 +8,7 @@ import time
 
 import httpx
 import pytest
+from app import main as gateway_main
 from app.budget import RedisSandboxBudgetTracker
 from app.jwt_auth import JwksCache
 from app.main import create_app
@@ -804,6 +805,87 @@ def test_streaming_fails_over_before_first_byte():
 
     assert response.status_code == 200
     assert fake.backends_called == ["vllm", "ollama"]
+
+
+def test_canary_target_selects_by_roll():
+    policy = ModelRoutingPolicy(
+        routes=(
+            ModelRoute("primary", "vllm", canary_model_id="canary", canary_weight=0.3),
+            ModelRoute("canary", "ollama"),
+        )
+    )
+    primary = policy.resolve("primary", "primary")
+    assert policy.canary_target(primary, 0.1).model_id == "canary"  # roll < weight
+    assert policy.canary_target(primary, 0.5).model_id == "primary"  # roll >= weight
+
+
+def test_canary_weight_one_routes_all_traffic_to_canary():
+    app = create_app(_tool_settings())
+    app.state.model_routing_policy = ModelRoutingPolicy(
+        routes=(
+            ModelRoute("primary-model", "vllm", canary_model_id="canary-model", canary_weight=1.0),
+            ModelRoute("canary-model", "ollama"),
+        )
+    )
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"model": "primary-model", "messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 200
+    assert fake.payload["model"] == "canary-model"
+    assert fake.backend == "ollama"
+
+
+def test_canary_weight_zero_routes_to_primary():
+    app = create_app(_tool_settings())
+    app.state.model_routing_policy = ModelRoutingPolicy(
+        routes=(
+            ModelRoute("primary-model", "vllm", canary_model_id="canary-model", canary_weight=0.0),
+            ModelRoute("canary-model", "ollama"),
+        )
+    )
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"model": "primary-model", "messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 200
+    assert fake.payload["model"] == "primary-model"
+
+
+def test_shadow_request_is_scheduled(monkeypatch):
+    captured = {}
+
+    def fake_schedule(client, shadow_route, payload, request):
+        captured["shadow_model"] = shadow_route.model_id
+
+    monkeypatch.setattr(gateway_main, "_schedule_shadow", fake_schedule)
+    app = create_app(_tool_settings())
+    app.state.model_routing_policy = ModelRoutingPolicy(
+        routes=(
+            ModelRoute("primary-model", "vllm", shadow_model_id="shadow-model"),
+            ModelRoute("shadow-model", "ollama"),
+        )
+    )
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"model": "primary-model", "messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 200
+    assert captured["shadow_model"] == "shadow-model"
 
 
 def test_chat_completion_metrics_use_endpoint_route_label():

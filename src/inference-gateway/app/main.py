@@ -1,9 +1,11 @@
 """OpenAI-compatible inference gateway with auth, admission, budgets, and runtime routing."""
 
+import asyncio
 import hashlib
 import hmac
 import json
 import logging
+import random
 import re
 from time import perf_counter
 from typing import Any, Literal
@@ -114,6 +116,41 @@ CACHE_LOOKUPS = Counter(
     "Response cache lookups by result.",
     ["result"],
 )
+CANARY_ROUTED = Counter(
+    "inference_gateway_canary_routed_total",
+    "Requests routed to a canary model by weighted progressive delivery.",
+    ["from_model", "to_model"],
+)
+SHADOW_REQUESTS = Counter(
+    "inference_gateway_shadow_requests_total",
+    "Shadow (mirrored) requests sent fire-and-forget to a shadow model.",
+    ["backend", "result"],
+)
+
+
+def _schedule_shadow(client: RuntimeClient, shadow_route: Any, payload_dict: dict[str, Any], request: Request) -> None:
+    """Fire a mirrored request to the shadow model, discarding its response and errors.
+
+    Runs as a detached task so it never adds latency to or fails the caller's request;
+    used to evaluate a candidate model on real traffic before promotion.
+    """
+    shadow_payload = dict(payload_dict)
+    shadow_payload["model"] = shadow_route.model_id
+    shadow_payload.pop("stream", None)
+    headers = _runtime_headers(request)
+
+    async def _run() -> None:
+        try:
+            await client.chat_completions(shadow_payload, headers=headers, backend=shadow_route.backend)
+            SHADOW_REQUESTS.labels(shadow_route.backend, "ok").inc()
+        except Exception:
+            SHADOW_REQUESTS.labels(shadow_route.backend, "error").inc()
+
+    # Hold a strong reference until completion so the detached task is not GC'd mid-flight.
+    tasks: set[asyncio.Task[None]] = request.app.state.background_tasks
+    task = asyncio.ensure_future(_run())
+    tasks.add(task)
+    task.add_done_callback(tasks.discard)
 
 
 def _is_failover_worthy(exc: Exception) -> bool:
@@ -682,6 +719,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.rate_limiter = build_rate_limiter(resolved)
     app.state.inflight = 0
     app.state.audit_prev_hash = AUDIT_GENESIS
+    app.state.background_tasks = set()
     app.state.response_cache = ResponseCache(resolved.response_cache_max_entries, resolved.response_cache_ttl_seconds)
     app.state.model_routing_policy = (
         ModelRoutingPolicy.from_path(resolved.model_routing_policy_path, resolved)
@@ -878,6 +916,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 chain = policy.resolve_chain(payload_dict.get("model"), effective.model_id)
             except ValueError as exc:
                 raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
+            # Progressive delivery: resolve the shadow target from the originally-resolved
+            # primary, then apply weighted canary selection (which may swap chain[0]).
+            primary_route = chain[0]
+            shadow_route = None if payload_dict.get("stream") else policy.shadow_target(primary_route)
+            canary = policy.canary_target(primary_route, random.random())
+            if canary.model_id != primary_route.model_id:
+                CANARY_ROUTED.labels(primary_route.model_id, canary.model_id).inc()
+                chain = [canary, *chain[1:]]
             model_route = chain[0]
             backend = model_route.backend
             payload_dict["model"] = model_route.model_id
@@ -985,6 +1031,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise last_exc or RuntimeError("no runtime route available")
             if cache_enabled:
                 request.app.state.response_cache.set(cache_id, runtime_response)
+            if shadow_route is not None:
+                _schedule_shadow(client, shadow_route, payload_dict, request)
             # The finally block reads runtime_response for token-usage metrics and the
             # audit log, so it is bound above rather than returned inline.
             return runtime_response
