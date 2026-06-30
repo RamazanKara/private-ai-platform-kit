@@ -68,7 +68,16 @@ retrieval:
 ```bash
 make sync                 # or helm upgrade for direct-apply installs
 make rag-smoke            # confirm grounded retrieval returns v2 results
+make rag-eval             # REQUIRED: score recall@k / MRR / nDCG / grounding vs the
+                          # golden set so an embedding or chunking change cannot silently
+                          # regress retrieval quality. Fails when metrics fall below the
+                          # suite thresholds (platform/evals/rag-retrieval-suite.yaml).
 ```
+
+`rag-smoke` only checks that grounded results are *present*; `rag-eval` checks they are
+*correct*. Always run `make rag-eval` after changing the embedding model, chunking, or
+collection so a quality regression is caught before promotion. Update the golden suite and
+its thresholds when the corpus or the expected-relevant documents change.
 
 A changed dimension count also requires a new collection name (Qdrant collections are
 fixed-dimension); set both `collection` and `collectionVersion` and re-run from step 1.

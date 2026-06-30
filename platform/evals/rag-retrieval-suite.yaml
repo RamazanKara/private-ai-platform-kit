@@ -1,0 +1,40 @@
+apiVersion: platform.ai/v1alpha1
+kind: RagEvalSuite
+metadata:
+  name: rag-retrieval-smoke
+  description: >-
+    Labeled golden-query set over the shipped platform knowledge documents
+    (platform-overview, coding-agents, controls, accelerators). Scores retrieval
+    quality so an embedding or chunking change is regression-tested rather than
+    silently degrading. Run against a live RAG service: scripts/rag-eval.py.
+spec:
+  defaults:
+    topK: 3
+    sandboxId: eval-lab
+  # Aggregate floors. The default hashed-vector retriever clears these on this
+  # small corpus; tighten them when a real embedding model is in place.
+  thresholds:
+    minRecallAtK: 0.75
+    minMrr: 0.6
+    minGroundingRate: 0.75
+  cases:
+    - id: default-local-runtime
+      query: What is the default local runtime for the platform?
+      relevant:
+        - accelerators
+    - id: coding-agent-headers
+      query: Which headers should coding agents send to the inference gateway?
+      relevant:
+        - coding-agents
+    - id: platform-controls
+      query: What governance and audit controls does the platform include?
+      relevant:
+        - controls
+    - id: gpu-resource-request
+      query: What GPU resource do NVIDIA profiles request?
+      relevant:
+        - accelerators
+    - id: what-is-the-platform
+      query: What is the Private AI Platform Kit?
+      relevant:
+        - platform-overview
