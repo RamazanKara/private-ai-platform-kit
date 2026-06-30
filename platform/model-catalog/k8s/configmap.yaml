@@ -67,6 +67,28 @@ data:
           maxCompletionTokens: 1024
           promotionRequest: platform/model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml
           notes: Higher-quality small Qwen3.5 reasoning model for the customer Ollama profile; reasons slowly on CPU, so the local laptop profile uses qwen2.5:0.5b instead.
+        # Embedding model for RAG retrieval. Retrieval-quality models are now governed in the
+        # catalog like generation models (the previous asymmetry the audit flagged). 384-dim
+        # matches the RAG default vector dimensions; serve via vLLM embedding mode (--task embed)
+        # or a TEI sidecar, and point the RAG service at it (retrieval.embedding.provider=
+        # openai-compatible). Proposed pending a real provenance digest + promotion request.
+        - id: BAAI/bge-small-en-v1.5
+          runtime: vllm
+          owner: platform-team
+          status: proposed
+          stage: customer-lab
+          riskTier: low
+          dataClassification: internal
+          license: mit
+          source: huggingface
+          accelerators:
+            - nvidia
+            - cpu
+          modality: embedding
+          contextWindow: 512
+          maxPromptChars: 2048
+          maxCompletionTokens: 1
+          notes: Proposed reference embedding model (384-dim) for governed RAG retrieval; replaces the demo hashed-vector default. maxCompletionTokens is nominal (embeddings produce vectors, not completions).
         # Proposed newer models. Promote to `approved` only after capturing a real provenance
         # digest (platform/governance/model-provenance.yaml) and a promotion request, then add to the
         # relevant runtime.allowedModels. See runbooks/model-governance.md.
