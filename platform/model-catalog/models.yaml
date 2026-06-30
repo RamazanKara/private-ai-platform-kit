@@ -61,7 +61,7 @@ spec:
     - id: BAAI/bge-small-en-v1.5
       runtime: vllm
       owner: platform-team
-      status: proposed
+      status: approved
       stage: customer-lab
       riskTier: low
       dataClassification: internal
@@ -74,7 +74,8 @@ spec:
       contextWindow: 512
       maxPromptChars: 2048
       maxCompletionTokens: 1
-      notes: Proposed reference embedding model (384-dim) for governed RAG retrieval; replaces the demo hashed-vector default. maxCompletionTokens is nominal (embeddings produce vectors, not completions).
+      promotionRequest: platform/model-catalog/promotion-requests/bge-small-embedding-approved.yaml
+      notes: Approved reference embedding model (384-dim) for governed RAG retrieval; replaces the demo hashed-vector default. maxCompletionTokens is nominal (embeddings produce vectors, not completions).
     # Proposed newer models. Promote to `approved` only after capturing a real provenance
     # digest (platform/governance/model-provenance.yaml) and a promotion request, then add to the
     # relevant runtime.allowedModels. See runbooks/model-governance.md.

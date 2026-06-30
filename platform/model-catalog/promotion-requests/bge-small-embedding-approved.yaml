@@ -1,0 +1,33 @@
+apiVersion: platform.ai/v1alpha1
+kind: ModelPromotionRequest
+metadata:
+  name: bge-small-embedding-approved
+spec:
+  modelId: BAAI/bge-small-en-v1.5
+  targetStatus: approved
+  requestedBy: platform-team
+  approvers:
+    - model-governance-board
+  businessJustification: >-
+    Promote a governed reference embedding model (384-dim, matching the RAG default vector
+    dimensions) so retrieval-quality models receive the same catalog + provenance governance
+    as generation models, replacing the demo hashed-vector default. Served via vLLM embedding
+    mode or a TEI sidecar and consumed by the RAG service openai-compatible embedding provider.
+  runtime: vllm
+  accelerators:
+    - nvidia
+    - cpu
+  rollout:
+    environments:
+      - customer
+    allowedModelFiles:
+      - deploy/clusters/customer/values/inference-gateway.yaml
+  evidence:
+    evalSuite: platform/evals/rag-retrieval-suite.yaml
+    evalSummary: results/evals/sample-summary.md
+    loadTestSummary: results/loadtest/sample-summary.md
+    securityWorkflow: .github/workflows/ci.yml
+  conditions:
+    promptLogging: redacted
+    externalNetworkRequired: false
+    requiresGpu: false

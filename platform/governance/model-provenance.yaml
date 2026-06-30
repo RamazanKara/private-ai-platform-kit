@@ -95,3 +95,32 @@ spec:
         loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
       notes: Customer lab vLLM coding-agent model. Replace source-reference digest with the customer's pinned model-store artifact revision and checksum.
+    - modelId: BAAI/bge-small-en-v1.5
+      status: approved
+      source: huggingface
+      sourceUri: https://huggingface.co/BAAI/bge-small-en-v1.5
+      # Pin to a specific Hugging Face commit before production; this scope is a source
+      # pointer the customer replaces with their own pinned model-store revision + checksum.
+      revision: main
+      immutableRef: huggingface://BAAI/bge-small-en-v1.5@sha256:99aab2ead8654ba801d2a01b188b13cc119e5d2d10880e8d1ee4a1315aa99e72
+      digest:
+        algorithm: sha256
+        # Deterministic source-reference over the model reference string
+        # (printf 'huggingface://BAAI/bge-small-en-v1.5' | sha256sum); the customer replaces
+        # this with the pinned model-store artifact checksum before production.
+        value: 99aab2ead8654ba801d2a01b188b13cc119e5d2d10880e8d1ee4a1315aa99e72
+        scope: source-reference
+        verificationMode: customer-model-store
+        verificationCommand: huggingface-cli scan-cache --dir /models
+      license: mit
+      dataClassification: internal
+      riskTier: low
+      promotionRequest: platform/model-catalog/promotion-requests/bge-small-embedding-approved.yaml
+      catalogRef: platform/model-catalog/models.yaml
+      servingProfiles:
+        - deploy/clusters/customer/values/inference-gateway.yaml
+      evidenceRefs:
+        evalSummary: results/evals/sample-summary.md
+        loadTestSummary: results/loadtest/sample-summary.md
+        securityWorkflow: .github/workflows/ci.yml
+      notes: Reference embedding model for governed RAG retrieval, proxied through the gateway /v1/embeddings route. Replace source-reference digest with the customer's pinned model-store artifact revision and checksum.

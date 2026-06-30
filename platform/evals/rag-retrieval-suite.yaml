@@ -8,6 +8,9 @@ metadata:
     quality so an embedding or chunking change is regression-tested rather than
     silently degrading. Run against a live RAG service: scripts/rag-eval.py.
 spec:
+  # The embedding model this retrieval suite exercises (retrieval quality is the eval
+  # signal for an embedding model); referenced by its model-promotion request.
+  model: BAAI/bge-small-en-v1.5
   defaults:
     topK: 3
     sandboxId: eval-lab

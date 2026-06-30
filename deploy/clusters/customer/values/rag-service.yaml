@@ -12,6 +12,13 @@ traceability:
 
 retrieval:
   backend: qdrant
+  # Governed reference embedding model (BAAI/bge-small-en-v1.5, 384-dim) served via vLLM
+  # embedding mode or a TEI sidecar behind an OpenAI-compatible endpoint; replaces the demo
+  # hashed-vector default. See platform/model-catalog/models.yaml and model-provenance.yaml.
+  embedding:
+    provider: openai-compatible
+    baseUrl: http://vllm-embeddings.vllm.svc.cluster.local:8000
+    model: BAAI/bge-small-en-v1.5
   vectorStore:
     url: http://qdrant-vector-store.vector.svc.cluster.local:6333
     collection: customer-platform-knowledge
