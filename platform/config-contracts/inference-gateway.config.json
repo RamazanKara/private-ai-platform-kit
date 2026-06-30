@@ -80,6 +80,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": [],
+      "chart_default": [],
+      "chart_value": "guardrails.blockedContentTerms",
+      "description": "Case-insensitive substrings rejected anywhere in prompt/embedding input.",
+      "field": "blocked_content_terms",
+      "name": "BLOCKED_CONTENT_TERMS",
+      "sensitive": false,
+      "type": "csv"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 4,
       "chart_default": 4,
       "chart_value": "budget.estimatedCharsPerToken",
@@ -347,7 +359,7 @@
         "generic_api_key_assignment"
       ],
       "chart_value": "guardrails.promptSecretDetection.patterns",
-      "description": "Built-in secret detector names to apply to prompts.",
+      "description": "Built-in secret/PII detector names applied to prompts (credential detectors by default; PII detectors email/us_ssn/credit_card are opt-in).",
       "field": "prompt_secret_patterns",
       "name": "PROMPT_SECRET_PATTERNS",
       "sensitive": false,

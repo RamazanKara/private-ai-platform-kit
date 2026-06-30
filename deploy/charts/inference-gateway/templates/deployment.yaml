@@ -88,6 +88,8 @@ spec:
               value: {{ .Values.guardrails.promptSecretDetection.enabled | quote }}
             - name: PROMPT_SECRET_PATTERNS
               value: {{ join "," .Values.guardrails.promptSecretDetection.patterns | quote }}
+            - name: BLOCKED_CONTENT_TERMS
+              value: {{ join "," .Values.guardrails.blockedContentTerms | quote }}
             - name: SANDBOX_BUDGET_ENABLED
               value: {{ .Values.budget.enabled | quote }}
             - name: SANDBOX_BUDGET_BACKEND

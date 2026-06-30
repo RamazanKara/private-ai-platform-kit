@@ -20,7 +20,13 @@ from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
 from app.runtime_client import RuntimeClient
-from app.settings import AdmissionPolicyError, Settings, extract_text_content, validate_sandbox_id
+from app.settings import (
+    AdmissionPolicyError,
+    Settings,
+    extract_text_content,
+    moderate_text,
+    validate_sandbox_id,
+)
 from app.tracing import configure_tracing, trace_request
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
@@ -194,6 +200,15 @@ class EmbeddingsRequest(BaseModel):
 
     model: str | None = None
     input: str | list[str]
+
+
+class ModerationRequest(BaseModel):
+    """Request body for an OpenAI-compatible moderations call."""
+
+    model_config = ConfigDict(extra="allow")
+
+    input: str | list[str]
+    model: str | None = None
 
 
 def _request_id_from_header(request: Request) -> str:
@@ -1075,6 +1090,59 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 backend=backend,
                 runtime_response=runtime_response,
                 runtime_status_code=runtime_status_code,
+                error=error,
+            )
+
+    @app.post(
+        "/v1/moderations",
+        tags=["inference"],
+        summary="Classify content against the gateway policy",
+        operation_id="createModeration",
+    )
+    async def moderations(request: Request, payload: ModerationRequest) -> dict[str, Any]:
+        route = "/v1/moderations"
+        start = perf_counter()
+        status = "200"
+        status_code = 200
+        error = None
+        payload_dict = payload.model_dump(exclude_none=True)
+        try:
+            raw_input = payload_dict.get("input")
+            texts = raw_input if isinstance(raw_input, list) else [raw_input]
+            texts = [str(item) for item in texts if item is not None]
+            if not texts:
+                raise AdmissionPolicyError("missing_input", "moderations request must include non-empty input")
+            results = [moderate_text(text, resolved) for text in texts]
+            return {
+                "id": f"modr-{request.state.request_id}",
+                "model": payload_dict.get("model") or "platform-content-policy",
+                "results": results,
+            }
+        except AdmissionPolicyError as exc:
+            status_code = 400
+            status = "400"
+            error = str(exc)
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": error,
+                    "reason": exc.reason,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+            ) from exc
+        finally:
+            REQUESTS.labels(route, resolved.runtime_backend, status).inc()
+            SANDBOX_REQUESTS.labels(request.state.sandbox_id, resolved.runtime_backend, status).inc()
+            latency_seconds = perf_counter() - start
+            LATENCY.labels(route, resolved.runtime_backend).observe(latency_seconds)
+            _write_audit_log(
+                resolved,
+                request,
+                payload_dict,
+                status_code=status_code,
+                latency_seconds=latency_seconds,
+                backend=resolved.runtime_backend,
                 error=error,
             )
 

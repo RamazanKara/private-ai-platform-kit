@@ -557,6 +557,74 @@ def test_rate_limit_disabled_by_default_allows_burst():
         assert client.post("/v1/chat/completions", json=body).status_code == 200
 
 
+def test_moderations_flags_credentials_and_pii():
+    app = create_app(_tool_settings())
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/moderations",
+        json={"input": "key ghp_0123456789abcdefghijABCDEFGHIJ012345 ssn 123-45-6789"},
+    )
+
+    assert response.status_code == 200
+    result = response.json()["results"][0]
+    assert result["flagged"] is True
+    assert result["categories"]["credential"] is True
+    assert result["categories"]["pii"] is True
+
+
+def test_moderations_clean_input_not_flagged():
+    app = create_app(_tool_settings())
+    client = TestClient(app)
+
+    response = client.post("/v1/moderations", json={"input": "what is the capital of France?"})
+
+    assert response.status_code == 200
+    assert response.json()["results"][0]["flagged"] is False
+
+
+def test_chat_rejects_blocked_content_term():
+    app = create_app(_tool_settings(blocked_content_terms=("projectx",)))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": "tell me about ProjectX roadmap"}]},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "content_blocked"
+
+
+def test_email_not_blocked_by_default():
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": "reach me at user@example.com"}]},
+    )
+
+    # PII detectors are opt-in: an email must not be rejected with the default config.
+    assert response.status_code == 200
+
+
+def test_pii_email_rejected_when_enabled():
+    app = create_app(_tool_settings(prompt_secret_patterns=("email",)))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": "reach me at user@example.com"}]},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "prompt_secret_detected"
+
+
 class _BackendAwareFake:
     """Fake runtime client that fails on configured backends and records call order."""
 

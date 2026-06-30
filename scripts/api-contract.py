@@ -53,6 +53,10 @@ CONTRACTS = {
                 "post",
                 request_schema="EmbeddingsRequest",
             ),
+            "/v1/moderations": RouteContract(
+                "post",
+                request_schema="ModerationRequest",
+            ),
         },
         protected_paths=frozenset({
             "/readyz",
@@ -60,6 +64,7 @@ CONTRACTS = {
             "/v1/sandbox/budget",
             "/v1/chat/completions",
             "/v1/embeddings",
+            "/v1/moderations",
         }),
         required_schemas={
             "ChatCompletionRequest": {
@@ -83,6 +88,10 @@ CONTRACTS = {
                 "required": {"role"},
             },
             "EmbeddingsRequest": {
+                "properties": {"model", "input"},
+                "required": {"input"},
+            },
+            "ModerationRequest": {
                 "properties": {"model", "input"},
                 "required": {"input"},
             },

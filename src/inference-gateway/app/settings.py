@@ -20,7 +20,24 @@ BUILT_IN_SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
         r"\b(?:api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?[A-Za-z0-9._~+/=-]{20,}['\"]?",
         re.IGNORECASE,
     ),
+    # PII patterns. Not enabled by default (see DEFAULT_SECRET_PATTERNS) because emails
+    # are common in legitimate prompts; opt in via PROMPT_SECRET_PATTERNS / the chart.
+    "email": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+    "us_ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    "credit_card": re.compile(r"\b(?:\d[ -]?){13,19}\b"),
 }
+
+# Patterns enabled by default: credential detectors only. PII detectors are built in
+# but opt-in so existing prompt behavior is unchanged unless an operator enables them.
+DEFAULT_SECRET_PATTERNS: tuple[str, ...] = (
+    "private_key",
+    "github_token",
+    "slack_token",
+    "bearer_token",
+    "generic_api_key_assignment",
+)
+CREDENTIAL_PATTERN_NAMES = frozenset(DEFAULT_SECRET_PATTERNS)
+PII_PATTERN_NAMES = frozenset({"email", "us_ssn", "credit_card"})
 
 
 def _float_from_env(name: str, default: float) -> float:
@@ -122,7 +139,7 @@ def _sha256s_from_env(name: str) -> tuple[str, ...]:
 
 
 def _secret_pattern_names_from_env(name: str) -> tuple[str, ...]:
-    names = _csv_from_env(name, tuple(BUILT_IN_SECRET_PATTERNS))
+    names = _csv_from_env(name, DEFAULT_SECRET_PATTERNS)
     unknown = sorted(set(names) - set(BUILT_IN_SECRET_PATTERNS))
     if unknown:
         raise ValueError(f"{name} contains unknown built-in secret patterns: {unknown}")
@@ -176,7 +193,8 @@ class Settings:
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
     prompt_secret_detection_enabled: bool = True
-    prompt_secret_patterns: tuple[str, ...] = tuple(BUILT_IN_SECRET_PATTERNS)
+    prompt_secret_patterns: tuple[str, ...] = DEFAULT_SECRET_PATTERNS
+    blocked_content_terms: tuple[str, ...] = ()
     model_routing_policy_path: Path | None = None
     sandbox_policy_path: Path | None = None
     jwt_auth_enabled: bool = False
@@ -309,6 +327,7 @@ class Settings:
                 True,
             ),
             prompt_secret_patterns=_secret_pattern_names_from_env("PROMPT_SECRET_PATTERNS"),
+            blocked_content_terms=_csv_from_env("BLOCKED_CONTENT_TERMS", ()),
             model_routing_policy_path=_path_from_env("MODEL_ROUTING_POLICY_PATH"),
             sandbox_policy_path=_path_from_env("SANDBOX_POLICY_PATH"),
             jwt_auth_enabled=_bool_from_env("JWT_AUTH_ENABLED", False),
@@ -374,15 +393,8 @@ class Settings:
                 f"prompt has {prompt_chars} characters; limit is {self.max_prompt_chars}",
             )
         self._validate_tools(payload)
-        if self.prompt_secret_detection_enabled:
-            for message in messages:
-                content = extract_text_content(message.get("content"))
-                for pattern_name in self.prompt_secret_patterns:
-                    if BUILT_IN_SECRET_PATTERNS[pattern_name].search(content):
-                        raise AdmissionPolicyError(
-                            "prompt_secret_detected",
-                            f"prompt appears to contain credential material matched by {pattern_name}",
-                        )
+        for message in messages:
+            self._enforce_content_policy(extract_text_content(message.get("content")))
         requested_tokens = payload.get("max_tokens")
         if requested_tokens is not None:
             if not isinstance(requested_tokens, int) or requested_tokens <= 0:
@@ -436,14 +448,41 @@ class Settings:
                 "prompt_too_large",
                 f"embedding input has {total_chars} characters; limit is {self.max_prompt_chars}",
             )
+        for text in texts:
+            self._enforce_content_policy(text)
+
+    def matched_secret_pattern(self, text: str) -> str | None:
+        """Return the name of the first configured secret/PII pattern matched, or None."""
+        for pattern_name in self.prompt_secret_patterns:
+            if BUILT_IN_SECRET_PATTERNS[pattern_name].search(text):
+                return pattern_name
+        return None
+
+    def matched_blocked_term(self, text: str) -> str | None:
+        """Return the first configured blocked term contained in the text, or None."""
+        if not self.blocked_content_terms:
+            return None
+        lowered = text.lower()
+        for term in self.blocked_content_terms:
+            if term and term.lower() in lowered:
+                return term
+        return None
+
+    def _enforce_content_policy(self, text: str) -> None:
+        """Reject text that matches the secret/PII detector or a blocked-term denylist."""
         if self.prompt_secret_detection_enabled:
-            for text in texts:
-                for pattern_name in self.prompt_secret_patterns:
-                    if BUILT_IN_SECRET_PATTERNS[pattern_name].search(text):
-                        raise AdmissionPolicyError(
-                            "prompt_secret_detected",
-                            f"embedding input appears to contain credential material matched by {pattern_name}",
-                        )
+            pattern = self.matched_secret_pattern(text)
+            if pattern is not None:
+                raise AdmissionPolicyError(
+                    "prompt_secret_detected",
+                    f"input appears to contain credential or PII material matched by {pattern}",
+                )
+        term = self.matched_blocked_term(text)
+        if term is not None:
+            raise AdmissionPolicyError(
+                "content_blocked",
+                "input contains content blocked by policy",
+            )
 
     def _validate_tools(self, payload: dict) -> None:
         """Bound tool/function definitions by count and serialized size.
@@ -476,3 +515,22 @@ def _path_from_env(name: str) -> Path | None:
     if raw is None or not raw.strip():
         return None
     return Path(raw.strip())
+
+
+def moderate_text(text: str, settings: Settings) -> dict[str, Any]:
+    """Classify text against credential, PII, and blocked-term policy (rule-based).
+
+    Independent of the admission config: scans every built-in credential and PII
+    detector plus the configured blocked terms, returning an OpenAI ``/v1/moderations``
+    shaped result. This is a deterministic content-policy surface; a semantic toxicity
+    classifier can be layered behind the same endpoint without changing callers.
+    """
+    credential = any(BUILT_IN_SECRET_PATTERNS[name].search(text) for name in CREDENTIAL_PATTERN_NAMES)
+    pii = any(BUILT_IN_SECRET_PATTERNS[name].search(text) for name in PII_PATTERN_NAMES)
+    blocked = settings.matched_blocked_term(text) is not None
+    categories = {"credential": credential, "pii": pii, "blocked_terms": blocked}
+    return {
+        "flagged": any(categories.values()),
+        "categories": categories,
+        "category_scores": {key: (1.0 if value else 0.0) for key, value in categories.items()},
+    }
