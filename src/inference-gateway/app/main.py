@@ -134,10 +134,7 @@ def _runtime_headers(request: Request) -> dict[str, str]:
 
 def _auth_required(path: str) -> bool:
     """Return whether the given request path requires authentication."""
-    # /readyz must stay unauthenticated: it is the Kubernetes readiness probe,
-    # and the kubelet cannot present an API key, so requiring auth here makes the
-    # gateway pod never become Ready when API-key auth is enabled.
-    return path not in {"/healthz", "/readyz", "/metrics", "/docs", "/openapi.json"}
+    return path not in {"/healthz", "/metrics", "/docs", "/openapi.json"}
 
 
 def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
