@@ -195,3 +195,52 @@ spec:
           annotations:
             summary: RAG service p95 latency is above 1 second.
             runbook_url: runbooks/rag-service.md
+    - name: gpu.rules
+      rules:
+        # Queue backlog is the real GPU-saturation signal (also drives KEDA scaling): a
+        # sustained request queue means the GPU fleet is under-provisioned for demand.
+        - alert: VllmRequestQueueBacklog
+          expr: avg(vllm:num_requests_waiting) > 10
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: vLLM has a sustained request-queue backlog; the GPU fleet may be under-provisioned.
+            runbook_url: runbooks/gpu-capacity.md
+        # DCGM exporter metrics (NVIDIA). These do not fire when DCGM is not deployed.
+        - alert: GpuHighUtilization
+          expr: avg by (instance) (DCGM_FI_DEV_GPU_UTIL) > 95
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: A GPU has been above 95 percent utilization for 15 minutes.
+            runbook_url: runbooks/gpu-capacity.md
+        - alert: GpuMemoryNearCapacity
+          expr: |
+            DCGM_FI_DEV_FB_USED
+            /
+            clamp_min(DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE, 1)
+            > 0.95
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: GPU framebuffer memory is above 95 percent of capacity.
+            runbook_url: runbooks/gpu-capacity.md
+    - name: inference.recording
+      rules:
+        # Pre-aggregated SLIs so dashboards and burn-rate panels do not recompute the
+        # error ratio and latency quantile on every query.
+        - record: job:inference_gateway_request_error_ratio:rate5m
+          expr: |
+            sum(rate(inference_gateway_requests_total{route="/v1/chat/completions",status!="200"}[5m]))
+            /
+            clamp_min(sum(rate(inference_gateway_requests_total{route="/v1/chat/completions"}[5m])), 1)
+        - record: job:inference_gateway_request_latency:p95_5m
+          expr: histogram_quantile(0.95, sum(rate(inference_gateway_request_duration_seconds_bucket[5m])) by (le))
+        - record: job:rag_service_request_error_ratio:rate5m
+          expr: |
+            sum(rate(rag_service_requests_total{route="/v1/rag/query",status!="200"}[5m]))
+            /
+            clamp_min(sum(rate(rag_service_requests_total{route="/v1/rag/query"}[5m])), 1)

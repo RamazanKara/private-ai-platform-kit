@@ -19,6 +19,24 @@ spec:
             serviceMonitorSelectorNilUsesHelmValues: false
             podMonitorSelectorNilUsesHelmValues: false
             ruleSelectorNilUsesHelmValues: false
+        # Default Alertmanager routing tree. The default receiver is null so alerts have
+        # a defined route out of the box; wire a real destination (Slack/PagerDuty/webhook)
+        # per environment by replacing the example receiver below, then route critical
+        # severity to it. Without this, alerts fire but reach no destination.
+        alertmanager:
+          config:
+            route:
+              receiver: "null"
+              group_by: ["alertname", "severity"]
+              routes:
+                - matchers: ['severity = "critical"']
+                  receiver: "null"
+                  continue: true
+            receivers:
+              - name: "null"
+              # - name: platform-oncall
+              #   webhook_configs:
+              #     - url: https://example.invalid/alerts  # replace per environment
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
@@ -50,6 +68,36 @@ spec:
             replication_factor: 1
         singleBinary:
           replicas: 1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# Promtail ships pod stdout (including the gateway/RAG redacted audit JSON) into Loki.
+# Without a collector, Loki stays empty and the audit trail is lost on pod restart.
+# Confirm the push URL matches this cluster's Loki service if it differs from the default.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: promtail
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: promtail
+    targetRevision: 6.16.6
+    helm:
+      releaseName: promtail
+      values: |
+        config:
+          clients:
+            - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
