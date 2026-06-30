@@ -56,9 +56,20 @@ This issues a filtered Qdrant `points/delete` on the `source_id` payload field w
 ingest time. To re-index a source after a content change, run `--delete --source-id <id>`
 followed by `--write`. Record the deletion in the retention evidence for the environment.
 
-Age-based automatic purge is not yet enforced from the service: the chunk payload does not
-carry an ingestion timestamp, so the `retentionDays` policy is enforced operationally via
-the delete-by-source procedure above plus collection-version rotation, not by a scheduled job.
+## Age-Based Retention Purge
+
+Ingested chunks carry an `ingestedAtEpoch` timestamp, so the `retentionDays` policy can be
+enforced by purging points older than the retention window (run on a schedule, e.g. a CronJob):
+
+```bash
+python scripts/rag-ingest.py --purge --older-than-days 180 \
+  --qdrant-url "$QDRANT_URL" --collection "$QDRANT_COLLECTION"
+```
+
+This deletes every point whose `ingestedAtEpoch` is older than the cutoff (optionally scoped
+to a `--collection-version`). Set `--older-than-days` to the `retentionDays` value from
+`platform/governance/data-retention.yaml` for the relevant retention class, and retain the
+purge summary as retention evidence.
 
 ## Changing Retention
 

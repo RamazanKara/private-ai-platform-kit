@@ -6,6 +6,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
@@ -228,13 +229,20 @@ def upsert_chunks(
     collection: str,
     timeout_seconds: float,
 ) -> dict[str, Any]:
+    now = datetime.now(UTC)
+    ingested_at = now.isoformat()
+    ingested_at_epoch = int(now.timestamp())
     with httpx.Client(timeout=timeout_seconds) as client:
         collection_status = ensure_collection(client, base_url, collection, provider.dimensions)
         points = [
             {
                 "id": chunk.point_id,
                 "vector": provider.embed(chunk.text),
-                "payload": chunk.payload(),
+                "payload": {
+                    **chunk.payload(),
+                    "ingestedAt": ingested_at,
+                    "ingestedAtEpoch": ingested_at_epoch,
+                },
             }
             for chunk in chunks
         ]
@@ -249,6 +257,32 @@ def upsert_chunks(
         "collection": collection,
         "collection_status": collection_status,
         "upserted_chunks": len(chunks),
+    }
+
+
+def delete_older_than(
+    cutoff_epoch: int,
+    base_url: str,
+    collection: str,
+    timeout_seconds: float,
+    collection_version: str | None = None,
+) -> dict[str, Any]:
+    """Delete points ingested before cutoff_epoch (age-based retention enforcement)."""
+    must: list[dict[str, Any]] = [{"key": "ingestedAtEpoch", "range": {"lt": cutoff_epoch}}]
+    if collection_version:
+        must.append({"key": "collection_version", "match": {"value": collection_version}})
+    with httpx.Client(timeout=timeout_seconds) as client:
+        response = client.post(
+            f"{base_url.rstrip('/')}/collections/{collection}/points/delete",
+            params={"wait": "true"},
+            json={"filter": {"must": must}},
+        )
+        response.raise_for_status()
+    return {
+        "status": "purged",
+        "collection": collection,
+        "cutoff_epoch": cutoff_epoch,
+        "collection_version": collection_version or "all",
     }
 
 
@@ -289,6 +323,8 @@ def main() -> int:
     mode.add_argument("--check", action="store_true", help="Validate and summarize without writing.")
     mode.add_argument("--write", action="store_true", help="Write chunks into Qdrant.")
     mode.add_argument("--delete", action="store_true", help="Delete all points for --source-id from Qdrant.")
+    mode.add_argument("--purge", action="store_true", help="Delete points older than --older-than-days.")
+    parser.add_argument("--older-than-days", type=int, default=0, help="Age threshold for --purge.")
     parser.add_argument("--qdrant-url", default=_env_first(("QDRANT_URL", "VECTOR_STORE_URL"), ""))
     parser.add_argument(
         "--collection", default=_env_first(("QDRANT_COLLECTION", "VECTOR_COLLECTION"), "private-ai-platform-kit")
@@ -328,6 +364,23 @@ def main() -> int:
             args.collection_version,
         )
         rendered = json.dumps(summary, indent=2, sort_keys=True) + "\n"
+        print(rendered, end="")
+        if args.status_file:
+            args.status_file.parent.mkdir(parents=True, exist_ok=True)
+            args.status_file.write_text(rendered, encoding="utf-8")
+        return 0
+
+    if args.purge:
+        if args.older_than_days <= 0:
+            raise SystemExit("--older-than-days must be greater than zero with --purge")
+        if not args.qdrant_url:
+            raise SystemExit("--qdrant-url or QDRANT_URL is required with --purge")
+        cutoff_epoch = int(datetime.now(UTC).timestamp()) - args.older_than_days * 86400
+        purge_summary = delete_older_than(
+            cutoff_epoch, args.qdrant_url, args.collection, args.timeout_seconds, args.collection_version
+        )
+        purge_summary["older_than_days"] = args.older_than_days
+        rendered = json.dumps(purge_summary, indent=2, sort_keys=True) + "\n"
         print(rendered, end="")
         if args.status_file:
             args.status_file.parent.mkdir(parents=True, exist_ok=True)

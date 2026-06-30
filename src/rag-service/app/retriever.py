@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
@@ -225,6 +226,9 @@ class QdrantRetriever:
         if not self.documents:
             self.last_sync_status = "empty"
             return
+        now = datetime.now(UTC)
+        ingested_at = now.isoformat()
+        ingested_at_epoch = int(now.timestamp())
         points = []
         for document in self.documents:
             points.append(
@@ -237,6 +241,8 @@ class QdrantRetriever:
                         "title": document.title,
                         "source": document.source,
                         "content": document.content,
+                        "ingestedAt": ingested_at,
+                        "ingestedAtEpoch": ingested_at_epoch,
                     },
                 }
             )

@@ -9,6 +9,7 @@ from app.ingest import (
     SourceRecord,
     build_chunks,
     chunk_text,
+    delete_older_than,
     delete_source,
     ensure_collection,
     iter_document_paths,
@@ -234,6 +235,52 @@ def test_delete_source_issues_filtered_points_delete(monkeypatch):
     must = captured["body"]["filter"]["must"]
     assert {"key": "source_id", "match": {"value": "platform-docs"}} in must
     assert {"key": "collection_version", "match": {"value": "v2"}} in must
+
+
+def test_delete_older_than_range_filters_on_ingested_epoch(monkeypatch):
+    captured = {}
+
+    def handler(request):
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"result": {"status": "completed"}})
+
+    real_client = httpx.Client
+    monkeypatch.setattr(ingest.httpx, "Client", lambda *a, **k: real_client(transport=httpx.MockTransport(handler)))
+
+    summary = delete_older_than(1_700_000_000, "http://qdrant:6333", "kb", 5.0)
+
+    assert summary["status"] == "purged"
+    assert summary["cutoff_epoch"] == 1_700_000_000
+    must = captured["body"]["filter"]["must"]
+    assert {"key": "ingestedAtEpoch", "range": {"lt": 1_700_000_000}} in must
+
+
+def test_upsert_stamps_ingestion_timestamp(tmp_path, monkeypatch):
+    root = tmp_path / "docs"
+    root.mkdir()
+    (root / "guide.md").write_text("alpha content here", encoding="utf-8")
+    source = SourceRecord("handbook", str(root), "internal", "standard", "owner", "hash-text-v1", tmp_path)
+    chunks = build_chunks([source], chunk_chars=200, overlap_chars=20)
+    provider = build_embedding_provider("hash", 8, "hash-text-v1", "", 5.0)
+    captured = {}
+
+    def handler(request):
+        if request.method == "GET":
+            return httpx.Response(404)
+        if request.url.path.endswith("/points"):
+            captured["points"] = json.loads(request.content)["points"]
+            return httpx.Response(200, json={"result": {"status": "completed"}})
+        return httpx.Response(200, json={"result": True})
+
+    real_client = httpx.Client
+    monkeypatch.setattr(ingest.httpx, "Client", lambda *a, **k: real_client(transport=httpx.MockTransport(handler)))
+
+    upsert_chunks(chunks, provider, "http://qdrant:6333", "kb", 5.0)
+
+    payload = captured["points"][0]["payload"]
+    assert isinstance(payload["ingestedAtEpoch"], int)
+    assert payload["ingestedAtEpoch"] > 0
+    assert "ingestedAt" in payload
 
 
 def test_main_check_mode_reports_summary(tmp_path, monkeypatch, capsys):
