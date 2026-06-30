@@ -173,6 +173,11 @@ class RuntimeClient:
         response = await client.get(f"{self._base_url(resolved_backend)}/healthz", timeout=timeout)
         if response.status_code == 404:
             response = await client.get(f"{self._base_url(resolved_backend)}/health", timeout=timeout)
+        if response.status_code == 404:
+            # Ollama exposes readiness at "/" (matching the ollama chart probe),
+            # not /healthz or /health; fall back to it so /readyz can confirm the
+            # backend is serving before reporting it unavailable.
+            response = await client.get(f"{self._base_url(resolved_backend)}/", timeout=timeout)
         response.raise_for_status()
         try:
             data = response.json()

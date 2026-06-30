@@ -51,7 +51,6 @@ CONTRACTS = {
             ),
         },
         protected_paths=frozenset({
-            "/readyz",
             "/v1/models",
             "/v1/sandbox/budget",
             "/v1/chat/completions",

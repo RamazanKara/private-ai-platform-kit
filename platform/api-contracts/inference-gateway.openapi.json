@@ -224,14 +224,6 @@
             "description": "Successful Response"
           }
         },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ],
         "summary": "Check gateway and configured runtime readiness",
         "tags": [
           "health"

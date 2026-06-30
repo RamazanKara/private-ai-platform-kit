@@ -80,6 +80,25 @@ def test_health_falls_back_to_health_endpoint(monkeypatch):
     assert paths == ["/healthz", "/health"]
 
 
+def test_health_falls_back_to_root_when_health_endpoints_missing(monkeypatch):
+    # Ollama serves readiness at "/" and has neither /healthz nor /health; the
+    # gateway must fall back to "/" so /readyz can confirm the backend.
+    paths = []
+
+    def handler(request):
+        paths.append(request.url.path)
+        if request.url.path in ("/healthz", "/health"):
+            return httpx.Response(404)
+        return httpx.Response(200, content=b"Ollama is running")
+
+    _mock_async_client(monkeypatch, handler)
+
+    result = asyncio.run(RuntimeClient(_settings()).health("ollama"))
+
+    assert result == {"status": "ok"}
+    assert paths == ["/healthz", "/health", "/"]
+
+
 def test_health_defaults_status_when_body_is_not_json(monkeypatch):
     def handler(request):
         return httpx.Response(200, content=b"OK")
