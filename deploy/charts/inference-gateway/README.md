@@ -31,6 +31,8 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `admission.maxCompletionTokens` | `1024` |
 | `admission.maxMessages` | `16` |
 | `admission.maxPromptChars` | `8192` |
+| `admission.maxToolChars` | `32768` |
+| `admission.maxTools` | `64` |
 | `auth.apiKeyHashes` | `[]` |
 | `auth.apiKeyHeader` | `X-API-Key` |
 | `auth.enabled` | `false` |
@@ -42,6 +44,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `auth.jwt.issuer` | `""` |
 | `auth.jwt.jwksUrl` | `""` |
 | `auth.jwt.requiredScopes` | `[]` |
+| `auth.jwt.tenantClaim` | `""` |
 | `budget.backend` | `memory` |
 | `budget.enabled` | `true` |
 | `budget.estimatedCharsPerToken` | `4` |
@@ -52,11 +55,12 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `budget.redisUrl` | `redis://budget-redis.budget.svc.cluster.local:6379/0` |
 | `budget.requestLimit` | `1000` |
 | `budget.windowSeconds` | `86400` |
+| `guardrails.blockedContentTerms` | `[]` |
 | `guardrails.promptSecretDetection.enabled` | `true` |
 | `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"]` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` |
-| `image.tag` | `v0.10.0` |
+| `image.tag` | `v0.11.0` |
 | `keda.enabled` | `true` |
 | `keda.maxReplicaCount` | `5` |
 | `keda.minReplicaCount` | `1` |
@@ -76,6 +80,9 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `podLabels.platform.ai/environment` | `local` |
 | `podLabels.platform.ai/owner` | `platform-team` |
 | `podLabels.platform.ai/sandbox-id` | `local-lab` |
+| `rateLimit.enabled` | `false` |
+| `rateLimit.requestsPerWindow` | `0` |
+| `rateLimit.windowSeconds` | `60` |
 | `replicaCount` | `1` |
 | `resources.limits.cpu` | `500m` |
 | `resources.limits.memory` | `512Mi` |
@@ -88,7 +95,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `runtime.backend` | `ollama` |
 | `runtime.circuitFailureThreshold` | `0` |
 | `runtime.circuitResetSeconds` | `30` |
-| `runtime.maxRetries` | `0` |
+| `runtime.maxRetries` | `2` |
 | `runtime.modelId` | `qwen3.5:0.8b` |
 | `runtime.ollamaBaseUrl` | `http://ollama.ollama.svc.cluster.local:11434` |
 | `runtime.requestTimeoutSeconds` | `120` |

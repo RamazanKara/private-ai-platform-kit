@@ -20,6 +20,10 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `autoscaling.minReplicas` | `1` |
 | `autoscaling.targetCPUUtilizationPercentage` | `70` |
 | `cache.mountPath` | `/models` |
+| `cache.persistence.accessMode` | `ReadWriteOnce` |
+| `cache.persistence.enabled` | `false` |
+| `cache.persistence.size` | `200Gi` |
+| `cache.persistence.storageClassName` | `""` |
 | `externalSecrets.enabled` | `false` |
 | `externalSecrets.huggingFaceTokenKey` | `token` |
 | `externalSecrets.huggingFaceTokenSecretName` | `hf-token` |
@@ -44,6 +48,7 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `model.dtype` | `auto` |
 | `model.maxModelLen` | `262144` |
 | `model.name` | `Qwen/Qwen3-Coder-Next` |
+| `model.revision` | `""` |
 | `podDisruptionBudget.enabled` | `true` |
 | `podDisruptionBudget.minAvailable` | `1` |
 | `podLabels.platform.ai/cost-center` | `platform` |

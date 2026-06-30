@@ -60,7 +60,11 @@ import yaml
 
 errors = []
 for path in list(Path(".").rglob("*.yaml")) + list(Path(".").rglob("*.yml")):
-    if ".venv" in path.parts or "templates" in path.parts:
+    if ".venv" in path.parts or ".venv-docs" in path.parts or "templates" in path.parts:
+        continue
+    # mkdocs.yml legitimately uses Material's !!python/name: tags that safe_load cannot
+    # construct; it is validated separately by `mkdocs --strict` in the docs build.
+    if path.name == "mkdocs.yml":
         continue
     try:
         docs = list(yaml.safe_load_all(path.read_text()))
