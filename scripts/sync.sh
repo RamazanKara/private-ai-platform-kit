@@ -24,36 +24,36 @@ wait_for_rollout() {
 direct_apply_local() {
   require_cmd helm "Helm is required for the local direct-apply fallback."
   log "directly applying local runtime charts for workstation validation"
-  kubectl apply -f "$ROOT/sandbox/base"
+  kubectl apply -f "$ROOT/deploy/sandbox/base"
   kubectl create namespace ollama --dry-run=client -o yaml | kubectl apply -f -
   kubectl create namespace budget --dry-run=client -o yaml | kubectl apply -f -
   kubectl create namespace inference --dry-run=client -o yaml | kubectl apply -f -
   kubectl create namespace rag --dry-run=client -o yaml | kubectl apply -f -
   kubectl create namespace vector --dry-run=client -o yaml | kubectl apply -f -
-  kubectl apply -f "$ROOT/model-catalog/k8s"
-  helm upgrade --install budget-redis "$ROOT/charts/budget-redis" \
+  kubectl apply -f "$ROOT/platform/model-catalog/k8s"
+  helm upgrade --install budget-redis "$ROOT/deploy/charts/budget-redis" \
     --namespace budget
-  helm upgrade --install ollama "$ROOT/charts/ollama" \
+  helm upgrade --install ollama "$ROOT/deploy/charts/ollama" \
     --namespace ollama \
-    --values "$ROOT/clusters/local/values/ollama.yaml"
-  helm upgrade --install inference-gateway "$ROOT/charts/inference-gateway" \
+    --values "$ROOT/deploy/clusters/local/values/ollama.yaml"
+  helm upgrade --install inference-gateway "$ROOT/deploy/charts/inference-gateway" \
     --namespace inference \
-    --values "$ROOT/clusters/local/values/inference-gateway.yaml" \
+    --values "$ROOT/deploy/clusters/local/values/inference-gateway.yaml" \
     --set serviceMonitor.enabled=false \
     --set keda.enabled=false
-  helm upgrade --install qdrant-vector-store "$ROOT/charts/qdrant-vector-store" \
+  helm upgrade --install qdrant-vector-store "$ROOT/deploy/charts/qdrant-vector-store" \
     --namespace vector \
-    --values "$ROOT/clusters/local/values/qdrant-vector-store.yaml" \
+    --values "$ROOT/deploy/clusters/local/values/qdrant-vector-store.yaml" \
     --set serviceMonitor.enabled=false
-  helm upgrade --install rag-service "$ROOT/charts/rag-service" \
+  helm upgrade --install rag-service "$ROOT/deploy/charts/rag-service" \
     --namespace rag \
-    --values "$ROOT/clusters/local/values/rag-service.yaml" \
+    --values "$ROOT/deploy/clusters/local/values/rag-service.yaml" \
     --set serviceMonitor.enabled=false \
     --set autoscaling.enabled=false
-  helm upgrade --install agent-workspace "$ROOT/charts/agent-workspace" \
+  helm upgrade --install agent-workspace "$ROOT/deploy/charts/agent-workspace" \
     --namespace ai-agents \
     --create-namespace \
-    --values "$ROOT/clusters/local/values/agent-workspace.yaml"
+    --values "$ROOT/deploy/clusters/local/values/agent-workspace.yaml"
   kubectl -n inference rollout restart deploy/inference-gateway-inference-gateway >/dev/null
   kubectl -n vector rollout restart deploy/qdrant-vector-store >/dev/null
   kubectl -n rag rollout restart deploy/rag-service-rag-service >/dev/null
