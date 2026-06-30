@@ -9,6 +9,11 @@ image:
 
 model:
   name: Qwen/Qwen3-Coder-Next
+  # Pin the Hugging Face revision (commit SHA preferred, or an immutable tag) so the
+  # served artifact cannot drift from the mutable default branch. Set this to the
+  # revision attested in platform/governance/model-provenance.yaml (immutableRef).
+  # Empty tracks the default branch (not recommended for production).
+  revision: ""
   dtype: auto
   maxModelLen: "262144"
 

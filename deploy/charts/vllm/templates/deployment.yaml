@@ -55,6 +55,10 @@ spec:
           args:
             - --model
             - {{ .Values.model.name | quote }}
+            {{- if .Values.model.revision }}
+            - --revision
+            - {{ .Values.model.revision | quote }}
+            {{- end }}
             - --dtype
             - {{ .Values.model.dtype | quote }}
             - --max-model-len
