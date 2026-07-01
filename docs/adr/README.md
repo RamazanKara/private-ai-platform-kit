@@ -17,7 +17,7 @@ the choices those documents assume.
 - `Proposed` — under discussion, not yet reflected in the default configuration.
 - `Deprecated` — no longer recommended, but not yet removed.
 
-All ADRs in this set are `Accepted` and describe the `v0.13.0` repository.
+All ADRs in this set are `Accepted` and describe the `v0.14.0` repository.
 
 ## Index
 
@@ -31,6 +31,7 @@ All ADRs in this set are `Accepted` and describe the `v0.13.0` repository.
 | [0006](0006-tamper-evident-audit-hash-chain.md) | Tamper-evident audit hash chain | Accepted |
 | [0007](0007-local-first-kind-then-customer-cluster.md) | Local-first kind, then customer cluster | Accepted |
 | [0008](0008-helm-packaging-and-oci.md) | Helm packaging and OCI distribution | Accepted |
+| [0009](0009-adopt-agent-sandbox-workspace-runtime.md) | Adopt kubernetes-sigs/agent-sandbox as the coding-agent workspace runtime | Accepted |
 
 ## Process
 

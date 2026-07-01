@@ -1,7 +1,7 @@
 # 0009. Adopt kubernetes-sigs/agent-sandbox as the coding-agent workspace runtime
 
-- Status: Proposed
-- Date: 2026-07-01
+- Status: Accepted
+- Date: 2026-07-02
 - Deciders: Ramazan Kara (maintainer)
 
 ## Context

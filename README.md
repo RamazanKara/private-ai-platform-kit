@@ -10,7 +10,7 @@
 
 Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs, RAG, and coding-agent workspaces. It starts on a local `kind` cluster with Ollama, then uses the same Helm charts, GitOps layout, policies, runbooks, and evidence checks on customer-owned clusters with vLLM and GPU nodes — the operating model of a production AI platform, without depending on a specific cloud provider.
 
-Current release: `v0.13.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
+Current release: `v0.14.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
 **Who it's for:** platform / SRE teams evaluating a private-AI stack → start with the [Decision guide](docs/decision-guide.md); operators running it → [Runbooks](runbooks/README.md); security & compliance reviewers → [Security overview](docs/security-overview.md), [OWASP LLM Top 10 mapping](docs/owasp-llm-top-10-mapping.md), and the [Threat model](docs/threat-model.md).
 
@@ -39,7 +39,7 @@ The demo is generated from [scripts/demo-live.sh](scripts/demo-live.sh).
 - **Inference gateway** — OpenAI-compatible chat, embeddings, moderations, and batch endpoints; API-key and JWT/JWKS auth with per-tenant sandbox binding; model allowlists, admission limits, per-sandbox budgets, and rate limiting; input prompt-secret detection and a response-path output guardrail (flag / redact / block); a shared Redis response cache; progressive delivery (canary + shadow) and cross-runtime failover; a tamper-evident audit chain that never logs raw prompt text.
 - **Model serving** — Ollama for laptop/`kind` and vLLM for NVIDIA or AMD GPUs from the same charts, with first-class prefix caching, FP8/AWQ quantization, guided/speculative decoding, MIG guidance, and HPA/KEDA, PodDisruptionBudgets, and topology spread.
 - **RAG** — hybrid dense + lexical retrieval with an optional cross-encoder reranker and per-tenant retrieval isolation; a local lexical profile or a persistent Qdrant vector store; RAGAS-style faithfulness and context-precision evals.
-- **Coding-agent workspaces** — locked-down namespaces with PVC storage, RBAC, quotas, default-deny networking, catalog-approved egress, and gated RAG access.
+- **Coding-agent workspaces** — locked-down namespaces with PVC storage, RBAC, quotas, default-deny networking, catalog-approved egress, and gated RAG access; an optional hardened runtime on kubernetes-sigs/agent-sandbox (ADR 0009) with kernel-isolation runtime-class support, short-lived audience-bound workspace credentials instead of long-lived secrets, and per-action allow/deny receipts on the tamper-evident audit chain — demoed end-to-end with a real coding agent via `make agent-sandbox-demo`.
 - **Governance & compliance** — approved-only model catalog with promotion requests, provenance, and per-model model cards; a safety / jailbreak release gate; production drift monitoring; an OWASP LLM Top 10 mapping and a NIST AI RMF / EU AI Act / ISO 42001 crosswalk.
 - **Operations & evidence** — SLOs and release gates, quota/chargeback, data retention, egress governance; Prometheus + Grafana, Tempo tracing, Loki logs, and cost/OpenCost dashboards; Pod Security Admission, an opt-in encryption-in-transit overlay, and optional Falco runtime detection; restore and chaos drills plus a disaster-recovery runbook; SBOMs, Trivy scans, Cosign-signed images, provenance attestations, OpenSSF Scorecard, and evidence packs.
 
@@ -86,7 +86,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.13.0 \
+  CUSTOMER_REVISION=v0.14.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 

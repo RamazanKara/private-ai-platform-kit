@@ -1,6 +1,6 @@
 # Version and Compatibility Matrix
 
-This page records the versions this kit is **pinned to and tested against** for the `v0.13.0`
+This page records the versions this kit is **pinned to and tested against** for the `v0.14.0`
 release. It is a compatibility reference, not a support SLA: the tables list what the kit ships
 and what CI exercises, so you can reproduce a known-good state and reason about drift. Newer or
 older versions may work but are outside what the release was validated on.
@@ -14,8 +14,8 @@ Kubernetes distribution, ingress, storage, secrets, and GPU stack), that is call
 
 | Item | Version | Source |
 | --- | --- | --- |
-| Private AI Platform Kit | `v0.13.0` | [README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md) |
-| Helm chart version (all first-party charts) | `0.13.0` | `deploy/charts/*/Chart.yaml` |
+| Private AI Platform Kit | `v0.14.0` | [README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md) |
+| Helm chart version (all first-party charts) | `0.14.0` | `deploy/charts/*/Chart.yaml` |
 | `kubeVersion` constraint (all charts) | `>=1.25.0` | `deploy/charts/*/Chart.yaml` |
 
 Maturity is a reference implementation and customer lab; a production handoff still requires current
@@ -31,14 +31,14 @@ and an immutable manifest-list digest in `values.yaml`.
 
 | Component | Chart `appVersion` | Image | Tag | Notes |
 | --- | --- | --- | --- | --- |
-| Inference gateway | `0.13.0` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` | `v0.13.0` | First-party; release CI pins the published digest. |
-| RAG service | `0.13.0` | `ghcr.io/ramazankara/private-ai-platform-kit/rag-service` | `v0.13.0` | First-party; release CI pins the published digest. |
+| Inference gateway | `0.14.0` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` | `v0.14.0` | First-party; release CI pins the published digest. |
+| RAG service | `0.14.0` | `ghcr.io/ramazankara/private-ai-platform-kit/rag-service` | `v0.14.0` | First-party; release CI pins the published digest. |
 | Ollama runtime | `0.24.0` | `ollama/ollama` | `0.24.0` | Default local-first LLM runtime; digest-pinned. |
 | vLLM runtime | `0.22.0` | `vllm/vllm-openai` | `v0.22.0` | GPU/production-style OpenAI-compatible runtime; digest-pinned. |
 | Qdrant vector store | `1.18.1` | `qdrant/qdrant` | `v1.18.1` | Optional vector-RAG profile; single-instance; digest-pinned. |
 | Budget Redis | `8.0` | `redis` | `8.0-alpine` | Shared sandbox budget accounting store; digest-pinned. |
-| Agent workspace | `0.13.0` | (namespace/RBAC template — no image) | — | Tenant namespace scaffold; no workload image of its own. |
-| Platform (umbrella) | `0.13.0` | (aggregates the charts above) | — | Single-command dev/demo bring-up; GitOps remains recommended for multi-namespace installs. |
+| Agent workspace | `0.14.0` | (namespace/RBAC template — no image) | — | Tenant namespace scaffold; no workload image of its own. |
+| Platform (umbrella) | `0.14.0` | (aggregates the charts above) | — | Single-command dev/demo bring-up; GitOps remains recommended for multi-namespace installs. |
 
 The first-party service container images are built on `python:3.14-alpine`
 (`src/inference-gateway/Dockerfile`, `src/rag-service/Dockerfile`), digest-pinned in the Dockerfiles.
@@ -72,6 +72,9 @@ Notes:
   policy-as-code tests is pinned separately in the toolchain (see below).
 - Velero-based backup (`backup-velero`) and the restore-drill workload are shipped from in-repo
   manifests rather than a pinned third-party chart.
+- The agent-sandbox workspace runtime is installed from vendored, checksummed release manifests
+  (`deploy/vendor/agent-sandbox/`) via `make agent-sandbox-install` rather than a chart — there is
+  no upstream Helm chart. See ADR 0009 and the row below.
 
 ## Runtime, Kubernetes, and toolchain
 
@@ -84,6 +87,7 @@ Notes:
 | Python (SDK) | `>=3.11` | [sdk/python/pyproject.toml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/sdk/python/pyproject.toml) | `requires-python` for the client SDK package. |
 | Helm | v3 | [validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml); `azure/setup-helm` in CI | CI uses the action default; the toolchain requires Helm 3. |
 | Go | `1.26` | `.github/workflows/ci.yml`; toolchain install hint | Builds Go-based validation utilities (kubeconform, Kyverno CLI, restore-drill). |
+| agent-sandbox controller | `v0.5.0` | `deploy/vendor/agent-sandbox/` (SHA-256 in the vendor README) | Optional coding-agent workspace runtime (`sandbox.runtime: agent-sandbox`); CRDs `agents.x-k8s.io/v1beta1` + `extensions.agents.x-k8s.io/v1beta1`. `v1beta1` API — re-verify spec fields on upgrade. |
 
 ## Validation toolchain (pinned tool versions)
 

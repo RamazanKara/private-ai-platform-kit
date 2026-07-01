@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## v0.14.0 - 2026-07-02
 
 A repository-wide review pass (services, deploy tree, docs, CI) fixing drift,
 resilience gaps, and controls that shipped but never actually deployed or fired.
