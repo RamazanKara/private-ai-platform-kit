@@ -381,3 +381,83 @@ spec:
           metadata:
             labels:
               platform.ai/encryption-at-rest: "true"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ai-platform-hardened-sandboxes
+  annotations:
+    policies.kyverno.io/title: Hardened agent-sandbox workspaces
+    policies.kyverno.io/category: Private AI Platform Kit
+    policies.kyverno.io/description: >-
+      Coding-agent workspaces on the kubernetes-sigs/agent-sandbox runtime execute
+      model-generated code, so the Sandbox pod template must arrive hardened at
+      admission: no ambient service-account token, non-root with a runtime seccomp
+      profile, no capabilities, no privilege escalation, and a read-only root
+      filesystem. The default-deny NetworkPolicy in the workspace namespace is the
+      only network control on this path (upstream creates none for directly created
+      Sandboxes), so the sandbox-id label these rules require is what ties pods to
+      egress governance and audit evidence (ADR 0009).
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-sandbox-identity-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Sandbox
+      validate:
+        message: >-
+          Sandboxes must carry platform.ai/sandbox-id and platform.ai/traceable-sandbox
+          labels on the object and its pod template for egress and audit correlation.
+        pattern:
+          metadata:
+            labels:
+              platform.ai/sandbox-id: "?*"
+              platform.ai/traceable-sandbox: "true"
+          spec:
+            podTemplate:
+              metadata:
+                labels:
+                  platform.ai/sandbox-id: "?*"
+                  platform.ai/traceable-sandbox: "true"
+    - name: require-hardened-sandbox-pod-template
+      match:
+        any:
+          - resources:
+              kinds:
+                - Sandbox
+      validate:
+        message: >-
+          Sandbox pod templates must disable service-account token automount and run
+          as non-root with a RuntimeDefault seccomp profile.
+        pattern:
+          spec:
+            podTemplate:
+              spec:
+                automountServiceAccountToken: false
+                securityContext:
+                  runAsNonRoot: true
+                  seccompProfile:
+                    type: RuntimeDefault
+    - name: require-hardened-sandbox-containers
+      match:
+        any:
+          - resources:
+              kinds:
+                - Sandbox
+      validate:
+        message: >-
+          Sandbox containers must drop all capabilities, block privilege escalation,
+          and use a read-only root filesystem.
+        foreach:
+          - list: request.object.spec.podTemplate.spec.containers[]
+            pattern:
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL

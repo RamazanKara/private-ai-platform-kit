@@ -1,0 +1,44 @@
+apiVersion: agents.x-k8s.io/v1beta1
+kind: Sandbox
+metadata:
+  name: good-sandbox
+  namespace: ai-agents
+  labels:
+    platform.ai/sandbox-id: agent-lab
+    platform.ai/traceable-sandbox: "true"
+spec:
+  podTemplate:
+    metadata:
+      labels:
+        platform.ai/sandbox-id: agent-lab
+        platform.ai/traceable-sandbox: "true"
+    spec:
+      serviceAccountName: agent-runner
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: workspace
+          image: curlimages/curl:8.20.0
+          command:
+            - /bin/sh
+            - -c
+            - sleep infinity
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

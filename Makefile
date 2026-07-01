@@ -33,6 +33,9 @@ help:
 		'  make smoke                 Run gateway smoke test' \
 		'  make rag-smoke             Run RAG service smoke test' \
 		'  make agent-smoke           Run coding-agent workspace smoke test' \
+		'  make agent-sandbox-install Install the vendored agent-sandbox controller' \
+		'  make agent-sandbox-smoke   Run hardened agent-sandbox workspace smoke test' \
+		'  make agent-sandbox-demo    Demo: isolated workspace, fail-closed egress, evidence' \
 		'' \
 		'Validation:' \
 		'  make validate              Run the default repo validation gate' \
@@ -136,6 +139,15 @@ agent-lab-up:
 
 agent-smoke:
 	./scripts/agent-smoke.sh
+
+agent-sandbox-install:
+	./scripts/agent-sandbox-install.sh
+
+agent-sandbox-smoke:
+	./scripts/agent-sandbox-smoke.sh
+
+agent-sandbox-demo:
+	./scripts/agent-sandbox-demo.sh
 
 chaos-drill:
 	./scripts/chaos-drill.sh

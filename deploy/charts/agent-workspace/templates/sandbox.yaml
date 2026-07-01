@@ -1,0 +1,85 @@
+{{- if eq .Values.sandbox.runtime "agent-sandbox" }}
+{{- /* Hardened workspace on the kubernetes-sigs/agent-sandbox runtime (ADR 0009).
+       The Sandbox name equals sandbox.id, and the controller names the pod after
+       the Sandbox, so the gateway's X-Sandbox-ID binding is physical. Requires
+       the controller from `make agent-sandbox-install`. */}}
+apiVersion: agents.x-k8s.io/v1beta1
+kind: Sandbox
+metadata:
+  name: {{ .Values.sandbox.id }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "agent-workspace.labels" . | nindent 4 }}
+    platform.ai/traceable-sandbox: "true"
+spec:
+  {{- if .Values.workspace.shutdownTime }}
+  shutdownTime: {{ .Values.workspace.shutdownTime | quote }}
+  shutdownPolicy: {{ .Values.workspace.shutdownPolicy | default "Retain" | quote }}
+  {{- end }}
+  podTemplate:
+    metadata:
+      labels:
+        {{- include "agent-workspace.labels" . | nindent 8 }}
+        platform.ai/traceable-sandbox: "true"
+    spec:
+      {{- if .Values.sandbox.runtimeClassName }}
+      runtimeClassName: {{ .Values.sandbox.runtimeClassName | quote }}
+      {{- end }}
+      serviceAccountName: {{ include "agent-workspace.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: workspace
+          image: {{ .Values.workspace.container.image | quote }}
+          imagePullPolicy: IfNotPresent
+          {{- with .Values.workspace.container.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.workspace.container.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.workspace.pvc.enabled }}
+            - name: workspace
+              mountPath: {{ .Values.workspace.mountPath }}
+            {{- end }}
+            {{- if .Values.workspace.credentials.projectedToken.enabled }}
+            - name: platform-token
+              mountPath: {{ .Values.workspace.credentials.projectedToken.mountPath }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.workspace.pvc.enabled }}
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: {{ .Values.workspace.pvc.name }}
+        {{- end }}
+        {{- if .Values.workspace.credentials.projectedToken.enabled }}
+        {{- /* Audience-bound and short-lived: useless against the Kubernetes API
+               and self-expiring. Kept separate from the disabled default SA
+               automount, which stays off (Kyverno-enforced). */}}
+        - name: platform-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: {{ .Values.workspace.credentials.projectedToken.audience | quote }}
+                  expirationSeconds: {{ .Values.workspace.credentials.projectedToken.expirationSeconds }}
+                  path: token
+        {{- end }}
+{{- end }}

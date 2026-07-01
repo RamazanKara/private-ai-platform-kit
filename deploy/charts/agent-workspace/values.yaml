@@ -13,6 +13,13 @@ sandbox:
   externalEgressAllowed: true
   requirePrivateRegistry: false
   evidenceRetentionDays: ""
+  # namespace: envelope only (current behaviour). agent-sandbox: additionally
+  # render a hardened Sandbox (agents.x-k8s.io/v1beta1); requires the
+  # controller from `make agent-sandbox-install` (ADR 0009).
+  runtime: namespace
+  # Optional pod runtime class for the agent-sandbox path (e.g. gvisor) on
+  # clusters that provide kernel-level isolation runtimes.
+  runtimeClassName: ""
 
 serviceAccount:
   create: true
@@ -49,6 +56,34 @@ workspace:
     size: 10Gi
     storageClassName: ""
   mountPath: /workspace
+  # Workspace container for the agent-sandbox runtime; override image/command
+  # with the coding-agent runner. Ignored when sandbox.runtime is namespace.
+  container:
+    image: curlimages/curl:8.20.0
+    command:
+      - /bin/sh
+      - -c
+      - sleep infinity
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+  # Optional bounded lifetime for the sandbox (RFC 3339 timestamp).
+  shutdownTime: ""
+  shutdownPolicy: Retain
+  # Short-lived platform credential (agent-sandbox runtime only): a projected,
+  # audience-bound ServiceAccount token the kubelet rotates automatically. No
+  # long-lived secret enters the workspace; the gateway verifies it via its
+  # JWT/JWKS auth (jwt_auth_enabled + the cluster's service-account issuer).
+  credentials:
+    projectedToken:
+      enabled: false
+      audience: inference-gateway
+      expirationSeconds: 600
+      mountPath: /var/run/platform
 
 platform:
   gatewayUrl: http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080

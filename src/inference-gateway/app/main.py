@@ -43,7 +43,7 @@ TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2
 # canonical(record_i)). Matches paper/evidence-model/audit_chain.py so the live audit log
 # is verifiable by the same auditor tooling. The chain is per-process (per gateway replica).
 AUDIT_GENESIS = hashlib.sha256(b"genesis").hexdigest()
-SERVICE_VERSION = "0.13.0"
+SERVICE_VERSION = "0.14.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
@@ -836,8 +836,15 @@ def _write_audit_log(
 ) -> None:
     if not settings.audit_log_enabled:
         return
+    # Agent-action receipt semantics (ADR 0009): every sandbox-bound request is an
+    # action with an explicit decision, so the chain doubles as a receipt stream.
+    # Denials (admission, budget, guardrail block) carry decision=denied with the
+    # reason in `error`; the guardrail outcome is recorded even when allowed.
     event = {
         "event": "inference_request",
+        "action_type": "model_call",
+        "decision": "allowed" if status_code < 400 else "denied",
+        "guardrail_action": getattr(request.state, "output_guardrail_action", None),
         "request_id": request.state.request_id,
         "traceparent": request.state.traceparent,
         "sandbox_id": request.state.sandbox_id,
@@ -1723,6 +1730,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if resolved.audit_log_enabled:
                 event = {
                     "event": "batch_request",
+                    "action_type": "model_call",
+                    "decision": "allowed" if status_code < 400 else "denied",
                     "request_id": request.state.request_id,
                     "traceparent": request.state.traceparent,
                     "sandbox_id": request.state.sandbox_id,

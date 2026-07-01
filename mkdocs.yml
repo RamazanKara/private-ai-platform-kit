@@ -113,5 +113,6 @@ nav:
       - OWASP LLM Top 10 mapping: owasp-llm-top-10-mapping.md
       - AI governance crosswalk: ai-governance-crosswalk.md
       - Scope and non-goals: scope-and-non-goals.md
+      - Agent-sandbox integration design: agent-sandbox-integration.md
       - Architecture decision records: adr/README.md
       - Proof and strict evidence: proof.md

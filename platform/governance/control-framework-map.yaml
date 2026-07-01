@@ -91,6 +91,7 @@ spec:
         additionalRequirements:
           - Customer replaces the source-reference digest with a pinned model-store digest before production.
           - Coding-agent eval suite includes forbiddenAny secret-leak checks (platform/evals/coding-agent-suite.yaml).
+          - Coding-agent workspaces should enable the agent-sandbox runtime (C-ISOLATE) where the controller is installed; it is mandated at high tier.
         evidence:
           - results/evals/sample-summary.md
           - results/loadtest/sample-summary.md
@@ -115,11 +116,13 @@ spec:
           - C-SLO       # explicit SLO + burn-rate alert coverage
           - C-RETAIN    # documented retention + data-classification review
           - C-RBAC      # reviewed RBAC + human-oversight owner named
+          - C-ISOLATE   # agent workspaces on the hardened agent-sandbox runtime
         additionalRequirements:
           - Two named approvers on the promotion request (separation of duties is already enforced; high tier expects a documented human-oversight owner).
           - dataClassification reviewed and recorded; restricted data requires explicit sign-off in the customer handoff.
           - Strict release gate (make release-gate-strict) run against current evidence before promotion.
           - Operator confirms whether the deployment is EU AI Act high-risk and applies Article 9-15 obligations accordingly.
+          - Agent workspaces run sandbox.runtime agent-sandbox and pair it with a kernel-isolation runtime class (sandbox.runtimeClassName, e.g. gVisor) where the platform provides one.
         evidence:
           - results/evals/sample-summary.md
           - results/loadtest/sample-summary.md
@@ -408,6 +411,37 @@ spec:
         clauses:
           - "5.3: organizational roles, responsibilities, authorities"
           - "Annex A control area: roles and access for AI systems"
+    - id: C-ISOLATE
+      name: Hardened agent-sandbox workspace runtime
+      summary: >-
+        Coding-agent workspaces can run on the kubernetes-sigs/agent-sandbox
+        runtime (sandbox.runtime agent-sandbox in the agent-workspace chart): a
+        controller-managed Sandbox pod that is non-root, read-only-rootfs, has
+        no service-account token and no capabilities, optionally under a
+        kernel-isolation runtime class (gVisor/Kata). The hardened pod template
+        is admission-enforced by the Kyverno ai-platform-hardened-sandboxes
+        policy, and the smoke test proves non-catalog egress fails closed
+        (ADR 0009).
+      kit_implementation:
+        - deploy/charts/agent-workspace/templates/sandbox.yaml
+        - deploy/vendor/agent-sandbox/
+        - deploy/policies/kyverno/policies.yaml
+        - docs/agent-sandbox-integration.md
+      verification:
+        - make agent-sandbox-smoke
+        - make policy-test
+      nist_ai_rmf:
+        functions: [Manage]
+        categories:
+          - "MANAGE 4: blast radius of agent-executed code is contained"
+      eu_ai_act:
+        articles:
+          - "Article 15: cybersecurity (isolation of code-executing AI components)"
+          - "Article 12: record-keeping (sandbox identity labels tie execution to the audit chain)"
+      iso_42001:
+        clauses:
+          - "8.1: operational control"
+          - "Annex A control area: security of AI systems"
     - id: C-SUPPLY
       name: Supply-chain integrity
       summary: >-

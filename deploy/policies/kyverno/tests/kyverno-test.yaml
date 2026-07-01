@@ -12,6 +12,8 @@ resources:
   - resources/writable-root-pod.yaml
   - resources/encrypted-pvc.yaml
   - resources/unencrypted-pvc.yaml
+  - resources/good-sandbox.yaml
+  - resources/unhardened-sandbox.yaml
 results:
   - policy: ai-platform-required-labels
     rule: require-platform-labels
@@ -54,4 +56,28 @@ results:
     resources:
       - unencrypted-pvc
     kind: PersistentVolumeClaim
+    result: fail
+  - policy: ai-platform-hardened-sandboxes
+    rule: require-sandbox-identity-labels
+    resources:
+      - good-sandbox
+    kind: Sandbox
+    result: pass
+  - policy: ai-platform-hardened-sandboxes
+    rule: require-hardened-sandbox-containers
+    resources:
+      - good-sandbox
+    kind: Sandbox
+    result: pass
+  - policy: ai-platform-hardened-sandboxes
+    rule: require-hardened-sandbox-pod-template
+    resources:
+      - unhardened-sandbox
+    kind: Sandbox
+    result: fail
+  - policy: ai-platform-hardened-sandboxes
+    rule: require-hardened-sandbox-containers
+    resources:
+      - unhardened-sandbox
+    kind: Sandbox
     result: fail

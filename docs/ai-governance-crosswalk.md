@@ -83,8 +83,9 @@ shipped catalog is rated high; this tier is reserved for the operator to apply w
 case warrants it. It is the tier most likely to make the deployment EU AI Act high-risk.
 
 Mandated controls: everything in medium, plus explicit SLO and burn-rate alert coverage (`C-SLO`),
-documented retention and data-classification review (`C-RETAIN`), and reviewed RBAC with a named
-human-oversight owner (`C-RBAC`). High-tier promotion expects:
+documented retention and data-classification review (`C-RETAIN`), reviewed RBAC with a named
+human-oversight owner (`C-RBAC`), and coding-agent workspaces on the hardened agent-sandbox runtime
+(`C-ISOLATE`). High-tier promotion expects:
 
 - Two named approvers on the promotion request. Separation of duties (requester is not an approver)
   is already enforced by [`scripts/model-catalog.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-catalog.py); high tier adds a
@@ -94,6 +95,8 @@ human-oversight owner (`C-RBAC`). High-tier promotion expects:
 - `make release-gate-strict` run against current evidence before promotion.
 - The operator confirms whether the deployment is EU AI Act high-risk and applies the Article 9-15
   obligations accordingly.
+- Agent workspaces run `sandbox.runtime: agent-sandbox`, paired with a kernel-isolation runtime
+  class (`sandbox.runtimeClassName`, e.g. gVisor) where the platform provides one.
 
 ## Control crosswalk
 
@@ -114,6 +117,7 @@ obligations it contributes evidence toward. Control IDs match
 | `C-SLO` SLOs and error-budget alerting | `platform/slo/objectives.yaml`, `release-gates.yaml` | `make slo-check` | Measure, Manage | Art. 15, 72 | 9.1, 10.1 |
 | `C-RETAIN` Data retention and classification | `platform/governance/data-retention.yaml`, `scripts/retention-check.py` | `make retention-check` | Govern, Manage | Art. 10, 12 | 7.5, data mgmt |
 | `C-RBAC` RBAC, isolation, human oversight | `deploy/charts/agent-workspace/`, `deploy/policies/kyverno/policies.yaml` | `make agent-smoke`, `make policy-test` | Govern, Manage | Art. 14, 15 | 5.3, access mgmt |
+| `C-ISOLATE` Hardened agent-sandbox workspace runtime | `deploy/charts/agent-workspace/templates/sandbox.yaml`, `deploy/vendor/agent-sandbox/` | `make agent-sandbox-smoke`, `make policy-test` | Manage | Art. 12, 15 | 8.1, security |
 | `C-SUPPLY` Supply-chain integrity | `.github/workflows/ci.yml`, `deploy/policies/kyverno/policies.yaml` | `make supply-chain-check`, `make image-scan` | Map, Manage | Art. 11, 15 | 8.1, supplier mgmt |
 
 For the exact category, article, and clause text behind each citation, see the `controls` list in
@@ -130,8 +134,8 @@ The four NIST AI RMF functions map to the kit as follows.
 - **Measure.** Evaluation and monitoring: eval evidence on promotion (`C-EVAL`), audit logging
   (`C-AUDIT`), admission/budget measurement (`C-ADMIT`), and SLOs (`C-SLO`).
 - **Manage.** Containment and response: approved-only serving (`C-ALLOW`), egress governance
-  (`C-EGRESS`), prompt secret detection (`C-SECRET`), budgets (`C-ADMIT`), and signed-image admission
-  (`C-SUPPLY`).
+  (`C-EGRESS`), prompt secret detection (`C-SECRET`), budgets (`C-ADMIT`), kernel-isolated agent
+  workspaces (`C-ISOLATE`), and signed-image admission (`C-SUPPLY`).
 
 ## EU AI Act technical-obligation coverage
 
@@ -151,8 +155,8 @@ Chapter III, Section 2 technical obligations:
 - **Article 14 (human oversight).** Named-owner RBAC and scoped workspace access (`C-RBAC`); the
   promotion approval gate keeps a human in the deployment loop (`C-PROMO`).
 - **Article 15 (accuracy, robustness, cybersecurity).** Eval evidence (`C-EVAL`), admission limits and
-  budgets (`C-ADMIT`), SLOs (`C-SLO`), egress containment (`C-EGRESS`), and signed-image admission
-  (`C-SUPPLY`).
+  budgets (`C-ADMIT`), SLOs (`C-SLO`), egress containment (`C-EGRESS`), isolation of code-executing
+  agent workspaces (`C-ISOLATE`), and signed-image admission (`C-SUPPLY`).
 - **Article 72 (post-market monitoring).** SLO burn-rate alerting and the audit/metrics surface
   (`C-SLO`, `C-AUDIT`) feed operational monitoring; reporting to authorities remains the operator's.
 

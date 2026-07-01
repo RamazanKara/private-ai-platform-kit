@@ -41,6 +41,17 @@ The kit is not the best tool for every job. Several mature open-source projects 
 
 Container images are published multi-arch (`linux/amd64` and `linux/arm64`), so the kit runs unchanged on Apple Silicon developer laptops and on arm64 nodes (AWS Graviton, Azure/GCP Ampere) as well as x86_64 clusters.
 
+## Agent Workspace Isolation
+
+Coding-agent workspaces default to namespace isolation, which works on any conformant cluster.
+Enable the hardened agent-sandbox runtime (`sandbox.runtime: agent-sandbox` after
+`make agent-sandbox-install`) when workspaces execute untrusted or model-generated code at the
+`medium`/`high` governance risk tiers, and pair it with a kernel-isolation runtime class
+(`sandbox.runtimeClassName`, e.g. gVisor) where the cluster provides one — mandated at the `high`
+tier (`C-ISOLATE`). NetworkPolicy enforcement requires a policy-capable CNI; `make
+agent-sandbox-smoke` verifies fail-closed egress and detects non-enforcing CNIs. See
+[agent-sandbox-integration.md](agent-sandbox-integration.md) and ADR 0009.
+
 ## Maturity Position
 
 The project is usable as a reference implementation and local/customer lab. Treat production use as a controlled handoff: replace sample evidence with current evidence, wire customer identity and secrets, size runtime capacity, validate backups, and run strict release gates.

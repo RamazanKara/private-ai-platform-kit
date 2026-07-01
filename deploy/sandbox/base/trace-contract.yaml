@@ -17,9 +17,12 @@ data:
     X-API-Key: API key for gateway and RAG business endpoints when auth is enabled.
     traceparent: optional W3C trace context value propagated to the runtime.
   audit-event-fields: |
-    event, request_id, traceparent, sandbox_id, backend, model, status_code,
-    runtime_status_code, latency_ms, message_count, message_roles, prompt_chars,
-    prompt_sha256, usage, error.
+    event, action_type, decision, guardrail_action, request_id, traceparent,
+    sandbox_id, backend, model, status_code, runtime_status_code, latency_ms,
+    message_count, message_roles, prompt_chars, prompt_sha256, usage, error.
+    Receipt semantics: action_type identifies the agent action (model_call),
+    decision is allowed or denied (denials carry the reason in error), and
+    guardrail_action records the output-guardrail outcome when it fired.
   prompt-handling: |
     The gateway logs prompt length and SHA-256 fingerprint only. It must not log
     raw prompt text in audit events.

@@ -8,6 +8,44 @@ All notable changes to this project are documented in this file. The format is b
 
 A repository-wide review pass (services, deploy tree, docs, CI) fixing drift,
 resilience gaps, and controls that shipped but never actually deployed or fired.
+Plus: coding-agent workspaces gain an optional hardened runtime on
+kubernetes-sigs/agent-sandbox (ADR 0009).
+
+### Added
+
+- Hardened coding-agent workspace runtime on kubernetes-sigs/agent-sandbox v0.5.0
+  (ADR 0009): `sandbox.runtime: agent-sandbox` in the agent-workspace chart renders a
+  hardened `Sandbox` (non-root, read-only root filesystem, no service-account token,
+  optional kernel-isolation runtime class) bound 1:1 to the gateway's `X-Sandbox-ID`;
+  vendored, checksummed controller manifests installed via `make agent-sandbox-install`.
+- Kyverno `ai-platform-hardened-sandboxes` policy enforcing sandbox identity labels and
+  the hardened pod template at admission, with good/bad test resources.
+- `make agent-sandbox-smoke`: hardening contract, DNS positive control, and a
+  fail-closed probe against a non-catalog destination, with detection of
+  NetworkPolicy-incapable CNIs (kindnet) instead of a vacuous pass.
+- `make agent-sandbox-demo`: controller install → hardened workspace → blocked
+  exfiltration → evidence pack, with the governed model path exercised when the
+  gateway is deployed.
+- Governance: `C-ISOLATE` control in `platform/governance/control-framework-map.yaml`
+  and the AI-governance crosswalk (recommended at `medium` tier, mandated at `high`);
+  evidence pack gained static agent-sandbox asset checks and a live controller check;
+  threat model documents the agent-workspace isolation boundary.
+- Agent-action receipts: gateway audit events now carry `action_type`, `decision`
+  (`allowed`/`denied` — covering admission rejects, budget exhaustion, and guardrail
+  blocks, with the reason in `error`), and `guardrail_action`, turning the
+  tamper-evident chain into a per-action receipt stream for sandbox workloads.
+- Short-lived workspace credential (`workspace.credentials.projectedToken`): an
+  opt-in projected, audience-bound ServiceAccount token (kubelet-rotated, min 600 s
+  TTL) replaces long-lived secrets in agent workspaces; path and audience are
+  published in the `agent-platform-contract` ConfigMap, and the gateway verifies it
+  via its existing JWT/JWKS auth.
+- `make agent-sandbox-demo` now drives a real coding agent (aider) inside the
+  hardened sandbox against the governed gateway on the full lab: allowed and denied
+  receipts on the audit chain, sandbox-id attribution via model extra headers, and
+  honest degradation notes when the local CPU model is too small to complete the
+  coding task. The smoke also detects pod drift from Sandbox template changes
+  (image/volumes) and refreshes the singleton pod, and adopts pre-existing
+  GitOps-managed namespaces instead of fighting Helm ownership.
 
 ### Fixed
 

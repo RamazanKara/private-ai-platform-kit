@@ -2252,6 +2252,54 @@ def test_audit_log_redacts_prompt_content(caplog):
     assert "secret customer prompt" not in caplog.text
 
 
+def test_audit_events_carry_agent_action_receipts(caplog):
+    caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://ollama:11434",
+        vllm_base_url="http://vllm:8000",
+        model_id="default-model",
+        request_timeout_seconds=5,
+        max_prompt_chars=64,
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient(
+        response={
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "choices": [{"message": {"role": "assistant", "content": "ok"}}],
+        }
+    )
+    client = TestClient(app)
+
+    allowed = client.post(
+        "/v1/chat/completions",
+        headers={"X-Request-ID": "receipt-allowed", "X-Sandbox-ID": "agent-lab"},
+        json={"messages": [{"role": "user", "content": "short prompt"}]},
+    )
+    denied = client.post(
+        "/v1/chat/completions",
+        headers={"X-Request-ID": "receipt-denied", "X-Sandbox-ID": "agent-lab"},
+        json={"messages": [{"role": "user", "content": "x" * 200}]},
+    )
+
+    assert allowed.status_code == 200
+    assert denied.status_code == 400
+    events = [
+        json.loads(record.getMessage()) for record in caplog.records if record.name == "ai_platform_ops_lab.audit"
+    ]
+    receipts = {event["request_id"]: event for event in events if event.get("event") == "inference_request"}
+    assert receipts["receipt-allowed"]["action_type"] == "model_call"
+    assert receipts["receipt-allowed"]["decision"] == "allowed"
+    assert receipts["receipt-allowed"]["sandbox_id"] == "agent-lab"
+    assert receipts["receipt-denied"]["action_type"] == "model_call"
+    assert receipts["receipt-denied"]["decision"] == "denied"
+    assert receipts["receipt-denied"]["error"]
+    # Receipts stay chained: both records must carry chain hashes.
+    assert receipts["receipt-allowed"]["record_hash"]
+    assert receipts["receipt-denied"]["prev_hash"]
+
+
 def test_runtime_client_retries_non_streaming_requests(monkeypatch):
     calls = {"count": 0}
 

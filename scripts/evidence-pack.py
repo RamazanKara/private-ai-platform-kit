@@ -461,6 +461,21 @@ def static_controls() -> list[Control]:
             "Keep customer-specific evaluation and load results with release evidence.",
         ),
         control(
+            "Agent-sandbox workspace runtime",
+            exists(
+                "deploy/vendor/agent-sandbox/v0.5.0/manifest.yaml",
+                "deploy/vendor/agent-sandbox/v0.5.0/extensions.yaml",
+                "deploy/charts/agent-workspace/templates/sandbox.yaml",
+                "docs/adr/0009-adopt-agent-sandbox-workspace-runtime.md",
+            )
+            and executable("scripts/agent-sandbox-install.sh")
+            and executable("scripts/agent-sandbox-smoke.sh")
+            and "ai-platform-hardened-sandboxes" in read_text("deploy/policies/kyverno/policies.yaml"),
+            "Coding-agent workspaces can run on the vendored kubernetes-sigs/agent-sandbox runtime with a hardened, Kyverno-enforced pod template and a fail-closed egress smoke (C-ISOLATE).",
+            ["deploy/vendor/agent-sandbox/", "deploy/charts/agent-workspace/templates/sandbox.yaml", "deploy/policies/kyverno/policies.yaml", "docs/agent-sandbox-integration.md"],
+            "Install the controller (make agent-sandbox-install) and set sandbox.runtime agent-sandbox for medium/high-tier agent workspaces; run make agent-sandbox-smoke for live proof.",
+        ),
+        control(
             "Production validation command",
             executable("scripts/production-check.py") and executable("scripts/validate.sh") and "Evidence pack" in production_doc,
             "`make validate` and `make production-check` include static readiness gates.",
@@ -523,6 +538,30 @@ def live_controls() -> list[Control]:
             customer_action="Confirm the storage class and quota support the requested workspace size.",
         )
     )
+
+    crd_ok, _, _ = kubectl_json(["get", "crd", "sandboxes.agents.x-k8s.io"])
+    if crd_ok:
+        dep_ok, dep, error = kubectl_json(["-n", "agent-sandbox-system", "get", "deployment", "agent-sandbox-controller"])
+        available = nested(dep, "status", "availableReplicas", default=0) or 0
+        checks.append(
+            Control(
+                area="Live agent-sandbox controller",
+                status="pass" if dep_ok and available >= 1 else "fail",
+                summary=f"agent-sandbox controller has {available} available replica(s)." if dep_ok else f"Controller is not reachable: {error}",
+                evidence=["kubectl -n agent-sandbox-system get deployment agent-sandbox-controller"],
+                customer_action="Re-run make agent-sandbox-install or inspect the controller rollout before relying on the sandbox runtime.",
+            )
+        )
+    else:
+        checks.append(
+            Control(
+                area="Live agent-sandbox controller",
+                status="pass",
+                summary="agent-sandbox CRDs are not installed; workspaces run on namespace isolation only and C-ISOLATE is not claimed.",
+                evidence=["kubectl get crd sandboxes.agents.x-k8s.io"],
+                customer_action="Install the runtime with make agent-sandbox-install to claim C-ISOLATE at medium/high risk tiers.",
+            )
+        )
     return checks
 
 

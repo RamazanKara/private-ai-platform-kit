@@ -7,6 +7,8 @@ sandbox:
   owner: agent-platform
   costCenter: research
   environment: local
+  # Flip to agent-sandbox after `make agent-sandbox-install` (ADR 0009).
+  runtime: namespace
 
 workspace:
   pvc:
