@@ -8,13 +8,23 @@
 ![Helm](https://img.shields.io/badge/Helm-charts-0F1689)
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB)
 
-Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs, RAG, and coding-agent workspaces. It starts on a local `kind` cluster with Ollama, then uses the same Helm charts, GitOps layout, policies, runbooks, and evidence checks on customer-owned clusters with vLLM and GPU nodes.
-
-It is designed for teams that want the operating model of a production AI platform without depending on a specific cloud provider.
+Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs, RAG, and coding-agent workspaces. It starts on a local `kind` cluster with Ollama, then uses the same Helm charts, GitOps layout, policies, runbooks, and evidence checks on customer-owned clusters with vLLM and GPU nodes — the operating model of a production AI platform, without depending on a specific cloud provider.
 
 Current release: `v0.13.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
-[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) | [Quickstart](docs/quickstart.md) | [Decision guide](docs/decision-guide.md) | [Production readiness](docs/production-readiness.md) | [Proof](docs/proof.md) | [Runbooks](docs/README.md) | [Contributing](CONTRIBUTING.md) | [Security](SECURITY.md)
+**Who it's for:** platform / SRE teams evaluating a private-AI stack → start with the [Decision guide](docs/decision-guide.md); operators running it → [Runbooks](runbooks/README.md); security & compliance reviewers → [Security overview](docs/security-overview.md), [OWASP LLM Top 10 mapping](docs/owasp-llm-top-10-mapping.md), and the [Threat model](docs/threat-model.md).
+
+[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) · [Quickstart](docs/quickstart.md) · [Architecture](docs/architecture.md) · [Decision guide](docs/decision-guide.md) · [Production readiness](docs/production-readiness.md) · [Docs map](docs/README.md)
+
+## Quickstart
+
+Docker is the only prerequisite. One guided command creates a local `kind` cluster, bootstraps Argo CD, syncs the stack, and runs an Ollama-backed smoke test:
+
+```bash
+make quickstart
+```
+
+See [docs/quickstart.md](docs/quickstart.md) for expected output, timing, disk needs, and troubleshooting, or [Run It Locally](#run-it-locally) below for the step-by-step path.
 
 ## Live Demo
 
@@ -26,53 +36,33 @@ The demo is generated from [scripts/demo-live.sh](scripts/demo-live.sh).
 
 ## What You Get
 
-- OpenAI-compatible gateway for private chat-completion traffic.
-- Local Ollama profile for fast laptop demos and vLLM profiles for NVIDIA or AMD GPU clusters.
-- Multi-replica gateway and runtime options with HPA, PodDisruptionBudgets, topology spread, and shared Redis-backed sandbox budgets.
-- Locked-down coding-agent workspaces with namespace isolation, PVC storage, RBAC, quotas, default-deny networking, approved egress, and RAG access.
-- RAG service with local lexical retrieval and an optional Qdrant vector-store profile for customer knowledge bases.
-- Model governance with approved-only gateway allowlists, promotion requests, provenance records, and eval suites.
-- Operational controls for SLOs, release gates, quota and chargeback, data retention, egress governance, restore drills, chaos drills, evidence packs, SBOMs, scans, signed images, provenance attestations, and OpenSSF Scorecard.
+- **Inference gateway** — OpenAI-compatible chat, embeddings, moderations, and batch endpoints; API-key and JWT/JWKS auth with per-tenant sandbox binding; model allowlists, admission limits, per-sandbox budgets, and rate limiting; input prompt-secret detection and a response-path output guardrail (flag / redact / block); a shared Redis response cache; progressive delivery (canary + shadow) and cross-runtime failover; a tamper-evident audit chain that never logs raw prompt text.
+- **Model serving** — Ollama for laptop/`kind` and vLLM for NVIDIA or AMD GPUs from the same charts, with first-class prefix caching, FP8/AWQ quantization, guided/speculative decoding, MIG guidance, and HPA/KEDA, PodDisruptionBudgets, and topology spread.
+- **RAG** — hybrid dense + lexical retrieval with an optional cross-encoder reranker and per-tenant retrieval isolation; a local lexical profile or a persistent Qdrant vector store; RAGAS-style faithfulness and context-precision evals.
+- **Coding-agent workspaces** — locked-down namespaces with PVC storage, RBAC, quotas, default-deny networking, catalog-approved egress, and gated RAG access.
+- **Governance & compliance** — approved-only model catalog with promotion requests, provenance, and per-model model cards; a safety / jailbreak release gate; production drift monitoring; an OWASP LLM Top 10 mapping and a NIST AI RMF / EU AI Act / ISO 42001 crosswalk.
+- **Operations & evidence** — SLOs and release gates, quota/chargeback, data retention, egress governance; Prometheus + Grafana, Tempo tracing, Loki logs, and cost/OpenCost dashboards; Pod Security Admission, an opt-in encryption-in-transit overlay, and optional Falco runtime detection; restore and chaos drills plus a disaster-recovery runbook; SBOMs, Trivy scans, Cosign-signed images, provenance attestations, OpenSSF Scorecard, and evidence packs.
 
 ## How It Works
 
 ![Private AI Platform Kit architecture](docs/assets/architecture.svg)
 
-Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway forwards traffic to Ollama or vLLM based on `RUNTIME_BACKEND`, enforces model allowlists and admission limits, records Prometheus metrics, and emits redacted audit events. Callers can pass `X-Request-ID`, `X-Sandbox-ID`, and W3C `traceparent`; the gateway returns and forwards those headers without logging raw prompt text.
+Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway authenticates the caller, enforces model allowlists and admission limits, applies input and output guardrails, routes to Ollama or vLLM (with failover), records Prometheus metrics, and emits redacted audit events. Callers can pass `X-Request-ID`, `X-Sandbox-ID`, and W3C `traceparent`; the gateway returns and forwards those headers without logging raw prompt text.
 
-The local lab runs fully on `kind`. Customer clusters keep the same repo structure and replace only the platform services they already operate: ingress, storage classes, secret backends, logging, observability, and GPU node pools.
+The local lab runs fully on `kind`. Customer clusters keep the same repo structure and replace only the platform services they already operate: ingress, storage classes, secret backends, logging, observability, and GPU node pools. Per-profile diagrams (local, customer GPU, and regulated-offline) and an end-to-end request-flow walkthrough live in [docs/architecture.md](docs/architecture.md).
 
 ## Run It Locally
 
-For a guided first run:
-
-```bash
-make quickstart
-```
-
-Use `QUICKSTART_INSTALL_TOOLS=1 make quickstart` to install optional validation CLIs into `.tools/bin`, or `QUICKSTART_DIRECT_APPLY=1 make quickstart` to use direct Helm apply instead of Argo CD for a workstation check.
-
-Install or verify the local toolchain:
-
-```bash
-make toolchain-doctor
-make toolchain-install
-```
-
-Make targets and repo scripts automatically discover tools installed under `.tools/bin`.
+For a guided first run, use `make quickstart` (above). Use `QUICKSTART_INSTALL_TOOLS=1 make quickstart` to install optional validation CLIs into `.tools/bin`, or `QUICKSTART_DIRECT_APPLY=1 make quickstart` to use direct Helm apply instead of Argo CD for a workstation check.
 
 Validate the repo without a live cluster:
 
 ```bash
-make validate
-make quality
-make production-check
-make repo-hygiene
-make api-contract
-make config-contract
+make validate          # tests, lint, type-check, chart render, contracts, governance
+make production-check   # static production-readiness checks
 ```
 
-Start the local platform and run an Ollama-backed smoke test:
+Start the local platform and run an Ollama-backed smoke test step by step:
 
 ```bash
 make local-up
@@ -83,13 +73,11 @@ make smoke RUNTIME_BACKEND=ollama
 
 The default local model is `qwen2.5:0.5b`, a fast non-reasoning model that keeps the laptop CPU smoke quick; the larger `qwen3.5:0.8b` reasoning model is the customer Ollama profile default. A real model pull can take time and disk space on the first run.
 
-For expected output, timing, disk requirements, and troubleshooting, follow [docs/quickstart.md](docs/quickstart.md). For the full local path, including sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates, follow [docs/getting-started.md](docs/getting-started.md).
+For the full local path — sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates — follow [docs/getting-started.md](docs/getting-started.md).
 
 ## Support Boundaries
 
-This project provides Kubernetes manifests, Helm charts, service code, validation tooling, and operational runbooks. It does not provision cloud infrastructure, operate your Kubernetes cluster, host customer models, or replace your identity provider, secret manager, logging stack, backup platform, or incident process.
-
-Use [docs/decision-guide.md](docs/decision-guide.md) to decide whether the kit is a fit before adopting it.
+This project provides Kubernetes manifests, Helm charts, service code, validation tooling, and operational runbooks. It does not provision cloud infrastructure, operate your Kubernetes cluster, host customer models, or replace your identity provider, secret manager, logging stack, backup platform, or incident process. See [docs/scope-and-non-goals.md](docs/scope-and-non-goals.md) for the full scope boundary, and [docs/decision-guide.md](docs/decision-guide.md) to decide whether the kit is a fit.
 
 ## Customer-Owned Kubernetes
 
@@ -102,78 +90,50 @@ make customer-overlay \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
-NVIDIA clusters should expose `nvidia.com/gpu`; AMD clusters should expose `amd.com/gpu`. Label GPU nodes with `platform.ai/node-pool=gpu` and `platform.ai/gpu-vendor=<nvidia|amd>`, then use:
-
-- [deploy/clusters/customer/values/vllm-nvidia.yaml](deploy/clusters/customer/values/vllm-nvidia.yaml)
-- [deploy/clusters/customer/values/vllm-amd.yaml](deploy/clusters/customer/values/vllm-amd.yaml)
-
-The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next` for coding-agent workloads. Tune replica count, context length, tensor parallelism, and GPU requests to the customer cluster before production use.
+NVIDIA clusters should expose `nvidia.com/gpu`; AMD clusters should expose `amd.com/gpu`. Label GPU nodes with `platform.ai/node-pool=gpu` and `platform.ai/gpu-vendor=<nvidia|amd>`, then use the [NVIDIA](deploy/clusters/customer/values/vllm-nvidia.yaml) or [AMD](deploy/clusters/customer/values/vllm-amd.yaml) vLLM profile (quantized [FP8](deploy/clusters/customer/values/vllm-nvidia-fp8.yaml) / [AWQ](deploy/clusters/customer/values/vllm-nvidia-awq.yaml) variants are also provided). The default customer vLLM profile targets `Qwen/Qwen3-Coder-Next`; tune replica count, context length, tensor parallelism, and GPU requests before production use.
 
 ## Docs
+
+Popular starting points — see the [full documentation map](docs/README.md) for everything:
 
 | Need | Start here |
 | --- | --- |
 | First local run | [Quickstart](docs/quickstart.md) |
 | Full local workflow | [Getting started](docs/getting-started.md) |
-| Project fit | [Decision guide](docs/decision-guide.md) |
+| How the pieces fit | [Architecture](docs/architecture.md) |
+| Is this for you | [Decision guide](docs/decision-guide.md) |
 | Production controls | [Production readiness matrix](docs/production-readiness.md) |
-| Current proof and strict evidence | [Project proof](docs/proof.md) |
-| Threat model | [Threat model](docs/threat-model.md) |
-| Benchmarks and evals | [Benchmarks and evals](docs/benchmarks-and-evals.md) |
-| API contracts | [API contract snapshots](platform/api-contracts/README.md) |
-| Configuration contracts | [Configuration contract snapshots](platform/config-contracts/README.md) |
-| Full documentation map | [Docs index](docs/README.md) |
-| Contributor workflow | [Contributing](CONTRIBUTING.md) |
-| Security policy | [Security](SECURITY.md) |
-| Governance | [Governance](GOVERNANCE.md) |
-| Roadmap | [Roadmap](ROADMAP.md) |
-| Customer cluster assumptions | [Customer cluster README](deploy/clusters/customer/README.md) |
-| Customer handoff example | [Customer handoff example](docs/customer-handoff-example.md) |
-| Regulated offline tenant example | [Regulated offline tenant](docs/regulated-offline-tenant-example.md) |
-| GPU coding-agent tenant example | [GPU coding-agent tenant](docs/gpu-coding-agent-tenant-example.md) |
-| Restore verification | [Restore drill runbook](runbooks/restore-drill.md) |
-| Coding-agent workspaces | [Agent workspaces runbook](runbooks/agent-workspaces.md) |
-| Model governance | [Model governance runbook](runbooks/model-governance.md) |
-| OIDC / JWKS rotation | [OIDC/JWKS rotation runbook](runbooks/oidc-jwks-rotation.md) |
-| OpenSSF Scorecard triage | [Scorecard triage runbook](runbooks/scorecard-triage.md) |
-| Qdrant collection migration | [Qdrant migration runbook](runbooks/qdrant-migration.md) |
-| Upstream references | [References](docs/references.md) |
+| Security & compliance | [Security overview](docs/security-overview.md) · [OWASP LLM Top 10](docs/owasp-llm-top-10-mapping.md) · [Threat model](docs/threat-model.md) |
+| Operations | [Runbooks](runbooks/README.md) |
+| Design decisions | [Architecture decision records](docs/adr/README.md) |
+| Contributing / Security policy | [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) |
 
 ## Repo Map
 
 | Path | Purpose |
 | --- | --- |
-| `deploy/charts/` | Helm charts for gateway, runtimes, RAG, vector store, budget Redis, and agent workspaces |
+| `deploy/charts/` | Helm charts for gateway, runtimes, RAG, vector store, budget Redis, agent workspaces, and the umbrella install chart |
 | `deploy/clusters/local/` | Local `kind` and Argo CD values |
-| `deploy/clusters/customer/` | Provider-neutral customer cluster values |
+| `deploy/clusters/customer/` | Provider-neutral customer cluster values and the encryption-in-transit overlay |
 | `src/` | Gateway and RAG service code |
-| `platform/api-contracts/` | Versioned OpenAPI snapshots for customer-facing services |
-| `platform/config-contracts/` | Versioned runtime configuration snapshots for services and Helm charts |
+| `platform/api-contracts/`, `platform/config-contracts/` | Versioned OpenAPI and runtime-config snapshots for customer-facing services |
+| `platform/governance/`, `platform/model-catalog/`, `platform/network/`, `platform/slo/` | Reviewed policy, model catalog + cards, and evidence inputs |
 | `runbooks/` | Operational procedures and incident drills |
-| `platform/governance/`, `platform/model-catalog/`, `platform/network/`, `platform/slo/` | Reviewed policy and evidence inputs |
+| `docs/` | Documentation site sources, ADRs, and architecture diagrams |
 | `results/` | Sample evidence artifacts; generated reports are ignored by default |
-| `deploy/backup/restore-drill/` | Restore-drill wrapper around `RamazanKara/restore-drill` |
 
-## Evidence Commands
+## Evidence & Supply Chain
+
+Representative evidence commands (see the [release-gates](runbooks/release-gates.md) and [evidence-pack](runbooks/evidence-pack.md) runbooks for the full set):
 
 ```bash
-make evidence
-make release-gate
-make release-gate-strict
-make slo-check
-make quota-check
-make model-check
-make model-provenance-check
-make loadtest-local
-make eval-local
-make toolchain-report TOOLCHAIN_PROFILE=strict
-make api-contract
-make config-contract
-make image-scan
-make supply-chain-check
+make evidence               # generate the customer evidence pack
+make release-gate-strict    # gate on current eval, load, safety, SLO, supply-chain, and restore evidence
+make eval-local             # scored evals against an ephemeral mock runtime
+make supply-chain-check     # validate local image SBOM/SARIF/checksum evidence
 ```
 
-Runtime images use a pinned Alpine Python base and exclude test-only dependencies. Local image scans generate SBOM, SARIF, checksum, and summary evidence under `results/supply-chain/`. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
+Runtime images use a pinned Alpine Python base and exclude test-only dependencies. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
 
 ## Trademark Notice
 

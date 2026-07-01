@@ -17,9 +17,13 @@ Use this map when the README is too high-level and you need a specific setup, op
 | 15-30 minute local quickstart | [Quickstart](quickstart.md) |
 | Local setup and validation flow | [Getting started](getting-started.md) |
 | Project fit and alternatives | [Decision guide](decision-guide.md) |
+| Common questions | [FAQ](faq.md) |
+| Glossary of kit terms | [Glossary](glossary.md) |
 | Production control matrix | [Production readiness](production-readiness.md) |
 | Project proof and strict evidence | [Proof](proof.md) |
 | Release artifact verification | [Release verification](release-verification.md) |
+| Pinned / tested version matrix | [Version matrix](version-matrix.md) |
+| Security surface index | [Security overview](security-overview.md) |
 | Threat model | [Threat model](threat-model.md) |
 | Architecture profiles and diagrams | [Architecture](architecture.md) |
 | Architecture decision records | [ADRs](adr/README.md) |
@@ -45,6 +49,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Need | Document |
 | --- | --- |
 | API-key access model | [API access](../runbooks/api-access.md) |
+| Client and SDK examples | [Client API examples](client-examples.md) |
 | Benchmark and eval interpretation | [Benchmarks and evals](benchmarks-and-evals.md) |
 | API contract snapshots | [API contracts](../platform/api-contracts/README.md) |
 | Configuration contract snapshots | [Configuration contracts](../platform/config-contracts/README.md) |

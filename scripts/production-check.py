@@ -775,6 +775,13 @@ def check_release_packaging(errors: list[str]) -> None:
         text = (ROOT / path).read_text()
         require(errors, f"CUSTOMER_REVISION={release_tag}" in text, f"{path} must show CUSTOMER_REVISION={release_tag}")
 
+    index_text = (ROOT / "docs/index.md").read_text()
+    require(
+        errors,
+        f"Current release `{release_tag}`" in index_text,
+        f"docs/index.md Maturity admonition must show Current release {release_tag}",
+    )
+
     for path in ("src/inference-gateway/app/main.py", "src/rag-service/app/main.py"):
         text = (ROOT / path).read_text()
         require(errors, f'SERVICE_VERSION = "{release_version}"' in text, f"{path} SERVICE_VERSION must match latest CHANGELOG version")

@@ -58,7 +58,7 @@ Run `scripts/seed-roadmap-issues.sh` to print the seed commands, or `scripts/see
 
 ## Remaining External / Operator-Owned Work
 
-The feature-gap remediation pass closed the audit findings in-tree (see CHANGELOG Unreleased):
+The feature-gap remediation pass closed the audit findings in-tree (see the CHANGELOG v0.12.0 and v0.13.0 entries):
 progressive delivery (canary/A-B/shadow), the batch API, age-based retention purge,
 encryption-at-rest policy, the usage+cost API, self-service onboarding apply, the first-party
 SDK, and embedding-model governance all ship. What remains is inherently external to the kit's

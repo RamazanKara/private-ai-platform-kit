@@ -15,7 +15,8 @@ enforces that they all match the latest `CHANGELOG.md` version:
 - the `inference-gateway` and `rag-service` chart image tags (`deploy/charts/*/values.yaml`),
 - every chart `version` and the service `appVersion`,
 - `SERVICE_VERSION` in the gateway and RAG service code and the OpenAPI `info.version`,
-- the `CUSTOMER_REVISION=<tag>` examples in `README.md`, `docs/getting-started.md`, and `deploy/clusters/customer/README.md`.
+- the `CUSTOMER_REVISION=<tag>` examples in `README.md`, `docs/getting-started.md`, and `deploy/clusters/customer/README.md`,
+- the `docs/index.md` Maturity admonition ("Current release `vX.Y.Z`").
 
 CI builds and signs the images at that tag (see the build/release controls in
 `docs/threat-model.md`). For an operator promoting a published release you do
@@ -24,8 +25,8 @@ not rebuild images -- you point GitOps at the tag whose images already exist.
 ## The Promotion Lever: CUSTOMER_REVISION
 
 The customer overlay deploys from an immutable Git tag, not a branch. The root
-Application `deploy/gitops/argocd/root-app-customer.yaml` is pinned (currently
-`targetRevision: v0.10.0`) and every child Application in `deploy/clusters/customer/apps.yaml`
+Application `deploy/gitops/argocd/root-app-customer.yaml` is pinned to an immutable
+release tag (see the file for the current value) and every child Application in `deploy/clusters/customer/apps.yaml`
 runs under the `private-ai-platform` AppProject (`deploy/clusters/customer/appprojects.yaml`),
 which locks `sourceRepos` to the approved repo. **Moving `CUSTOMER_REVISION` to a
 new tag is the canonical promotion.** `make customer-overlay-check` rejects

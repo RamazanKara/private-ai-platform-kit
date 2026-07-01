@@ -15,20 +15,21 @@ It is for teams that want the operating model of a production AI platform withou
 
 ## What you get
 
-- OpenAI-compatible gateway for private chat-completion traffic, with model allowlists, admission limits, redacted audit logs, and optional JWT/JWKS auth.
-- A local Ollama profile for fast laptop demos and vLLM profiles for NVIDIA or AMD GPU clusters — the same charts in both.
+- OpenAI-compatible gateway with API-key + JWT/JWKS auth, model allowlists, admission limits, per-sandbox budgets and rate limiting, input prompt-secret detection and a response-path **output guardrail**, a shared response cache, canary/shadow delivery, and a tamper-evident audit chain.
+- A local Ollama profile and vLLM profiles for NVIDIA/AMD GPUs from the **same** charts, with prefix caching, FP8/AWQ quantization, and guided/speculative decoding.
+- RAG with hybrid dense + lexical retrieval, an optional cross-encoder reranker, per-tenant retrieval isolation, and RAGAS-style faithfulness evals.
 - Locked-down coding-agent workspaces: namespace isolation, RBAC, quotas, default-deny networking, governed egress, and RAG access.
-- Model governance with approved-only allowlists, promotion requests, **reproducible** provenance digests, and eval suites.
-- Operational controls for SLOs, release gates, quota and chargeback, retention, egress governance, restore and chaos drills, evidence packs, SBOMs, scans, signed images, provenance attestations, and OpenSSF Scorecard.
+- Governance & compliance: approved-only model catalog with promotion requests, reproducible provenance digests, model cards, a safety/jailbreak release gate, and an OWASP LLM Top 10 + NIST/EU-AI-Act/ISO-42001 crosswalk.
+- Operations & evidence: SLOs and release gates, quota/chargeback, retention, egress governance; Prometheus + Grafana, Tempo tracing, Loki, and cost/OpenCost dashboards; Pod Security Admission, encryption-in-transit overlay, and Falco; restore/chaos drills and a disaster-recovery runbook; SBOMs, scans, signed images, provenance attestations, OpenSSF Scorecard, and evidence packs.
 
 ## How it works
 
 ![Private AI Platform Kit architecture](assets/architecture.svg)
 
-Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway forwards to Ollama or vLLM based on `RUNTIME_BACKEND`, enforces model allowlists and admission limits, records Prometheus metrics, and emits redacted audit events. The local lab runs fully on `kind`; customer clusters keep the same repo structure and replace only the platform services they already operate.
+Requests enter the inference gateway at `POST /v1/chat/completions`. The gateway authenticates the caller, enforces model allowlists and admission limits, applies input and output guardrails, routes to Ollama or vLLM (with failover), records Prometheus metrics and OTLP traces, and emits redacted audit events. The local lab runs fully on `kind`; customer clusters keep the same repo structure and replace only the platform services they already operate. Per-profile diagrams and an end-to-end request walkthrough are in [Architecture](architecture.md).
 
 !!! tip "Maturity"
-    Current release `v0.10.0` — reference implementation and customer lab. Production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation. See [Production readiness](production-readiness.md).
+    Current release `v0.13.0` — reference implementation and customer lab. Production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation. See [Production readiness](production-readiness.md).
 
 ---
 

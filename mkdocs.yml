@@ -95,11 +95,15 @@ nav:
       - Benchmarks and evals: benchmarks-and-evals.md
       - Capacity and sizing: capacity-sizing.md
       - Cost model and TCO: cost-model.md
+      - Version and compatibility matrix: version-matrix.md
       - Release verification: release-verification.md
+      - Glossary: glossary.md
       - Upstream references: references.md
   - Explanation:
       - Is this for you (decision guide): decision-guide.md
+      - FAQ: faq.md
       - Architecture profiles: architecture.md
+      - Security overview: security-overview.md
       - Architecture and threat model: threat-model.md
       - OWASP LLM Top 10 mapping: owasp-llm-top-10-mapping.md
       - AI governance crosswalk: ai-governance-crosswalk.md
