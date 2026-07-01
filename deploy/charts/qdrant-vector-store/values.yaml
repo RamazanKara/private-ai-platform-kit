@@ -33,13 +33,16 @@ resources:
 
 podLabels:
   platform.ai/cost-center: platform
-  platform.ai/environment: customer
+  platform.ai/environment: local
   platform.ai/owner: platform-team
   platform.ai/sandbox-id: rag-vector
 
 podDisruptionBudget:
   enabled: true
-  minAvailable: 1
+  # 0 for a single-replica chart (matching budget-redis): minAvailable 1 with one
+  # replica blocks every node drain, trading a brief eviction outage for cluster
+  # operability. Raise together with replicaCount.
+  minAvailable: 0
 
 networkPolicy:
   enabled: true

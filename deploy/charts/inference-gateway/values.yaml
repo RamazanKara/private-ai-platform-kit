@@ -187,9 +187,12 @@ topologySpread:
 
 networkPolicy:
   enabled: true
+  # monitoring must stay listed: the Prometheus scrape (ServiceMonitor) and the KEDA
+  # scaler's query source both go dark on a NetworkPolicy-enforcing CNI without it.
   allowedIngressNamespaces:
     - ai-agents
     - ai-sandbox
+    - monitoring
   allowedIngressNamespaceLabels:
     - platform.ai/traceable-sandbox: "true"
   runtimeEgress:

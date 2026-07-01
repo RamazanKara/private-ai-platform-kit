@@ -15,6 +15,10 @@ retrieval:
   # Governed reference embedding model (BAAI/bge-small-en-v1.5, 384-dim) served via vLLM
   # embedding mode or a TEI sidecar behind an OpenAI-compatible endpoint; replaces the demo
   # hashed-vector default. See platform/model-catalog/models.yaml and model-provenance.yaml.
+  # OPERATOR PREREQUISITE: nothing in this repo deploys the embedding server. Install a
+  # second vLLM release (e.g. `helm install vllm-embeddings deploy/charts/vllm -n vllm`
+  # with --task embed and this model) or a TEI deployment exposing this Service name,
+  # and keep networkPolicy.embeddingEgress below pointed at it.
   embedding:
     provider: openai-compatible
     baseUrl: http://vllm-embeddings.vllm.svc.cluster.local:8000
@@ -33,6 +37,14 @@ auth:
   existingSecret:
     name: rag-service-secrets
     key: api-key-sha256s
+
+# Without this egress opening, the RAG pod's own NetworkPolicy blocks the embedding
+# calls that `retrieval.embedding` above configures (chart default is disabled).
+networkPolicy:
+  embeddingEgress:
+    enabled: true
+    namespace: vllm
+    port: 8000
 
 resources:
   requests:

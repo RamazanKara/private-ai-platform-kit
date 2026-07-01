@@ -4,6 +4,10 @@
 # cannot drift between the two. --helm-kube-version matches the tested kind
 # node version (docs/version-matrix.md) so charts render and get scanned
 # instead of being skipped for Trivy's default Kubernetes 1.20.
+#
+# deploy/vendor holds pinned upstream manifests (reviewed at vendor time, not
+# repo-authored); like the intentionally-bad Kyverno test fixtures, they are
+# excluded from the repo-authored HIGH/CRITICAL gate.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,6 +23,7 @@ exec trivy fs \
   --skip-dirs results \
   --skip-dirs .out \
   --skip-dirs deploy/policies/kyverno/tests/resources \
+  --skip-dirs deploy/vendor \
   --skip-dirs src/inference-gateway/.venv \
   --skip-dirs src/rag-service/.venv \
   .

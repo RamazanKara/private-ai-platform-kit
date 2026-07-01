@@ -165,6 +165,11 @@ spec:
     targetRevision: 2.15.0
     helm:
       releaseName: pushgateway
+      values: |
+        # Pin the Service name to `pushgateway` - the restore-drill CronJob and its
+        # runbook push to http://pushgateway.monitoring:9091; the chart default
+        # (pushgateway-prometheus-pushgateway) would silently strand those metrics.
+        fullnameOverride: pushgateway
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

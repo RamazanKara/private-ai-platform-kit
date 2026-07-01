@@ -51,6 +51,9 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `model.revision` | `""` |
 | `namespace.create` | `true` |
 | `namespace.name` | `""` |
+| `networkPolicy.allowModelPullEgress` | `true` |
+| `networkPolicy.allowedIngressNamespaces` | `["inference", "monitoring"]` |
+| `networkPolicy.enabled` | `true` |
 | `podDisruptionBudget.enabled` | `true` |
 | `podDisruptionBudget.minAvailable` | `1` |
 | `podLabels.platform.ai/cost-center` | `platform` |

@@ -4,15 +4,83 @@
 #   inference-gateway:
 #     replicaCount: 2
 # See each subchart's values.yaml for the full option set. Run `helm dependency update` first.
+#
+# The defaults below make the single-command dev/demo bring-up actually work on a bare
+# single-namespace cluster:
+#   - namespace.create is off everywhere (install with `helm install --create-namespace`);
+#     the per-chart defaults would otherwise render one duplicate Namespace per subchart.
+#   - fullnameOverride pins the Service names so the components find each other in the
+#     release namespace (the gateway URLs below match them).
+#   - CRD-dependent extras (ServiceMonitors, KEDA ScaledObjects) are off so the render
+#     applies without prometheus-operator or KEDA installed.
+#   - The per-chart NetworkPolicies are off: their namespace-scoped rules describe the
+#     GitOps multi-namespace layout, not a single-namespace release.
+# The GitOps path (deploy/clusters/*) keeps the multi-namespace layout and all controls;
+# coding-agent workspaces are tenant-scoped (deploy/charts/agent-workspace) and are not
+# part of this stack-level install.
+
 inference-gateway:
   enabled: true
+  fullnameOverride: inference-gateway
+  namespace:
+    create: false
+  runtime:
+    ollamaBaseUrl: http://ollama:11434
+    vllmBaseUrl: http://vllm:8000
+  budget:
+    backend: redis
+    redisUrl: redis://budget-redis:6379/0
+  responseCache:
+    redisUrl: redis://budget-redis:6379/1
+  serviceMonitor:
+    enabled: false
+  keda:
+    enabled: false
+  networkPolicy:
+    enabled: false
+
 rag-service:
   enabled: true
+  fullnameOverride: rag-service
+  namespace:
+    create: false
+  serviceMonitor:
+    enabled: false
+  networkPolicy:
+    enabled: false
+
 ollama:
   enabled: true
+  fullnameOverride: ollama
+  namespace:
+    create: false
+  networkPolicy:
+    enabled: false
+
 budget-redis:
   enabled: true
+  fullnameOverride: budget-redis
+  namespace:
+    create: false
+  networkPolicy:
+    enabled: false
+
 qdrant-vector-store:
   enabled: false
+  fullnameOverride: qdrant-vector-store
+  namespace:
+    create: false
+  serviceMonitor:
+    enabled: false
+  networkPolicy:
+    enabled: false
+
 vllm:
   enabled: false
+  fullnameOverride: vllm
+  namespace:
+    create: false
+  serviceMonitor:
+    enabled: false
+  networkPolicy:
+    enabled: false

@@ -20,9 +20,9 @@ Optional local vector store profile for Private AI Platform Kit RAG.
 | `persistence.size` | `20Gi` |
 | `persistence.storageClassName` | `""` |
 | `podDisruptionBudget.enabled` | `true` |
-| `podDisruptionBudget.minAvailable` | `1` |
+| `podDisruptionBudget.minAvailable` | `0` |
 | `podLabels.platform.ai/cost-center` | `platform` |
-| `podLabels.platform.ai/environment` | `customer` |
+| `podLabels.platform.ai/environment` | `local` |
 | `podLabels.platform.ai/owner` | `platform-team` |
 | `podLabels.platform.ai/sandbox-id` | `rag-vector` |
 | `replicaCount` | `1` |

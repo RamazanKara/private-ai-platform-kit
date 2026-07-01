@@ -102,29 +102,48 @@ spec:
           annotations:
             summary: A sandbox is above 80 percent of a configured gateway budget.
             runbook_url: runbooks/budget-controls.md
+        # Runtime availability is judged from kube-state-metrics (desired vs ready),
+        # not from `up{job=...}` scrape jobs: Ollama ships no ServiceMonitor (its job
+        # never exists, so absent() fired forever), and a runtime intentionally scaled
+        # to zero (vLLM on the local lab) must not page anyone.
         - alert: InferenceRuntimeBackendAbsent
-          expr: sum(up{job=~"vllm|ollama"}) == 0
+          expr: |
+            (
+              (max(kube_deployment_spec_replicas{deployment=~".*vllm.*"}) or vector(0))
+              + (max(kube_statefulset_replicas{statefulset=~".*ollama.*"}) or vector(0))
+            ) > 0
+            and
+            (
+              (max(kube_deployment_status_replicas_available{deployment=~".*vllm.*"}) or vector(0))
+              + (max(kube_statefulset_status_replicas_ready{statefulset=~".*ollama.*"}) or vector(0))
+            ) == 0
           for: 5m
           labels:
             severity: critical
           annotations:
-            summary: No inference runtime backend (vLLM or Ollama) is reporting up; see runbooks/incident-inference-runtime.md.
+            summary: No inference runtime backend (vLLM or Ollama) has a ready replica while at least one is desired; see runbooks/incident-inference-runtime.md.
             runbook_url: runbooks/incident-inference-runtime.md
         - alert: VllmRuntimeAbsent
-          expr: absent(up{job="vllm"})
+          expr: |
+            max(kube_deployment_spec_replicas{deployment=~".*vllm.*"}) > 0
+            and
+            max(kube_deployment_status_replicas_available{deployment=~".*vllm.*"}) == 0
           for: 5m
           labels:
             severity: critical
           annotations:
-            summary: The vLLM GPU runtime backend has no scrape target reporting up; follow runbooks/incident-inference-runtime.md and runbooks/gpu-capacity.md.
+            summary: The vLLM GPU runtime desires replicas but none are available; follow runbooks/incident-inference-runtime.md and runbooks/gpu-capacity.md.
             runbook_url: runbooks/incident-inference-runtime.md
         - alert: OllamaRuntimeAbsent
-          expr: absent(up{job="ollama"})
+          expr: |
+            max(kube_statefulset_replicas{statefulset=~".*ollama.*"}) > 0
+            and
+            max(kube_statefulset_status_replicas_ready{statefulset=~".*ollama.*"}) == 0
           for: 5m
           labels:
             severity: critical
           annotations:
-            summary: The Ollama runtime backend has no scrape target reporting up; follow runbooks/incident-inference-runtime.md.
+            summary: The Ollama runtime desires replicas but none are ready; follow runbooks/incident-inference-runtime.md.
             runbook_url: runbooks/incident-inference-runtime.md
         - alert: InferenceGatewayNoReadyEndpoints
           expr: |
@@ -146,12 +165,17 @@ spec:
             summary: Latest restore-drill validation failed.
             runbook_url: runbooks/restore-drill.md
         - alert: RestoreDrillStale
-          expr: time() - restore_drill_last_success_timestamp > 93600
+          # The absent() arm makes a never-reported metric fire too - otherwise a
+          # broken push path looks identical to a healthy, recently-drilled cluster.
+          expr: |
+            (time() - restore_drill_last_success_timestamp > 93600)
+            or
+            absent(restore_drill_last_success_timestamp)
           for: 15m
           labels:
             severity: warning
           annotations:
-            summary: No successful restore drill has completed in the last 26 hours.
+            summary: No successful restore drill has completed in the last 26 hours (or the drill metric was never reported).
             runbook_url: runbooks/restore-drill.md
     - name: backup.rules
       rules:

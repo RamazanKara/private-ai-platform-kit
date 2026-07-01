@@ -14,6 +14,16 @@ model:
 service:
   port: 11434
 
+# Only the gateway's namespace may reach the Ollama API: the runtime holding the
+# model must not be an open bypass around auth, allowlists, budgets, and guardrails.
+# allowModelPullEgress opens DNS + HTTPS for registry pulls; disable it for
+# air-gapped / regulated-offline profiles with pre-seeded weights.
+networkPolicy:
+  enabled: true
+  allowedIngressNamespaces:
+    - inference
+  allowModelPullEgress: true
+
 serviceAccount:
   create: true
   name: ""
@@ -57,7 +67,10 @@ topologySpread:
 
 podDisruptionBudget:
   enabled: true
-  minAvailable: 1
+  # 0 for a single-replica chart (matching budget-redis): minAvailable 1 with one
+  # replica blocks every node drain, trading a brief eviction outage for cluster
+  # operability. Raise together with replicaCount.
+  minAvailable: 0
 
 resources:
   requests:

@@ -1,0 +1,45 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "vllm.fullname" . }}
+  labels:
+    {{- include "vllm.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "vllm.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  # The GPU runtime holding the model weights must not be an open bypass around the
+  # gateway's auth, allowlists, budgets, and guardrails: only the listed namespaces
+  # (the gateway's and monitoring for the ServiceMonitor scrape) may reach the API port.
+  ingress:
+    - from:
+        {{- range .Values.networkPolicy.allowedIngressNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: http
+  egress:
+    {{- if .Values.networkPolicy.allowModelPullEgress }}
+    # Weight downloads (Hugging Face) need DNS + HTTPS. Disable for air-gapped /
+    # regulated-offline profiles where the weight cache PVC is pre-seeded.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - ports:
+        - protocol: TCP
+          port: 443
+    {{- end }}
+{{- end }}

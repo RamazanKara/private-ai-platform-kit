@@ -5,7 +5,11 @@ metadata:
   labels:
     {{- include "inference-gateway.labels" . | nindent 4 }}
 spec:
+  {{- if not .Values.keda.enabled }}
+  {{- /* When KEDA owns scaling, omit replicas so Argo CD selfHeal does not revert
+         every scale-up back to the Git value (a permanent autoscaling flap). */}}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "inference-gateway.selectorLabels" . | nindent 6 }}

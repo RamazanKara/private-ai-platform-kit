@@ -99,6 +99,14 @@ admits, budgets, routes to Ollama, and (when invoked) calls the RAG service for 
 CD reconciles all namespaces from this repo; Prometheus scrapes `/metrics` and Promtail ships the
 redacted audit JSON to Loki.
 
+**Known limitation — NetworkPolicies are not enforced on kind.** kind's default `kindnet` CNI
+does not implement NetworkPolicy, so the default-deny sandbox/tenant isolation and the runtime
+ingress restrictions render but do not block traffic on this profile. They are validated
+structurally (chart render + kubeconform + policy tests); enforcement is exercised on the
+customer profile, whose CNI (Calico, Cilium, or the cloud provider's) must implement
+NetworkPolicy. To enforce locally, create the kind cluster with `disableDefaultCNI: true` and
+install Calico or Cilium before `make sync`.
+
 ## Profile 2: Customer Cluster (vLLM + GPU)
 
 ![Customer cluster vLLM+GPU architecture](assets/architecture-customer.svg)

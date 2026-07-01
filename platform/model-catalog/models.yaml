@@ -60,7 +60,8 @@ spec:
     # catalog like generation models (the previous asymmetry the audit flagged). 384-dim
     # matches the RAG default vector dimensions; serve via vLLM embedding mode (--task embed)
     # or a TEI sidecar, and point the RAG service at it (retrieval.embedding.provider=
-    # openai-compatible). Proposed pending a real provenance digest + promotion request.
+    # openai-compatible). Approved with a promotion request; the provenance entry uses a
+    # source-reference digest that customers replace with their pinned model-store checksum.
     - id: BAAI/bge-small-en-v1.5
       runtime: vllm
       owner: platform-team

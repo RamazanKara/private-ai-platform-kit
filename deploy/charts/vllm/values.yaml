@@ -182,6 +182,18 @@ serviceMonitor:
   enabled: true
   interval: 30s
 
+# Only the gateway's namespace (plus monitoring, for the ServiceMonitor scrape) may
+# reach the vLLM API: the GPU runtime holding the model must not be an open bypass
+# around auth, allowlists, budgets, and guardrails. allowModelPullEgress opens
+# DNS + HTTPS for Hugging Face weight downloads; disable it for air-gapped /
+# regulated-offline profiles with a pre-seeded weight-cache PVC.
+networkPolicy:
+  enabled: true
+  allowedIngressNamespaces:
+    - inference
+    - monitoring
+  allowModelPullEgress: true
+
 externalSecrets:
   enabled: false
   huggingFaceTokenSecretName: hf-token

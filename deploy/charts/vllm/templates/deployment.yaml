@@ -5,7 +5,9 @@ metadata:
   labels:
     {{- include "vllm.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
+  {{- if not (or .Values.autoscaling.enabled .Values.keda.enabled) }}
+  {{- /* When the HPA or KEDA owns scaling, omit replicas so Argo CD selfHeal does
+         not revert every scale-up back to the Git value. */}}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:

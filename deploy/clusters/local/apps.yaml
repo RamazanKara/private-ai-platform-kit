@@ -84,6 +84,13 @@ spec:
     repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
     targetRevision: HEAD
     path: deploy/observability
+    directory:
+      # Recurse so the PrometheusRule (alerts/) and the Grafana dashboard ConfigMaps
+      # (dashboards/configmap.yaml) actually deploy; the include list keeps the raw
+      # dashboards/*.json sources and the OPT-IN runtime-security.yaml (Falco) out of
+      # the sync, matching that file's documented opt-in contract.
+      recurse: true
+      include: '{applications.yaml,alerts/*.yaml,dashboards/configmap.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
@@ -303,6 +310,15 @@ spec:
         opencost:
           exporter:
             defaultClusterId: private-ai-platform-kit-local
+          # Point OpenCost at the kube-prometheus-stack Prometheus this repo actually
+          # installs; the chart default (prometheus-server.prometheus.svc) targets the
+          # community prometheus chart and leaves every allocation panel empty.
+          prometheus:
+            internal:
+              enabled: true
+              serviceName: kube-prometheus-stack-prometheus
+              namespaceName: monitoring
+              port: 9090
   destination:
     server: https://kubernetes.default.svc
     namespace: opencost

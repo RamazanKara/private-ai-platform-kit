@@ -2,6 +2,9 @@ fullnameOverride: ollama
 replicaCount: 1
 model:
   name: qwen3.5:0.8b
+  # pullOnStart stays off so an air-gapped cluster never dials out. Preload the model
+  # before first traffic — `kubectl -n ollama exec sts/ollama -- ollama pull qwen3.5:0.8b`
+  # (or pre-seed the PVC); until then chat requests 404 at the runtime.
   pullOnStart: false
 persistence:
   enabled: true

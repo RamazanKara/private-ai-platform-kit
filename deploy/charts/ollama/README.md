@@ -20,10 +20,13 @@ Local-first private LLM runtime.
 | `model.pullOnStart` | `false` |
 | `namespace.create` | `true` |
 | `namespace.name` | `""` |
+| `networkPolicy.allowModelPullEgress` | `true` |
+| `networkPolicy.allowedIngressNamespaces` | `["inference"]` |
+| `networkPolicy.enabled` | `true` |
 | `persistence.enabled` | `true` |
 | `persistence.size` | `20Gi` |
 | `podDisruptionBudget.enabled` | `true` |
-| `podDisruptionBudget.minAvailable` | `1` |
+| `podDisruptionBudget.minAvailable` | `0` |
 | `podLabels.platform.ai/cost-center` | `platform` |
 | `podLabels.platform.ai/environment` | `local` |
 | `podLabels.platform.ai/owner` | `platform-team` |
