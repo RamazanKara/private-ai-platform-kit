@@ -14,26 +14,49 @@ on:
 permissions:
   contents: read
 
+# Rapid PR pushes cancel the superseded run instead of stacking full validate
+# runs; push/tag/schedule runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # The nightly schedule runs scheduled-proof, whose validate-full + eval-local
+    # is a strict superset of this job; skipping avoids doing that work twice.
+    if: github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements-quality.lock
+            src/inference-gateway/requirements-dev.lock
+            src/rag-service/requirements-dev.lock
       - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2  # v5.0.0
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
         with:
           go-version: "1.26"
           cache: false
+      - name: Cache validation tools
+        id: tools_cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ~/.local/bin
+          key: validation-tools-${{ runner.os }}-${{ hashFiles('scripts/install-validation-tools.sh', 'platform/tools/validation-toolchain.yaml') }}
       - name: Install validation tools
+        if: steps.tools_cache.outputs.cache-hit != 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           scripts/install-validation-tools.sh --bin-dir "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Add validation tools to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Validate
         run: make validate-full
       - name: Quality eval gate (mock runtime)
@@ -42,14 +65,41 @@ jobs:
         # instead of only being caught by the nightly scheduled-proof job. Model-generation
         # quality still requires a live model and remains a nightly concern.
         run: make eval-local
-      - name: Repo security scan (secret + misconfig)
-        # Runs on every event including pull_request. Kept non-fatal on PRs so it
-        # surfaces findings without blocking; remains gating on push/tag/schedule.
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
-        run: make repo-security-scan
+      - name: Enforce coverage floors
+        # The floors in scripts/coverage.sh (85% gateway / 84% RAG) are only real if
+        # something runs them; plain pytest in validate-full does not.
+        run: make coverage
+
+  # PR-time image build check (no push, single-arch): a Dockerfile or hashed
+  # lock-install regression must fail the PR, not main's publish job.
+  image-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: validate
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+      - name: Build gateway image (no push)
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: src/inference-gateway
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=inference-gateway
+          cache-to: type=gha,mode=max,scope=inference-gateway
+      - name: Build RAG service image (no push)
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: src/rag-service
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=rag-service
+          cache-to: type=gha,mode=max,scope=rag-service
 
   image:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     needs: validate
     if: github.event_name == 'push'
     permissions:
@@ -129,6 +179,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.GATEWAY_TAGS }}
+          cache-from: type=gha,scope=inference-gateway
+          cache-to: type=gha,mode=max,scope=inference-gateway
           build-args: |
             VCS_REF=${{ github.sha }}
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
@@ -140,6 +192,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.RAG_TAGS }}
+          cache-from: type=gha,scope=rag-service
+          cache-to: type=gha,mode=max,scope=rag-service
           build-args: |
             VCS_REF=${{ github.sha }}
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
@@ -270,6 +324,7 @@ jobs:
 
   scheduled-proof:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
@@ -279,18 +334,31 @@ jobs:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements-quality.lock
+            src/inference-gateway/requirements-dev.lock
+            src/rag-service/requirements-dev.lock
       - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2  # v5.0.0
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
         with:
           go-version: "1.26"
           cache: false
+      - name: Cache validation tools
+        id: tools_cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ~/.local/bin
+          key: validation-tools-${{ runner.os }}-${{ hashFiles('scripts/install-validation-tools.sh', 'platform/tools/validation-toolchain.yaml') }}
       - name: Install validation tools
+        if: steps.tools_cache.outputs.cache-hit != 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           scripts/install-validation-tools.sh --bin-dir "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Add validation tools to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Generate strict proof evidence
         run: |
           set -euo pipefail
@@ -320,31 +388,13 @@ jobs:
             results/**/*.spdx.json
             results/**/*.txt
 
-  scorecard:
-    runs-on: ubuntu-latest
-    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref_name == github.event.repository.default_branch
-    permissions:
-      contents: read
-      actions: read
-      security-events: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Run OpenSSF Scorecard
-        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a  # v2.4.3
-        with:
-          results_file: scorecard-results.sarif
-          results_format: sarif
-          publish_results: false
-      - name: Upload Scorecard SARIF
-        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
-        with:
-          sarif_file: scorecard-results.sarif
+  # OpenSSF Scorecard runs in its own workflow (.github/workflows/scorecard.yml),
+  # guarded by production-check; a duplicate job here produced double SARIF uploads
+  # and a second copy of the steps to keep in sync.
 
   local-e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2

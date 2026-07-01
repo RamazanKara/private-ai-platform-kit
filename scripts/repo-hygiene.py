@@ -264,6 +264,23 @@ def check_runtime_dependencies(errors: list[str]) -> None:
         require(errors, "--require-hashes -r requirements-dev.lock" in text, f"{script} must install hashed dev dependencies for {service}")
         require(errors, "install --upgrade pip" not in text, f"{script} must not upgrade pip from an unpinned network dependency")
 
+    # Ruff is pinned in two places dependabot cannot keep in sync: the quality
+    # requirements (CI/local gate) and the pre-commit hook rev. Assert they match
+    # so a bump in one cannot silently diverge lint behavior in the other.
+    quality_text = (ROOT / "requirements-quality.txt").read_text()
+    precommit_text = (ROOT / ".pre-commit-config.yaml").read_text()
+    quality_ruff = re.search(r"^ruff==(\S+)$", quality_text, re.MULTILINE)
+    precommit_ruff = re.search(r"astral-sh/ruff-pre-commit\s*\n\s*rev:\s*v(\S+)", precommit_text)
+    require(errors, quality_ruff is not None, "requirements-quality.txt must pin ruff==<version>")
+    require(errors, precommit_ruff is not None, ".pre-commit-config.yaml must pin the ruff-pre-commit rev")
+    if quality_ruff and precommit_ruff:
+        require(
+            errors,
+            quality_ruff.group(1) == precommit_ruff.group(1),
+            f"ruff pin mismatch: requirements-quality.txt has {quality_ruff.group(1)} "
+            f"but .pre-commit-config.yaml rev is v{precommit_ruff.group(1)}",
+        )
+
 
 def markdown_files() -> list[Path]:
     files: list[Path] = []

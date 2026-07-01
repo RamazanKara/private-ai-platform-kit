@@ -12,7 +12,7 @@
 #   make coverage    pytest coverage report with enforced floors
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py314"
 line-length = 120
 extend-exclude = [
     ".venv",
@@ -37,7 +37,7 @@ select = ["E", "F", "W", "I", "B", "UP", "C4", "SIM", "PIE", "RET", "RUF"]
 # formatting only normalizes incidental drift.
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 # Several runtime libraries (prometheus_client, PyYAML, uvicorn, qdrant-client)
 # ship without inline types or stubs; ignore those rather than vendor stub packages.
 ignore_missing_imports = true

@@ -1,5 +1,7 @@
 """RAG service settings and environment configuration loading with validation."""
 
+from __future__ import annotations
+
 import os
 import re
 from dataclasses import dataclass
@@ -186,7 +188,7 @@ class Settings:
             raise ValueError("otel_exporter_otlp_endpoint must be set when OTEL tracing is enabled")
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         """Construct settings from environment variables with validated defaults."""
         return cls(
             document_dir=Path(os.getenv("RAG_DOCUMENT_DIR", "/knowledge")),

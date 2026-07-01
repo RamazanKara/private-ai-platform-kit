@@ -730,6 +730,19 @@ def check_release_packaging(errors: list[str]) -> None:
             "actions/upload-artifact",
         ):
             require(errors, token in workflow, f"CI workflow must publish and sign release supply-chain evidence with {token}")
+        # The tested Kubernetes version is pinned in two places: the CI kind node
+        # image and the Trivy chart-render version. Keep them moving together.
+        kind_match = re.search(r"kindest/node:v(\d+\.\d+\.\d+)", workflow)
+        scan_text = (ROOT / "scripts/repo-security-scan.sh").read_text()
+        scan_match = re.search(r"--helm-kube-version\s+(\d+\.\d+\.\d+)", scan_text)
+        require(errors, kind_match is not None, "CI local-e2e must pin a kindest/node version")
+        require(errors, scan_match is not None, "scripts/repo-security-scan.sh must pin --helm-kube-version")
+        if kind_match and scan_match:
+            require(
+                errors,
+                kind_match.group(1) == scan_match.group(1),
+                "scripts/repo-security-scan.sh --helm-kube-version must match the CI kindest/node version",
+            )
     scorecard_path = ROOT / ".github/workflows/scorecard.yml"
     require(errors, scorecard_path.exists(), "OpenSSF Scorecard workflow must exist")
     if scorecard_path.exists():

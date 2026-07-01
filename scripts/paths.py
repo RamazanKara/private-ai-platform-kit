@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Canonical repository directory layout -- the single source of truth.
 
-Governance gates, shell scripts (via ``scripts/_paths.sh``), and tooling resolve
-the repository's top-level directories from here, so relocating a directory is a
-one-line change instead of hundreds of scattered path literals.
+Governance gates and tooling resolve the repository's top-level directories from
+here, so relocating a directory is a one-line change instead of hundreds of
+scattered path literals. Shell consumers can ``eval "$(paths.py --dump-sh)"``.
 
 CLI:
   paths.py --dump      Emit the layout as JSON (root + directory purposes).

@@ -1,5 +1,7 @@
 """Inference gateway settings, admission policy, and environment configuration loading."""
 
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -321,7 +323,7 @@ class Settings:
             raise ValueError(f"prompt_secret_patterns contains unknown patterns: {unknown_patterns}")
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         """Construct settings from environment variables with validated defaults."""
         backend = os.getenv("RUNTIME_BACKEND", "ollama").strip().lower()
         if backend not in {"ollama", "vllm"}:
