@@ -87,6 +87,42 @@ count (`size`); point the gateway's `VLLM_BASE_URL` at the leader Service. This 
 operator-supplied topology — validate the per-node GPU fit and the Ray cluster formation
 before promotion.
 
+## Choosing a Quantization Method
+
+Quantization is the single biggest lever for fitting a modern coding/MoE model onto fewer GPUs.
+The vLLM chart exposes `server.quantization`, `server.kvCacheDtype`, and `server.gpuMemoryUtilization`
+as first-class values, and two ready profiles ship under `deploy/clusters/customer/values/`:
+
+| GPU class | Method | Profile | Notes |
+| --- | --- | --- | --- |
+| Hopper/Ada (H100, H200, L40S) | FP8 weights + FP8 KV cache | `vllm-nvidia-fp8.yaml` | ~2x memory saving; native FP8, smallest quality cost. Cuts the 4-GPU floor to ~2. |
+| Ampere (A100, A10) | AWQ 4-bit weights | `vllm-nvidia-awq.yaml` | Point `model.name` at a pre-quantized `…-AWQ` checkpoint. No FP8 KV cache on Ampere. |
+| Any | GPTQ 4-bit weights | set `server.quantization: gptq` | Alternative 4-bit path when an AWQ checkpoint is unavailable. |
+
+Always keep `--tensor-parallel-size` (in `extraArgs`) equal to `accelerator.count`, and re-validate
+answer quality with `make eval` after changing quantization — it trades a small accuracy cost for
+GPU cost, and the acceptable trade is workload-specific.
+
+## Speculative Decoding
+
+`server.speculative.enabled` + `server.speculative.config` render `--speculative-config` to cut
+latency by drafting tokens with a small model (or n-gram) and verifying them in one pass. It only
+helps when the draft acceptance rate is high, so enable it per model and confirm the tokens/sec and
+p95 latency improve under `make loadtest` before promoting; a low acceptance rate can be net-negative.
+
+## Sub-GPU Sharing (MIG / Time-Slicing)
+
+When a runtime does not need a whole GPU (small models, dev/eval namespaces), share one physical GPU:
+
+- **MIG (A100/H100)**: partition the GPU into isolated instances via the NVIDIA GPU Operator's MIG
+  config, then request the MIG resource name (e.g. `nvidia.com/mig-1g.10gb`) in
+  `accelerator.resourceName` with `accelerator.count: 1`. Hardware-isolated; best for multi-tenant.
+- **Time-slicing**: enable time-slicing in the device plugin config to oversubscribe a GPU across
+  pods. No memory isolation — use only for trusted dev/eval workloads, never for tenant isolation.
+
+Both are cluster-level device-plugin/operator settings the operator owns; the chart only needs the
+resulting `accelerator.resourceName`/`count`. Size with the same KV-cache math in Sizing Estimates.
+
 ## Evidence
 
 Capture pod events, node labels, node allocatable GPU resources, NVIDIA or AMD device plugin logs, and the vLLM values used for scheduling.

@@ -36,6 +36,12 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Validate
         run: make validate-full
+      - name: Quality eval gate (mock runtime)
+        # Runs the scored eval against an ephemeral mock runtime (no cluster/model needed),
+        # so a gateway, admission, or prompt-plumbing regression fails the build at PR time
+        # instead of only being caught by the nightly scheduled-proof job. Model-generation
+        # quality still requires a live model and remains a nightly concern.
+        run: make eval-local
       - name: Repo security scan (secret + misconfig)
         # Runs on every event including pull_request. Kept non-fatal on PRs so it
         # surfaces findings without blocking; remains gating on push/tag/schedule.

@@ -12,6 +12,7 @@ from uuid import NAMESPACE_URL, uuid5
 import httpx
 
 from app.embeddings import EmbeddingProvider, HashEmbeddingProvider, tokenize
+from app.reranker import NoopReranker, RerankerProvider
 
 
 @dataclass(frozen=True)
@@ -99,8 +100,15 @@ class LexicalRetriever:
         """Build a lexical retriever from documents loaded under a directory."""
         return cls(load_documents(document_dir))
 
-    async def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
-        """Return the top-k documents scored by term, phrase, and title matches."""
+    async def query(
+        self, query: str, top_k: int, max_context_chars: int, tenant: str | None = None
+    ) -> list[RetrievalResult]:
+        """Return the top-k documents scored by term, phrase, and title matches.
+
+        ``tenant`` is accepted for interface parity with the Qdrant retriever but ignored:
+        the lexical backend serves a single local corpus loaded from disk with no per-document
+        owner metadata, so it is intended for local-lab use, not multi-tenant isolation.
+        """
         terms = tokenize(query)
         if not terms:
             return []
@@ -144,6 +152,9 @@ class QdrantRetriever:
         candidate_multiplier: int = 4,
         lexical_weight: float = 0.5,
         allowed_classifications: tuple[str, ...] = (),
+        reranker_provider: RerankerProvider | None = None,
+        tenant_isolation_enabled: bool = False,
+        tenant_field: str = "owner",
     ) -> None:
         self.documents = documents
         self.base_url = base_url.rstrip("/")
@@ -156,6 +167,9 @@ class QdrantRetriever:
         self.candidate_multiplier = candidate_multiplier
         self.lexical_weight = lexical_weight
         self.allowed_classifications = allowed_classifications
+        self.reranker_provider: RerankerProvider = reranker_provider or NoopReranker()
+        self.tenant_isolation_enabled = tenant_isolation_enabled
+        self.tenant_field = tenant_field
         self._bootstrapped = False
         self.last_sync_status = "pending" if bootstrap_from_knowledge else "disabled"
         self.last_sync_error = ""
@@ -174,6 +188,9 @@ class QdrantRetriever:
         candidate_multiplier: int = 4,
         lexical_weight: float = 0.5,
         allowed_classifications: tuple[str, ...] = (),
+        reranker_provider: RerankerProvider | None = None,
+        tenant_isolation_enabled: bool = False,
+        tenant_field: str = "owner",
     ) -> QdrantRetriever:
         """Build a Qdrant retriever seeded with documents loaded from a directory."""
         return cls(
@@ -188,6 +205,9 @@ class QdrantRetriever:
             candidate_multiplier=candidate_multiplier,
             lexical_weight=lexical_weight,
             allowed_classifications=allowed_classifications,
+            reranker_provider=reranker_provider,
+            tenant_isolation_enabled=tenant_isolation_enabled,
+            tenant_field=tenant_field,
         )
 
     def status(self) -> dict[str, str | int | bool]:
@@ -286,16 +306,23 @@ class QdrantRetriever:
             return False
         return True
 
-    def _query_filter(self) -> dict[str, Any]:
-        """Build the Qdrant filter: collection version, plus a classification allowlist.
+    def _query_filter(self, tenant: str | None = None) -> dict[str, Any]:
+        """Build the Qdrant filter: collection version, classification allowlist, tenant scope.
 
         ``allowed_classifications`` (when set) access-scopes retrieval so a caller only
         sees documents whose ``classification`` payload field is in the allowlist; empty
         returns every classification.
+
+        When ``tenant_isolation_enabled`` and a tenant is supplied, a ``tenant_field``
+        (default ``owner``, stamped per point at ingest) match is appended so a caller only
+        retrieves documents owned by its own tenant — closing cross-tenant retrieval in the
+        shared collection. Fails closed: a tenant with no matching documents gets none.
         """
         must: list[dict[str, Any]] = [{"key": "collection_version", "match": {"value": self.collection_version}}]
         if self.allowed_classifications:
             must.append({"key": "classification", "match": {"any": list(self.allowed_classifications)}})
+        if self.tenant_isolation_enabled and tenant:
+            must.append({"key": self.tenant_field, "match": {"value": tenant}})
         return {"must": must}
 
     def _hybrid_score(self, dense_score: float, query_terms: set[str], content: str) -> float:
@@ -316,8 +343,15 @@ class QdrantRetriever:
         weight = self.lexical_weight
         return (1.0 - weight) * dense + weight * overlap
 
-    async def query(self, query: str, top_k: int, max_context_chars: int) -> list[RetrievalResult]:
-        """Embed the query, fetch candidates, and return the hybrid-reranked top-k points."""
+    async def query(
+        self, query: str, top_k: int, max_context_chars: int, tenant: str | None = None
+    ) -> list[RetrievalResult]:
+        """Embed the query, fetch candidates, and return the reranked top-k points.
+
+        Candidates are over-fetched and reordered by the hybrid (dense + lexical) score; when a
+        cross-encoder reranker is configured it is applied as a precision-oriented second stage.
+        When tenant isolation is enabled, ``tenant`` scopes retrieval to that tenant's documents.
+        """
         terms = set(tokenize(query))
         if not terms:
             return []
@@ -333,7 +367,7 @@ class QdrantRetriever:
                         "query": vector,
                         "limit": candidate_limit,
                         "with_payload": True,
-                        "filter": self._query_filter(),
+                        "filter": self._query_filter(tenant),
                     },
                 )
                 response.raise_for_status()
@@ -374,8 +408,29 @@ class QdrantRetriever:
                     excerpt=_excerpt(content or title, terms, max_context_chars),
                 )
             )
+        matches = await self._maybe_rerank(query, matches)
         matches.sort(key=lambda match: (-match.score, match.document.id))
         return matches[:top_k]
+
+    async def _maybe_rerank(self, query: str, matches: list[RetrievalResult]) -> list[RetrievalResult]:
+        """Reorder candidates with the cross-encoder reranker when one is configured.
+
+        Replaces each candidate's first-stage hybrid score with the reranker's relevance score.
+        A reranker outage is non-fatal: on error the first-stage (hybrid) ranking is kept so a
+        reranker dependency failure degrades quality rather than failing the query.
+        """
+        if self.reranker_provider.name == "none" or not matches:
+            return matches
+        try:
+            scores = await self.reranker_provider.rerank_async(query, [match.document.content for match in matches])
+        except httpx.HTTPError:
+            return matches
+        if len(scores) != len(matches):
+            return matches
+        return [
+            RetrievalResult(document=match.document, score=score, excerpt=match.excerpt)
+            for match, score in zip(matches, scores, strict=False)
+        ]
 
 
 def build_context(results: list[RetrievalResult], max_context_chars: int) -> str:

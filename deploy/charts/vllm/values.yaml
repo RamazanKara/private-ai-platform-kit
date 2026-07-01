@@ -17,6 +17,33 @@ model:
   dtype: auto
   maxModelLen: "262144"
 
+# First-class serving-performance knobs. These are the highest-leverage vLLM flags for the
+# coding-agent workload and are rendered ahead of extraArgs so a profile can still override
+# them. See runbooks/gpu-capacity.md for how they interact with GPU count and context length.
+server:
+  # Automatic prefix caching reuses the KV cache for shared prompt prefixes (system prompt +
+  # repeated repo context across agent turns) -- the single biggest throughput lever for
+  # coding agents. Enabled by default; set false to disable.
+  enablePrefixCaching: true
+  # Fraction of GPU memory vLLM may use for weights + KV cache. Raise toward 0.95 to fit
+  # more KV cache (longer context / more concurrency); lower if the GPU is shared.
+  gpuMemoryUtilization: "0.90"
+  # KV-cache dtype. "auto" keeps the model dtype; "fp8" roughly doubles KV-cache capacity
+  # on FP8-capable GPUs (Hopper/Ada) at a small quality cost. See the quantization profiles.
+  kvCacheDtype: auto
+  # Weight quantization method (e.g. fp8, awq, gptq). Empty serves unquantized weights.
+  # The quantized cluster profiles (deploy/clusters/customer/values/vllm-nvidia-fp8.yaml,
+  # vllm-nvidia-awq.yaml) set this; validate quality with `make eval` after changing it.
+  quantization: ""
+  # Structured-output / grammar backend enforcing the gateway's response_format JSON-schema
+  # requests server-side (e.g. "xgrammar", "outlines"). Empty uses the vLLM default.
+  guidedDecodingBackend: ""
+  # Speculative decoding (draft model / n-gram) to cut latency. config is the vLLM
+  # --speculative-config JSON; enable only after validating acceptance rate for your model.
+  speculative:
+    enabled: false
+    config: ""
+
 # Additional vLLM CLI flags. The generic passthrough already covers single-node
 # tensor-parallel (`--tensor-parallel-size`, set in the GPU profiles), LoRA serving
 # (`--enable-lora` / `--lora-modules`), and the tool-call parser. Multi-NODE distributed
@@ -167,3 +194,9 @@ extraArgs:
   - --enable-auto-tool-choice
   - --tool-call-parser
   - qwen3_coder
+
+# Data-plane namespace with an apiserver-native Pod Security Admission restricted floor.
+# create=false when the namespace is managed elsewhere; name defaults to the release namespace.
+namespace:
+  create: true
+  name: ""

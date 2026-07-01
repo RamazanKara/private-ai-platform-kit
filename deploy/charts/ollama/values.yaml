@@ -72,3 +72,9 @@ podLabels:
   platform.ai/environment: local
   platform.ai/owner: platform-team
   platform.ai/sandbox-id: local-lab
+
+# Data-plane namespace with an apiserver-native Pod Security Admission restricted floor.
+# create=false when the namespace is managed elsewhere; name defaults to the release namespace.
+namespace:
+  create: true
+  name: ""

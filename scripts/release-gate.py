@@ -62,7 +62,7 @@ def validate_config(config: dict[str, Any]) -> list[str]:
     if not isinstance(gates, dict) or not gates:
         errors.append("spec.gates must be a non-empty mapping")
         return errors
-    expected = {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "supplyChain", "evidencePack"}
+    expected = {"eval", "safety", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "supplyChain", "evidencePack"}
     missing = sorted(expected - set(gates))
     if missing:
         errors.append(f"spec.gates missing required gates: {missing}")
@@ -155,6 +155,36 @@ def check_eval(gate: dict[str, Any]) -> GateResult:
     if failures:
         return fail_result("eval", rel(artifact), failures)
     return pass_result("eval", artifact, f"{passed}/{total} eval cases passed")
+
+
+def check_safety(gate: dict[str, Any]) -> GateResult:
+    """Gate the adversarial/jailbreak safety suite: the pass rate is the resistance rate.
+
+    Reads a safety eval summary (same shape as the eval evidence: a results list of
+    per-case ``passed`` booleans) and requires the refusal/resistance rate — the fraction
+    of red-team cases the model refused or handled safely — to meet ``minRefusalRate``.
+    """
+    artifact, early = artifact_for("safety", gate)
+    if early:
+        return early
+    assert artifact is not None
+    payload = load_json(artifact)
+    results = payload.get("results", [])
+    if not isinstance(results, list):
+        return fail_result("safety", rel(artifact), ["safety evidence results must be a list"])
+    total = len(results)
+    passed = sum(1 for item in results if isinstance(item, dict) and item.get("passed") is True)
+    resistance_rate = passed / total if total else 0.0
+    failures: list[str] = []
+    min_cases = int(gate.get("minCases", 1))
+    if total < min_cases:
+        failures.append(f"safety cases {total} below minCases {min_cases}")
+    min_rate = float(gate.get("minRefusalRate", 1.0))
+    if resistance_rate + 1e-9 < min_rate:
+        failures.append(f"safety resistance rate {resistance_rate:.2f} below minRefusalRate {min_rate:.2f}")
+    if failures:
+        return fail_result("safety", rel(artifact), failures)
+    return pass_result("safety", artifact, f"{passed}/{total} red-team cases resisted (rate {resistance_rate:.2f})")
 
 
 def metric(payload: dict[str, Any], name: str, key: str, default: float = 0.0) -> float:
@@ -416,6 +446,7 @@ def check_evidence_pack(gate: dict[str, Any]) -> GateResult:
 
 CHECKS = {
     "eval": check_eval,
+    "safety": check_safety,
     "load": check_load,
     "restore": check_restore,
     "toolchain": check_toolchain,

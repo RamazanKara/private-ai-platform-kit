@@ -279,6 +279,57 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": "",
+      "chart_default": "",
+      "chart_value": "retrieval.reranker.baseUrl",
+      "description": "Base URL of the /rerank endpoint when the reranker provider is openai-compatible.",
+      "field": "reranker_base_url",
+      "name": "RAG_RERANKER_BASE_URL",
+      "sensitive": false,
+      "type": "url"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "",
+      "chart_default": "",
+      "chart_value": "retrieval.reranker.model",
+      "description": "Reranker model identifier sent to the /rerank endpoint.",
+      "field": "reranker_model",
+      "name": "RAG_RERANKER_MODEL",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [
+        "none",
+        "openai-compatible"
+      ],
+      "app_default": "none",
+      "chart_default": "none",
+      "chart_value": "retrieval.reranker.provider",
+      "description": "Optional cross-encoder reranker second stage.",
+      "field": "reranker_provider",
+      "name": "RAG_RERANKER_PROVIDER",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 2.0,
+      "chart_default": 2.0,
+      "chart_value": "retrieval.reranker.timeoutSeconds",
+      "description": "Reranker request timeout in seconds.",
+      "field": "reranker_timeout_seconds",
+      "name": "RAG_RERANKER_TIMEOUT_SECONDS",
+      "sensitive": false,
+      "type": "float"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": [],
       "chart_default": [],
       "chart_value": "retrieval.allowedClassifications",
@@ -328,6 +379,30 @@
       "name": "RAG_RETRIEVAL_LEXICAL_WEIGHT",
       "sensitive": false,
       "type": "float"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "owner",
+      "chart_default": "owner",
+      "chart_value": "retrieval.tenantIsolation.field",
+      "description": "Qdrant payload field (stamped at ingest) matched against the caller's tenant id.",
+      "field": "retrieval_tenant_field",
+      "name": "RAG_RETRIEVAL_TENANT_FIELD",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "retrieval.tenantIsolation.enabled",
+      "description": "Whether retrieval is scoped to the caller's tenant (X-Sandbox-ID) via the tenant field.",
+      "field": "retrieval_tenant_isolation_enabled",
+      "name": "RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
     },
     {
       "aliases": [],

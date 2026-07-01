@@ -49,6 +49,8 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `knowledge.documents.controls.md` | `# Platform Controls<br><br>The platform includes model catalog governance, gateway admission controls,<br>Redis-backed sandbox...` |
 | `knowledge.documents.platform-overview.md` | `# Private AI Platform Kit<br><br>Private AI Platform Kit is a local-first, provider-neutral Kubernetes platform<br>for private...` |
 | `knowledge.mountPath` | `/knowledge` |
+| `namespace.create` | `true` |
+| `namespace.name` | `""` |
 | `networkPolicy.allowedIngressNamespaceLabels` | `[{"platform.ai/traceable-sandbox": "true"}]` |
 | `networkPolicy.allowedIngressNamespaces` | `["ai-agents", "ai-sandbox", "monitoring"]` |
 | `networkPolicy.dnsEgress.namespace` | `kube-system` |
@@ -85,6 +87,12 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `retrieval.maxContextChars` | `6000` |
 | `retrieval.maxQueryChars` | `2048` |
 | `retrieval.maxTopK` | `8` |
+| `retrieval.reranker.baseUrl` | `""` |
+| `retrieval.reranker.model` | `""` |
+| `retrieval.reranker.provider` | `none` |
+| `retrieval.reranker.timeoutSeconds` | `2.0` |
+| `retrieval.tenantIsolation.enabled` | `false` |
+| `retrieval.tenantIsolation.field` | `owner` |
 | `retrieval.vectorStore.bootstrapFromKnowledge` | `true` |
 | `retrieval.vectorStore.collection` | `private-ai-platform-kit` |
 | `retrieval.vectorStore.collectionVersion` | `v1` |

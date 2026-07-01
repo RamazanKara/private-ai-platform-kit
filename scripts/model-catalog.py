@@ -95,6 +95,11 @@ def validate_model_entry(model_id: str, model: dict[str, Any], errors: list[str]
         require(errors, bool(request_path), f"{model_id}: approved models must reference promotionRequest")
     if request_path:
         require(errors, (ROOT / str(request_path)).exists(), f"{model_id}: promotionRequest {request_path} must exist")
+    card_path = model.get("modelCard")
+    if status == "approved":
+        require(errors, bool(card_path), f"{model_id}: approved models must reference a modelCard datasheet")
+    if card_path:
+        require(errors, (ROOT / str(card_path)).exists(), f"{model_id}: modelCard {card_path} must exist")
 
 
 def allowed_models_for_environment(environment: str) -> tuple[list[str], dict[str, Any]]:

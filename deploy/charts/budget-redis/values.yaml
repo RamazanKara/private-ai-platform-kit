@@ -47,3 +47,9 @@ networkPolicy:
 podDisruptionBudget:
   enabled: true
   minAvailable: 0
+
+# Data-plane namespace with an apiserver-native Pod Security Admission restricted floor.
+# create=false when the namespace is managed elsewhere; name defaults to the release namespace.
+namespace:
+  create: true
+  name: ""

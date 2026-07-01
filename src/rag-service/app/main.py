@@ -19,6 +19,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from pydantic import BaseModel, Field
 
 from app.embeddings import build_embedding_provider
+from app.reranker import build_reranker_provider
 from app.retriever import LexicalRetriever, QdrantRetriever, VectorStoreError, build_context
 from app.settings import Settings, validate_sandbox_id
 from app.tracing import configure_tracing, trace_request
@@ -251,6 +252,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             resolved.embedding_base_url,
             resolved.vector_timeout_seconds,
         )
+        reranker_provider = build_reranker_provider(
+            resolved.reranker_provider,
+            resolved.reranker_base_url,
+            resolved.reranker_model,
+            resolved.reranker_timeout_seconds,
+        )
         app.state.retriever = QdrantRetriever.from_directory(
             resolved.document_dir,
             resolved.vector_store_url,
@@ -263,6 +270,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             candidate_multiplier=resolved.retrieval_candidate_multiplier,
             lexical_weight=resolved.retrieval_lexical_weight,
             allowed_classifications=resolved.retrieval_allowed_classifications,
+            reranker_provider=reranker_provider,
+            tenant_isolation_enabled=resolved.retrieval_tenant_isolation_enabled,
+            tenant_field=resolved.retrieval_tenant_field,
         )
     else:
         app.state.retriever = LexicalRetriever.from_directory(resolved.document_dir)
@@ -441,7 +451,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     },
                 )
 
-            results = await app.state.retriever.query(query_text, top_k, max_context_chars)
+            results = await app.state.retriever.query(
+                query_text, top_k, max_context_chars, tenant=request.state.sandbox_id
+            )
             result_ids = [result.document.id for result in results]
             context = build_context(results, max_context_chars)
             RETRIEVAL_RESULTS.labels(request.state.sandbox_id).observe(len(results))

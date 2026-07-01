@@ -85,6 +85,34 @@
       ],
       "title": "Sandbox budget utilization",
       "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "id": 7,
+      "targets": [
+        {
+          "expr": "sum(rate(inference_gateway_estimated_cost_usd_total[5m])) by (sandbox)",
+          "legendFormat": "{{sandbox}}"
+        }
+      ],
+      "title": "Estimated cost rate by sandbox (USD/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "id": 8,
+      "targets": [
+        {
+          "expr": "sum(increase(inference_gateway_estimated_cost_usd_total[24h])) by (sandbox)",
+          "legendFormat": "{{sandbox}}"
+        }
+      ],
+      "title": "Estimated cost by sandbox (last 24h)",
+      "type": "timeseries"
     }
   ],
   "schemaVersion": 39,

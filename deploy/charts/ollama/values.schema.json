@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "ollama values",
+  "type": "object",
+  "properties": {
+    "replicaCount": { "type": "integer", "minimum": 1 },
+    "image": { "type": "object" },
+    "model": { "type": "object" },
+    "service": {
+      "type": "object",
+      "properties": {
+        "port": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "serviceAccount": { "type": "object" },
+    "persistence": { "type": "object" },
+    "startupProbe": { "type": "object" },
+    "readinessProbe": { "type": "object" },
+    "livenessProbe": { "type": "object" },
+    "topologySpread": { "type": "object" },
+    "podDisruptionBudget": { "type": "object" },
+    "resources": { "type": "object" },
+    "podLabels": { "type": "object" },
+    "namespace": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "boolean" },
+        "name": { "type": "string" }
+      }
+    }
+  }
+}

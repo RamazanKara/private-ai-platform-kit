@@ -368,6 +368,64 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "guardrails.outputGuardrail.enabled",
+      "description": "Whether the response-path output guardrail inspects model completions (OWASP LLM02/LLM06).",
+      "field": "output_guardrail_enabled",
+      "name": "OUTPUT_GUARDRAIL_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [
+        "flag",
+        "redact",
+        "block"
+      ],
+      "app_default": "redact",
+      "chart_default": "redact",
+      "chart_value": "guardrails.outputGuardrail.mode",
+      "description": "Action on a flagged completion.",
+      "field": "output_guardrail_mode",
+      "name": "OUTPUT_GUARDRAIL_MODE",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": [
+        "private_key",
+        "github_token",
+        "slack_token",
+        "bearer_token",
+        "generic_api_key_assignment",
+        "email",
+        "us_ssn",
+        "credit_card"
+      ],
+      "chart_default": [
+        "private_key",
+        "github_token",
+        "slack_token",
+        "bearer_token",
+        "generic_api_key_assignment",
+        "email",
+        "us_ssn",
+        "credit_card"
+      ],
+      "chart_value": "guardrails.outputGuardrail.patterns",
+      "description": "Built-in detector names scanned on model output (credentials + PII by default).",
+      "field": "output_guardrail_patterns",
+      "name": "OUTPUT_GUARDRAIL_PATTERNS",
+      "sensitive": false,
+      "type": "csv"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": true,
       "chart_default": true,
       "chart_value": "guardrails.promptSecretDetection.enabled",
@@ -451,6 +509,21 @@
     },
     {
       "aliases": [],
+      "allowed_values": [
+        "memory",
+        "redis"
+      ],
+      "app_default": "memory",
+      "chart_default": "memory",
+      "chart_value": "responseCache.backend",
+      "description": "Response cache backend.",
+      "field": "response_cache_backend",
+      "name": "RESPONSE_CACHE_BACKEND",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
       "allowed_values": [],
       "app_default": false,
       "chart_default": false,
@@ -464,6 +537,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": "private-ai-platform-kit:response-cache",
+      "chart_default": "private-ai-platform-kit:response-cache",
+      "chart_value": "responseCache.keyPrefix",
+      "description": "Redis key prefix for shared response-cache entries.",
+      "field": "response_cache_key_prefix",
+      "name": "RESPONSE_CACHE_KEY_PREFIX",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 1024,
       "chart_default": 1024,
       "chart_value": "responseCache.maxEntries",
@@ -472,6 +557,30 @@
       "name": "RESPONSE_CACHE_MAX_ENTRIES",
       "sensitive": false,
       "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0.5,
+      "chart_default": "0.5",
+      "chart_value": "responseCache.redisTimeoutSeconds",
+      "description": "Redis response-cache operation timeout in seconds.",
+      "field": "response_cache_redis_timeout_seconds",
+      "name": "RESPONSE_CACHE_REDIS_TIMEOUT_SECONDS",
+      "sensitive": false,
+      "type": "float"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "redis://budget-redis.budget.svc.cluster.local:6379/1",
+      "chart_default": "redis://budget-redis.budget.svc.cluster.local:6379/1",
+      "chart_value": "responseCache.redisUrl",
+      "description": "Redis URL for the shared response cache when backend is redis.",
+      "field": "response_cache_redis_url",
+      "name": "RESPONSE_CACHE_REDIS_URL",
+      "sensitive": false,
+      "type": "url"
     },
     {
       "aliases": [],

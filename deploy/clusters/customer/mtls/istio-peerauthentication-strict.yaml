@@ -1,0 +1,59 @@
+# Require STRICT mTLS for every platform data-plane namespace (Option A, service mesh).
+# Apply after the namespaces are labelled for sidecar injection. With STRICT peer authentication
+# a workload only accepts mutually-authenticated, encrypted connections, so prompts, completions,
+# RAG context, and the API-key header are never sent in cleartext between pods.
+# Requires Istio (or an equivalent mesh); on Linkerd, namespace injection enables mTLS by default.
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: inference
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: rag
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: vector
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: vllm
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: ollama
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: budget
+spec:
+  mtls:
+    mode: STRICT

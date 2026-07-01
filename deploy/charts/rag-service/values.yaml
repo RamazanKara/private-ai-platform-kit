@@ -39,6 +39,22 @@ retrieval:
   candidateMultiplier: 4
   lexicalWeight: 0.5
   allowedClassifications: []
+  # Per-tenant retrieval isolation (Qdrant backend): when enabled, a caller only retrieves
+  # documents whose `field` payload value (stamped at ingest, default `owner`) equals the
+  # request's X-Sandbox-ID. Fails closed — a tenant with no matching documents gets none.
+  # Requires ingesting documents with owner set to the tenant/sandbox id.
+  tenantIsolation:
+    enabled: false
+    field: owner
+  # Optional cross-encoder reranker second stage (Qdrant backend): reorders the over-fetched
+  # candidates by joint query-document relevance. provider "none" keeps the hybrid ranking;
+  # "openai-compatible" calls a Cohere/Jina/TEI-compatible /rerank endpoint. A reranker outage
+  # is non-fatal (the hybrid ranking is kept).
+  reranker:
+    provider: none
+    baseUrl: ""
+    model: ""
+    timeoutSeconds: 2.0
   vectorStore:
     url: ""
     collection: private-ai-platform-kit
@@ -172,3 +188,9 @@ tests:
     # tag is kept as documentation; digest pins the multi-arch manifest list.
     tag: "1.37.0"
     digest: "sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028"
+
+# Data-plane namespace with an apiserver-native Pod Security Admission restricted floor.
+# create=false when the namespace is managed elsewhere; name defaults to the release namespace.
+namespace:
+  create: true
+  name: ""

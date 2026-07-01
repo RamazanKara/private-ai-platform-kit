@@ -32,6 +32,7 @@ Operational procedures, incident playbooks, and governance runbooks for Private 
 | --- | --- |
 | [Model governance](model-governance.md) | Model lifecycle, promotion requests, and approval |
 | [Model provenance](model-provenance.md) | Artifact provenance and reproducible digest verification |
+| [Model drift monitoring](model-drift-monitoring.md) | Detect production model-quality drift via metrics and scheduled evals |
 | [Evidence pack](evidence-pack.md) | Customer-facing evidence pack generation |
 | [Release gates](release-gates.md) | Release-gate thresholds and strict evidence |
 | [SLO & error budget](slo-error-budget.md) | SLO objectives and error-budget review |
@@ -45,9 +46,12 @@ Operational procedures, incident playbooks, and governance runbooks for Private 
 | Runbook | Purpose |
 | --- | --- |
 | [Incident response](incident-response.md) | Severity tiers, escalation, and the incident index |
+| [Disaster recovery](disaster-recovery.md) | Single-cluster DR: RPO/RTO, restore order, operator-owned scope |
+| [Failure modes & degradation](failure-modes.md) | Consolidated dependency failure-mode and graceful-degradation matrix |
 | [Inference runtime incident](incident-inference-runtime.md) | Gateway / vLLM / Ollama runtime outages |
 | [Chaos drills](chaos-drills.md) | Rollout/recovery and fault-injection drills |
 | [Restore drill](restore-drill.md) | Backup restore-tooling smoke and real data-recovery drill |
+| [Runtime threat detection](runtime-threat-detection.md) | Optional Falco/Tetragon detective layer for hijacked agents |
 | [OIDC / JWKS rotation](oidc-jwks-rotation.md) | Identity-provider key rotation |
 
 For the documentation map (setup, customer handoff, contracts), see [docs/README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/README.md).

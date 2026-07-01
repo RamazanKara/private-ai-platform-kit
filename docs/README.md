@@ -21,6 +21,13 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Project proof and strict evidence | [Proof](proof.md) |
 | Release artifact verification | [Release verification](release-verification.md) |
 | Threat model | [Threat model](threat-model.md) |
+| Architecture profiles and diagrams | [Architecture](architecture.md) |
+| Architecture decision records | [ADRs](adr/README.md) |
+| Scope boundary and non-goals | [Scope and non-goals](scope-and-non-goals.md) |
+| Capacity and sizing worksheet | [Capacity sizing](capacity-sizing.md) |
+| Cost model and TCO | [Cost model](cost-model.md) |
+| OWASP LLM Top 10 control mapping | [OWASP LLM Top 10](owasp-llm-top-10-mapping.md) |
+| AI governance crosswalk (NIST/EU AI Act/ISO 42001) | [AI governance crosswalk](ai-governance-crosswalk.md) |
 | Upstream reference links | [References](references.md) |
 
 ## Setup
@@ -66,7 +73,12 @@ Use this map when the README is too high-level and you need a specific setup, op
 | OpenSSF Scorecard triage | [Scorecard triage](../runbooks/scorecard-triage.md) |
 | Model lifecycle and promotion | [Model governance](../runbooks/model-governance.md) |
 | Model artifact provenance | [Model provenance](../runbooks/model-provenance.md) |
+| Model cards / datasheets | [Model cards](../platform/model-catalog/model-cards/README.md) |
+| Production model drift monitoring | [Model drift monitoring](../runbooks/model-drift-monitoring.md) |
 | Restore verification | [Restore drill](../runbooks/restore-drill.md) |
+| Disaster recovery (RPO/RTO) | [Disaster recovery](../runbooks/disaster-recovery.md) |
+| Failure-mode / degradation matrix | [Failure modes](../runbooks/failure-modes.md) |
+| Runtime threat detection | [Runtime threat detection](../runbooks/runtime-threat-detection.md) |
 | Resilience exercises | [Chaos drills](../runbooks/chaos-drills.md) |
 | Runtime incident response | [Inference runtime incident](../runbooks/incident-inference-runtime.md) |
 

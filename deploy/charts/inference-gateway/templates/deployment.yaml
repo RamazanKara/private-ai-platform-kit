@@ -98,12 +98,26 @@ spec:
               value: {{ .Values.responseCache.ttlSeconds | quote }}
             - name: RESPONSE_CACHE_MAX_ENTRIES
               value: {{ .Values.responseCache.maxEntries | quote }}
+            - name: RESPONSE_CACHE_BACKEND
+              value: {{ .Values.responseCache.backend | quote }}
+            - name: RESPONSE_CACHE_REDIS_URL
+              value: {{ .Values.responseCache.redisUrl | quote }}
+            - name: RESPONSE_CACHE_REDIS_TIMEOUT_SECONDS
+              value: {{ .Values.responseCache.redisTimeoutSeconds | quote }}
+            - name: RESPONSE_CACHE_KEY_PREFIX
+              value: {{ .Values.responseCache.keyPrefix | quote }}
             - name: PROMPT_SECRET_DETECTION_ENABLED
               value: {{ .Values.guardrails.promptSecretDetection.enabled | quote }}
             - name: PROMPT_SECRET_PATTERNS
               value: {{ join "," .Values.guardrails.promptSecretDetection.patterns | quote }}
             - name: BLOCKED_CONTENT_TERMS
               value: {{ join "," .Values.guardrails.blockedContentTerms | quote }}
+            - name: OUTPUT_GUARDRAIL_ENABLED
+              value: {{ .Values.guardrails.outputGuardrail.enabled | quote }}
+            - name: OUTPUT_GUARDRAIL_MODE
+              value: {{ .Values.guardrails.outputGuardrail.mode | quote }}
+            - name: OUTPUT_GUARDRAIL_PATTERNS
+              value: {{ join "," .Values.guardrails.outputGuardrail.patterns | quote }}
             - name: SANDBOX_BUDGET_ENABLED
               value: {{ .Values.budget.enabled | quote }}
             - name: SANDBOX_BUDGET_BACKEND

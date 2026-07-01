@@ -1,0 +1,438 @@
+apiVersion: platform.ai/v1alpha1
+kind: ControlFrameworkMap
+metadata:
+  name: private-ai-platform-kit-control-framework-map
+spec:
+  # Maps the controls that already exist in this repo to external AI-governance
+  # frameworks. This file is a documentation/crosswalk aid, not an enforcement input:
+  # the controls themselves live in the kit_implementation file references and are
+  # enforced by their own checks (make targets, gateway tests, Kyverno policies). The
+  # framework citations are operator references, not certifications -- the kit ships
+  # mechanisms, not attestations of conformity. See docs/ai-governance-crosswalk.md.
+  description: >-
+    Crosswalk from Private AI Platform Kit controls to NIST AI RMF 1.0,
+    the EU AI Act, and ISO/IEC 42001:2023. Citations point at the framework
+    function/article/clause the control contributes evidence toward; they do
+    not assert audited conformity.
+  frameworks:
+    nist_ai_rmf:
+      title: NIST AI Risk Management Framework 1.0
+      functions:
+        - Govern
+        - Map
+        - Measure
+        - Manage
+    eu_ai_act:
+      title: EU AI Act (Regulation (EU) 2024/1689)
+      note: >-
+        Article numbers reference high-risk-system obligations. Whether a given
+        deployment is high-risk depends on the customer's use case; the kit
+        provides the technical mechanisms an operator can use toward these
+        obligations.
+    iso_42001:
+      title: ISO/IEC 42001:2023 (AI management system)
+
+  # ----------------------------------------------------------------------------
+  # Risk-tier semantics. riskTier is an existing field on every model in
+  # platform/model-catalog/models.yaml and every artifact in
+  # platform/governance/model-provenance.yaml; the enum (low|medium|high) is
+  # validated by VALID_RISK_TIERS in scripts/model-catalog.py and re-checked in
+  # scripts/model-provenance.py. This block defines what each tier *means* and
+  # which controls it mandates, so the field carries governance weight instead of
+  # being a free label. It is distinct from dataClassification (the sensitivity of
+  # data the model handles) and from the EU AI Act notion of "high-risk system"
+  # (which is a property of the deployment use case, not the model artifact).
+  riskTiers:
+    description: >-
+      Per-model inherent-risk rating. Tier reflects the model's capability,
+      autonomy, and blast radius if it misbehaves, independent of the data it is
+      pointed at. Higher tiers inherit every control of the tiers below them.
+    tiers:
+      - tier: low
+        meaning: >-
+          Small, bounded, non-autonomous models with low blast radius: laptop
+          smoke models, single-purpose embedding models, and CPU demo models.
+          A failure degrades a demo or a retrieval result, not a customer
+          decision or an autonomous action.
+        examples:
+          - qwen2.5:0.5b
+          - qwen3.5:0.8b
+          - BAAI/bge-small-en-v1.5
+        mandatedControls:
+          - C-PROV   # governed provenance with digest
+          - C-PROMO  # promotion request with separation of duties
+          - C-ALLOW  # gateway approved-only allowlist
+          - C-ADMIT  # admission + sandbox budgets
+          - C-AUDIT  # redacted, hash-chained audit
+        evidence:
+          - results/evals/sample-summary.md
+          - results/loadtest/sample-summary.md
+      - tier: medium
+        meaning: >-
+          Capable generation or coding-agent models that influence developer or
+          analyst output and may drive tool use inside a sandboxed workspace.
+          A failure or injection can produce wrong code, leak context within the
+          sandbox, or waste capacity. This is the default tier for coding-agent
+          serving models.
+        examples:
+          - Qwen/Qwen3-Coder-Next
+          - Qwen/Qwen3.6-35B-A3B
+          - zai-org/GLM-5.2
+          - deepseek-ai/DeepSeek-V4-Flash
+        mandatedControls:
+          - C-PROV
+          - C-PROMO
+          - C-ALLOW
+          - C-ADMIT
+          - C-AUDIT
+          - C-EGRESS   # default-deny + catalog-backed egress on the serving namespace
+          - C-SECRET   # prompt secret detection enabled
+          - C-EVAL     # eval suite must exercise the promoted model (or justified proxy)
+        additionalRequirements:
+          - Customer replaces the source-reference digest with a pinned model-store digest before production.
+          - Coding-agent eval suite includes forbiddenAny secret-leak checks (platform/evals/coding-agent-suite.yaml).
+        evidence:
+          - results/evals/sample-summary.md
+          - results/loadtest/sample-summary.md
+      - tier: high
+        meaning: >-
+          Models the operator designates as decision-supporting, customer-facing,
+          or otherwise consequential -- where an error, bias, or injection can
+          affect a person or a regulated decision. No model in the shipped catalog
+          is rated high; this tier is reserved for the operator to apply when a
+          deployment's use case warrants it (and is the tier most likely to make
+          the deployment EU AI Act high-risk).
+        examples: []
+        mandatedControls:
+          - C-PROV
+          - C-PROMO
+          - C-ALLOW
+          - C-ADMIT
+          - C-AUDIT
+          - C-EGRESS
+          - C-SECRET
+          - C-EVAL
+          - C-SLO       # explicit SLO + burn-rate alert coverage
+          - C-RETAIN    # documented retention + data-classification review
+          - C-RBAC      # reviewed RBAC + human-oversight owner named
+        additionalRequirements:
+          - Two named approvers on the promotion request (separation of duties is already enforced; high tier expects a documented human-oversight owner).
+          - dataClassification reviewed and recorded; restricted data requires explicit sign-off in the customer handoff.
+          - Strict release gate (make release-gate-strict) run against current evidence before promotion.
+          - Operator confirms whether the deployment is EU AI Act high-risk and applies Article 9-15 obligations accordingly.
+        evidence:
+          - results/evals/sample-summary.md
+          - results/loadtest/sample-summary.md
+          - results/release-gate
+
+  # ----------------------------------------------------------------------------
+  # Control crosswalk. Each control id is referenced from the riskTiers block
+  # above. kit_implementation lists the real files/checks; framework fields cite
+  # what the control contributes evidence toward.
+  controls:
+    - id: C-PROV
+      name: Model artifact provenance
+      summary: >-
+        Approved models require governed provenance (sourceUri, immutableRef,
+        digest, license, dataClassification, riskTier, servingProfiles) verified
+        in the strict release gate.
+      kit_implementation:
+        - platform/governance/model-provenance.yaml
+        - scripts/model-provenance.py
+        - runbooks/model-provenance.md
+      verification:
+        - make model-provenance-check
+      nist_ai_rmf:
+        functions: [Map, Manage]
+        categories:
+          - "MAP 1: context and provenance of AI components established"
+          - "MANAGE 3: third-party / supplied components are documented and tracked"
+      eu_ai_act:
+        articles:
+          - "Article 10: data and data governance (source and lineage of model artifacts)"
+          - "Article 11: technical documentation"
+      iso_42001:
+        clauses:
+          - "8.3: AI system requirements and lifecycle (provenance of components)"
+          - "Annex A control area: data and resource management for AI"
+    - id: C-PROMO
+      name: Model promotion with separation of duties
+      summary: >-
+        Approved models require a ModelPromotionRequest with requestedBy distinct
+        from approvers, business justification, and evidence references before
+        entering a gateway allowlist.
+      kit_implementation:
+        - platform/model-catalog/models.yaml
+        - platform/model-catalog/promotion-requests/
+        - scripts/model-catalog.py
+        - runbooks/model-governance.md
+      verification:
+        - make model-check
+      nist_ai_rmf:
+        functions: [Govern, Manage]
+        categories:
+          - "GOVERN 1: policies and accountability for AI lifecycle defined"
+          - "MANAGE 1: risks are documented and prioritized before deployment"
+      eu_ai_act:
+        articles:
+          - "Article 9: risk management system (pre-deployment review)"
+          - "Article 17: quality management system"
+      iso_42001:
+        clauses:
+          - "6.1: actions to address risks and opportunities"
+          - "8.1: operational planning and control (change approval)"
+    - id: C-ALLOW
+      name: Gateway approved-only model allowlist
+      summary: >-
+        The inference gateway serves only catalog-approved model IDs via
+        runtime.allowedModels; unapproved IDs are rejected at admission and the
+        allowlist is cross-checked against the catalog in CI.
+      kit_implementation:
+        - deploy/clusters/local/values/inference-gateway.yaml
+        - deploy/clusters/customer/values/inference-gateway.yaml
+        - src/inference-gateway/app/policy.py
+        - src/inference-gateway/app/main.py
+      verification:
+        - make model-check
+        - test_chat_completion_rejects_disallowed_model
+      nist_ai_rmf:
+        functions: [Manage]
+        categories:
+          - "MANAGE 2: only approved AI components are deployed and operated"
+      eu_ai_act:
+        articles:
+          - "Article 9: risk management system (controls on what is served)"
+          - "Article 15: accuracy, robustness (no unreviewed model in the path)"
+      iso_42001:
+        clauses:
+          - "8.1: operational control"
+    - id: C-ADMIT
+      name: Admission limits and sandbox budgets
+      summary: >-
+        The gateway caps message count, prompt size, completion tokens,
+        temperature, and streaming, and enforces per-X-Sandbox-ID request,
+        prompt-character, and estimated-token ceilings via shared Redis counters.
+      kit_implementation:
+        - src/inference-gateway/app/policy.py
+        - src/inference-gateway/app/budget.py
+        - platform/governance/quota-plans.yaml
+      verification:
+        - test_admission_policy_rejects_unsafe_or_expensive_requests
+        - test_sandbox_budget_status_and_request_limit_rejection
+        - make quota-check
+      nist_ai_rmf:
+        functions: [Measure, Manage]
+        categories:
+          - "MEASURE 2: AI system performance and limits are monitored"
+          - "MANAGE 4: mechanisms bound runaway or abusive use"
+      eu_ai_act:
+        articles:
+          - "Article 15: accuracy, robustness, and cybersecurity (resource bounds)"
+      iso_42001:
+        clauses:
+          - "8.1: operational control"
+          - "9.1: monitoring, measurement, analysis"
+    - id: C-AUDIT
+      name: Tamper-evident redacted audit chain
+      summary: >-
+        The gateway emits JSON audit events that record prompt length and SHA-256
+        fingerprints (never raw text) and links each record into a per-process
+        SHA-256 hash chain (h_i = SHA-256(h_{i-1} || canonical(record_i))) so
+        deletion or reordering is detectable.
+      kit_implementation:
+        - src/inference-gateway/app/main.py
+        - platform/governance/data-retention.yaml
+      verification:
+        - test_audit_log_redacts_prompt_content
+      nist_ai_rmf:
+        functions: [Measure, Manage]
+        categories:
+          - "MEASURE 1: appropriate metrics and logs are collected"
+          - "MANAGE 4: incidents and events are recorded for response"
+      eu_ai_act:
+        articles:
+          - "Article 12: record-keeping / automatic logging over the system lifetime"
+          - "Article 13: transparency (traceable request/response records)"
+      iso_42001:
+        clauses:
+          - "9.1: monitoring, measurement, analysis and evaluation"
+          - "Annex A control area: AI system logging and records"
+    - id: C-EGRESS
+      name: Egress governance
+      summary: >-
+        Tenant and coding-agent namespaces run default-deny NetworkPolicies;
+        external egress is allowed only through reviewed, expiring
+        egress-catalog entries referenced by catalogRef, enforced at render time
+        and by the Kyverno ai-platform-restrict-egress-cidrs policy.
+      kit_implementation:
+        - platform/network/egress-catalog.yaml
+        - deploy/policies/kyverno/policies.yaml
+        - runbooks/egress-governance.md
+      verification:
+        - make egress-check
+        - make policy-test
+      nist_ai_rmf:
+        functions: [Manage]
+        categories:
+          - "MANAGE 4: blast radius of a compromised component is contained"
+      eu_ai_act:
+        articles:
+          - "Article 15: cybersecurity (network containment of AI components)"
+      iso_42001:
+        clauses:
+          - "8.1: operational control"
+          - "Annex A control area: security of AI systems"
+    - id: C-SECRET
+      name: Prompt secret detection
+      summary: >-
+        The gateway rejects prompts matching configured credential patterns
+        before forwarding to a runtime, reducing accidental secret exfiltration
+        through the model path.
+      kit_implementation:
+        - src/inference-gateway/app/policy.py
+        - runbooks/guardrails.md
+      verification:
+        - make production-check
+      nist_ai_rmf:
+        functions: [Manage]
+        categories:
+          - "MANAGE 4: leakage of sensitive inputs is mitigated"
+      eu_ai_act:
+        articles:
+          - "Article 10: data governance (control over inputs)"
+          - "Article 15: cybersecurity"
+      iso_42001:
+        clauses:
+          - "Annex A control area: data and security management"
+    - id: C-EVAL
+      name: Evaluation evidence on promotion
+      summary: >-
+        Promotion requires an eval suite that exercises the promoted model (or a
+        declared, justified proxy) plus load-test and security-workflow evidence;
+        coding-agent suites include forbiddenAny secret-leak checks.
+      kit_implementation:
+        - platform/evals/smoke-suite.yaml
+        - platform/evals/coding-agent-suite.yaml
+        - scripts/eval-suite.py
+        - scripts/model-catalog.py
+      verification:
+        - make eval-local
+        - scripts/eval-suite.py --check-config
+      nist_ai_rmf:
+        functions: [Measure]
+        categories:
+          - "MEASURE 2: AI system is evaluated for trustworthy characteristics"
+          - "MEASURE 3: mechanisms to track identified risks over time"
+      eu_ai_act:
+        articles:
+          - "Article 15: accuracy and robustness (tested before deployment)"
+          - "Article 17: quality management system"
+      iso_42001:
+        clauses:
+          - "9.1: monitoring, measurement, analysis and evaluation"
+          - "8.3: AI system verification and validation"
+    - id: C-SLO
+      name: SLOs and error-budget alerting
+      summary: >-
+        platform/slo/objectives.yaml defines inference, eval, restore, and
+        coding-agent objectives with burn-rate alert references; release gates
+        enforce SLO thresholds.
+      kit_implementation:
+        - platform/slo/objectives.yaml
+        - platform/slo/release-gates.yaml
+        - scripts/slo-check.py
+      verification:
+        - make slo-check
+      nist_ai_rmf:
+        functions: [Measure, Manage]
+        categories:
+          - "MEASURE 2: performance is monitored against targets"
+          - "MANAGE 4: degradation triggers response"
+      eu_ai_act:
+        articles:
+          - "Article 15: accuracy and robustness (operational performance)"
+          - "Article 72: post-market monitoring"
+      iso_42001:
+        clauses:
+          - "9.1: monitoring, measurement, analysis and evaluation"
+          - "10.1: continual improvement"
+    - id: C-RETAIN
+      name: Data retention and classification
+      summary: >-
+        platform/governance/data-retention.yaml sets retention days and
+        classification for audit logs, evidence, RAG knowledge, agent workspace
+        data, and model governance records, and requires prompt/query redaction.
+      kit_implementation:
+        - platform/governance/data-retention.yaml
+        - scripts/retention-check.py
+        - runbooks/data-retention.md
+      verification:
+        - make retention-check
+      nist_ai_rmf:
+        functions: [Govern, Manage]
+        categories:
+          - "GOVERN 1: data handling policy defined"
+          - "MANAGE 4: data lifecycle is controlled"
+      eu_ai_act:
+        articles:
+          - "Article 10: data and data governance"
+          - "Article 12: record-keeping (retention of logs)"
+      iso_42001:
+        clauses:
+          - "7.5: documented information control"
+          - "Annex A control area: data for AI systems"
+    - id: C-RBAC
+      name: RBAC, namespace isolation, and human oversight
+      summary: >-
+        Tenant and agent workspaces get namespace isolation, RBAC, quotas, and a
+        named owner; pod hardening (non-root, drop-all-caps, read-only root) and
+        required ownership labels are enforced by Kyverno.
+      kit_implementation:
+        - deploy/charts/agent-workspace/
+        - deploy/policies/kyverno/policies.yaml
+        - platform/governance/quota-plans.yaml
+        - runbooks/agent-workspaces.md
+      verification:
+        - make agent-smoke
+        - make policy-test
+      nist_ai_rmf:
+        functions: [Govern, Manage]
+        categories:
+          - "GOVERN 2: roles and responsibilities are defined and resourced"
+          - "MANAGE 4: access to AI components is controlled"
+      eu_ai_act:
+        articles:
+          - "Article 14: human oversight (named owner, scoped access)"
+          - "Article 15: cybersecurity (least privilege, isolation)"
+      iso_42001:
+        clauses:
+          - "5.3: organizational roles, responsibilities, authorities"
+          - "Annex A control area: roles and access for AI systems"
+    - id: C-SUPPLY
+      name: Supply-chain integrity
+      summary: >-
+        Pinned Alpine runtime images, hashed Python lockfiles, SBOMs, Trivy
+        HIGH/CRITICAL gating, keyless Cosign signing, and the Kyverno
+        ai-platform-verify-project-images policy that rejects images not signed
+        by this repo's CI identity at admission.
+      kit_implementation:
+        - .github/workflows/ci.yml
+        - deploy/policies/kyverno/policies.yaml
+        - scripts/supply-chain-check.py
+        - runbooks/scorecard-triage.md
+      verification:
+        - make supply-chain-check
+        - make image-scan
+      nist_ai_rmf:
+        functions: [Map, Manage]
+        categories:
+          - "MAP 1: supply chain of AI components is understood"
+          - "MANAGE 3: third-party components are vetted and controlled"
+      eu_ai_act:
+        articles:
+          - "Article 15: cybersecurity (integrity of the deployed artifacts)"
+          - "Article 11: technical documentation (SBOM, provenance)"
+      iso_42001:
+        clauses:
+          - "8.1: operational control"
+          - "Annex A control area: third-party and supplier relationships"

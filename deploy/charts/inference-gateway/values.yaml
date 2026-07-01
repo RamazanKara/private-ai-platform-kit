@@ -55,10 +55,16 @@ concurrency:
   maxBatchRequests: 32
 
 # Exact-match per-sandbox response cache for non-streaming chat completions.
+# backend: "memory" (per-replica) or "redis" (shared across replicas; recommended under
+# horizontal scale-out so the hit rate does not collapse as the gateway scales).
 responseCache:
   enabled: false
   ttlSeconds: 60
   maxEntries: 1024
+  backend: memory
+  redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/1
+  redisTimeoutSeconds: "0.5"
+  keyPrefix: private-ai-platform-kit:response-cache
 
 # Token-to-cost model surfaced by GET /v1/usage. 0 disables the cost estimate.
 cost:
@@ -79,6 +85,24 @@ guardrails:
   # Case-insensitive substrings rejected anywhere in input (e.g. project codenames).
   # Empty disables the denylist.
   blockedContentTerms: []
+  # Output-side guardrail: inspect the model completion before returning it (OWASP LLM02
+  # insecure output handling / LLM06 sensitive-information disclosure). mode: "flag"
+  # (record only), "redact" (replace matched spans), or "block" (withhold content and set
+  # finish_reason=content_filter). Scans the credential + PII detectors plus blockedContentTerms.
+  # Disabled by default. Streaming responses are detected-and-flagged only (bytes are already
+  # in flight); use non-streaming for redact/block enforcement.
+  outputGuardrail:
+    enabled: false
+    mode: redact
+    patterns:
+      - private_key
+      - github_token
+      - slack_token
+      - bearer_token
+      - generic_api_key_assignment
+      - email
+      - us_ssn
+      - credit_card
 
 budget:
   enabled: true
@@ -198,3 +222,9 @@ tests:
     # tag is kept as documentation; digest pins the multi-arch manifest list.
     tag: "1.37.0"
     digest: "sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028"
+
+# Data-plane namespace with an apiserver-native Pod Security Admission restricted floor.
+# create=false when the namespace is managed elsewhere; name defaults to the release namespace.
+namespace:
+  create: true
+  name: ""

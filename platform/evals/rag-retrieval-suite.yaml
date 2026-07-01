@@ -16,28 +16,38 @@ spec:
     sandboxId: eval-lab
   # Aggregate floors. The default hashed-vector retriever clears these on this
   # small corpus; tighten them when a real embedding model is in place.
+  # retrievalHitRate replaces the old (misnamed) groundingRate — it is a retrieval
+  # metric. faithfulness/contextPrecision are RAGAS-style generation-grounding proxies
+  # scored only on cases that carry a ground-truth `answer`.
   thresholds:
     minRecallAtK: 0.75
     minMrr: 0.6
-    minGroundingRate: 0.75
+    minRetrievalHitRate: 0.75
+    minContextPrecision: 0.3
+    minFaithfulness: 0.6
   cases:
     - id: default-local-runtime
       query: What is the default local runtime for the platform?
       relevant:
         - accelerators
+      answer: Ollama is the default local runtime for the platform.
     - id: coding-agent-headers
       query: Which headers should coding agents send to the inference gateway?
       relevant:
         - coding-agents
+      answer: Coding agents should send X-Request-ID, X-Sandbox-ID, and traceparent headers.
     - id: platform-controls
       query: What governance and audit controls does the platform include?
       relevant:
         - controls
+      answer: The platform includes model catalog governance, admission controls, and redacted audit logs.
     - id: gpu-resource-request
       query: What GPU resource do NVIDIA profiles request?
       relevant:
         - accelerators
+      answer: NVIDIA profiles request nvidia.com/gpu resources.
     - id: what-is-the-platform
       query: What is the Private AI Platform Kit?
       relevant:
         - platform-overview
+      answer: Private AI Platform Kit is a local-first provider-neutral Kubernetes platform for private LLM workloads.

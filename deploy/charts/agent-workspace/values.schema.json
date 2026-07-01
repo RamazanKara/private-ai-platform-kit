@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "agent-workspace values",
+  "type": "object",
+  "properties": {
+    "namespace": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "create": { "type": "boolean" }
+      }
+    },
+    "sandbox": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "serviceAccount": { "type": "object" },
+    "rbac": { "type": "object" },
+    "resourceQuota": { "type": "object" },
+    "limitRange": { "type": "object" },
+    "workspace": { "type": "object" },
+    "platform": { "type": "object" },
+    "networkPolicy": { "type": "object" }
+  }
+}

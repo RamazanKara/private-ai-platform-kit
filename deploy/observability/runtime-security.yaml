@@ -1,0 +1,46 @@
+# Runtime (behavioral) threat detection — OPT-IN, not synced by the default GitOps root.
+#
+# Admission control (Kyverno) and NetworkPolicies gate what is admitted and where pods may
+# connect; they do not observe post-admission behavior. Falco adds the detective layer the threat
+# model calls for: a hijacked agent or compromised runtime pod that spawns a shell, reads sensitive
+# files, launches a crypto-miner, or opens a reverse shell is detected at runtime.
+#
+# It is opt-in because Falco runs a privileged/eBPF DaemonSet, which the platform's own Kyverno
+# disallow-privileged policy blocks in AI namespaces. Deploy it into a namespace excluded from that
+# policy (the Falco chart defaults to the `falco` namespace) and confirm the exclusion before sync.
+# See runbooks/runtime-threat-detection.md. Add this file to your Argo root or `kubectl apply` it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: falco
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://falcosecurity.github.io/charts
+    chart: falco
+    targetRevision: 4.21.3
+    helm:
+      releaseName: falco
+      values: |
+        driver:
+          kind: modern_ebpf
+        falcosidekick:
+          enabled: true
+          # Route detections to the platform log pipeline (Loki) so they land beside audit events.
+          config:
+            loki:
+              hostport: http://loki.monitoring.svc.cluster.local:3100
+        # Enable the rules relevant to hijacked agents / compromised runtime pods.
+        collectors:
+          kubernetes:
+            enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: falco
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

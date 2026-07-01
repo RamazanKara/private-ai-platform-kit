@@ -448,6 +448,7 @@
     },
     "/v1/batches": {
       "post": {
+        "description": "Synchronous, size-bounded (MAX_BATCH_REQUESTS) fan-out that runs every item concurrently and returns per-item results inline. This is NOT the OpenAI asynchronous file-batch API: there is no batch id, status polling, result-file retrieval, or cancellation. Use it for small offline batches that fit within the request timeout and gateway concurrency limit.",
         "operationId": "createBatch",
         "requestBody": {
           "content": {
@@ -491,7 +492,7 @@
             "ApiKeyAuth": []
           }
         ],
-        "summary": "Process a batch of chat completions",
+        "summary": "Process a batch of chat completions synchronously",
         "tags": [
           "inference"
         ]

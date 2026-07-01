@@ -11,6 +11,8 @@ Optional local vector store profile for Private AI Platform Kit RAG.
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `qdrant/qdrant` |
 | `image.tag` | `v1.18.1` |
+| `namespace.create` | `true` |
+| `namespace.name` | `""` |
 | `networkPolicy.allowedIngressNamespaces` | `["rag", "monitoring"]` |
 | `networkPolicy.enabled` | `true` |
 | `persistence.enabled` | `true` |

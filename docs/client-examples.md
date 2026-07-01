@@ -87,3 +87,72 @@ r = httpx.post(
 r.raise_for_status()
 print(r.json()["choices"][0]["message"]["content"])
 ```
+
+## Python (first-party client)
+
+The kit ships a minimal, retry-aware first-party client (`sdk/python`, packaged as
+`private-ai-platform-kit-client`) for scripts that do not want the full `openai` dependency:
+
+```python
+from ai_platform_client import GatewayClient
+
+with GatewayClient("http://127.0.0.1:8080", api_key="local-development-only", sandbox_id="demo") as gw:
+    print(gw.chat([{"role": "user", "content": "hello"}])["choices"][0]["message"]["content"])
+    for delta in gw.chat_stream([{"role": "user", "content": "stream a haiku"}]):
+        print(delta, end="")
+```
+
+## Agent & coding frameworks (drop-in)
+
+Because the gateway is OpenAI-compatible, agent and coding frameworks work by pointing their
+OpenAI base URL at the gateway and adding the `X-Sandbox-ID` header. Always route framework traffic
+through the gateway (not the runtime directly) so auth, model allowlists, budgets, guardrails, and
+audit apply.
+
+### LangChain
+
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    base_url="http://127.0.0.1:8080/v1",
+    api_key="local-development-only",
+    model="qwen3.5:0.8b",
+    default_headers={"X-Sandbox-ID": "demo"},
+)
+print(llm.invoke("hello").content)
+```
+
+### LlamaIndex
+
+```python
+from llama_index.llms.openai_like import OpenAILike
+
+llm = OpenAILike(
+    api_base="http://127.0.0.1:8080/v1",
+    api_key="local-development-only",
+    model="qwen3.5:0.8b",
+    is_chat_model=True,
+    default_headers={"X-Sandbox-ID": "demo"},
+)
+print(llm.complete("hello"))
+```
+
+### Aider (coding agent)
+
+```bash
+export OPENAI_API_BASE=http://127.0.0.1:8080/v1
+export OPENAI_API_KEY=local-development-only
+# Aider forwards no custom header, so bind the sandbox with a JWT tenant claim (auth.jwt.tenantClaim)
+# or run Aider from inside an agent-workspace namespace whose egress sets X-Sandbox-ID at the proxy.
+aider --model openai/Qwen/Qwen3-Coder-Next
+```
+
+### Continue / Cline (VS Code)
+
+Point the assistant at an OpenAI-compatible provider with `apiBase:
+http://<gateway-host>/v1`, the API key, and a `requestOptions.headers` entry setting
+`X-Sandbox-ID`. The gateway's `/v1/models` lists the approved models to configure.
+
+> Frameworks that cannot set a custom header should bind the sandbox with a JWT tenant claim
+> (`auth.jwt.tenantClaim`) so per-sandbox budgets and attribution cannot be spoofed.

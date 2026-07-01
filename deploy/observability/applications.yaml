@@ -14,15 +14,24 @@ spec:
       values: |
         grafana:
           defaultDashboardsTimezone: utc
+          # Wire the Tempo trace backend as a Grafana datasource so the OTLP spans the
+          # gateway and RAG service export (OTEL_TRACING_ENABLED) are queryable end-to-end.
+          additionalDataSources:
+            - name: Tempo
+              type: tempo
+              uid: tempo
+              access: proxy
+              url: http://tempo.monitoring.svc.cluster.local:3200
         prometheus:
           prometheusSpec:
             serviceMonitorSelectorNilUsesHelmValues: false
             podMonitorSelectorNilUsesHelmValues: false
             ruleSelectorNilUsesHelmValues: false
-        # Default Alertmanager routing tree. The default receiver is null so alerts have
-        # a defined route out of the box; wire a real destination (Slack/PagerDuty/webhook)
-        # per environment by replacing the example receiver below, then route critical
-        # severity to it. Without this, alerts fire but reach no destination.
+        # Default Alertmanager routing tree. Non-critical alerts fall through to the null
+        # receiver; critical alerts route to the platform-oncall webhook receiver, which
+        # ships as a working end-to-end example. Replace the placeholder webhook URL with a
+        # real destination (Slack/PagerDuty/Opsgenie/webhook) per environment; the URL and
+        # any secret are a customer/IdP responsibility per the kit boundary.
         alertmanager:
           config:
             route:
@@ -30,13 +39,48 @@ spec:
               group_by: ["alertname", "severity"]
               routes:
                 - matchers: ['severity = "critical"']
-                  receiver: "null"
+                  receiver: platform-oncall
                   continue: true
             receivers:
               - name: "null"
-              # - name: platform-oncall
-              #   webhook_configs:
-              #     - url: https://example.invalid/alerts  # replace per environment
+              - name: platform-oncall
+                webhook_configs:
+                    # Replace with your real receiver (e.g. a Slack/PagerDuty webhook proxy).
+                  - url: https://alerts.example.invalid/platform-oncall
+                    send_resolved: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# Tempo trace backend. Receives the OTLP/HTTP spans exported by the gateway and RAG service
+# (set observability.tracing.otlpEndpoint to http://tempo.monitoring.svc.cluster.local:4318
+# in the customer overlays) and is wired as a Grafana datasource above, so request / RAG /
+# runtime latency is debuggable end-to-end instead of the instrumentation exporting to nowhere.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tempo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: tempo
+    targetRevision: 1.23.3
+    helm:
+      releaseName: tempo
+      values: |
+        tempo:
+          metricsGenerator:
+            enabled: false
+        # SingleBinary Tempo with the OTLP receiver enabled (gRPC 4317, HTTP 4318).
+        # Local/reference footprint; size retention and storage per environment.
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

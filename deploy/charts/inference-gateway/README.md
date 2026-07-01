@@ -60,6 +60,9 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `cost.currency` | `USD` |
 | `cost.usdPer1kTokens` | `0` |
 | `guardrails.blockedContentTerms` | `[]` |
+| `guardrails.outputGuardrail.enabled` | `false` |
+| `guardrails.outputGuardrail.mode` | `redact` |
+| `guardrails.outputGuardrail.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment", "email", "us_ssn", "cred...` |
 | `guardrails.promptSecretDetection.enabled` | `true` |
 | `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"]` |
 | `image.pullPolicy` | `IfNotPresent` |
@@ -76,6 +79,8 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `keda.minReplicaCount` | `1` |
 | `keda.prometheusServerAddress` | `http://kube-prometheus-stack-prometheus.monitoring:9090` |
 | `keda.threshold` | `10` |
+| `namespace.create` | `true` |
+| `namespace.name` | `""` |
 | `networkPolicy.allowDns` | `true` |
 | `networkPolicy.allowedIngressNamespaceLabels` | `[{"platform.ai/traceable-sandbox": "true"}]` |
 | `networkPolicy.allowedIngressNamespaces` | `["ai-agents", "ai-sandbox"]` |
@@ -98,8 +103,12 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `resources.limits.memory` | `512Mi` |
 | `resources.requests.cpu` | `100m` |
 | `resources.requests.memory` | `128Mi` |
+| `responseCache.backend` | `memory` |
 | `responseCache.enabled` | `false` |
+| `responseCache.keyPrefix` | `private-ai-platform-kit:response-cache` |
 | `responseCache.maxEntries` | `1024` |
+| `responseCache.redisTimeoutSeconds` | `0.5` |
+| `responseCache.redisUrl` | `redis://budget-redis.budget.svc.cluster.local:6379/1` |
 | `responseCache.ttlSeconds` | `60` |
 | `routing.policy.enabled` | `false` |
 | `routing.policy.models` | `[]` |

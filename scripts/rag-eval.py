@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,6 +27,13 @@ from typing import Any
 
 import httpx
 import yaml
+
+_TOKEN_PATTERN = re.compile(r"[a-z0-9][a-z0-9_.:/-]*")
+
+
+def _tokens(text: str) -> set[str]:
+    """Return the lowercased alphanumeric token set of the text."""
+    return set(_TOKEN_PATTERN.findall(text.lower()))
 
 
 def recall_at_k(retrieved: list[str], relevant: list[str], k: int) -> float:
@@ -35,6 +43,35 @@ def recall_at_k(retrieved: list[str], relevant: list[str], k: int) -> float:
         return 1.0
     hits = relevant_set & set(retrieved[:k])
     return len(hits) / len(relevant_set)
+
+
+def context_precision_at_k(retrieved: list[str], relevant: list[str], k: int) -> float:
+    """Fraction of the top-k retrieved documents that are relevant (precision@k).
+
+    Complements recall@k: recall asks "did we find the relevant docs", precision asks
+    "how much of what we returned was on-topic" — a RAGAS-style context-precision proxy.
+    """
+    top = retrieved[:k]
+    if not top:
+        return 0.0
+    relevant_set = set(relevant)
+    return sum(1 for doc_id in top if doc_id in relevant_set) / len(top)
+
+
+def answer_support(answer: str, context: str) -> float:
+    """Lexical groundedness proxy: fraction of answer tokens present in the retrieved context.
+
+    A deterministic, offline stand-in for a RAGAS faithfulness score: it measures how much of
+    a ground-truth answer is actually supported by the retrieved context, so an embedding,
+    chunking, or prompt change that stops surfacing the supporting passages is caught. The
+    scorer is intentionally isolated so an LLM-judge or NLI model can replace it without
+    changing the runner or the suite schema.
+    """
+    answer_tokens = _tokens(answer)
+    if not answer_tokens:
+        return 1.0
+    context_tokens = _tokens(context)
+    return len(answer_tokens & context_tokens) / len(answer_tokens)
 
 
 def reciprocal_rank(retrieved: list[str], relevant: list[str], k: int) -> float:
@@ -67,6 +104,8 @@ class CaseResult:
     mrr: float
     ndcg: float
     grounded: bool
+    context_precision: float = 0.0
+    faithfulness: float | None = None
     error: str | None = None
 
 
@@ -105,6 +144,8 @@ def validate_suite(suite: dict[str, Any]) -> list[str]:
         relevant = case.get("relevant")
         if not isinstance(relevant, list) or not relevant or not all(isinstance(item, str) for item in relevant):
             errors.append(f"case {case_id or index} must define relevant as a non-empty list of document ids")
+        if "answer" in case and not isinstance(case.get("answer"), str):
+            errors.append(f"case {case_id or index} answer must be a string when present")
     return errors
 
 
@@ -120,6 +161,7 @@ def evaluate_case(
     case_id = str(case["id"])
     query = str(case["query"])
     relevant = [str(item) for item in case["relevant"]]
+    expected_answer = case.get("answer")
     headers = {
         "Content-Type": "application/json",
         "X-Request-ID": f"rag-eval-{case_id}",
@@ -131,14 +173,20 @@ def evaluate_case(
         response = client.post(
             f"{rag_url.rstrip('/')}/v1/rag/query",
             headers=headers,
-            json={"query": query, "top_k": top_k, "include_messages": False},
+            json={"query": query, "top_k": top_k, "include_context": True, "include_messages": False},
         )
         response.raise_for_status()
-        results = response.json().get("results", [])
+        body = response.json()
+        results = body.get("results", [])
         retrieved = [str(item.get("id")) for item in results if isinstance(item, dict)]
+        context = str(body.get("context") or "")
+        if not context:
+            context = " ".join(str(item.get("excerpt") or "") for item in results if isinstance(item, dict))
     except Exception as exc:
         # Any failure (HTTP error, bad JSON) scores the case zero with the reason recorded.
-        return CaseResult(case_id, query, relevant, [], 0.0, 0.0, 0.0, False, str(exc))
+        return CaseResult(case_id, query, relevant, [], 0.0, 0.0, 0.0, False, error=str(exc))
+    # Faithfulness/groundedness is only defined when the case ships a ground-truth answer.
+    faithfulness = answer_support(str(expected_answer), context) if isinstance(expected_answer, str) else None
     return CaseResult(
         case_id=case_id,
         query=query,
@@ -148,17 +196,28 @@ def evaluate_case(
         mrr=reciprocal_rank(retrieved, relevant, top_k),
         ndcg=ndcg_at_k(retrieved, relevant, top_k),
         grounded=bool(set(retrieved[:top_k]) & set(relevant)),
+        context_precision=context_precision_at_k(retrieved, relevant, top_k),
+        faithfulness=faithfulness,
     )
 
 
 def aggregate(results: list[CaseResult]) -> dict[str, float]:
-    """Return mean recall/MRR/nDCG and the grounding rate across all cases."""
+    """Return mean recall/MRR/nDCG, retrieval hit rate, context precision, and faithfulness.
+
+    ``retrieval_hit_rate`` (formerly the misnamed "grounding_rate") is a pure retrieval
+    metric: the fraction of queries whose top-k contains a relevant document. Generation
+    ``faithfulness`` is averaged only over cases that ship a ground-truth answer; when no
+    case does, it reports 1.0 (not applicable) so it never falsely fails a gate.
+    """
     count = len(results) or 1
+    graded = [result.faithfulness for result in results if result.faithfulness is not None]
     return {
         "recall_at_k": sum(result.recall for result in results) / count,
         "mrr": sum(result.mrr for result in results) / count,
         "ndcg_at_k": sum(result.ndcg for result in results) / count,
-        "grounding_rate": sum(1 for result in results if result.grounded) / count,
+        "retrieval_hit_rate": sum(1 for result in results if result.grounded) / count,
+        "context_precision": sum(result.context_precision for result in results) / count,
+        "faithfulness": (sum(graded) / len(graded)) if graded else 1.0,
     }
 
 
@@ -168,7 +227,11 @@ def check_thresholds(metrics: dict[str, float], thresholds: dict[str, Any]) -> l
         "minRecallAtK": "recall_at_k",
         "minMrr": "mrr",
         "minNdcgAtK": "ndcg_at_k",
-        "minGroundingRate": "grounding_rate",
+        # minGroundingRate kept as a back-compatible alias for the renamed metric.
+        "minGroundingRate": "retrieval_hit_rate",
+        "minRetrievalHitRate": "retrieval_hit_rate",
+        "minContextPrecision": "context_precision",
+        "minFaithfulness": "faithfulness",
     }
     failures: list[str] = []
     for key, metric in mapping.items():
@@ -188,14 +251,19 @@ def write_markdown(path: Path, suite_name: str, metrics: dict[str, float], resul
         f"| recall@k | {metrics['recall_at_k']:.3f} |",
         f"| MRR | {metrics['mrr']:.3f} |",
         f"| nDCG@k | {metrics['ndcg_at_k']:.3f} |",
-        f"| grounding rate | {metrics['grounding_rate']:.3f} |",
+        f"| retrieval hit rate | {metrics['retrieval_hit_rate']:.3f} |",
+        f"| context precision | {metrics['context_precision']:.3f} |",
+        f"| faithfulness | {metrics['faithfulness']:.3f} |",
         "",
-        "| Case | Recall | MRR | nDCG | Grounded |",
-        "| --- | ---: | ---: | ---: | --- |",
+        "| Case | Recall | MRR | nDCG | Precision | Faithfulness |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     for result in results:
-        grounded = "yes" if result.grounded else "no"
-        lines.append(f"| {result.case_id} | {result.recall:.3f} | {result.mrr:.3f} | {result.ndcg:.3f} | {grounded} |")
+        faith = f"{result.faithfulness:.3f}" if result.faithfulness is not None else "n/a"
+        lines.append(
+            f"| {result.case_id} | {result.recall:.3f} | {result.mrr:.3f} | "
+            f"{result.ndcg:.3f} | {result.context_precision:.3f} | {faith} |"
+        )
     path.write_text("\n".join(lines) + "\n")
 
 
@@ -208,6 +276,11 @@ def selftest() -> int:
     assert abs(reciprocal_rank(retrieved, relevant, 3) - 0.5) < 1e-9
     assert abs(ndcg_at_k(retrieved, relevant, 3) - (1.0 / math.log2(3))) < 1e-9
     assert recall_at_k(["x"], [], 3) == 1.0
+    assert context_precision_at_k(retrieved, relevant, 3) == 1.0 / 3
+    assert context_precision_at_k([], relevant, 3) == 0.0
+    assert answer_support("inference gateway routes", "the inference gateway routes traffic") == 1.0
+    assert abs(answer_support("alpha beta", "only alpha here") - 0.5) < 1e-9
+    assert answer_support("", "anything") == 1.0
     print("rag-eval selftest OK")
     return 0
 
@@ -262,6 +335,8 @@ def main() -> int:
                 "mrr": result.mrr,
                 "ndcg_at_k": result.ndcg,
                 "grounded": result.grounded,
+                "context_precision": result.context_precision,
+                "faithfulness": result.faithfulness,
                 "retrieved": result.retrieved,
                 "error": result.error,
             }
@@ -279,7 +354,8 @@ def main() -> int:
 
     print(
         f"recall@k={metrics['recall_at_k']:.3f} mrr={metrics['mrr']:.3f} "
-        f"ndcg@k={metrics['ndcg_at_k']:.3f} grounding={metrics['grounding_rate']:.3f}"
+        f"ndcg@k={metrics['ndcg_at_k']:.3f} hit_rate={metrics['retrieval_hit_rate']:.3f} "
+        f"precision={metrics['context_precision']:.3f} faithfulness={metrics['faithfulness']:.3f}"
     )
     for failure in failures:
         print(f"  - {failure}")

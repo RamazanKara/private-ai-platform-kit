@@ -1,0 +1,64 @@
+fullnameOverride: vllm
+replicaCount: 2
+image:
+  repository: vllm/vllm-openai
+  tag: "v0.22.0"
+  pullPolicy: IfNotPresent
+model:
+  name: Qwen/Qwen3-Coder-Next
+  dtype: auto
+  maxModelLen: "262144"
+# FP8 quantization profile for Hopper/Ada (H100/H200/L40S) GPUs. FP8 weights plus an FP8
+# KV cache roughly halve memory, letting the same model fit on FEWER GPUs (count reduced
+# from 4 to 2) or serve more concurrency/context on the same GPUs. Validate answer quality
+# with `make eval` before promoting -- quantization trades a small accuracy cost for cost.
+server:
+  quantization: fp8
+  kvCacheDtype: fp8
+  gpuMemoryUtilization: "0.92"
+  enablePrefixCaching: true
+accelerator:
+  enabled: true
+  vendor: nvidia
+  resourceName: nvidia.com/gpu
+  count: 2
+  nodeSelector:
+    platform.ai/node-pool: gpu
+    platform.ai/gpu-vendor: nvidia
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+# Tensor-parallel size must match accelerator.count (2 here, not the chart default of 4).
+extraArgs:
+  - --tensor-parallel-size
+  - "2"
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - qwen3_coder
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+keda:
+  enabled: true
+  minReplicaCount: 2
+  maxReplicaCount: 8
+  threshold: "5"
+  prometheusServerAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
+cache:
+  persistence:
+    enabled: true
+    size: 400Gi
+    accessMode: ReadWriteMany
+    storageClassName: ""
+externalSecrets:
+  enabled: true
+  huggingFaceTokenSecretName: hf-token
+  huggingFaceTokenKey: token
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: customer
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: customer-lab

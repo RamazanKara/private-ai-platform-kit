@@ -18,6 +18,8 @@ Local-first private LLM runtime.
 | `livenessProbe.timeoutSeconds` | `5` |
 | `model.name` | `qwen3.5:0.8b` |
 | `model.pullOnStart` | `false` |
+| `namespace.create` | `true` |
+| `namespace.name` | `""` |
 | `persistence.enabled` | `true` |
 | `persistence.size` | `20Gi` |
 | `podDisruptionBudget.enabled` | `true` |

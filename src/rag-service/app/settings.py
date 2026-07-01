@@ -8,6 +8,7 @@ from pathlib import Path
 SANDBOX_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 VALID_RETRIEVAL_BACKENDS = {"lexical", "qdrant"}
 VALID_EMBEDDING_PROVIDERS = {"hash", "openai-compatible"}
+VALID_RERANKER_PROVIDERS = {"none", "openai-compatible"}
 DEFAULT_VECTOR_DIMENSIONS = 384
 
 
@@ -112,6 +113,12 @@ class Settings:
     retrieval_candidate_multiplier: int = 4
     retrieval_lexical_weight: float = 0.5
     retrieval_allowed_classifications: tuple[str, ...] = ()
+    retrieval_tenant_isolation_enabled: bool = False
+    retrieval_tenant_field: str = "owner"
+    reranker_provider: str = "none"
+    reranker_base_url: str = ""
+    reranker_model: str = ""
+    reranker_timeout_seconds: float = 2.0
     embedding_provider: str = "hash"
     embedding_base_url: str = ""
     embedding_model: str = "hash-text-v1"
@@ -152,6 +159,16 @@ class Settings:
             raise ValueError("retrieval_candidate_multiplier must be one or greater")
         if not 0.0 <= self.retrieval_lexical_weight <= 1.0:
             raise ValueError("retrieval_lexical_weight must be between 0 and 1")
+        if not self.retrieval_tenant_field.strip():
+            raise ValueError("retrieval_tenant_field must not be empty")
+        if self.reranker_provider not in VALID_RERANKER_PROVIDERS:
+            raise ValueError(f"reranker_provider must be one of {sorted(VALID_RERANKER_PROVIDERS)}")
+        if self.reranker_provider == "openai-compatible" and not self.reranker_base_url:
+            raise ValueError("reranker_base_url must be set when reranker_provider is openai-compatible")
+        if self.reranker_provider == "openai-compatible" and not self.reranker_model:
+            raise ValueError("reranker_model must be set when reranker_provider is openai-compatible")
+        if self.reranker_timeout_seconds <= 0:
+            raise ValueError("reranker_timeout_seconds must be greater than zero")
         if self.embedding_provider not in VALID_EMBEDDING_PROVIDERS:
             raise ValueError(f"embedding_provider must be one of {sorted(VALID_EMBEDDING_PROVIDERS)}")
         if self.embedding_provider == "openai-compatible" and not self.embedding_base_url:
@@ -193,6 +210,12 @@ class Settings:
             retrieval_candidate_multiplier=_positive_int_from_env("RAG_RETRIEVAL_CANDIDATE_MULTIPLIER", 4),
             retrieval_lexical_weight=_float_from_env("RAG_RETRIEVAL_LEXICAL_WEIGHT", 0.5),
             retrieval_allowed_classifications=_csv_from_env("RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS", ()),
+            retrieval_tenant_isolation_enabled=_bool_from_env("RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED", False),
+            retrieval_tenant_field=os.getenv("RAG_RETRIEVAL_TENANT_FIELD", "owner").strip() or "owner",
+            reranker_provider=os.getenv("RAG_RERANKER_PROVIDER", "none").strip().lower(),
+            reranker_base_url=os.getenv("RAG_RERANKER_BASE_URL", "").strip(),
+            reranker_model=os.getenv("RAG_RERANKER_MODEL", "").strip(),
+            reranker_timeout_seconds=_float_from_env("RAG_RERANKER_TIMEOUT_SECONDS", 2.0),
             embedding_provider=os.getenv("RAG_EMBEDDING_PROVIDER", "hash").strip().lower(),
             embedding_base_url=os.getenv("RAG_EMBEDDING_BASE_URL", "").strip(),
             embedding_model=os.getenv("RAG_EMBEDDING_MODEL", "hash-text-v1").strip(),

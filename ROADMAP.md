@@ -75,3 +75,14 @@ SDK, and embedding-model governance all ship. What remains is inherently externa
 - `security`: Flipping the encryption-at-rest Kyverno policy from Audit to Enforce, and scheduling
   the age-based retention purge as a CronJob, are per-environment operational decisions; the
   policy, the labels, and the purge command ship ready to use.
+- `security`: In-cluster encryption in transit is delegated to a CNI/mesh control. The kit ships an
+  opt-in overlay (service-mesh mTLS, Cilium WireGuard/IPsec, or cert-manager TLS) under
+  `deploy/clusters/customer/mtls/`; installing and operating the mesh/CA is operator-owned.
+- `dr`: A secondary cluster, multi-region failover, and warm-standby topology are out of scope for
+  this single-cluster, local-first kit. `runbooks/disaster-recovery.md` documents the single-cluster
+  recovery sequence, RPO/RTO targets, and per-store data-loss windows; provisioning the off-cluster
+  backup target (Velero `BackupStorageLocation`/`VolumeSnapshotLocation`), a standby cluster, and
+  cross-region replication is the operator's responsibility.
+- `security`: Runtime (behavioral) threat detection ships as an opt-in Falco/Tetragon Argo
+  application (`deploy/observability/runtime-security.yaml`) plus a runbook; installing the
+  privileged DaemonSet and tuning rules is a per-cluster operator decision.

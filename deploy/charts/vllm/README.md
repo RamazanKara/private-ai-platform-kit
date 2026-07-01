@@ -49,6 +49,8 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `model.maxModelLen` | `262144` |
 | `model.name` | `Qwen/Qwen3-Coder-Next` |
 | `model.revision` | `""` |
+| `namespace.create` | `true` |
+| `namespace.name` | `""` |
 | `podDisruptionBudget.enabled` | `true` |
 | `podDisruptionBudget.minAvailable` | `1` |
 | `podLabels.platform.ai/cost-center` | `platform` |
@@ -67,6 +69,13 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `resources.limits.memory` | `64Gi` |
 | `resources.requests.cpu` | `2` |
 | `resources.requests.memory` | `32Gi` |
+| `server.enablePrefixCaching` | `true` |
+| `server.gpuMemoryUtilization` | `0.90` |
+| `server.guidedDecodingBackend` | `""` |
+| `server.kvCacheDtype` | `auto` |
+| `server.quantization` | `""` |
+| `server.speculative.config` | `""` |
+| `server.speculative.enabled` | `false` |
 | `service.port` | `8000` |
 | `serviceAccount.automountServiceAccountToken` | `false` |
 | `serviceAccount.create` | `true` |

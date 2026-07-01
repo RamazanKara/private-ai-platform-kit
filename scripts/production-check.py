@@ -436,6 +436,42 @@ def check_model_governance(errors: list[str]) -> None:
             require(errors, bool(promotion_request) and (ROOT / str(promotion_request)).exists(), f"approved model {model.get('id')} must reference an existing promotion request")
 
 
+PLATFORM_NAMESPACE_CHARTS = (
+    "inference-gateway",
+    "rag-service",
+    "qdrant-vector-store",
+    "vllm",
+    "ollama",
+    "budget-redis",
+)
+
+
+def check_platform_namespace_psa(errors: list[str]) -> None:
+    """Assert every platform data-plane chart renders a namespace enforcing restricted PSA.
+
+    The tenant/sandbox namespaces already carry apiserver-native Pod Security Admission labels;
+    this asserts the same restricted floor on the platform service namespaces that handle the
+    most sensitive aggregate data, so pod hardening does not depend solely on the Kyverno webhook.
+    """
+    for chart in PLATFORM_NAMESPACE_CHARTS:
+        docs = render_chart(chart)
+        namespaces = find_kind(docs, "Namespace")
+        require(errors, len(namespaces) >= 1, f"{chart}: chart must render a data-plane Namespace")
+        if not namespaces:
+            continue
+        labels = namespaces[0].get("metadata", {}).get("labels", {})
+        require(
+            errors,
+            labels.get("pod-security.kubernetes.io/enforce") == "restricted",
+            f"{chart}: namespace must enforce restricted pod security",
+        )
+        require(
+            errors,
+            labels.get("pod-security.kubernetes.io/warn") == "restricted",
+            f"{chart}: namespace must set warn=restricted",
+        )
+
+
 def check_sandbox(errors: list[str]) -> None:
     sandbox_docs: list[dict[str, Any]] = []
     for path in sorted((ROOT / "deploy/sandbox/base").glob("*.yaml")):
@@ -1134,6 +1170,7 @@ def main() -> int:
         errors.append(f"failed to render production charts: {exc}")
 
     check_sandbox(errors)
+    check_platform_namespace_psa(errors)
     check_model_catalog(errors)
     check_model_governance(errors)
     check_evals(errors)

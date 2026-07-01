@@ -311,6 +311,150 @@ def test_qdrant_classification_filter_scopes_retrieval(tmp_path, monkeypatch):
     assert classification["match"]["any"] == ["internal", "public"]
 
 
+def test_qdrant_tenant_isolation_scopes_retrieval_to_caller(tmp_path, monkeypatch):
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/collections/lab/points/query":
+            captured["filter"] = json.loads(request.content)["filter"]
+            return httpx.Response(200, json={"result": {"points": []}})
+        return httpx.Response(500)
+
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+        tenant_isolation_enabled=True,
+        tenant_field="owner",
+    )
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    asyncio.run(retriever.query("anything", top_k=1, max_context_chars=200, tenant="team-a"))
+
+    conditions = captured["filter"]["must"]
+    owner = next(c for c in conditions if c["key"] == "owner")
+    assert owner["match"]["value"] == "team-a"
+
+
+def test_qdrant_tenant_isolation_disabled_omits_owner_filter(tmp_path, monkeypatch):
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/collections/lab/points/query":
+            captured["filter"] = json.loads(request.content)["filter"]
+            return httpx.Response(200, json={"result": {"points": []}})
+        return httpx.Response(500)
+
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+    )
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    asyncio.run(retriever.query("anything", top_k=1, max_context_chars=200, tenant="team-a"))
+
+    keys = {c["key"] for c in captured["filter"]["must"]}
+    assert "owner" not in keys
+
+
+def _two_point_handler():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/collections/lab/points/query":
+            return httpx.Response(
+                200,
+                json={
+                    "result": {
+                        "points": [
+                            {"id": "a", "score": 0.95, "payload": {"document_id": "dense-top", "content": "alpha"}},
+                            {"id": "b", "score": 0.60, "payload": {"document_id": "rerank-top", "content": "beta"}},
+                        ]
+                    }
+                },
+            )
+        return httpx.Response(500)
+
+    return handler
+
+
+def test_qdrant_reranker_reorders_candidates(tmp_path, monkeypatch):
+    class FakeReranker:
+        name = "openai-compatible"
+        model = "x"
+
+        async def rerank_async(self, query, documents):
+            # Promote the second (dense-lower) candidate: score by "beta" presence.
+            return [1.0 if "beta" in doc else 0.0 for doc in documents]
+
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+        lexical_weight=0.0,
+        reranker_provider=FakeReranker(),
+    )
+    transport = httpx.MockTransport(_two_point_handler())
+    monkeypatch.setattr(retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    results = asyncio.run(retriever.query("query", top_k=2, max_context_chars=200))
+    assert results[0].document.id == "rerank-top"
+
+
+def test_qdrant_reranker_failure_falls_back_to_hybrid_order(tmp_path, monkeypatch):
+    class BrokenReranker:
+        name = "openai-compatible"
+        model = "x"
+
+        async def rerank_async(self, query, documents):
+            raise httpx.ConnectError("reranker down")
+
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+        lexical_weight=0.0,
+        reranker_provider=BrokenReranker(),
+    )
+    transport = httpx.MockTransport(_two_point_handler())
+    monkeypatch.setattr(retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    # Reranker outage must not fail the query; the hybrid (dense) order is kept.
+    results = asyncio.run(retriever.query("query", top_k=2, max_context_chars=200))
+    assert results[0].document.id == "dense-top"
+
+
+def test_build_reranker_provider_and_parse():
+    from app.reranker import NoopReranker, OpenAICompatibleReranker, build_reranker_provider
+
+    assert isinstance(build_reranker_provider("none", "", "", 2.0), NoopReranker)
+    provider = build_reranker_provider("openai-compatible", "http://rerank:8080", "bge-reranker", 2.0)
+    assert isinstance(provider, OpenAICompatibleReranker)
+    scores = provider._parse({"results": [{"index": 1, "relevance_score": 0.9}, {"index": 0, "score": 0.2}]}, 2)
+    assert scores == [0.2, 0.9]
+    with pytest.raises(ValueError):
+        build_reranker_provider("openai-compatible", "", "m", 2.0)
+    with pytest.raises(ValueError):
+        provider._parse({"no": "results"}, 2)
+
+
 def test_rag_query_returns_grounded_messages_and_trace_headers(tmp_path):
     write_doc(
         tmp_path,

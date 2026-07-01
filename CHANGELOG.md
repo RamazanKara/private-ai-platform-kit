@@ -4,6 +4,47 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+A reference-architecture hardening pass closing a second audit of the gateway, RAG, serving,
+observability, security, resilience, governance, and documentation surfaces.
+
+### Added
+
+- Gateway: response-path **output guardrail** (`OUTPUT_GUARDRAIL_*`) that inspects completions for
+  leaked credentials/PII/blocked content and flags, redacts, or blocks them before return/caching
+  (OWASP LLM02/LLM06); an `inference_gateway_output_guardrail_total` metric and `X-Output-Guardrail`
+  header; streaming detect-and-flag.
+- Gateway: optional **shared Redis response cache** (`RESPONSE_CACHE_BACKEND=redis`) so the cache
+  hit rate does not collapse under horizontal scale-out; an `inference_gateway_estimated_cost_usd_total`
+  Prometheus cost metric; graceful `503` on budget-backend outage (was an unhandled `500`).
+- RAG: **per-tenant retrieval isolation** (`retrieval.tenantIsolation`) scoping results to the
+  caller's tenant via the ingest-stamped `owner` field; a pluggable **cross-encoder reranker**
+  (`retrieval.reranker`, OpenAI/TEI/Cohere-compatible) second stage.
+- Evals: **RAGAS-style** context-precision and answer-faithfulness scoring in `scripts/rag-eval.py`
+  (`retrieval_hit_rate` renames the misnamed `grounding_rate`); an adversarial **safety/jailbreak/
+  bias** suite (`platform/evals/safety-suite.yaml`) gated by a new `safety` release gate; a PR-time
+  `make eval-local` gate in CI.
+- Serving: first-class vLLM knobs (`server.enablePrefixCaching`, `gpuMemoryUtilization`,
+  `kvCacheDtype`, `quantization`, `guidedDecodingBackend`, speculative) plus FP8/AWQ quantization
+  cluster profiles and quantization/speculative/MIG guidance.
+- Observability: **Tempo** trace backend + Grafana datasource (OTLP spans now have a destination);
+  cost/FinOps dashboard panels and an OpenCost allocation dashboard; a real Alertmanager
+  critical-severity receiver.
+- Security: apiserver-native **Pod Security Admission** (restricted) on the platform data-plane
+  namespaces; an opt-in **encryption-in-transit** overlay (mesh mTLS / cert-manager); an opt-in
+  **runtime threat detection** (Falco) Argo app + runbook.
+- Governance: per-model **model cards/datasheets** (checked by `make model-check`), an
+  **OWASP LLM Top 10** control mapping, an **AI governance crosswalk** (NIST AI RMF / EU AI Act /
+  ISO 42001) with a machine-readable `control-framework-map.yaml`, and model **drift-monitoring**
+  alerts + runbook.
+- Resilience & reference docs: a **disaster-recovery** runbook (RPO/RTO + restore order), a
+  **failure-mode / graceful-degradation** matrix, a **capacity-sizing** worksheet, **ADRs**,
+  per-profile **architecture** diagrams, a **cost model/TCO**, and a **scope/non-goals** doc.
+- Distribution & DX: an **umbrella Helm chart** for whole-stack install, `values.schema.json` on
+  the remaining charts, a retry-aware/streaming/packaged first-party **SDK**, and OpenAI-client
+  drop-in examples for agent/coding frameworks.
+
 ## v0.12.0 - 2026-06-30
 
 A feature-gap remediation pass closing the highest-impact items from an audit of the

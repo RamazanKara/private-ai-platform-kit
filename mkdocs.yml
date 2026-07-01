@@ -93,9 +93,16 @@ nav:
   - Reference:
       - Production readiness matrix: production-readiness.md
       - Benchmarks and evals: benchmarks-and-evals.md
+      - Capacity and sizing: capacity-sizing.md
+      - Cost model and TCO: cost-model.md
       - Release verification: release-verification.md
       - Upstream references: references.md
   - Explanation:
       - Is this for you (decision guide): decision-guide.md
+      - Architecture profiles: architecture.md
       - Architecture and threat model: threat-model.md
+      - OWASP LLM Top 10 mapping: owasp-llm-top-10-mapping.md
+      - AI governance crosswalk: ai-governance-crosswalk.md
+      - Scope and non-goals: scope-and-non-goals.md
+      - Architecture decision records: adr/README.md
       - Proof and strict evidence: proof.md

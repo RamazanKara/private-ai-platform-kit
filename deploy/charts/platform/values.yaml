@@ -1,0 +1,18 @@
+# Umbrella toggles. Each key matches a subchart name; set enabled to include it in the release.
+# Ollama + budget Redis + gateway + RAG form the default CPU-only local stack. vLLM (GPU) and the
+# Qdrant vector store are opt-in. Per-component values are set under the subchart's own key, e.g.
+#   inference-gateway:
+#     replicaCount: 2
+# See each subchart's values.yaml for the full option set. Run `helm dependency update` first.
+inference-gateway:
+  enabled: true
+rag-service:
+  enabled: true
+ollama:
+  enabled: true
+budget-redis:
+  enabled: true
+qdrant-vector-store:
+  enabled: false
+vllm:
+  enabled: false

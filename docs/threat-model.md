@@ -34,9 +34,32 @@ This threat model covers the local lab and customer-owned Kubernetes deployment 
 - API-key hash authentication for business endpoints.
 - Prompt and query audit redaction with length and SHA-256 fingerprints.
 - Model allowlists, admission limits, prompt secret detection, and sandbox budgets.
+- Output-side guardrail: model completions are inspected for leaked credentials/PII/blocked
+  content and flagged, redacted, or blocked before return (OWASP LLM02/LLM06).
 - Default-deny NetworkPolicies and catalog-backed external egress.
 - Pinned runtime images, hashed Python lockfiles, SBOMs, Trivy scans, and Cosign signing.
-- Strict release gates that require current evidence.
+- Strict release gates that require current evidence, including an adversarial safety/jailbreak
+  eval gate (`platform/evals/safety-suite.yaml`).
+
+For a control-by-control mapping to OWASP LLM Top 10 and to NIST AI RMF / EU AI Act / ISO 42001,
+see [owasp-llm-top-10-mapping.md](owasp-llm-top-10-mapping.md) and
+[ai-governance-crosswalk.md](ai-governance-crosswalk.md).
+
+### Transport confidentiality
+
+The in-cluster data plane is **plaintext HTTP** by default: NetworkPolicies restrict who may
+connect but do not encrypt traffic, so prompts, completions, retrieved RAG context, and the
+API-key header traverse the pod network in cleartext. Encrypting the data plane is delegated to a
+documented, operator-owned CNI/mesh control — see the opt-in overlay and options in
+[deploy/clusters/customer/mtls/README.md](../deploy/clusters/customer/mtls/README.md) (service-mesh
+mTLS, Cilium WireGuard/IPsec, or cert-manager-issued TLS). Treat enabling it as required before
+handling regulated data in a multi-tenant cluster (see Required Customer Hardening).
+
+### Detective / runtime monitoring
+
+Admission (Kyverno) and NetworkPolicies are preventive; they do not observe post-admission
+behavior of a hijacked agent or compromised runtime pod. An optional runtime-detection layer
+(Falco/Tetragon) is provided — see [runbooks/runtime-threat-detection.md](../runbooks/runtime-threat-detection.md).
 
 ## AI-Specific Threats
 
@@ -112,7 +135,13 @@ and confirming the deployment region meets their residency obligations.
 ## Required Customer Hardening
 
 - Wire API-key hashes or OIDC/JWT validation to the enterprise identity boundary, with RS256 or ES256 preferred for customer IdPs.
+- Enable in-cluster encryption in transit (service-mesh mTLS, Cilium WireGuard/IPsec, or
+  cert-manager TLS) — the data plane is plaintext HTTP by default. See
+  [deploy/clusters/customer/mtls/README.md](../deploy/clusters/customer/mtls/README.md).
 - Replace source-reference model digests with customer model-store digests.
 - Run strict gates with current evidence before production handoff.
-- Review RAG document ingestion, retention class, and vector collection access.
+- Review RAG document ingestion, retention class, and vector collection access; enable per-tenant
+  RAG retrieval isolation (`retrieval.tenantIsolation`) for multi-tenant corpora.
+- Deploy the optional runtime-detection layer (Falco/Tetragon) and a DR plan with named RPO/RTO
+  ([runbooks/disaster-recovery.md](../runbooks/disaster-recovery.md)).
 - Align SLO, quota, budget, backup, and incident-response settings to customer policy.

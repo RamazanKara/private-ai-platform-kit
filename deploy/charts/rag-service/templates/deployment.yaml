@@ -72,6 +72,18 @@ spec:
               value: {{ .Values.retrieval.lexicalWeight | quote }}
             - name: RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS
               value: {{ join "," .Values.retrieval.allowedClassifications | quote }}
+            - name: RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED
+              value: {{ .Values.retrieval.tenantIsolation.enabled | quote }}
+            - name: RAG_RETRIEVAL_TENANT_FIELD
+              value: {{ .Values.retrieval.tenantIsolation.field | quote }}
+            - name: RAG_RERANKER_PROVIDER
+              value: {{ .Values.retrieval.reranker.provider | quote }}
+            - name: RAG_RERANKER_BASE_URL
+              value: {{ .Values.retrieval.reranker.baseUrl | quote }}
+            - name: RAG_RERANKER_MODEL
+              value: {{ .Values.retrieval.reranker.model | quote }}
+            - name: RAG_RERANKER_TIMEOUT_SECONDS
+              value: {{ .Values.retrieval.reranker.timeoutSeconds | quote }}
             - name: RAG_EMBEDDING_PROVIDER
               value: {{ .Values.retrieval.embedding.provider | quote }}
             - name: RAG_EMBEDDING_BASE_URL

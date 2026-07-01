@@ -1,0 +1,11 @@
+Private AI Platform Kit installed via the umbrella chart.
+
+Enabled components (set <name>.enabled=false to omit):
+{{- range $name, $cfg := .Values }}
+{{- if kindIs "map" $cfg }}
+  - {{ $name }}: {{ if $cfg.enabled }}enabled{{ else }}disabled{{ end }}
+{{- end }}
+{{- end }}
+
+Run `helm dependency update deploy/charts/platform` before install to vendor the subcharts.
+GitOps (Argo CD) remains the recommended path for production multi-namespace installs.

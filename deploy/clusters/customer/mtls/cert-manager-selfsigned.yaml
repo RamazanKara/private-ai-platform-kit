@@ -1,0 +1,31 @@
+# cert-manager TLS example (Option B, no mesh). Ships a self-signed ClusterIssuer and an example
+# Certificate for the gateway. Replace the self-signed issuer with your enterprise CA or an ACME
+# issuer, then mount the generated `inference-gateway-tls` secret into the gateway pod and front it
+# with a TLS listener. This is a starting point, not a turnkey install — requires cert-manager.
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: platform-selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: inference-gateway-tls
+  namespace: inference
+spec:
+  secretName: inference-gateway-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  dnsNames:
+    - inference-gateway-inference-gateway.inference.svc
+    - inference-gateway-inference-gateway.inference.svc.cluster.local
+  issuerRef:
+    name: platform-selfsigned
+    kind: ClusterIssuer
+    group: cert-manager.io

@@ -10,6 +10,21 @@ from typing import Any, Protocol
 
 from app.settings import AdmissionPolicyError, Settings
 
+try:  # redis is an optional dependency; only present when the redis backend is used.
+    from redis.exceptions import RedisError as _RedisError
+
+    _BUDGET_BACKEND_ERRORS: tuple[type[BaseException], ...] = (_RedisError, OSError)
+except ImportError:  # pragma: no cover - redis always installed in the gateway image
+    _BUDGET_BACKEND_ERRORS = (OSError,)
+
+
+class BudgetBackendError(RuntimeError):
+    """Raised when the budget backend (e.g. Redis) is unreachable, distinct from a limit hit.
+
+    Lets the gateway return a 503 (retry later) when the shared budget store is down rather
+    than surfacing the raw driver error as an unhandled 500.
+    """
+
 
 @dataclass
 class BudgetUsage:
@@ -233,12 +248,15 @@ class RedisSandboxBudgetTracker:
     def snapshot(self, sandbox_id: str, settings: Settings | None = None) -> dict[str, Any]:
         """Return the sandbox's current usage, limits, and window TTL from Redis."""
         resolved = settings or self.settings
-        raw = self.client.hgetall(self._key(sandbox_id)) or {}
-        ttl = None
-        if hasattr(self.client, "ttl"):
-            ttl_value = self.client.ttl(self._key(sandbox_id))
-            if isinstance(ttl_value, int) and ttl_value >= 0:
-                ttl = ttl_value
+        try:
+            raw = self.client.hgetall(self._key(sandbox_id)) or {}
+            ttl = None
+            if hasattr(self.client, "ttl"):
+                ttl_value = self.client.ttl(self._key(sandbox_id))
+                if isinstance(ttl_value, int) and ttl_value >= 0:
+                    ttl = ttl_value
+        except _BUDGET_BACKEND_ERRORS as exc:
+            raise BudgetBackendError("sandbox budget backend is unavailable") from exc
         return {
             "enabled": resolved.sandbox_budget_enabled,
             "backend": self.backend,
@@ -266,18 +284,21 @@ class RedisSandboxBudgetTracker:
             return None
 
         delta = budget_delta(resolved, payload)
-        result = self.client.eval(
-            REDIS_RESERVE_SCRIPT,
-            1,
-            self._key(sandbox_id),
-            resolved.sandbox_budget_window_seconds,
-            delta.requests,
-            delta.prompt_chars,
-            delta.estimated_tokens,
-            resolved.sandbox_request_budget,
-            resolved.sandbox_prompt_char_budget,
-            resolved.sandbox_estimated_token_budget,
-        )
+        try:
+            result = self.client.eval(
+                REDIS_RESERVE_SCRIPT,
+                1,
+                self._key(sandbox_id),
+                resolved.sandbox_budget_window_seconds,
+                delta.requests,
+                delta.prompt_chars,
+                delta.estimated_tokens,
+                resolved.sandbox_request_budget,
+                resolved.sandbox_prompt_char_budget,
+                resolved.sandbox_estimated_token_budget,
+            )
+        except _BUDGET_BACKEND_ERRORS as exc:
+            raise BudgetBackendError("sandbox budget backend is unavailable") from exc
         success = int(result[0])
         if not success:
             reason = str(result[1])

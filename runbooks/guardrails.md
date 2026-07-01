@@ -52,6 +52,51 @@ without forwarding it to a runtime. It is a deterministic content-policy surface
 semantic toxicity/jailbreak classifier can be layered behind the same endpoint without
 changing callers.
 
+## Output Guardrail (Response Path)
+
+Input moderation cannot catch a credential or PII value that the *model* emits — a successful
+prompt injection or a hallucinated secret leaves the gateway in the completion. The output
+guardrail inspects the model response before it is returned or cached, closing OWASP LLM02
+(insecure output handling) and LLM06 (sensitive information disclosure).
+
+Configure it in Helm values:
+
+    guardrails:
+      outputGuardrail:
+        enabled: true
+        mode: redact        # flag | redact | block
+        patterns:
+          - private_key
+          - github_token
+          - slack_token
+          - bearer_token
+          - generic_api_key_assignment
+          - email
+          - us_ssn
+          - credit_card
+
+The chart passes this as `OUTPUT_GUARDRAIL_ENABLED`, `OUTPUT_GUARDRAIL_MODE`, and
+`OUTPUT_GUARDRAIL_PATTERNS`. The same `blockedContentTerms` denylist applies to output too.
+
+Modes:
+
+- `flag` — record the finding only (metric + `X-Output-Guardrail: flagged` header); content
+  is returned unchanged. Use to measure exposure before enforcing.
+- `redact` — replace each matched span with `[REDACTED:<pattern>]` (default). The redacted
+  body is what gets returned, cached, and audited, so a leaked secret is never persisted.
+- `block` — withhold the content (`[response withheld by output policy]`) and set the choice
+  `finish_reason` to `content_filter`.
+
+Each action increments `inference_gateway_output_guardrail_total{action,route}` and sets the
+`X-Output-Guardrail` response header.
+
+Streaming responses are **detected and flagged** only (`flagged_stream`): the bytes are already
+on the wire, so the guardrail cannot redact or block them mid-stream. For hard redact/block
+enforcement, run callers non-streaming (the default `admission.allowStreaming: false`).
+
+Treat model output as untrusted: a coding agent must never pass a completion to a shell, `eval`,
+or file write without its own validation, regardless of the gateway guardrail.
+
 ## Rejection Behavior
 
 When a prompt matches a configured secret/PII pattern the gateway returns HTTP 400 with

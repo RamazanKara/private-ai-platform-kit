@@ -244,3 +244,27 @@ spec:
             sum(rate(rag_service_requests_total{route="/v1/rag/query",status!="200"}[5m]))
             /
             clamp_min(sum(rate(rag_service_requests_total{route="/v1/rag/query"}[5m])), 1)
+    - name: governance.rules
+      rules:
+        # Model-quality drift proxy. A sustained rise in output-guardrail actions (the gateway
+        # redacting/blocking/flagging model completions) or admission rejections can indicate a
+        # model or prompt regression leaking sensitive content. Pair with the scheduled eval
+        # comparison in runbooks/model-drift-monitoring.md, which is the authoritative signal.
+        - alert: ModelOutputGuardrailSpike
+          expr: |
+            sum(rate(inference_gateway_output_guardrail_total{action=~"redacted|blocked"}[15m])) > 0.1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Output guardrail is redacting or blocking completions at an elevated rate (possible drift).
+            runbook_url: runbooks/model-drift-monitoring.md
+        - alert: InferenceAdmissionRejectionSpike
+          expr: |
+            sum(rate(inference_gateway_admission_rejections_total[15m])) > 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Admission rejections are elevated; review for a prompt, policy, or model regression.
+            runbook_url: runbooks/model-drift-monitoring.md

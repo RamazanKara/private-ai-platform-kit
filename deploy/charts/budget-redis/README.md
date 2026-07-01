@@ -15,6 +15,8 @@ Local Redis-compatible store for shared sandbox budget accounting.
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `redis` |
 | `image.tag` | `8.0-alpine` |
+| `namespace.create` | `true` |
+| `namespace.name` | `""` |
 | `networkPolicy.allowedIngressNamespaces` | `["inference"]` |
 | `networkPolicy.enabled` | `true` |
 | `podDisruptionBudget.enabled` | `true` |

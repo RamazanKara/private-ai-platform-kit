@@ -39,6 +39,23 @@ DEFAULT_SECRET_PATTERNS: tuple[str, ...] = (
 CREDENTIAL_PATTERN_NAMES = frozenset(DEFAULT_SECRET_PATTERNS)
 PII_PATTERN_NAMES = frozenset({"email", "us_ssn", "credit_card"})
 
+# Patterns scanned on the model's *output* (the response path) when the output guardrail
+# is enabled: every credential detector plus the PII detectors. Unlike prompt admission
+# (credentials only by default), output inspection defaults to scanning PII too because a
+# completion that leaks an SSN/card/email back to the caller is the exact OWASP LLM06
+# "sensitive information disclosure" failure the output guardrail exists to catch.
+OUTPUT_DEFAULT_PATTERNS: tuple[str, ...] = (
+    "private_key",
+    "github_token",
+    "slack_token",
+    "bearer_token",
+    "generic_api_key_assignment",
+    "email",
+    "us_ssn",
+    "credit_card",
+)
+OUTPUT_GUARDRAIL_MODES = frozenset({"flag", "redact", "block"})
+
 
 def _float_from_env(name: str, default: float) -> float:
     raw = os.getenv(name)
@@ -146,6 +163,14 @@ def _secret_pattern_names_from_env(name: str) -> tuple[str, ...]:
     return names
 
 
+def _output_pattern_names_from_env(name: str) -> tuple[str, ...]:
+    names = _csv_from_env(name, OUTPUT_DEFAULT_PATTERNS)
+    unknown = sorted(set(names) - set(BUILT_IN_SECRET_PATTERNS))
+    if unknown:
+        raise ValueError(f"{name} contains unknown built-in secret patterns: {unknown}")
+    return names
+
+
 class AdmissionPolicyError(ValueError):
     """Raised when a request violates an admission policy, carrying a machine reason."""
 
@@ -196,6 +221,13 @@ class Settings:
     response_cache_enabled: bool = False
     response_cache_ttl_seconds: int = 60
     response_cache_max_entries: int = 1024
+    response_cache_backend: str = "memory"
+    response_cache_redis_url: str = "redis://budget-redis.budget.svc.cluster.local:6379/1"
+    response_cache_redis_timeout_seconds: float = 0.5
+    response_cache_key_prefix: str = "private-ai-platform-kit:response-cache"
+    output_guardrail_enabled: bool = False
+    output_guardrail_mode: str = "redact"
+    output_guardrail_patterns: tuple[str, ...] = OUTPUT_DEFAULT_PATTERNS
     api_key_auth_enabled: bool = False
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
@@ -250,6 +282,17 @@ class Settings:
             raise ValueError("response_cache_ttl_seconds must be greater than zero")
         if self.response_cache_max_entries <= 0:
             raise ValueError("response_cache_max_entries must be greater than zero")
+        if self.response_cache_backend not in {"memory", "redis"}:
+            raise ValueError("response_cache_backend must be either 'memory' or 'redis'")
+        if self.response_cache_redis_timeout_seconds <= 0:
+            raise ValueError("response_cache_redis_timeout_seconds must be greater than zero")
+        if not self.response_cache_key_prefix.strip():
+            raise ValueError("response_cache_key_prefix must not be empty")
+        if self.output_guardrail_mode not in OUTPUT_GUARDRAIL_MODES:
+            raise ValueError("output_guardrail_mode must be one of: flag, redact, block")
+        unknown_output_patterns = sorted(set(self.output_guardrail_patterns) - set(BUILT_IN_SECRET_PATTERNS))
+        if unknown_output_patterns:
+            raise ValueError(f"output_guardrail_patterns contains unknown patterns: {unknown_output_patterns}")
         if not self.sandbox_budget_key_prefix.strip():
             raise ValueError("sandbox_budget_key_prefix must not be empty")
         if self.api_key_auth_enabled and not self.api_key_sha256s:
@@ -343,6 +386,22 @@ class Settings:
             response_cache_enabled=_bool_from_env("RESPONSE_CACHE_ENABLED", False),
             response_cache_ttl_seconds=_positive_int_from_env("RESPONSE_CACHE_TTL_SECONDS", 60),
             response_cache_max_entries=_positive_int_from_env("RESPONSE_CACHE_MAX_ENTRIES", 1024),
+            response_cache_backend=os.getenv("RESPONSE_CACHE_BACKEND", "memory").strip().lower(),
+            response_cache_redis_url=os.getenv(
+                "RESPONSE_CACHE_REDIS_URL",
+                "redis://budget-redis.budget.svc.cluster.local:6379/1",
+            ),
+            response_cache_redis_timeout_seconds=_float_from_env(
+                "RESPONSE_CACHE_REDIS_TIMEOUT_SECONDS",
+                0.5,
+            ),
+            response_cache_key_prefix=os.getenv(
+                "RESPONSE_CACHE_KEY_PREFIX",
+                "private-ai-platform-kit:response-cache",
+            ),
+            output_guardrail_enabled=_bool_from_env("OUTPUT_GUARDRAIL_ENABLED", False),
+            output_guardrail_mode=os.getenv("OUTPUT_GUARDRAIL_MODE", "redact").strip().lower(),
+            output_guardrail_patterns=_output_pattern_names_from_env("OUTPUT_GUARDRAIL_PATTERNS"),
             api_key_auth_enabled=_bool_from_env("API_KEY_AUTH_ENABLED", False),
             api_key_sha256s=_sha256s_from_env("API_KEY_SHA256S"),
             api_key_header=os.getenv("API_KEY_HEADER", "X-API-Key"),
@@ -507,6 +566,39 @@ class Settings:
                 "content_blocked",
                 "input contains content blocked by policy",
             )
+
+    def output_findings(self, text: str) -> tuple[list[str], list[str]]:
+        """Return (matched secret/PII pattern names, matched blocked terms) found in output.
+
+        Scans the model's completion against the configured output-guardrail patterns and
+        the blocked-term denylist. Used by the response-path guardrail (OWASP LLM02/LLM06)
+        to detect credentials, PII, or denied content the model emitted back to the caller.
+        """
+        patterns = [name for name in self.output_guardrail_patterns if BUILT_IN_SECRET_PATTERNS[name].search(text)]
+        terms: list[str] = []
+        if self.blocked_content_terms:
+            lowered = text.lower()
+            terms = [term for term in self.blocked_content_terms if term and term.lower() in lowered]
+        return patterns, terms
+
+    def redact_output_text(self, text: str) -> tuple[str, list[str]]:
+        """Return the text with matched secrets/PII/blocked terms replaced, plus what matched.
+
+        Each configured pattern that matches is substituted with ``[REDACTED:<name>]`` and
+        each blocked term with ``[REDACTED]``, so a leaked credential never reaches the
+        caller while the surrounding completion is preserved.
+        """
+        matched: list[str] = []
+        for name in self.output_guardrail_patterns:
+            pattern = BUILT_IN_SECRET_PATTERNS[name]
+            if pattern.search(text):
+                matched.append(name)
+                text = pattern.sub(f"[REDACTED:{name}]", text)
+        for term in self.blocked_content_terms:
+            if term and term.lower() in text.lower():
+                matched.append(f"term:{term}")
+                text = re.sub(re.escape(term), "[REDACTED]", text, flags=re.IGNORECASE)
+        return text, matched
 
     def _validate_tools(self, payload: dict) -> None:
         """Bound tool/function definitions by count and serialized size.

@@ -1,0 +1,75 @@
+# Architecture Decision Records
+
+This directory records the significant architecture decisions behind Private AI Platform Kit:
+why a particular tool, pattern, or boundary was chosen, what was rejected, and what the choice
+costs. Read an ADR when you want the reasoning behind a default in `deploy/`, `src/`, or
+`platform/`, not just the configuration itself.
+
+ADRs are not a manual. For setup follow [docs/getting-started.md](../getting-started.md); for
+project fit and alternatives follow [docs/decision-guide.md](../decision-guide.md); for the
+controls inventory follow [docs/production-readiness.md](../production-readiness.md). ADRs explain
+the choices those documents assume.
+
+## Status legend
+
+- `Accepted` — the decision is in force and reflected in the repo today.
+- `Superseded by NNNN` — replaced by a later ADR; kept for history.
+- `Proposed` — under discussion, not yet reflected in the default configuration.
+- `Deprecated` — no longer recommended, but not yet removed.
+
+All ADRs in this set are `Accepted` and describe the `v0.12.0` repository.
+
+## Index
+
+| ADR | Title | Status |
+| --- | --- | --- |
+| [0001](0001-gitops-with-argo-cd.md) | GitOps delivery with Argo CD | Accepted |
+| [0002](0002-policy-engine-kyverno.md) | Policy engine: Kyverno | Accepted |
+| [0003](0003-inference-runtime-vllm-and-ollama.md) | Inference runtimes: vLLM and Ollama | Accepted |
+| [0004](0004-vector-store-qdrant.md) | Vector store: Qdrant | Accepted |
+| [0005](0005-openai-compatible-gateway.md) | A thin self-built OpenAI-compatible gateway | Accepted |
+| [0006](0006-tamper-evident-audit-hash-chain.md) | Tamper-evident audit hash chain | Accepted |
+| [0007](0007-local-first-kind-then-customer-cluster.md) | Local-first kind, then customer cluster | Accepted |
+| [0008](0008-helm-packaging-and-oci.md) | Helm packaging and OCI distribution | Accepted |
+
+## Process
+
+ADRs use the [MADR](https://adr.github.io/madr/)-style template captured below. They are short,
+immutable once `Accepted`, and grounded in real files in this repo.
+
+1. Copy the template into `docs/adr/NNNN-short-kebab-title.md`, using the next free four-digit
+   number (zero-padded, never reused).
+2. Fill in Status, Context, Decision, Consequences, and Alternatives considered. Cite concrete
+   paths (charts, manifests, source modules) so a reviewer can check each claim.
+3. Add a row to the index table above and to the Explanation section of the docs nav
+   (`mkdocs.yml`).
+4. Open it for review like any other change (see [CONTRIBUTING.md](../../CONTRIBUTING.md)). Once
+   merged and `Accepted`, do not rewrite it; if the decision changes, write a new ADR and mark the
+   old one `Superseded by NNNN`.
+
+### Template
+
+```markdown
+# NNNN. Title
+
+- Status: Proposed | Accepted | Superseded by NNNN | Deprecated
+- Date: YYYY-MM-DD
+- Deciders: <roles or names>
+
+## Context
+
+What problem forces a decision? What constraints (local-first, provider-neutral, single
+maintainer, regulated tenants) apply?
+
+## Decision
+
+What was chosen, stated plainly, with the concrete repo evidence (paths, defaults).
+
+## Consequences
+
+What this makes easy, what it makes harder, and what the operator now owns.
+
+## Alternatives considered
+
+Each realistic option, what it does better, and the specific reason it was not chosen here.
+```

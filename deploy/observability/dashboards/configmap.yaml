@@ -90,6 +90,34 @@ data:
           ],
           "title": "Sandbox budget utilization",
           "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "currencyUSD"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+          "id": 7,
+          "targets": [
+            {
+              "expr": "sum(rate(inference_gateway_estimated_cost_usd_total[5m])) by (sandbox)",
+              "legendFormat": "{{sandbox}}"
+            }
+          ],
+          "title": "Estimated cost rate by sandbox (USD/s)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "currencyUSD"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+          "id": 8,
+          "targets": [
+            {
+              "expr": "sum(increase(inference_gateway_estimated_cost_usd_total[24h])) by (sandbox)",
+              "legendFormat": "{{sandbox}}"
+            }
+          ],
+          "title": "Estimated cost by sandbox (last 24h)",
+          "type": "timeseries"
         }
       ],
       "schemaVersion": 39,
@@ -104,6 +132,84 @@ metadata:
     app.kubernetes.io/part-of: private-ai-platform-kit
     grafana_dashboard: '1'
   name: grafana-dashboard-inference-dashboard
+  namespace: monitoring
+---
+apiVersion: v1
+data:
+  opencost-dashboard.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "currencyUSD"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "id": 1,
+          "targets": [
+            {
+              "expr": "sum(node_total_hourly_cost)",
+              "legendFormat": "cluster $/hour"
+            }
+          ],
+          "title": "Cluster node cost (USD/hour)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "id": 2,
+          "targets": [
+            {
+              "expr": "sum(container_cpu_allocation) by (namespace)",
+              "legendFormat": "{{namespace}}"
+            }
+          ],
+          "title": "CPU allocation by namespace (OpenCost)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "id": 3,
+          "targets": [
+            {
+              "expr": "sum(container_memory_allocation_bytes) by (namespace)",
+              "legendFormat": "{{namespace}}"
+            }
+          ],
+          "title": "Memory allocation by namespace (OpenCost)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {"defaults": {}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "id": 4,
+          "targets": [
+            {
+              "expr": "sum(container_gpu_allocation) by (namespace)",
+              "legendFormat": "{{namespace}}"
+            }
+          ],
+          "title": "GPU allocation by namespace (OpenCost)",
+          "type": "timeseries"
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["private-ai-platform-kit", "cost"],
+      "title": "Private AI Platform Kit Cost & Allocation",
+      "uid": "ai-platform-cost",
+      "version": 1
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: private-ai-platform-kit
+    grafana_dashboard: '1'
+  name: grafana-dashboard-opencost-dashboard
   namespace: monitoring
 ---
 apiVersion: v1

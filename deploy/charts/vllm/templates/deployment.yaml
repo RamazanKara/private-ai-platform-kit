@@ -63,6 +63,33 @@ spec:
             - {{ .Values.model.dtype | quote }}
             - --max-model-len
             - {{ .Values.model.maxModelLen | quote }}
+            {{- if .Values.server }}
+            {{- if .Values.server.enablePrefixCaching }}
+            - --enable-prefix-caching
+            {{- else }}
+            - --no-enable-prefix-caching
+            {{- end }}
+            {{- if .Values.server.gpuMemoryUtilization }}
+            - --gpu-memory-utilization
+            - {{ .Values.server.gpuMemoryUtilization | quote }}
+            {{- end }}
+            {{- if .Values.server.kvCacheDtype }}
+            - --kv-cache-dtype
+            - {{ .Values.server.kvCacheDtype | quote }}
+            {{- end }}
+            {{- if .Values.server.quantization }}
+            - --quantization
+            - {{ .Values.server.quantization | quote }}
+            {{- end }}
+            {{- if .Values.server.guidedDecodingBackend }}
+            - --guided-decoding-backend
+            - {{ .Values.server.guidedDecodingBackend | quote }}
+            {{- end }}
+            {{- if and .Values.server.speculative .Values.server.speculative.enabled .Values.server.speculative.config }}
+            - --speculative-config
+            - {{ .Values.server.speculative.config | quote }}
+            {{- end }}
+            {{- end }}
             {{- range .Values.extraArgs }}
             - {{ . | quote }}
             {{- end }}

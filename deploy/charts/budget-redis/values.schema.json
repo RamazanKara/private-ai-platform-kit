@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "budget-redis values",
+  "type": "object",
+  "properties": {
+    "replicaCount": { "type": "integer", "minimum": 1 },
+    "fullnameOverride": { "type": "string" },
+    "image": { "type": "object" },
+    "service": {
+      "type": "object",
+      "properties": {
+        "port": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "auth": { "type": "object" },
+    "serviceAccount": { "type": "object" },
+    "resources": { "type": "object" },
+    "podLabels": { "type": "object" },
+    "networkPolicy": { "type": "object" },
+    "podDisruptionBudget": { "type": "object" },
+    "namespace": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "boolean" },
+        "name": { "type": "string" }
+      }
+    }
+  }
+}

@@ -17,8 +17,13 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from pydantic import BaseModel, ConfigDict
 
-from app.budget import BudgetReservation, SandboxBudgetTracker, build_sandbox_budget_tracker
-from app.cache import ResponseCache, cache_key
+from app.budget import (
+    BudgetBackendError,
+    BudgetReservation,
+    SandboxBudgetTracker,
+    build_sandbox_budget_tracker,
+)
+from app.cache import build_response_cache, cache_key
 from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
@@ -125,6 +130,16 @@ SHADOW_REQUESTS = Counter(
     "inference_gateway_shadow_requests_total",
     "Shadow (mirrored) requests sent fire-and-forget to a shadow model.",
     ["backend", "result"],
+)
+OUTPUT_GUARDRAIL = Counter(
+    "inference_gateway_output_guardrail_total",
+    "Model completions acted on by the output guardrail, by action and surface.",
+    ["action", "route"],
+)
+ESTIMATED_COST = Counter(
+    "inference_gateway_estimated_cost_usd_total",
+    "Estimated monetary cost of runtime usage by sandbox and backend (USD_PER_1K_TOKENS model).",
+    ["sandbox", "backend"],
 )
 
 
@@ -621,6 +636,82 @@ def _record_token_usage(backend: str, runtime_response: dict[str, Any] | None) -
             TOKEN_USAGE.labels(backend, token_type).inc(value)
 
 
+def _record_estimated_cost(settings: Settings, sandbox_id: str, backend: str, usage: dict[str, Any] | None) -> None:
+    """Increment the estimated-cost counter from runtime token usage.
+
+    Exposes the same USD_PER_1K_TOKENS cost model used by ``/v1/usage`` as a Prometheus
+    series so per-sandbox/backend spend is visualizable (FinOps/chargeback) rather than
+    only readable as an ad-hoc JSON field. A zero rate leaves the cost model off.
+    """
+    if settings.usd_per_1k_tokens <= 0 or not isinstance(usage, dict):
+        return
+    total_tokens = usage.get("total_tokens")
+    if not isinstance(total_tokens, (int, float)) or total_tokens < 0:
+        return
+    cost = (total_tokens / 1000.0) * settings.usd_per_1k_tokens
+    if cost > 0:
+        ESTIMATED_COST.labels(sandbox_id, backend).inc(cost)
+
+
+def _guardrail_choice_text(choice: dict[str, Any]) -> str:
+    """Return the assistant message text of an OpenAI-style choice, or '' when absent."""
+    message = choice.get("message")
+    if not isinstance(message, dict):
+        return ""
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    return extract_text_content(content)
+
+
+def _apply_output_guardrail(
+    response: dict[str, Any] | None,
+    settings: Settings,
+    route: str,
+    request: Request,
+) -> None:
+    """Inspect the runtime completion and flag/redact/block per the output guardrail.
+
+    Runs the configured credential/PII/blocked-term detectors on each choice's assistant
+    text (OWASP LLM02 insecure output handling / LLM06 sensitive-information disclosure).
+    ``flag`` records only; ``redact`` rewrites matched spans in place; ``block`` withholds
+    the content and sets ``finish_reason=content_filter``. Mutates ``response`` in place so
+    the redacted/blocked body is what gets cached, audited, and returned.
+    """
+    if not settings.output_guardrail_enabled or not isinstance(response, dict):
+        return
+    choices = response.get("choices")
+    if not isinstance(choices, list):
+        return
+    action: str | None = None
+    for choice in choices:
+        if not isinstance(choice, dict):
+            continue
+        text = _guardrail_choice_text(choice)
+        if not text:
+            continue
+        message = choice.get("message")
+        if not isinstance(message, dict):
+            continue
+        if settings.output_guardrail_mode == "redact":
+            redacted, matched = settings.redact_output_text(text)
+            if matched:
+                message["content"] = redacted
+                action = "redacted"
+        else:
+            patterns, terms = settings.output_findings(text)
+            if patterns or terms:
+                if settings.output_guardrail_mode == "block":
+                    message["content"] = "[response withheld by output policy]"
+                    choice["finish_reason"] = "content_filter"
+                    action = "blocked"
+                else:
+                    action = action or "flagged"
+    if action:
+        OUTPUT_GUARDRAIL.labels(action, route).inc()
+        request.state.output_guardrail_action = action
+
+
 def _usage_from_sse_chunk(chunk: bytes) -> dict[str, Any] | None:
     """Return the ``usage`` object from a terminal SSE chunk, or None when absent.
 
@@ -739,7 +830,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.inflight = 0
     app.state.audit_prev_hash = AUDIT_GENESIS
     app.state.background_tasks = set()
-    app.state.response_cache = ResponseCache(resolved.response_cache_max_entries, resolved.response_cache_ttl_seconds)
+    app.state.response_cache = build_response_cache(resolved)
     app.state.model_routing_policy = (
         ModelRoutingPolicy.from_path(resolved.model_routing_policy_path, resolved)
         if resolved.model_routing_policy_path
@@ -824,6 +915,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 response.headers["traceparent"] = request.state.traceparent
             if getattr(request.state, "cache_status", None):
                 response.headers["X-Cache"] = request.state.cache_status
+            if getattr(request.state, "output_guardrail_action", None):
+                response.headers["X-Output-Guardrail"] = request.state.output_guardrail_action
             return response
 
         tracer = request.app.state.tracer
@@ -894,7 +987,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         tracker: SandboxBudgetTracker = request.app.state.budget_tracker
         policy_set: SandboxPolicySet = request.app.state.sandbox_policy_set
         effective = policy_set.effective_settings(resolved, request.state.sandbox_id)
-        return tracker.snapshot(request.state.sandbox_id, effective)
+        try:
+            return tracker.snapshot(request.state.sandbox_id, effective)
+        except BudgetBackendError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail={"message": "sandbox budget backend is unavailable", "reason": "budget_backend_unavailable"},
+                headers={"Retry-After": "5"},
+            ) from exc
 
     @app.get(
         "/v1/usage",
@@ -908,7 +1008,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         tracker: SandboxBudgetTracker = request.app.state.budget_tracker
         policy_set: SandboxPolicySet = request.app.state.sandbox_policy_set
         effective = policy_set.effective_settings(resolved, request.state.sandbox_id)
-        snapshot = tracker.snapshot(request.state.sandbox_id, effective)
+        try:
+            snapshot = tracker.snapshot(request.state.sandbox_id, effective)
+        except BudgetBackendError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail={"message": "sandbox budget backend is unavailable", "reason": "budget_backend_unavailable"},
+                headers={"Retry-After": "5"},
+            ) from exc
         usage = snapshot.get("usage") or {}
         estimated_tokens = usage.get("estimated_tokens", 0) if isinstance(usage, dict) else 0
         estimated_cost = round((estimated_tokens / 1000.0) * resolved.usd_per_1k_tokens, 6)
@@ -1008,12 +1115,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     stream_status_code = 200
                     stream_error: str | None = None
                     usage: dict[str, Any] | None = None
+                    # The streamed bytes are already committed to the wire, so the output
+                    # guardrail cannot redact/block them mid-stream; instead accumulate a
+                    # bounded copy and detect+flag at end-of-stream (enforce via non-stream).
+                    scan_enabled = resolved.output_guardrail_enabled
+                    scanned = bytearray()
                     try:
                         chunk = first_chunk
                         while chunk is not None:
                             parsed_usage = _usage_from_sse_chunk(chunk)
                             if parsed_usage is not None:
                                 usage = parsed_usage
+                            if scan_enabled and len(scanned) < 262144:
+                                scanned.extend(chunk)
                             yield chunk
                             try:
                                 chunk = await stream.__anext__()
@@ -1035,6 +1149,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         LATENCY.labels(route, stream_backend).observe(latency_seconds)
                         usage_response = {"usage": usage} if usage is not None else None
                         _record_token_usage(stream_backend, usage_response)
+                        _record_estimated_cost(resolved, request.state.sandbox_id, stream_backend, usage)
+                        if scan_enabled and scanned:
+                            patterns, terms = resolved.output_findings(scanned.decode("utf-8", "ignore"))
+                            if patterns or terms:
+                                OUTPUT_GUARDRAIL.labels("flagged_stream", route).inc()
                         _write_audit_log(
                             resolved,
                             request,
@@ -1073,6 +1192,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     raise
             if runtime_response is None:
                 raise last_exc or RuntimeError("no runtime route available")
+            # Inspect the completion before it is cached or returned: redact/block leaked
+            # credentials, PII, or denied content (OWASP LLM02/LLM06). Applied pre-cache so
+            # a secret is never persisted in the response cache.
+            _apply_output_guardrail(runtime_response, resolved, route, request)
             if cache_enabled:
                 request.app.state.response_cache.set(cache_id, runtime_response)
             if shadow_route is not None:
@@ -1098,6 +1221,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "sandbox_id": request.state.sandbox_id,
                 },
                 headers=headers,
+            ) from exc
+        except BudgetBackendError as exc:
+            status = "503"
+            status_code = 503
+            error = "sandbox budget backend is unavailable"
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": error,
+                    "reason": "budget_backend_unavailable",
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+                headers={"Retry-After": "5"},
             ) from exc
         except httpx.HTTPStatusError as exc:
             status = "502"
@@ -1149,6 +1286,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 latency_seconds = perf_counter() - start
                 LATENCY.labels(route, backend).observe(latency_seconds)
                 _record_token_usage(backend, runtime_response)
+                _record_estimated_cost(
+                    resolved, request.state.sandbox_id, backend, (runtime_response or {}).get("usage")
+                )
                 _write_audit_log(
                     resolved,
                     request,
@@ -1221,6 +1361,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 },
                 headers=headers,
             ) from exc
+        except BudgetBackendError as exc:
+            status = "503"
+            status_code = 503
+            error = "sandbox budget backend is unavailable"
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": error,
+                    "reason": "budget_backend_unavailable",
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+                headers={"Retry-After": "5"},
+            ) from exc
         except httpx.HTTPStatusError as exc:
             status = "502"
             status_code = 502
@@ -1268,6 +1422,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             latency_seconds = perf_counter() - start
             LATENCY.labels(route, backend).observe(latency_seconds)
             _record_token_usage(backend, runtime_response)
+            _record_estimated_cost(resolved, request.state.sandbox_id, backend, (runtime_response or {}).get("usage"))
             _write_audit_log(
                 resolved,
                 request,
@@ -1336,7 +1491,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post(
         "/v1/batches",
         tags=["inference"],
-        summary="Process a batch of chat completions",
+        summary="Process a batch of chat completions synchronously",
+        description=(
+            "Synchronous, size-bounded (MAX_BATCH_REQUESTS) fan-out that runs every item "
+            "concurrently and returns per-item results inline. This is NOT the OpenAI "
+            "asynchronous file-batch API: there is no batch id, status polling, result-file "
+            "retrieval, or cancellation. Use it for small offline batches that fit within the "
+            "request timeout and gateway concurrency limit."
+        ),
         operation_id="createBatch",
     )
     async def batches(request: Request, payload: BatchRequest) -> dict[str, Any]:
@@ -1390,6 +1552,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                 "message": "runtime returned an error",
                                 "runtime_status": exc.response.status_code,
                             },
+                        }
+                    except BudgetBackendError:
+                        return {
+                            "index": index,
+                            "status_code": 503,
+                            "error": {"reason": "budget_backend_unavailable", "message": "budget backend unavailable"},
                         }
                     except (httpx.HTTPError, ValueError):
                         return {"index": index, "status_code": 502, "error": {"message": "runtime request failed"}}
