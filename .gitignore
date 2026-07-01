@@ -23,6 +23,9 @@ results/**/*.txt
 results/**/*.log
 !results/**/sample-*
 
+# Generated paper figures
+/paper/figures/
+
 # mkdocs docs site build
 /site/
 /docs/runbooks/

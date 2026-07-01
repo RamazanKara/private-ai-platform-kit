@@ -782,6 +782,13 @@ def check_release_packaging(errors: list[str]) -> None:
         f"Makefile must default CUSTOMER_REVISION to {release_tag}",
     )
 
+    citation_text = (ROOT / "CITATION.cff").read_text()
+    require(
+        errors,
+        f"version: {release_version}" in citation_text,
+        f"CITATION.cff version must match latest CHANGELOG version {release_version}",
+    )
+
     index_text = (ROOT / "docs/index.md").read_text()
     require(
         errors,

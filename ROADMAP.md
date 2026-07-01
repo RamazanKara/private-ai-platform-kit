@@ -29,7 +29,7 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 
 ## 5. Helm And Distribution
 
-- Publish Helm charts as OCI artifacts.
+- Keep OCI chart publishing green (tag builds push every chart to GHCR; see ADR 0008).
 - Keep chart READMEs and values tables current.
 - Add minimal, local, and customer profile examples for each major chart.
 

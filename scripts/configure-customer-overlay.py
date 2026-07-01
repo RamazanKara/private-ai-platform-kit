@@ -13,6 +13,16 @@ ROOT = Path(__file__).resolve().parents[1]
 ROOT_APP = ROOT / "deploy/gitops/argocd/root-app-customer.yaml"
 CUSTOMER_APPS = ROOT / "deploy/clusters/customer/apps.yaml"
 APPPROJECTS = ROOT / "deploy/clusters/customer/appprojects.yaml"
+CHANGELOG = ROOT / "CHANGELOG.md"
+
+
+def release_tag_default() -> str:
+    """Return the latest CHANGELOG release tag so the default cannot drift."""
+    for line in CHANGELOG.read_text().splitlines():
+        match = re.fullmatch(r"## v(\d+\.\d+\.\d+) - \d{4}-\d{2}-\d{2}", line.strip())
+        if match:
+            return f"v{match.group(1)}"
+    return "HEAD"
 VLLM_VALUE_FILES = {
     "default": "../../clusters/customer/values/vllm.yaml",
     "nvidia": "../../clusters/customer/values/vllm-nvidia.yaml",
@@ -183,7 +193,7 @@ def configure_overlay(repo_url: str, target_revision: str, gpu_profile: str, dry
 def main() -> int:
     parser = argparse.ArgumentParser(description="Configure and validate the customer-owned Kubernetes GitOps overlay.")
     parser.add_argument("--repo-url", default="https://github.com/RamazanKara/private-ai-platform-kit.git")
-    parser.add_argument("--target-revision", default="v0.11.0")
+    parser.add_argument("--target-revision", default=release_tag_default())
     parser.add_argument("--gpu-profile", choices=sorted(VLLM_VALUE_FILES), default="nvidia")
     parser.add_argument("--check", action="store_true", help="Validate the current overlay without modifying files.")
     parser.add_argument("--dry-run", action="store_true", help="Print the requested configuration without writing files.")

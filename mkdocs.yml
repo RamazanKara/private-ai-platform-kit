@@ -45,6 +45,11 @@ theme:
 plugins:
   - search
 
+# Repairs the edit link on mirrored runbook pages so it targets runbooks/ (the source
+# of truth) instead of the git-ignored build-time copy under docs/runbooks/.
+hooks:
+  - scripts/mkdocs_hooks.py
+
 markdown_extensions:
   - admonition
   - attr_list

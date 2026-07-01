@@ -5,6 +5,11 @@ base URL at the gateway and sending the platform headers. These examples use the
 port-forward address (`make local-up` then port-forward the gateway service); replace it
 with your Ingress host in a customer cluster.
 
+The `model` id must be on the active profile's allowlist: the local lab allows
+`qwen2.5:0.5b` (and disables streaming via `admission.allowStreaming: false`), while the
+customer profiles default to `qwen3.5:0.8b` (Ollama) and `Qwen/Qwen3-Coder-Next` (vLLM).
+Examples below that stream or use a customer model are marked accordingly.
+
 All business endpoints accept:
 
 - `Authorization: Bearer <api-key-or-jwt>` (or the `X-API-Key` header) when auth is enabled
@@ -49,7 +54,7 @@ client = OpenAI(
 
 # Tool-calling (the flagship coding-agent path) is forwarded to the runtime.
 resp = client.chat.completions.create(
-    model="qwen3.5:0.8b",
+    model="qwen2.5:0.5b",
     messages=[{"role": "user", "content": "What is the weather in Berlin?"}],
     tools=[{
         "type": "function",
@@ -61,7 +66,7 @@ resp = client.chat.completions.create(
 )
 print(resp.choices[0].message)
 
-# Streaming
+# Streaming (customer profiles only: the local lab disables streaming admission)
 for chunk in client.chat.completions.create(
     model="qwen3.5:0.8b",
     messages=[{"role": "user", "content": "stream a haiku"}],
@@ -117,7 +122,7 @@ from langchain_openai import ChatOpenAI
 llm = ChatOpenAI(
     base_url="http://127.0.0.1:8080/v1",
     api_key="local-development-only",
-    model="qwen3.5:0.8b",
+    model="qwen2.5:0.5b",
     default_headers={"X-Sandbox-ID": "demo"},
 )
 print(llm.invoke("hello").content)
@@ -131,7 +136,7 @@ from llama_index.llms.openai_like import OpenAILike
 llm = OpenAILike(
     api_base="http://127.0.0.1:8080/v1",
     api_key="local-development-only",
-    model="qwen3.5:0.8b",
+    model="qwen2.5:0.5b",
     is_chat_model=True,
     default_headers={"X-Sandbox-ID": "demo"},
 )
@@ -139,6 +144,9 @@ print(llm.complete("hello"))
 ```
 
 ### Aider (coding agent)
+
+Assumes a customer vLLM profile serving `Qwen/Qwen3-Coder-Next`; point the base URL at
+your gateway host.
 
 ```bash
 export OPENAI_API_BASE=http://127.0.0.1:8080/v1

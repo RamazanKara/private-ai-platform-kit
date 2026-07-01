@@ -2,7 +2,7 @@
 """Generate the paper figures from the measured results.
 
 Reads results/aggregate.json, results/paper-numbers.json, results/micro-results.json
-and writes vector PDFs into ../../figures/. Run with the Windows Python that has
+and writes vector PDFs into ../figures/. Run with the Windows Python that has
 matplotlib installed.
 """
 from __future__ import annotations
