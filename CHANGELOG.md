@@ -4,6 +4,71 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+A repository-wide review pass (services, deploy tree, docs, CI) fixing drift,
+resilience gaps, and controls that shipped but never actually deployed or fired.
+
+### Fixed
+
+- Gateway: a Redis outage on the rate-limit path returned 500s (now the budget
+  tracker's 503 + Retry-After contract) and a crash between INCR and EXPIRE could
+  lock a sandbox out permanently; a response-cache outage failed requests instead
+  of degrading to a miss; `/v1/batches` bypassed the output guardrail and skipped
+  token/cost metrics and per-item audit; malformed base64 in a JWT signature and a
+  non-JSON JWKS body produced 500s; streaming responses escaped
+  `MAX_CONCURRENT_REQUESTS`; cache hits double-counted token/cost metrics;
+  SSE usage parsing lost events split across network chunks.
+- RAG: bootstrapped knowledge points lacked the `classification`/`owner` payload
+  fields, so the classification allowlist silently filtered out the whole
+  bootstrap corpus.
+- SDK: `chat_stream` silently swallowed the gateway's terminal error event
+  (now raises `GatewayStreamError`); added the missing `/v1/sandbox/budget`
+  accessor.
+- Deploy: the alerts PrometheusRule and Grafana dashboard ConfigMaps were
+  reachable by no Argo application; qdrant and budget-redis pods violated the
+  platform's own Enforce required-labels policy; KEDA/HPA scale-ups were reverted
+  by Argo selfHeal (replicas now omitted when autoscaling owns them); the gateway
+  NetworkPolicy blocked the Prometheus scrape and KEDA scaler; Ollama/vLLM had no
+  NetworkPolicies at all; `OllamaRuntimeAbsent` fired permanently against a scrape
+  job that never existed while `VllmRuntimeAbsent` paged intentionally-scaled-to-
+  zero labs (both now use kube-state-metrics desired-vs-ready); restore-drill
+  metrics pushed to a nonexistent Service name; OpenCost queried a Prometheus this
+  stack does not install; the umbrella chart rendered duplicate Namespace objects
+  and CRD-dependent extras that broke `helm install` on a bare cluster.
+- Versions/docs: `CITATION.cff` was three releases stale; the committed customer
+  overlay pinned `v0.11.0`; the Makefile `CUSTOMER_REVISION` default pinned
+  `v0.10.0`; client examples requested a model the local allowlist rejects and
+  streamed against a profile that disables streaming; runbook site pages had
+  404 edit links.
+
+### Changed
+
+- CI: the docs strict build now gates pull requests; a PR-time image build check
+  catches Dockerfile/lock regressions before merge; duplicate scan/Scorecard/
+  validate work removed; concurrency groups, job timeouts, pip/tool/image-layer
+  caching added; CodeQL also analyzes the workflows; the coverage floors are now
+  enforced in CI; lint/type targets align with the Python 3.14 runtime images.
+- Security scanning: the Trivy repo scan renders Helm charts with the tested
+  Kubernetes version (chart misconfig findings were previously skipped silently)
+  via a shared `scripts/repo-security-scan.sh`, and skips `deploy/vendor`
+  (pinned upstream manifests).
+- Gateway: synchronous Redis calls moved off the event loop; sandbox metric-label
+  cardinality is bounded; moderations input gets the shared admission size
+  ceiling; budget accounting charges multimodal content by extracted text.
+- Governance guards: `production-check` now pins the Makefile `CUSTOMER_REVISION`,
+  the `CITATION.cff` version, and the kind-vs-Trivy Kubernetes version pair;
+  `repo-hygiene` asserts the ruff pin matches between requirements-quality and
+  pre-commit; the customer-overlay default revision derives from the CHANGELOG.
+- Docs: documented the kind/kindnet NetworkPolicy non-enforcement limitation, the
+  RAG tenant-isolation trust boundary, and the customer Ollama model-preload
+  prerequisite.
+
+### CI (post-v0.13.0, previously unlisted)
+
+- Vendor umbrella chart dependencies before packaging so the released `platform`
+  chart tarball is installable from OCI.
+
 ## v0.13.0 - 2026-07-01
 
 A reference-architecture hardening pass closing a second audit of the gateway, RAG, serving,
