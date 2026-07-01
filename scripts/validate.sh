@@ -188,18 +188,7 @@ fi
 
 if require_optional_or_full trivy "Trivy is needed for filesystem secret and config scanning."; then
   trivy_output="/tmp/private-ai-platform-kit-trivy-fs.txt"
-  if ! trivy fs \
-    --scanners secret,misconfig \
-    --severity HIGH,CRITICAL \
-    --exit-code 1 \
-    --timeout 10m \
-    --skip-dirs .tools \
-    --skip-dirs results \
-    --skip-dirs .out/tenants \
-    --skip-dirs deploy/policies/kyverno/tests/resources \
-    --skip-dirs src/inference-gateway/.venv \
-    --skip-dirs src/rag-service/.venv \
-    . >"$trivy_output"; then
+  if ! ./scripts/repo-security-scan.sh >"$trivy_output"; then
     cat "$trivy_output"
     exit 1
   fi

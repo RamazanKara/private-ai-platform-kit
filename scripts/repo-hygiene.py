@@ -95,7 +95,7 @@ IGNORED_MARKDOWN_PARTS = {
     ".tools",
     ".venv",
     "src",
-    ".out/tenants",
+    ".out",
 }
 
 

@@ -38,8 +38,9 @@ DIRECTORIES: dict[str, str] = {
     "sdk": "First-party, dependency-light client SDKs for the gateway API.",
 }
 
-# Rendered tenant artifacts go to the git-ignored .out/tenants tree; .out is a
-# dotdir, so it is excluded from the layout inventory and the drift guard below.
+# Generated build output (e.g. rendered tenant artifacts) goes to the
+# git-ignored .out tree; .out is a dotdir, so it is excluded from the layout
+# inventory and the drift guard below.
 
 # Build-time / tooling directories that are intentionally outside the layout and
 # must not be flagged as undeclared by --check (mkdocs output, etc.).

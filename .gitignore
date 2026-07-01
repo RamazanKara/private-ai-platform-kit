@@ -14,7 +14,7 @@ coverage.xml
 htmlcov/
 .tmp-*
 *.tmp
-.out/tenants/
+.out/
 results/**/*.json
 results/**/*.md
 results/**/*.html

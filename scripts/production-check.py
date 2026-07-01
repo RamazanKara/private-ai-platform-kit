@@ -775,6 +775,13 @@ def check_release_packaging(errors: list[str]) -> None:
         text = (ROOT / path).read_text()
         require(errors, f"CUSTOMER_REVISION={release_tag}" in text, f"{path} must show CUSTOMER_REVISION={release_tag}")
 
+    makefile_text = (ROOT / "Makefile").read_text()
+    require(
+        errors,
+        f"CUSTOMER_REVISION ?= {release_tag}" in makefile_text,
+        f"Makefile must default CUSTOMER_REVISION to {release_tag}",
+    )
+
     index_text = (ROOT / "docs/index.md").read_text()
     require(
         errors,
