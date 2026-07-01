@@ -141,7 +141,7 @@ posture beyond a single-cluster rebuild:
 - **Secondary cluster.** There is no standby cluster in the kit. Cross-cluster restore (Velero
   restore into a fresh cluster) is operator-driven.
 - **Multi-region / warm standby.** Region failover, replication, and a warm-standby topology are out
-  of scope for this local-first kit and are handed off on the [roadmap](../ROADMAP.md) under
+  of scope for this local-first kit and are handed off on the [roadmap](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/ROADMAP.md) under
   "Remaining External / Operator-Owned Work."
 - **Backup-target and snapshot scheduling decisions.** The Velero cadence and retention, CSI
   snapshot intervals, and any tightening of RPO are per-environment operational decisions; the kit

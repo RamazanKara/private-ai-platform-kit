@@ -18,19 +18,19 @@ Ship two runtimes selected per environment, both OpenAI-compatible, with the gat
 via `RUNTIME_BACKEND`.
 
 - **Ollama** for the local-first profile.
-  [`deploy/charts/ollama`](../../deploy/charts/ollama) (`appVersion` `0.24.0`) backs the laptop and
+  [`deploy/charts/ollama`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/ollama) (`appVersion` `0.24.0`) backs the laptop and
   CI smoke path. The default local model is `qwen2.5:0.5b` (fast, non-reasoning, keeps CPU smoke
   quick); the customer Ollama profile default is the larger `qwen3.5:0.8b` reasoning model.
 - **vLLM** for GPU clusters.
-  [`deploy/charts/vllm`](../../deploy/charts/vllm) (`appVersion` `0.22.0`) backs NVIDIA and AMD GPU
+  [`deploy/charts/vllm`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/vllm) (`appVersion` `0.22.0`) backs NVIDIA and AMD GPU
   nodes via the
-  [`vllm-nvidia.yaml`](../../deploy/clusters/customer/values/vllm-nvidia.yaml) and
-  [`vllm-amd.yaml`](../../deploy/clusters/customer/values/vllm-amd.yaml) value profiles. The default
+  [`vllm-nvidia.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/values/vllm-nvidia.yaml) and
+  [`vllm-amd.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/values/vllm-amd.yaml) value profiles. The default
   customer vLLM target is `Qwen/Qwen3-Coder-Next` for coding-agent workloads.
 - The gateway selects the backend from `RUNTIME_BACKEND`, validated to `ollama` or `vllm` in
-  [`src/inference-gateway/app/settings.py`](../../src/inference-gateway/app/settings.py). Both
+  [`src/inference-gateway/app/settings.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/settings.py). Both
   runtimes ship as separate Argo CD applications (`runtime-ollama`, `runtime-vllm`) in
-  [`deploy/clusters/local/apps.yaml`](../../deploy/clusters/local/apps.yaml).
+  [`deploy/clusters/local/apps.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local/apps.yaml).
 
 ## Consequences
 

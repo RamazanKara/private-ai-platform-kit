@@ -1,6 +1,6 @@
 # Runtime Threat Detection Runbook
 
-Admission control ([Kyverno](../deploy/policies/kyverno/policies.yaml)) and default-deny
+Admission control ([Kyverno](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/policies/kyverno/policies.yaml)) and default-deny
 NetworkPolicies decide *what is admitted* and *where pods may connect*. Neither observes what a pod
 *does* after it starts. The threat model centers on indirect/RAG prompt injection and a hijacked
 coding agent — post-exploitation behavior that preventive controls cannot see. This runbook covers
@@ -24,7 +24,7 @@ DaemonSet, which the platform's own `disallow-privileged` Kyverno policy blocks 
 1. Deploy into a namespace **excluded** from the disallow-privileged policy. The Falco chart uses
    the `falco` namespace by default; confirm it is in the Kyverno exclusion set (alongside
    `monitoring`, `velero`, and the platform operators) before syncing, or add it.
-2. Apply [`deploy/observability/runtime-security.yaml`](../deploy/observability/runtime-security.yaml)
+2. Apply [`deploy/observability/runtime-security.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/observability/runtime-security.yaml)
    by adding it to your Argo CD root application or `kubectl apply -f` it directly.
 3. Detections route through `falcosidekick` to Loki, so they land in the same log pipeline as the
    gateway/RAG redacted audit events and are queryable in Grafana.

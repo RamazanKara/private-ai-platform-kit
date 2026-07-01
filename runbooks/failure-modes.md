@@ -73,7 +73,7 @@ auth is enabled.
 - **Operator-owned resilience.** HA replica counts, PodDisruptionBudgets, topology spread, a managed
   Redis-compatible service, a reachable JWKS issuer, and a wired Alertmanager receiver are operator
   responsibilities; the kit ships sane defaults and examples but does not operate these for you. See
-  [Support Boundaries](../README.md#support-boundaries).
+  [Support Boundaries](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md#support-boundaries).
 
 ## Validating these behaviors
 

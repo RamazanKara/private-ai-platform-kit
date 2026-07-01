@@ -7,7 +7,7 @@ layout are identical across profiles; what changes is the runtime backend, the n
 operator-owned versus kit-owned, the secret backend, and the network egress posture.
 
 For the single combined overview diagram see [`assets/architecture.svg`](assets/architecture.svg). For
-the high-level narrative see the [README "How It Works" section](../README.md). Whether the kit fits
+the high-level narrative see the [README "How It Works" section](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md). Whether the kit fits
 your use case is covered in the [decision guide](decision-guide.md); the trust boundaries are in the
 [threat model](threat-model.md).
 
@@ -120,7 +120,7 @@ to its backend, so coding traffic lands on vLLM and chat on Ollama
 (`deploy/clusters/customer/values/vllm-nvidia.yaml`) requests `nvidia.com/gpu` (4 GPUs by default),
 sets tensor/context sizing, persists weights on an RWX volume, and scales on request-queue depth via
 KEDA against the cluster's Prometheus. The AMD profile uses `amd.com/gpu`
-(`deploy/clusters/customer/values/vllm-amd.yaml`). See [GPU capacity](../runbooks/gpu-capacity.md)
+(`deploy/clusters/customer/values/vllm-amd.yaml`). See [GPU capacity](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md)
 for sizing.
 
 **Secrets.** The customer overlay deploys an External Secrets `ClusterSecretStore` and

@@ -20,11 +20,11 @@ AI gateway.
 
 - It serves the OpenAI-compatible surface under `/v1`: chat completions, embeddings, moderations,
   batches, models, and usage (see the route handlers and OpenAPI tags in
-  [`src/inference-gateway/app/main.py`](../../src/inference-gateway/app/main.py)). Embeddings are
+  [`src/inference-gateway/app/main.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/main.py)). Embeddings are
   routed through the gateway specifically so they get the same auth, allowlist, budget, and audit
   controls as chat.
 - Authentication is API-key (SHA-256 digest compared with `hmac.compare_digest`) or JWT verified
-  against JWKS ([`jwt_auth.py`](../../src/inference-gateway/app/jwt_auth.py)); the audit principal is
+  against JWKS ([`jwt_auth.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/jwt_auth.py)); the audit principal is
   non-reversible (a key-id digest prefix or summarized JWT claims).
 - Progressive delivery and resilience are first-class: weighted canary routing
   (`inference_gateway_canary_routed_total`), fire-and-forget shadow mirroring

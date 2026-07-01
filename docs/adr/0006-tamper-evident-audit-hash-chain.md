@@ -18,7 +18,7 @@ must not weaken the existing redaction guarantees.
 Link each audit event into a per-process tamper-evident SHA-256 hash chain.
 
 - Construction, in
-  [`src/inference-gateway/app/main.py`](../../src/inference-gateway/app/main.py): `h_0 =
+  [`src/inference-gateway/app/main.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/main.py): `h_0 =
   SHA-256("genesis")`; for each record `h_i = SHA-256(h_{i-1} || canonical(record_i))`, where
   `canonical` is `json.dumps(..., sort_keys=True, separators=(",", ":"))`. The function
   `_chain_audit_event` computes the record hash over the event before adding the chain fields, then
@@ -29,7 +29,7 @@ Link each audit event into a per-process tamper-evident SHA-256 hash chain.
   (`_payload_fingerprint`: counts, roles, prompt hash), so chaining adds integrity without
   reintroducing raw prompt or credential data.
 - The live construction matches the auditor/verifier reference in
-  [`paper/evidence-model/audit_chain.py`](../../paper/evidence-model/audit_chain.py) byte for byte
+  [`paper/evidence-model/audit_chain.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/paper/evidence-model/audit_chain.py) byte for byte
   (same genesis, same canonical form, same `SHA-256(prev || canonical(record))`), so the same tooling
   that an auditor runs verifies the live log.
 

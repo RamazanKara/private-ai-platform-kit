@@ -20,13 +20,13 @@ repository, differing only in cluster directory, pinned revision, and the platfo
 customer already operates.
 
 - The local cluster is a single-node `kind` config,
-  [`deploy/clusters/local/kind-config.yaml`](../../deploy/clusters/local/kind-config.yaml) (pinned
+  [`deploy/clusters/local/kind-config.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local/kind-config.yaml) (pinned
   `kindest/node` image, `ingress-ready` and `platform.ai/node-pool=local` node labels, host port
   mapping), brought up by `make local-up`.
 - Both environments use the same charts and the same Argo CD app-of-apps mechanism
   (see [0001](0001-gitops-with-argo-cd.md)); the only structural difference is the cluster directory
-  each root app points at — [`deploy/clusters/local`](../../deploy/clusters/local) versus
-  [`deploy/clusters/customer`](../../deploy/clusters/customer) — and a pinned `targetRevision` on the
+  each root app points at — [`deploy/clusters/local`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local) versus
+  [`deploy/clusters/customer`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer) — and a pinned `targetRevision` on the
   customer root.
 - The customer overlay assumes Kubernetes already exists and adds what a tenant cluster needs:
   `appprojects.yaml` for project tenancy, `external-secrets.yaml`, `gpu-scheduling.yaml`, and GPU

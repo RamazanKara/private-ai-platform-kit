@@ -1,6 +1,6 @@
 # Capacity and Sizing Worksheet
 
-This is the concrete companion to the prose in [`runbooks/gpu-capacity.md`](../runbooks/gpu-capacity.md).
+This is the concrete companion to the prose in [`runbooks/gpu-capacity.md`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md).
 That runbook explains *why* GPU pods fail to schedule and gives rough VRAM/concurrency estimates;
 this page turns those estimates into a repeatable worksheet you fill in from your own targets, plus a
 few reference deployments with the exact values files they map to.
@@ -9,7 +9,7 @@ The numbers here are planning estimates, not guarantees. Every figure that touch
 tokens/sec, or concurrency depends on the model, the weight precision, the KV-cache size at your
 context length and batch, and the serving runtime. Treat the worksheet output as a *starting point*
 and validate it with a real load test (`make loadtest-local` against the customer profile) before you
-commit capacity. See the [Sizing Estimates](../runbooks/gpu-capacity.md#sizing-estimates) table in the
+commit capacity. See the [Sizing Estimates](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md#sizing-estimates) table in the
 runbook for the underlying per-model VRAM and concurrency ranges this worksheet draws on.
 
 All Helm defaults cited below come from `deploy/charts/*/values.yaml`; the reference deployments cite
@@ -109,7 +109,7 @@ size**, and **context length**; KEDA then scales *replicas* on queue depth.
 ### 2a. GPUs per replica and tensor-parallel size
 
 Pick the GPU class and per-replica GPU count from the model's weight + KV-cache footprint. Use the
-[runbook's per-model table](../runbooks/gpu-capacity.md#sizing-estimates) as the anchor, then set:
+[runbook's per-model table](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md#sizing-estimates) as the anchor, then set:
 
 ```
 accelerator.count          = GPUs per replica  (must fit on one node for tensor parallelism)
@@ -120,7 +120,7 @@ The default profile serves `Qwen/Qwen3-Coder-Next` with `accelerator.count: 4` a
 `--tensor-parallel-size 4` (`deploy/charts/vllm/values.yaml`, `extraArgs`). Tensor parallelism shards
 one model across the GPUs of a single node; if the model is too large for any one node, you need
 **pipeline parallelism across nodes** via the LeaderWorkerSet topology -- see
-[Multi-Node Serving](../runbooks/gpu-capacity.md#multi-node-serving-models-larger-than-one-node). To fit
+[Multi-Node Serving](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md#multi-node-serving-models-larger-than-one-node). To fit
 a smaller cluster, reduce `accelerator.count`, `--tensor-parallel-size`, `model.maxModelLen`, or the
 model itself.
 
@@ -258,9 +258,9 @@ Notes on the examples:
 
 ## Related
 
-- [GPU capacity runbook](../runbooks/gpu-capacity.md) -- scheduling failures, per-model VRAM/concurrency
+- [GPU capacity runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md) -- scheduling failures, per-model VRAM/concurrency
   estimates, multi-node serving.
-- [SLO and error budget](../runbooks/slo-error-budget.md) -- the latency/availability targets your
+- [SLO and error budget](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/slo-error-budget.md) -- the latency/availability targets your
   sizing must satisfy.
-- [Quota and chargeback](../runbooks/quota-chargeback.md) -- how the per-sandbox budgets sized in
+- [Quota and chargeback](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/quota-chargeback.md) -- how the per-sandbox budgets sized in
   Worksheet 4 map to tenants.

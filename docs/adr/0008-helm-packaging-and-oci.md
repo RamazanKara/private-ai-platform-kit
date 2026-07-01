@@ -18,15 +18,15 @@ a separate chart-hosting service.
 Package every first-party workload as a Helm chart and distribute the charts as Cosign-signed OCI
 artifacts in the same registry as the images.
 
-- Each workload is a Helm chart under [`deploy/charts/`](../../deploy/charts/) — inference-gateway,
+- Each workload is a Helm chart under [`deploy/charts/`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts) — inference-gateway,
   ollama, vllm, rag-service, qdrant-vector-store, budget-redis, agent-workspace — all `apiVersion:
   v2`, `version: 0.12.0`, with `kubeVersion: ">=1.25.0"`.
 - Environment differences are value files, not chart forks: Argo CD applications reference per-cluster
   values such as `../../clusters/local/values/inference-gateway.yaml`
-  ([`deploy/clusters/local/apps.yaml`](../../deploy/clusters/local/apps.yaml)), and the customer
+  ([`deploy/clusters/local/apps.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local/apps.yaml)), and the customer
   overlay supplies its own values including the GPU profiles.
 - CI packages the charts and pushes them to `oci://ghcr.io/${IMAGE_REPO}/charts` on tagged and
-  main-branch releases ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)), then
+  main-branch releases ([`.github/workflows/ci.yml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/.github/workflows/ci.yml)), then
   cosign-signs each OCI artifact by digest in the same workflow that signs the images.
 - Verification is documented in [`docs/release-verification.md`](../release-verification.md):
   `helm pull oci://$IMAGE_REPO/charts/<chart> --version "${RELEASE#v}"`, then `cosign verify` against

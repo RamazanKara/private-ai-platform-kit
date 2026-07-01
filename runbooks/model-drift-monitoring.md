@@ -10,7 +10,7 @@ model artifact swap.
 Two layers, cheap to expensive:
 
 1. **Live proxy metrics (Prometheus).** The `governance.rules` group in
-   [`ai-platform-alerts.yaml`](../deploy/observability/alerts/ai-platform-alerts.yaml) alerts on:
+   [`ai-platform-alerts.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/observability/alerts/ai-platform-alerts.yaml) alerts on:
    - `ModelOutputGuardrailSpike` — a sustained rise in output-guardrail redactions/blocks
      (`inference_gateway_output_guardrail_total`), which can mean the model started leaking
      credentials/PII it previously did not.

@@ -7,7 +7,7 @@ the [EU AI Act](https://eur-lex.europa.eu/eli/reg/2024/1689/oj) (Regulation (EU)
 semantics used across the model catalog and provenance records.
 
 The machine-readable companion is
-[`platform/governance/control-framework-map.yaml`](../platform/governance/control-framework-map.yaml).
+[`platform/governance/control-framework-map.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/control-framework-map.yaml).
 That file carries the per-control framework citations and the risk-tier-to-control mapping; this
 document is the human-readable explanation.
 
@@ -30,11 +30,11 @@ post-market incident reporting to authorities — that work is yours. Those gaps
 ## Risk-tier semantics
 
 `riskTier` is an existing field on every model in
-[`platform/model-catalog/models.yaml`](../platform/model-catalog/models.yaml) and every artifact in
-[`platform/governance/model-provenance.yaml`](../platform/governance/model-provenance.yaml). The enum
+[`platform/model-catalog/models.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/model-catalog/models.yaml) and every artifact in
+[`platform/governance/model-provenance.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/model-provenance.yaml). The enum
 `low | medium | high` is validated by `VALID_RISK_TIERS` in
-[`scripts/model-catalog.py`](../scripts/model-catalog.py) and re-checked in
-[`scripts/model-provenance.py`](../scripts/model-provenance.py). Until now the field was validated but
+[`scripts/model-catalog.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-catalog.py) and re-checked in
+[`scripts/model-provenance.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-provenance.py). Until now the field was validated but
 not defined. This section gives it meaning: what each tier represents and which controls it mandates.
 
 `riskTier` is the model artifact's inherent risk — its capability, autonomy, and blast radius if it
@@ -72,7 +72,7 @@ Mandated controls: everything in low, plus egress governance on the serving name
 prompt secret detection enabled (`C-SECRET`), and an eval suite that exercises the promoted model or
 a declared, justified proxy (`C-EVAL`). The customer also replaces the source-reference digest with a
 pinned model-store digest before production, and the coding-agent eval suite
-([`platform/evals/coding-agent-suite.yaml`](../platform/evals/coding-agent-suite.yaml)) includes
+([`platform/evals/coding-agent-suite.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/evals/coding-agent-suite.yaml)) includes
 `forbiddenAny` secret-leak checks.
 
 ### high
@@ -87,7 +87,7 @@ documented retention and data-classification review (`C-RETAIN`), and reviewed R
 human-oversight owner (`C-RBAC`). High-tier promotion expects:
 
 - Two named approvers on the promotion request. Separation of duties (requester is not an approver)
-  is already enforced by [`scripts/model-catalog.py`](../scripts/model-catalog.py); high tier adds a
+  is already enforced by [`scripts/model-catalog.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-catalog.py); high tier adds a
   documented human-oversight owner.
 - `dataClassification` reviewed and recorded; `restricted` data requires explicit sign-off in the
   customer handoff.
@@ -99,7 +99,7 @@ human-oversight owner (`C-RBAC`). High-tier promotion expects:
 
 Each control below maps to the kit files that implement it, its validation command, and the framework
 obligations it contributes evidence toward. Control IDs match
-[`platform/governance/control-framework-map.yaml`](../platform/governance/control-framework-map.yaml).
+[`platform/governance/control-framework-map.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/control-framework-map.yaml).
 
 | Control | Kit implementation | Validation | NIST AI RMF | EU AI Act | ISO/IEC 42001 |
 | --- | --- | --- | --- | --- | --- |
@@ -117,7 +117,7 @@ obligations it contributes evidence toward. Control IDs match
 | `C-SUPPLY` Supply-chain integrity | `.github/workflows/ci.yml`, `deploy/policies/kyverno/policies.yaml` | `make supply-chain-check`, `make image-scan` | Map, Manage | Art. 11, 15 | 8.1, supplier mgmt |
 
 For the exact category, article, and clause text behind each citation, see the `controls` list in
-[`platform/governance/control-framework-map.yaml`](../platform/governance/control-framework-map.yaml).
+[`platform/governance/control-framework-map.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/control-framework-map.yaml).
 
 ## NIST AI RMF function coverage
 
@@ -193,7 +193,7 @@ obligations under one or more of the frameworks:
 ## Maintaining the crosswalk
 
 When you add or change a control, update both this document and
-[`platform/governance/control-framework-map.yaml`](../platform/governance/control-framework-map.yaml)
+[`platform/governance/control-framework-map.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/control-framework-map.yaml)
 so the kit-implementation file references stay accurate. The framework citations are stable references
 to published functions, articles, and clauses; revisit them when a framework is revised (for example,
 a NIST AI RMF profile update or an EU AI Act implementing act).

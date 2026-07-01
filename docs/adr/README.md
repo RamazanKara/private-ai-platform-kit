@@ -43,7 +43,7 @@ immutable once `Accepted`, and grounded in real files in this repo.
    paths (charts, manifests, source modules) so a reviewer can check each claim.
 3. Add a row to the index table above and to the Explanation section of the docs nav
    (`mkdocs.yml`).
-4. Open it for review like any other change (see [CONTRIBUTING.md](../../CONTRIBUTING.md)). Once
+4. Open it for review like any other change (see [CONTRIBUTING.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/CONTRIBUTING.md)). Once
    merged and `Accepted`, do not rewrite it; if the decision changes, write a new ADR and mark the
    old one `Superseded by NNNN`.
 

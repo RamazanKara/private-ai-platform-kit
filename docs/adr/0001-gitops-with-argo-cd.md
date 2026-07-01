@@ -22,11 +22,11 @@ repository.
 Use Argo CD with an app-of-apps layout.
 
 - A single root `Application` per environment points at a cluster directory and includes only its
-  app list: [`deploy/gitops/argocd/root-app.yaml`](../../deploy/gitops/argocd/root-app.yaml)
+  app list: [`deploy/gitops/argocd/root-app.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/gitops/argocd/root-app.yaml)
   targets `deploy/clusters/local` and includes `apps.yaml`;
-  [`deploy/gitops/argocd/root-app-customer.yaml`](../../deploy/gitops/argocd/root-app-customer.yaml)
+  [`deploy/gitops/argocd/root-app-customer.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/gitops/argocd/root-app-customer.yaml)
   targets `deploy/clusters/customer` and includes `{apps.yaml,appprojects.yaml}`.
-- [`deploy/clusters/local/apps.yaml`](../../deploy/clusters/local/apps.yaml) declares the child
+- [`deploy/clusters/local/apps.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local/apps.yaml) declares the child
   `Application`s: model-catalog, traceable-sandbox, platform-operators (Kyverno, KEDA,
   External Secrets via their upstream Helm charts), observability, security-policies, the Ollama and
   vLLM runtimes, budget-redis, inference-gateway, qdrant-vector-store, rag-service, agent-workspace,

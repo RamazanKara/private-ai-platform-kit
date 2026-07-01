@@ -18,19 +18,19 @@ Use Qdrant as the optional self-hosted vector store, behind a retriever the RAG 
 or without it.
 
 - The RAG service defines a `QdrantRetriever` alongside the default lexical retriever in
-  [`src/rag-service/app/retriever.py`](../../src/rag-service/app/retriever.py). The Qdrant path
+  [`src/rag-service/app/retriever.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/rag-service/app/retriever.py). The Qdrant path
   bootstraps a collection, embeds queries, over-fetches dense candidates, and applies a hybrid
   rerank that blends the dense cosine score with lexical query-term overlap (`lexical_weight`,
   default `0.5`; `0` reproduces pure dense ranking).
 - Retrieval supports a metadata filter combining a collection version and a classification allowlist,
   so tenants can scope what a query may match.
 - Qdrant ships as its own chart,
-  [`deploy/charts/qdrant-vector-store`](../../deploy/charts/qdrant-vector-store) (`appVersion`
+  [`deploy/charts/qdrant-vector-store`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/qdrant-vector-store) (`appVersion`
   `1.18.1`), described as an "optional local vector store profile," and as the `qdrant-vector-store`
   Argo CD application in the `vector` namespace
-  ([`deploy/clusters/local/apps.yaml`](../../deploy/clusters/local/apps.yaml)).
+  ([`deploy/clusters/local/apps.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local/apps.yaml)).
 - The collection migration procedure is documented in
-  [`runbooks/qdrant-migration.md`](../../runbooks/qdrant-migration.md).
+  [`runbooks/qdrant-migration.md`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/qdrant-migration.md).
 
 ## Consequences
 

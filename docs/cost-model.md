@@ -14,7 +14,7 @@ build-versus-buy case before adoption.
     (`make loadtest-local` against the customer profile) before committing capital, and confirm
     every unit price against a current quote from your own provider or hardware vendor. The kit
     provisions no cloud infrastructure, operates no cluster, and hosts no model (see the Support
-    Boundaries section of the [README](../README.md)).
+    Boundaries section of the [README](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md)).
 
 ## What Drives Cost
 
@@ -132,7 +132,7 @@ spend cap: a sandbox that hits `estimatedTokenLimit` is rejected with HTTP 400 a
 time. Estimated tokens are computed as
 `ceil(prompt_chars / estimatedCharsPerToken) + requested max_tokens`, so the cap is conservative
 (it counts requested completion tokens up front). Budgets default to a Redis backend so they hold
-across gateway replicas. See [budget-controls.md](../runbooks/budget-controls.md) for configuration
+across gateway replicas. See [budget-controls.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/budget-controls.md) for configuration
 and the per-plan ceilings in `platform/governance/quota-plans.yaml`.
 
 To translate a token budget into a dollar ceiling, multiply the estimated-token limit by your
@@ -185,7 +185,7 @@ Prometheus, logs, and evidence packs all attribute spend to the same keys. The c
 in `platform/governance/quota-plans.yaml` (allocation unit `sandbox-day`, reporting currency USD)
 uses these same required labels, so showback or chargeback per tenant is auditable, not estimated.
 Keep the labels stable across upgrades so cost history stays comparable
-([quota-chargeback.md](../runbooks/quota-chargeback.md)).
+([quota-chargeback.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/quota-chargeback.md)).
 
 ### Storage and observability cost notes
 
@@ -245,6 +245,6 @@ shared runtime in the multi-tenant size spreads one GPU tier's fixed cost across
 6. Compare the build total against your hosted per-token quote at your real projected volume to find
    the crossover.
 
-For capacity sizing detail see [GPU capacity runbook](../runbooks/gpu-capacity.md); for the
-budget, quota, and chargeback controls see [budget-controls.md](../runbooks/budget-controls.md) and
-[quota-chargeback.md](../runbooks/quota-chargeback.md).
+For capacity sizing detail see [GPU capacity runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md); for the
+budget, quota, and chargeback controls see [budget-controls.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/budget-controls.md) and
+[quota-chargeback.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/quota-chargeback.md).
