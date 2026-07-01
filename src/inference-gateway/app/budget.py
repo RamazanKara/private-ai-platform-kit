@@ -8,7 +8,7 @@ from threading import Lock
 from time import time
 from typing import Any, Protocol
 
-from app.settings import AdmissionPolicyError, Settings
+from app.settings import AdmissionPolicyError, Settings, extract_text_content
 
 try:  # redis is an optional dependency; only present when the redis backend is used.
     from redis.exceptions import RedisError as _RedisError
@@ -82,8 +82,13 @@ class SandboxBudgetTracker(Protocol):
 
 
 def budget_delta(settings: Settings, payload: dict[str, Any]) -> BudgetDelta:
-    """Compute the request, prompt-char, and estimated-token cost of a payload."""
-    prompt_chars = sum(len(str(message.get("content", ""))) for message in payload.get("messages", []))
+    """Compute the request, prompt-char, and estimated-token cost of a payload.
+
+    Counts prompt characters with the same ``extract_text_content`` the admission
+    checks use, so multimodal content-part arrays and null content are charged by
+    their text - not by the repr of their JSON scaffolding.
+    """
+    prompt_chars = sum(len(extract_text_content(message.get("content"))) for message in payload.get("messages", []))
     requested_completion_tokens = payload.get("max_tokens")
     if not isinstance(requested_completion_tokens, int):
         requested_completion_tokens = settings.max_completion_tokens

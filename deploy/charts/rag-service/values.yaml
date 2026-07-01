@@ -42,7 +42,10 @@ retrieval:
   # Per-tenant retrieval isolation (Qdrant backend): when enabled, a caller only retrieves
   # documents whose `field` payload value (stamped at ingest, default `owner`) equals the
   # request's X-Sandbox-ID. Fails closed — a tenant with no matching documents gets none.
-  # Requires ingesting documents with owner set to the tenant/sandbox id.
+  # Requires ingesting documents with owner set to the tenant/sandbox id. Trust boundary:
+  # X-Sandbox-ID is client-asserted under the shared API key, so this isolates tenants
+  # whose traffic arrives via a trusted path (gateway JWT tenant binding or a header-
+  # stamping egress proxy), not against a direct caller lying about its tenant.
   tenantIsolation:
     enabled: false
     field: owner

@@ -285,3 +285,23 @@ def test_budget_backend_error_degrades_to_503():
 def test_invalid_guardrail_and_cache_settings_raise(overrides):
     with pytest.raises(ValueError):
         _settings(**overrides)
+
+
+def test_output_guardrail_applies_to_batch_items():
+    # The guardrail is endpoint-independent: /v1/batches must not be a bypass around
+    # the redact policy that /v1/chat/completions enforces (OWASP LLM02/LLM06).
+    client, _ = _client(
+        _settings(output_guardrail_enabled=True, output_guardrail_mode="redact"),
+        response=_chat_response(f"batch leak {GITHUB_TOKEN} end"),
+    )
+
+    resp = client.post(
+        "/v1/batches",
+        json={"requests": [{"messages": [{"role": "user", "content": "hi"}]}]},
+    )
+
+    assert resp.status_code == 200
+    content = resp.json()["results"][0]["response"]["choices"][0]["message"]["content"]
+    assert GITHUB_TOKEN not in content
+    assert "[REDACTED:github_token]" in content
+    assert resp.headers["X-Output-Guardrail"] == "redacted"

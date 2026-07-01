@@ -142,6 +142,25 @@ ESTIMATED_COST = Counter(
     ["sandbox", "backend"],
 )
 
+# Bound the distinct sandbox label values this process will emit. Sandbox ids are
+# client-asserted (up to 63 free-form chars) unless JWT tenant binding is enabled, so
+# without a bound a scripted client cycling X-Sandbox-ID values could mint unbounded
+# Prometheus series. The cap comfortably exceeds a real tenant fleet; ids past it are
+# still served and audited under their real id but collapse into one overflow label.
+_MAX_SANDBOX_LABEL_VALUES = 2000
+_SANDBOX_LABEL_VALUES: set[str] = set()
+_SANDBOX_LABEL_OVERFLOW = "__other__"
+
+
+def _sandbox_label(sandbox_id: str) -> str:
+    """Return the sandbox metric label, collapsing past the cardinality bound."""
+    if sandbox_id in _SANDBOX_LABEL_VALUES:
+        return sandbox_id
+    if len(_SANDBOX_LABEL_VALUES) < _MAX_SANDBOX_LABEL_VALUES:
+        _SANDBOX_LABEL_VALUES.add(sandbox_id)
+        return sandbox_id
+    return _SANDBOX_LABEL_OVERFLOW
+
 
 def _schedule_shadow(client: RuntimeClient, shadow_route: Any, payload_dict: dict[str, Any], request: Request) -> None:
     """Fire a mirrored request to the shadow model, discarding its response and errors.
@@ -300,8 +319,10 @@ def _request_id_from_header(request: Request) -> str:
     request_id = request.headers.get("x-request-id", "").strip()
     if not request_id:
         return str(uuid4())
-    if len(request_id) > 128 or any(char.isspace() for char in request_id):
-        raise ValueError("X-Request-ID must be 1-128 visible characters without spaces")
+    # Visible ASCII only: the value is echoed into the X-Request-ID response header,
+    # where control bytes would be rejected at write time (an unhandled 500).
+    if len(request_id) > 128 or any(not (33 <= ord(char) <= 126) for char in request_id):
+        raise ValueError("X-Request-ID must be 1-128 visible ASCII characters without spaces")
     return request_id
 
 
@@ -524,9 +545,34 @@ def _overloaded_response(request: Request) -> JSONResponse:
     return response
 
 
+def _rate_limit_backend_unavailable_response(request: Request) -> JSONResponse:
+    """Build a 503 when the shared rate-limit backend (Redis) is unreachable.
+
+    Mirrors the budget tracker's backend-outage contract: a governance-store outage
+    is a retryable 503, never a silent fail-open or an unhandled 500.
+    """
+    response = JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "message": "rate limit backend is unavailable; retry shortly",
+                "reason": "rate_limit_backend_unavailable",
+                "request_id": request.state.request_id,
+                "sandbox_id": request.state.sandbox_id,
+            }
+        },
+        headers={"Retry-After": "5"},
+    )
+    response.headers["X-Request-ID"] = request.state.request_id
+    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+    if request.state.traceparent:
+        response.headers["traceparent"] = request.state.traceparent
+    return response
+
+
 def _rate_limited_response(request: Request, retry_after: int) -> JSONResponse:
     """Build a 429 response with Retry-After when the per-sandbox rate limit is hit."""
-    RATE_LIMITED.labels(request.state.sandbox_id).inc()
+    RATE_LIMITED.labels(_sandbox_label(request.state.sandbox_id)).inc()
     response = JSONResponse(
         status_code=429,
         content={
@@ -650,7 +696,7 @@ def _record_estimated_cost(settings: Settings, sandbox_id: str, backend: str, us
         return
     cost = (total_tokens / 1000.0) * settings.usd_per_1k_tokens
     if cost > 0:
-        ESTIMATED_COST.labels(sandbox_id, backend).inc(cost)
+        ESTIMATED_COST.labels(_sandbox_label(sandbox_id), backend).inc(cost)
 
 
 def _guardrail_choice_text(choice: dict[str, Any]) -> str:
@@ -764,8 +810,8 @@ def _record_budget_reservation(reservation: BudgetReservation | None, settings: 
         "estimated_tokens": reservation.usage.estimated_tokens,
     }
     for budget_type, value in usage.items():
-        SANDBOX_BUDGET_USAGE.labels(reservation.sandbox_id, budget_type).set(value)
-        SANDBOX_BUDGET_LIMIT.labels(reservation.sandbox_id, budget_type).set(limits[budget_type])
+        SANDBOX_BUDGET_USAGE.labels(_sandbox_label(reservation.sandbox_id), budget_type).set(value)
+        SANDBOX_BUDGET_LIMIT.labels(_sandbox_label(reservation.sandbox_id), budget_type).set(limits[budget_type])
 
 
 def _admission_status(reason: str, settings: Settings) -> tuple[int, dict[str, str] | None]:
@@ -841,6 +887,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
     app.state.tracer_provider = tracing[1] if tracing else None
+    if app.state.tracer_provider is not None:
+        # Flush buffered spans on termination: BatchSpanProcessor otherwise drops its
+        # queued tail every time a pod stops, losing the last requests' traces.
+        app.router.add_event_handler("shutdown", app.state.tracer_provider.shutdown)
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
@@ -888,9 +938,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
             # Short-window per-sandbox throttle (distinct from the cumulative budget):
             # bounds burst abuse. Checked after sandbox binding so the limit applies to
-            # the authenticated tenant, not the spoofable header.
+            # the authenticated tenant, not the spoofable header. The check runs on a
+            # worker thread because the Redis client is synchronous; a slow (not down)
+            # Redis must not stall the whole event loop.
             if resolved.rate_limit_enabled and _auth_required(request.url.path):
-                allowed, retry_after = request.app.state.rate_limiter.check(request.state.sandbox_id)
+                try:
+                    allowed, retry_after = await asyncio.to_thread(
+                        request.app.state.rate_limiter.check, request.state.sandbox_id
+                    )
+                except BudgetBackendError:
+                    return _rate_limit_backend_unavailable_response(request)
                 if not allowed:
                     return _rate_limited_response(request, retry_after)
 
@@ -905,10 +962,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 INFLIGHT.set(request.app.state.inflight)
             try:
                 response = await call_next(request)
-            finally:
+            except BaseException:
                 if limited:
                     request.app.state.inflight -= 1
                     INFLIGHT.set(request.app.state.inflight)
+                raise
+            if limited:
+                # Hold the concurrency slot until the response BODY completes, not just
+                # the headers: for a streaming response the expensive runtime work happens
+                # while the body is on the wire, so releasing at headers time would let
+                # unbounded concurrent streams pile up behind a "bounded" gateway.
+                body_iterator = getattr(response, "body_iterator", None)
+                if body_iterator is None:
+                    request.app.state.inflight -= 1
+                    INFLIGHT.set(request.app.state.inflight)
+                else:
+
+                    async def _release_when_body_done(iterator: Any = body_iterator) -> Any:
+                        try:
+                            async for chunk in iterator:
+                                yield chunk
+                        finally:
+                            request.app.state.inflight -= 1
+                            INFLIGHT.set(request.app.state.inflight)
+
+                    response.body_iterator = _release_when_body_done()
             response.headers["X-Request-ID"] = request.state.request_id
             response.headers["X-Sandbox-ID"] = request.state.sandbox_id
             if request.state.traceparent:
@@ -988,7 +1066,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         policy_set: SandboxPolicySet = request.app.state.sandbox_policy_set
         effective = policy_set.effective_settings(resolved, request.state.sandbox_id)
         try:
-            return tracker.snapshot(request.state.sandbox_id, effective)
+            return await asyncio.to_thread(tracker.snapshot, request.state.sandbox_id, effective)
         except BudgetBackendError as exc:
             raise HTTPException(
                 status_code=503,
@@ -1009,7 +1087,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         policy_set: SandboxPolicySet = request.app.state.sandbox_policy_set
         effective = policy_set.effective_settings(resolved, request.state.sandbox_id)
         try:
-            snapshot = tracker.snapshot(request.state.sandbox_id, effective)
+            snapshot = await asyncio.to_thread(tracker.snapshot, request.state.sandbox_id, effective)
         except BudgetBackendError as exc:
             raise HTTPException(
                 status_code=503,
@@ -1059,6 +1137,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # When streaming, the response generator records metrics + audit at its own
         # end-of-stream; the outer finally must not double-record on the headers path.
         stream_owns_recording = False
+        # A cache hit consumes no runtime tokens: the finally block must not re-count
+        # the cached usage into the token/cost metrics (audit still records the hit).
+        cache_hit = False
         try:
             policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
@@ -1085,17 +1166,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             cache_id = ""
             if cache_enabled:
                 cache_id = cache_key(request.state.sandbox_id, payload_dict)
-                cached = request.app.state.response_cache.get(cache_id)
+                cached = await asyncio.to_thread(request.app.state.response_cache.get, cache_id)
                 if cached is not None:
                     CACHE_LOOKUPS.labels("hit").inc()
                     request.state.cache_status = "HIT"
-                    # Bind for the finally block (token-usage metrics + audit), then return.
+                    cache_hit = True
+                    # Bind for the finally block (audit), then return.
                     runtime_response = cached
                     return cached
                 CACHE_LOOKUPS.labels("miss").inc()
                 request.state.cache_status = "MISS"
             tracker: SandboxBudgetTracker = request.app.state.budget_tracker
-            reservation = tracker.reserve(request.state.sandbox_id, payload_dict, effective)
+            reservation = await asyncio.to_thread(tracker.reserve, request.state.sandbox_id, payload_dict, effective)
             request.state.budget_reservation = reservation.audit_dict() if reservation is not None else None
             _record_budget_reservation(reservation, effective)
             client: RuntimeClient = request.app.state.runtime_client
@@ -1120,10 +1202,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     # bounded copy and detect+flag at end-of-stream (enforce via non-stream).
                     scan_enabled = resolved.output_guardrail_enabled
                     scanned = bytearray()
+                    # SSE events can split across network chunks; carry the trailing
+                    # partial line so the terminal usage object is parsed even when the
+                    # ``data:`` line straddles a chunk boundary. Bounded so a pathological
+                    # never-terminated line cannot grow memory.
+                    pending = b""
                     try:
                         chunk = first_chunk
                         while chunk is not None:
-                            parsed_usage = _usage_from_sse_chunk(chunk)
+                            buffered = pending + chunk
+                            # rpartition: everything before the last newline is complete;
+                            # with no newline the whole buffer stays pending.
+                            complete_lines, _, pending = buffered.rpartition(b"\n")
+                            pending = pending[-65536:]
+                            parsed_usage = _usage_from_sse_chunk(complete_lines)
                             if parsed_usage is not None:
                                 usage = parsed_usage
                             if scan_enabled and len(scanned) < 262144:
@@ -1133,6 +1225,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                 chunk = await stream.__anext__()
                             except StopAsyncIteration:
                                 break
+                        if pending:
+                            parsed_usage = _usage_from_sse_chunk(pending)
+                            if parsed_usage is not None:
+                                usage = parsed_usage
                     except httpx.HTTPError as exc:
                         # Upstream failed after headers were sent: emit a terminal SSE
                         # error event and map the recorded status to 502.
@@ -1145,7 +1241,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         # True end of stream: record metrics, token usage, and audit now.
                         latency_seconds = perf_counter() - start
                         REQUESTS.labels(route, stream_backend, stream_status).inc()
-                        SANDBOX_REQUESTS.labels(request.state.sandbox_id, stream_backend, stream_status).inc()
+                        SANDBOX_REQUESTS.labels(
+                            _sandbox_label(request.state.sandbox_id), stream_backend, stream_status
+                        ).inc()
                         LATENCY.labels(route, stream_backend).observe(latency_seconds)
                         usage_response = {"usage": usage} if usage is not None else None
                         _record_token_usage(stream_backend, usage_response)
@@ -1197,7 +1295,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # a secret is never persisted in the response cache.
             _apply_output_guardrail(runtime_response, resolved, route, request)
             if cache_enabled:
-                request.app.state.response_cache.set(cache_id, runtime_response)
+                await asyncio.to_thread(request.app.state.response_cache.set, cache_id, runtime_response)
             if shadow_route is not None:
                 _schedule_shadow(client, shadow_route, payload_dict, request)
             # The finally block reads runtime_response for token-usage metrics and the
@@ -1210,7 +1308,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ADMISSION_REJECTIONS.labels(
                 exc.reason,
                 backend,
-                request.state.sandbox_id,
+                _sandbox_label(request.state.sandbox_id),
             ).inc()
             raise HTTPException(
                 status_code=status_code,
@@ -1282,13 +1380,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # outer finally only records the non-streaming and error-before-headers paths.
             if not stream_owns_recording:
                 REQUESTS.labels(route, backend, status).inc()
-                SANDBOX_REQUESTS.labels(request.state.sandbox_id, backend, status).inc()
+                SANDBOX_REQUESTS.labels(_sandbox_label(request.state.sandbox_id), backend, status).inc()
                 latency_seconds = perf_counter() - start
                 LATENCY.labels(route, backend).observe(latency_seconds)
-                _record_token_usage(backend, runtime_response)
-                _record_estimated_cost(
-                    resolved, request.state.sandbox_id, backend, (runtime_response or {}).get("usage")
-                )
+                if not cache_hit:
+                    _record_token_usage(backend, runtime_response)
+                    _record_estimated_cost(
+                        resolved, request.state.sandbox_id, backend, (runtime_response or {}).get("usage")
+                    )
                 _write_audit_log(
                     resolved,
                     request,
@@ -1334,7 +1433,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             texts = raw_input if isinstance(raw_input, list) else [raw_input]
             budget_payload = {"messages": [{"content": str(text)} for text in texts], "max_tokens": 0}
             tracker: SandboxBudgetTracker = request.app.state.budget_tracker
-            reservation = tracker.reserve(request.state.sandbox_id, budget_payload, effective)
+            reservation = await asyncio.to_thread(tracker.reserve, request.state.sandbox_id, budget_payload, effective)
             request.state.budget_reservation = reservation.audit_dict() if reservation is not None else None
             _record_budget_reservation(reservation, effective)
             client: RuntimeClient = request.app.state.runtime_client
@@ -1350,7 +1449,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             status_code, headers = _admission_status(exc.reason, resolved)
             status = str(status_code)
             error = str(exc)
-            ADMISSION_REJECTIONS.labels(exc.reason, backend, request.state.sandbox_id).inc()
+            ADMISSION_REJECTIONS.labels(exc.reason, backend, _sandbox_label(request.state.sandbox_id)).inc()
             raise HTTPException(
                 status_code=status_code,
                 detail={
@@ -1418,7 +1517,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ) from exc
         finally:
             REQUESTS.labels(route, backend, status).inc()
-            SANDBOX_REQUESTS.labels(request.state.sandbox_id, backend, status).inc()
+            SANDBOX_REQUESTS.labels(_sandbox_label(request.state.sandbox_id), backend, status).inc()
             latency_seconds = perf_counter() - start
             LATENCY.labels(route, backend).observe(latency_seconds)
             _record_token_usage(backend, runtime_response)
@@ -1454,6 +1553,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             texts = [str(item) for item in texts if item is not None]
             if not texts:
                 raise AdmissionPolicyError("missing_input", "moderations request must include non-empty input")
+            # Same admission ceiling as chat/embeddings: without it this is the one
+            # endpoint where an arbitrarily large body reaches every classifier regex.
+            total_chars = sum(len(text) for text in texts)
+            if total_chars > resolved.max_prompt_chars:
+                raise AdmissionPolicyError(
+                    "input_too_large",
+                    f"moderations input has {total_chars} characters; limit is {resolved.max_prompt_chars}",
+                )
             results = [moderate_text(text, resolved) for text in texts]
             return {
                 "id": f"modr-{request.state.request_id}",
@@ -1475,7 +1582,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ) from exc
         finally:
             REQUESTS.labels(route, resolved.runtime_backend, status).inc()
-            SANDBOX_REQUESTS.labels(request.state.sandbox_id, resolved.runtime_backend, status).inc()
+            SANDBOX_REQUESTS.labels(_sandbox_label(request.state.sandbox_id), resolved.runtime_backend, status).inc()
             latency_seconds = perf_counter() - start
             LATENCY.labels(route, resolved.runtime_backend).observe(latency_seconds)
             _write_audit_log(
@@ -1507,6 +1614,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         status = "200"
         status_code = 200
         error = None
+        # Per-item audit fingerprints (redacted counts + prompt hash, same fields as
+        # single requests) so batch traffic is attributable item-by-item, not just as
+        # an opaque batch_size. Defined before the try so the audit finally always
+        # sees it, including on whole-batch rejections.
+        audit_items: list[dict[str, Any]] = []
         try:
             if len(payload.requests) > resolved.max_batch_requests:
                 raise AdmissionPolicyError(
@@ -1521,6 +1633,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # Bound per-batch fan-out so one batch cannot saturate the upstream pool.
             semaphore = asyncio.Semaphore(min(8, max(1, len(payload.requests))))
 
+            def _audit_item(index: int, status_code: int, item_dict: dict[str, Any]) -> None:
+                entry: dict[str, Any] = {
+                    "index": index,
+                    "status_code": status_code,
+                    "model": item_dict.get("model") or effective.model_id,
+                }
+                entry.update(_payload_fingerprint(item_dict))
+                audit_items.append(entry)
+
             async def _process(index: int, item: ChatCompletionRequest) -> dict[str, Any]:
                 item_dict = item.model_dump(exclude_none=True)
                 item_dict.pop("stream", None)
@@ -1532,19 +1653,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
                         item_dict["model"] = model_route.model_id
                         effective.validate_admission(item_dict)
-                        tracker.reserve(request.state.sandbox_id, item_dict, effective)
+                        await asyncio.to_thread(tracker.reserve, request.state.sandbox_id, item_dict, effective)
                         response = await client.chat_completions(
                             item_dict, headers=_runtime_headers(request), backend=model_route.backend
                         )
+                        # The output guardrail is an endpoint-independent control: a batch
+                        # item must not be a bypass around the redact/block policy that the
+                        # single-request path enforces (OWASP LLM02/LLM06).
+                        _apply_output_guardrail(response, resolved, route, request)
+                        _record_token_usage(model_route.backend, response)
+                        _record_estimated_cost(
+                            resolved,
+                            request.state.sandbox_id,
+                            model_route.backend,
+                            response.get("usage") if isinstance(response, dict) else None,
+                        )
+                        _audit_item(index, 200, item_dict)
                         return {"index": index, "status_code": 200, "response": response}
                     except AdmissionPolicyError as exc:
                         item_code, _ = _admission_status(exc.reason, resolved)
+                        _audit_item(index, item_code, item_dict)
                         return {
                             "index": index,
                             "status_code": item_code,
                             "error": {"reason": exc.reason, "message": str(exc)},
                         }
                     except httpx.HTTPStatusError as exc:
+                        _audit_item(index, 502, item_dict)
                         return {
                             "index": index,
                             "status_code": 502,
@@ -1554,12 +1689,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             },
                         }
                     except BudgetBackendError:
+                        _audit_item(index, 503, item_dict)
                         return {
                             "index": index,
                             "status_code": 503,
                             "error": {"reason": "budget_backend_unavailable", "message": "budget backend unavailable"},
                         }
                     except (httpx.HTTPError, ValueError):
+                        _audit_item(index, 502, item_dict)
                         return {"index": index, "status_code": 502, "error": {"message": "runtime request failed"}}
 
             results = await asyncio.gather(*[_process(index, item) for index, item in enumerate(payload.requests)])
@@ -1580,7 +1717,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ) from exc
         finally:
             REQUESTS.labels(route, resolved.runtime_backend, status).inc()
-            SANDBOX_REQUESTS.labels(request.state.sandbox_id, resolved.runtime_backend, status).inc()
+            SANDBOX_REQUESTS.labels(_sandbox_label(request.state.sandbox_id), resolved.runtime_backend, status).inc()
             latency_seconds = perf_counter() - start
             LATENCY.labels(route, resolved.runtime_backend).observe(latency_seconds)
             if resolved.audit_log_enabled:
@@ -1591,6 +1728,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "sandbox_id": request.state.sandbox_id,
                     "principal": getattr(request.state, "principal", None),
                     "batch_size": len(payload.requests),
+                    "items": sorted(audit_items, key=lambda entry: entry["index"]),
                     "status_code": status_code,
                     "latency_ms": round(latency_seconds * 1000, 2),
                     "error": error,

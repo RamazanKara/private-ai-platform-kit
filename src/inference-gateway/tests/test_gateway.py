@@ -5,6 +5,7 @@ import hmac
 import json
 import logging
 import time
+import types
 
 import httpx
 import pytest
@@ -2532,3 +2533,161 @@ def test_runtime_invalid_response_returns_sanitized_502():
     assert response.status_code == 502
     assert response.json()["detail"]["message"] == "runtime returned an invalid response"
     assert "customer secret snippet" not in response.text
+
+
+# --- backend-outage and hardening regressions -------------------------------------------
+
+
+class _BrokenRedis:
+    """Redis stand-in whose every operation fails like an unreachable backend."""
+
+    def incr(self, key):
+        raise OSError("redis down")
+
+    def ttl(self, key):
+        raise OSError("redis down")
+
+    def expire(self, key, window):
+        raise OSError("redis down")
+
+
+class _CountingRedis:
+    """Redis stand-in tracking INCR counters and EXPIRE calls per key."""
+
+    def __init__(self):
+        self.counts = {}
+        self.expirations = {}
+
+    def incr(self, key):
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return self.counts[key]
+
+    def ttl(self, key):
+        return self.expirations.get(key, -1)
+
+    def expire(self, key, window):
+        self.expirations[key] = window
+
+
+def test_rate_limit_backend_outage_returns_503_not_500():
+    # A Redis outage on the rate-limit path must degrade to a retryable 503 with
+    # Retry-After (the budget tracker's contract), never an unhandled 500.
+    from app.ratelimit import RedisRateLimiter
+
+    settings = _tool_settings(
+        rate_limit_enabled=True,
+        rate_limit_requests_per_window=1,
+        rate_limit_window_seconds=60,
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.rate_limiter = RedisRateLimiter(settings, client=_BrokenRedis())
+    client = TestClient(app)
+
+    response = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "hi"}]})
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["reason"] == "rate_limit_backend_unavailable"
+    assert response.headers["Retry-After"] == "5"
+
+
+def test_redis_rate_limiter_rearms_lost_ttl():
+    # A crash between INCR and EXPIRE leaves a counter with no expiry; the limiter
+    # must re-arm the TTL instead of locking the sandbox out permanently.
+    from app.ratelimit import RedisRateLimiter
+
+    settings = _tool_settings(
+        rate_limit_enabled=True,
+        rate_limit_requests_per_window=5,
+        rate_limit_window_seconds=60,
+    )
+    fake = _CountingRedis()
+    limiter = RedisRateLimiter(settings, client=fake)
+
+    limiter.check("team-a")
+    assert list(fake.expirations.values()) == [60]
+
+    fake.expirations.clear()
+    allowed, _ = limiter.check("team-a")
+    assert allowed
+    assert list(fake.expirations.values()) == [60]
+
+
+def test_response_cache_backend_outage_degrades_to_miss():
+    # The response cache is an optimization: with Redis down, chat completions must
+    # still succeed via the runtime instead of failing with a 500.
+    from app.cache import RedisResponseCache
+
+    settings = _tool_settings(response_cache_enabled=True)
+    app = create_app(settings)
+    fake_runtime = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake_runtime
+
+    class _BrokenCacheRedis:
+        def get(self, key):
+            raise OSError("redis down")
+
+        def set(self, key, value, ex=None):
+            raise OSError("redis down")
+
+    app.state.response_cache = RedisResponseCache(
+        _tool_settings(response_cache_backend="redis", response_cache_redis_url="redis://budget-redis:6379/0"),
+        client=_BrokenCacheRedis(),
+    )
+    client = TestClient(app)
+
+    response = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "hi"}]})
+
+    assert response.status_code == 200
+    assert response.headers["X-Cache"] == "MISS"
+    assert fake_runtime.calls == 1
+
+
+def test_cache_hit_does_not_recount_token_usage_metrics():
+    # A cache hit consumes no runtime tokens; re-counting the cached usage would
+    # make Prometheus cost/token series disagree with /v1/usage (FinOps drift).
+    from prometheus_client import REGISTRY
+
+    app = create_app(_tool_settings(response_cache_enabled=True))
+    app.state.runtime_client = FakeRuntimeClient(
+        response={
+            "id": "x",
+            "object": "chat.completion",
+            "choices": [{"message": {"role": "assistant", "content": "hi"}}],
+            "usage": {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
+        }
+    )
+    client = TestClient(app)
+    body = {"messages": [{"role": "user", "content": "cache metric probe"}]}
+
+    assert client.post("/v1/chat/completions", json=body).headers["X-Cache"] == "MISS"
+    after_miss = REGISTRY.get_sample_value(
+        "inference_gateway_tokens_total", {"backend": "vllm", "token_type": "total_tokens"}
+    )
+    assert client.post("/v1/chat/completions", json=body).headers["X-Cache"] == "HIT"
+    after_hit = REGISTRY.get_sample_value(
+        "inference_gateway_tokens_total", {"backend": "vllm", "token_type": "total_tokens"}
+    )
+
+    assert after_hit == after_miss
+
+
+def test_moderations_rejects_oversized_input():
+    # Moderations shares the admission ceiling; without it this endpoint would run
+    # every classifier regex over an arbitrarily large body.
+    app = create_app(_tool_settings(max_prompt_chars=64))
+    client = TestClient(app)
+
+    response = client.post("/v1/moderations", json={"input": "x" * 100})
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "input_too_large"
+
+
+def test_request_id_rejects_control_characters():
+    # Control bytes echoed into the X-Request-ID response header would be rejected
+    # by the HTTP stack at write time (an unhandled 500), so validation must catch them.
+    fake_request = types.SimpleNamespace(headers={"x-request-id": "bad\x01id"})
+
+    with pytest.raises(ValueError, match="visible ASCII"):
+        gateway_main._request_id_from_header(fake_request)

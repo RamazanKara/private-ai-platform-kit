@@ -15,7 +15,15 @@ from threading import Lock
 from time import time
 from typing import Any, Protocol
 
+from app.budget import BudgetBackendError
 from app.settings import Settings
+
+try:  # redis is an optional dependency; only present when the redis backend is used.
+    from redis.exceptions import RedisError as _RedisError
+
+    _RATE_LIMIT_BACKEND_ERRORS: tuple[type[BaseException], ...] = (_RedisError, OSError)
+except ImportError:  # pragma: no cover - redis always installed in the gateway image
+    _RATE_LIMIT_BACKEND_ERRORS = (OSError,)
 
 
 class RateLimiter(Protocol):
@@ -84,18 +92,30 @@ class RedisRateLimiter:
         return f"{self.settings.sandbox_budget_key_prefix}:ratelimit:{key}"
 
     def check(self, key: str, settings: Settings | None = None) -> tuple[bool, int]:
-        """Return ``(allowed, retry_after_seconds)`` using a Redis fixed-window counter."""
+        """Return ``(allowed, retry_after_seconds)`` using a Redis fixed-window counter.
+
+        Raises :class:`~app.budget.BudgetBackendError` when Redis is unreachable so the
+        caller can return a 503 (retry later) instead of surfacing a driver error as an
+        unhandled 500 - the same contract the budget tracker on this backend keeps.
+        """
         resolved = settings or self.settings
         limit, window = _limit_and_window(resolved)
         if limit <= 0 or window <= 0:
             return True, 0
         redis_key = self._key(key)
-        count = int(self.client.incr(redis_key))
-        if count == 1:
-            self.client.expire(redis_key, window)
+        try:
+            count = int(self.client.incr(redis_key))
+            ttl = self.client.ttl(redis_key) if hasattr(self.client, "ttl") else -1
+            if not isinstance(ttl, int) or ttl < 0:
+                # Fresh window - or a counter that lost its expiry (e.g. a crash between
+                # INCR and EXPIRE): (re)arm the TTL so a stuck key can never turn into a
+                # permanent lockout for the sandbox.
+                self.client.expire(redis_key, window)
+                ttl = window
+        except _RATE_LIMIT_BACKEND_ERRORS as exc:
+            raise BudgetBackendError("rate limit backend is unavailable") from exc
         if count > limit:
-            ttl = self.client.ttl(redis_key) if hasattr(self.client, "ttl") else window
-            retry_after = ttl if isinstance(ttl, int) and ttl > 0 else window
+            retry_after = ttl if ttl > 0 else window
             return False, retry_after
         return True, 0
 

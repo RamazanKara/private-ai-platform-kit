@@ -10,12 +10,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections import OrderedDict
 from time import time
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from app.settings import Settings
+
+try:  # redis is an optional dependency; only present when the redis backend is used.
+    from redis.exceptions import RedisError as _RedisError
+
+    _CACHE_BACKEND_ERRORS: tuple[type[BaseException], ...] = (_RedisError, OSError)
+except ImportError:  # pragma: no cover - redis always installed in the gateway image
+    _CACHE_BACKEND_ERRORS = (OSError,)
+
+_LOGGER = logging.getLogger("ai_platform_ops_lab.cache")
 
 
 def cache_key(sandbox_id: str, payload: dict[str, Any]) -> str:
@@ -97,8 +107,16 @@ class RedisResponseCache:
         return f"{self.key_prefix}:{key}"
 
     def get(self, key: str) -> dict[str, Any] | None:
-        """Return the cached response from Redis, or None when absent or unreadable."""
-        raw = self.client.get(self._key(key))
+        """Return the cached response from Redis, or None when absent or unreadable.
+
+        A cache is an optimization, never a dependency: a Redis outage degrades to a
+        cache miss (the runtime is called) instead of failing the request.
+        """
+        try:
+            raw = self.client.get(self._key(key))
+        except _CACHE_BACKEND_ERRORS as exc:
+            _LOGGER.debug("response cache get failed; treating as miss: %s", type(exc).__name__)
+            return None
         if not raw:
             return None
         try:
@@ -108,8 +126,15 @@ class RedisResponseCache:
         return value if isinstance(value, dict) else None
 
     def set(self, key: str, value: dict[str, Any]) -> None:
-        """Store the response in Redis under the key with the configured TTL."""
-        self.client.set(self._key(key), json.dumps(value, separators=(",", ":")), ex=self.ttl_seconds)
+        """Store the response in Redis under the key with the configured TTL.
+
+        A write failure is swallowed (the response is simply not cached) so a Redis
+        outage never fails a request that the runtime already answered.
+        """
+        try:
+            self.client.set(self._key(key), json.dumps(value, separators=(",", ":")), ex=self.ttl_seconds)
+        except _CACHE_BACKEND_ERRORS as exc:
+            _LOGGER.debug("response cache set failed; response not cached: %s", type(exc).__name__)
 
 
 def build_response_cache(settings: Settings) -> ResponseCacheBackend:

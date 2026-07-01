@@ -221,3 +221,24 @@ def test_jwks_cache_raises_unavailable_when_no_keys_cached(monkeypatch):
 def test_jwks_cache_returns_empty_when_auth_disabled():
     cache = JwksCache(_jwks_settings(jwt_auth_enabled=False, jwt_jwks_url=""))
     assert asyncio.run(cache.keys()) == []
+
+
+def test_verify_rejects_garbage_base64_signature_as_auth_error():
+    # A signature segment that is not base64url must be a 401 rejection
+    # (JwtAuthError), never an unhandled binascii error surfacing as a 500.
+    header, claims, _ = _hs256(_claims()).split(".")
+    with pytest.raises(JwtAuthError, match="base64url"):
+        _verify(_verifier(), f"{header}.{claims}.!!!not-base64!!!")
+
+
+def test_jwks_cache_treats_non_json_body_as_unavailable(monkeypatch):
+    # A 200 from an intermediary error page (HTML, not JSON) is an issuer outage
+    # (503 semantics), not a token rejection or an unhandled JSONDecodeError.
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<html>bad gateway</html>")
+
+    _mock_async_client(monkeypatch, handler)
+    cache = JwksCache(_jwks_settings())
+
+    with pytest.raises(JwksUnavailableError):
+        asyncio.run(cache.keys())

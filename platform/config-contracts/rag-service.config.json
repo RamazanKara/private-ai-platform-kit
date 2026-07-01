@@ -398,7 +398,7 @@
       "app_default": false,
       "chart_default": false,
       "chart_value": "retrieval.tenantIsolation.enabled",
-      "description": "Whether retrieval is scoped to the caller's tenant (X-Sandbox-ID) via the tenant field.",
+      "description": "Whether retrieval is scoped to the caller's tenant (X-Sandbox-ID) via the tenant field. The header is client-asserted under the shared API key, so this is tenant scoping for trusted callers (e.g. gateway-fronted traffic with JWT tenant binding), not an identity control against a caller that lies about its tenant.",
       "field": "retrieval_tenant_isolation_enabled",
       "name": "RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED",
       "sensitive": false,

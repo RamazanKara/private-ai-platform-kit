@@ -77,8 +77,10 @@ def _request_id_from_header(request: Request) -> str:
     request_id = request.headers.get("x-request-id", "").strip()
     if not request_id:
         return str(uuid4())
-    if len(request_id) > 128 or any(char.isspace() for char in request_id):
-        raise ValueError("X-Request-ID must be 1-128 visible characters without spaces")
+    # Visible ASCII only: the value is echoed into the X-Request-ID response header,
+    # where control bytes would be rejected at write time (an unhandled 500).
+    if len(request_id) > 128 or any(not (33 <= ord(char) <= 126) for char in request_id):
+        raise ValueError("X-Request-ID must be 1-128 visible ASCII characters without spaces")
     return request_id
 
 
@@ -279,6 +281,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
     app.state.tracer_provider = tracing[1] if tracing else None
+    if app.state.tracer_provider is not None:
+        # Flush buffered spans on termination: BatchSpanProcessor otherwise drops its
+        # queued tail every time a pod stops, losing the last requests' traces.
+        app.router.add_event_handler("shutdown", app.state.tracer_provider.shutdown)
+    if resolved.vector_bootstrap_enabled and resolved.retrieval_tenant_isolation_enabled:
+        # Bootstrapped platform knowledge is stamped owner=platform-team; with tenant
+        # isolation on, callers only retrieve their own tenant's documents, so the
+        # bootstrap corpus is invisible to tenants by design. Say so at startup instead
+        # of leaving operators to debug an "empty" index.
+        logging.getLogger("ai_platform_ops_lab.rag").warning(
+            "tenant isolation is enabled with knowledge bootstrap: bootstrapped platform "
+            "documents (owner=platform-team) are excluded from tenant-scoped retrieval"
+        )
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):

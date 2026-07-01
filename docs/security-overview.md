@@ -108,7 +108,11 @@ release pipeline trust boundary" section of the threat model.
   (`RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED`,
   [`src/rag-service/app/settings.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/rag-service/app/settings.py)),
   complementing the existing per-classification retrieval allowlist. It is off by default, so an operator
-  must enable it per multi-tenant corpus. See the
+  must enable it per multi-tenant corpus. **Trust boundary:** the tenant id is the `X-Sandbox-ID`
+  header, and the RAG service authenticates callers with a shared API key — so the isolation holds
+  for trusted callers (gateway-fronted traffic with JWT tenant binding, or workspaces whose egress
+  proxy stamps the header), not against a direct caller that asserts another tenant's id. Per-caller
+  identity on the RAG service itself is roadmap work. See the
   [Vector RAG runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/vector-rag.md)
   and OWASP LLM01.
 

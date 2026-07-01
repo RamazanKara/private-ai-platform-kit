@@ -263,6 +263,12 @@ class QdrantRetriever:
                         "content": document.content,
                         "ingestedAt": ingested_at,
                         "ingestedAtEpoch": ingested_at_epoch,
+                        # Same access-control fields the ingestion job stamps (values
+                        # mirror platform/rag/sources/platform-knowledge.yaml) so the
+                        # classification allowlist does not silently filter out every
+                        # bootstrapped document.
+                        "classification": "internal",
+                        "owner": "platform-team",
                     },
                 }
             )

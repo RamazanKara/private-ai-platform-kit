@@ -31,6 +31,19 @@ import httpx
 _RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
 
+class GatewayStreamError(RuntimeError):
+    """Raised when the gateway emits a terminal error event mid-stream.
+
+    The gateway signals an upstream failure after headers are sent with a final
+    ``data: {"error": {...}}`` SSE event; surfacing it distinguishes a truncated
+    stream from a completed one.
+    """
+
+    def __init__(self, error: dict[str, Any]) -> None:
+        super().__init__(str(error.get("message") or "gateway stream failed"))
+        self.error = error
+
+
 class GatewayClient:
     """Minimal client for the gateway's OpenAI-compatible API with retry and streaming."""
 
@@ -106,8 +119,10 @@ class GatewayClient:
         """Stream a chat completion, yielding assistant content deltas as they arrive.
 
         Parses the OpenAI-compatible SSE stream and yields the text of each
-        ``choices[0].delta.content`` chunk; terminal ``[DONE]`` and non-text events are skipped.
-        The streaming path is not retried once bytes are flowing.
+        ``choices[0].delta.content`` chunk; terminal ``[DONE]`` and non-text events are
+        skipped. A terminal gateway ``error`` event raises :class:`GatewayStreamError`
+        so a truncated stream is never mistaken for a completed one. The streaming
+        path is not retried once bytes are flowing.
         """
         body: dict[str, Any] = {"messages": messages, "stream": True, **kwargs}
         if model is not None:
@@ -124,7 +139,12 @@ class GatewayClient:
                     parsed = json.loads(data)
                 except ValueError:
                     continue
-                choices = parsed.get("choices") if isinstance(parsed, dict) else None
+                if not isinstance(parsed, dict):
+                    continue
+                error = parsed.get("error")
+                if isinstance(error, dict):
+                    raise GatewayStreamError(error)
+                choices = parsed.get("choices")
                 if not choices:
                     continue
                 delta = choices[0].get("delta") or {}
@@ -154,3 +174,7 @@ class GatewayClient:
     def usage(self) -> dict[str, Any]:
         """Return this sandbox's usage and estimated cost."""
         return self._request("GET", "/v1/usage").json()
+
+    def sandbox_budget(self) -> dict[str, Any]:
+        """Return this sandbox's budget usage, limits, and window TTL."""
+        return self._request("GET", "/v1/sandbox/budget").json()

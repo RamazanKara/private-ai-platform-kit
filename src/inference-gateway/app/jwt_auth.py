@@ -31,8 +31,14 @@ class JwksUnavailableError(RuntimeError):
 
 
 def _b64url_decode(value: str) -> bytes:
-    padding = "=" * (-len(value) % 4)
-    return base64.urlsafe_b64decode((value + padding).encode("ascii"))
+    pad = "=" * (-len(value) % 4)
+    try:
+        return base64.urlsafe_b64decode((value + pad).encode("ascii"))
+    except ValueError as exc:
+        # binascii.Error and UnicodeEncodeError both subclass ValueError. Mapping to
+        # JwtAuthError keeps a garbage signature/key segment a 401 rejection instead
+        # of an unhandled 500.
+        raise JwtAuthError("jwt segment is not valid base64url") from exc
 
 
 def _b64url_json(value: str) -> dict[str, Any]:
@@ -91,8 +97,11 @@ class JwksCache:
             async with httpx.AsyncClient(timeout=min(self.settings.request_timeout_seconds, 10.0)) as client:
                 response = await client.get(self.settings.jwt_jwks_url)
                 response.raise_for_status()
+                # A 200 with a non-JSON body (e.g. a proxy error page) is the same
+                # operational failure as an unreachable issuer, not a token rejection;
+                # ValueError covers json.JSONDecodeError.
                 payload = response.json()
-        except httpx.HTTPError as exc:
+        except (httpx.HTTPError, ValueError) as exc:
             self._negative_until = time() + self._negative_cache_seconds()
             if self._keys:
                 # Serve last-known-good keys so a transient JWKS outage does not

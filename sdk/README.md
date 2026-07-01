@@ -18,6 +18,8 @@ with GatewayClient("http://127.0.0.1:8080", api_key="local-development-only", sa
     print(gw.usage())
 ```
 
-For full OpenAI feature coverage (streaming helpers, retries, typed models), point the official
+The client includes bounded retry/backoff and a streaming helper (`chat_stream`, which raises
+`GatewayStreamError` on a terminal gateway error event). For typed response models and the full
+OpenAI parameter surface, point the official
 [`openai` SDK](https://github.com/openai/openai-python) at the gateway base URL instead — see
 [docs/client-examples.md](../docs/client-examples.md).
