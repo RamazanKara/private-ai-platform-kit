@@ -13,7 +13,7 @@ which lists the validation command behind each control.
 
 The OWASP item numbering follows the published "OWASP Top 10 for Large Language Model Applications"
 list (LLM01..LLM10). Where a control is described as "being added" or "planned", it is not in the
-tree at `v0.12.0`; treat the residual risk as accepted until the linked work lands.
+tree at `v0.13.0`; treat the residual risk as accepted until the linked work lands.
 
 ## Conventions
 
@@ -88,7 +88,7 @@ agent egress narrow. This matches the "Indirect / RAG prompt injection" section 
 
 **Controls in this repo.** The gateway is OpenAI-compatible and returns runtime completions to the
 caller without an output-inspection or sanitization stage. There is no output guardrail in the tree at
-`v0.12.0`: a search for an output/response guardrail finds nothing in
+`v0.13.0`: a search for an output/response guardrail finds nothing in
 `src/inference-gateway/app`. The `/v1/moderations` endpoint (`src/inference-gateway/app/main.py`,
 `moderate_text` in `settings.py`) is a rule-based classifier a caller can invoke explicitly, but it is
 not wired into the chat response path.
@@ -259,7 +259,7 @@ consumer can trace a grounded answer back to its source documents, and approved 
 RAG retrieval suite (`platform/evals/rag-retrieval-suite.yaml`).
 
 **Residual risk (accepted).** There is no automated answer-faithfulness or hallucination eval (for
-example a RAGAS-style faithfulness/groundedness score) in the tree at `v0.12.0`. The existing eval
+example a RAGAS-style faithfulness/groundedness score) in the tree at `v0.13.0`. The existing eval
 checks are structural (`minChars`, `containsAny`, `forbiddenAny`) and do not score whether an answer is
 actually entailed by the retrieved context. A RAGAS-style faithfulness eval is planned; until it lands,
 overreliance is mitigated only by source attribution and human review, and a consuming application must

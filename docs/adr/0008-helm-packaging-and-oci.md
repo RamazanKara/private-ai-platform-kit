@@ -20,7 +20,7 @@ artifacts in the same registry as the images.
 
 - Each workload is a Helm chart under [`deploy/charts/`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts) — inference-gateway,
   ollama, vllm, rag-service, qdrant-vector-store, budget-redis, agent-workspace — all `apiVersion:
-  v2`, `version: 0.12.0`, with `kubeVersion: ">=1.25.0"`.
+  v2`, `version: 0.13.0`, with `kubeVersion: ">=1.25.0"`.
 - Environment differences are value files, not chart forks: Argo CD applications reference per-cluster
   values such as `../../clusters/local/values/inference-gateway.yaml`
   ([`deploy/clusters/local/apps.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local/apps.yaml)), and the customer

@@ -17,7 +17,7 @@ the choices those documents assume.
 - `Proposed` — under discussion, not yet reflected in the default configuration.
 - `Deprecated` — no longer recommended, but not yet removed.
 
-All ADRs in this set are `Accepted` and describe the `v0.12.0` repository.
+All ADRs in this set are `Accepted` and describe the `v0.13.0` repository.
 
 ## Index
 
