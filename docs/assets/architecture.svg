@@ -3,11 +3,11 @@
   <desc id="desc">API clients and coding agents call an inference gateway that authenticates, applies admission, budgets, and input/output guardrails, routes to Ollama or vLLM, and grounds answers with the RAG service and Qdrant. A GitOps control plane and governance inputs configure the platform; observability and evidence flow out. The same charts run on local kind and customer-owned Kubernetes.</desc>
 
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
-      <path d="M1,1 L9,5 L1,9 Z" fill="#334155"/>
+    <marker id="arrow" markerWidth="13" markerHeight="13" refX="9" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M2,2 L11,6 L2,10 Z" fill="#334155"/>
     </marker>
-    <marker id="arrowSoft" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
-      <path d="M1,1 L9,5 L1,9 Z" fill="#7c3aed"/>
+    <marker id="arrowSoft" markerWidth="13" markerHeight="13" refX="9" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M2,2 L11,6 L2,10 Z" fill="#7c3aed"/>
     </marker>
   </defs>
 
@@ -88,17 +88,17 @@
   <text x="1034" y="484" font-size="14" fill="#4c1d95">Cost / FinOps</text>
   <text x="1034" y="512" font-size="14" fill="#4c1d95">Restore &amp; chaos drills</text>
 
-  <!-- Request-path arrows (solid) -->
-  <path d="M276 300 L326 302" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M276 424 C300 424 306 392 326 388" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M736 300 C748 300 750 300 754 300" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M736 340 C748 360 748 388 754 396" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M736 470 C748 490 748 500 754 502" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <!-- Request path (solid): clients -> gateway -> runtimes / RAG -->
+  <path d="M276 302 L327 302" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M276 427 L327 427" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M736 299 L757 299" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M736 401 L757 401" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M736 511 L757 511" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
 
-  <!-- Control &amp; evidence arrows (dashed) -->
-  <path d="M430 198 L430 220" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowSoft)"/>
-  <path d="M640 198 C640 210 560 214 540 220" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowSoft)"/>
-  <path d="M736 520 C900 560 960 430 1008 410" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowSoft)"/>
+  <!-- Control &amp; evidence (dashed): control plane -> gateway; gateway -> observability (routed below the cards) -->
+  <path d="M430 198 L430 216" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowSoft)"/>
+  <path d="M700 198 L700 216" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowSoft)"/>
+  <path d="M534 562 L534 590 L1122 590 L1122 568" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowSoft)"/>
 
   <!-- Legend -->
   <path d="M48 612 L96 612" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
