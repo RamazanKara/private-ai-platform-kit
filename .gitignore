@@ -27,3 +27,7 @@ results/**/*.log
 /site/
 /docs/runbooks/
 /.venv-docs/
+
+# Vendored Helm subchart dependencies (umbrella chart, built at package time)
+/deploy/charts/*/charts/
+/deploy/charts/*/Chart.lock

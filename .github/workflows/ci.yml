@@ -102,6 +102,11 @@ jobs:
           mkdir -p chart-packages
           for chart in deploy/charts/*; do
             [[ -f "${chart}/Chart.yaml" ]] || continue
+            # Umbrella/parent charts declare subchart dependencies (file:// for the local
+            # charts); vendor them into charts/ before packaging or `helm package` errors.
+            if grep -q '^dependencies:' "${chart}/Chart.yaml"; then
+              helm dependency update "$chart"
+            fi
             helm package "$chart" --destination chart-packages
           done
           # Record each pushed chart as <oci-ref>@<digest> so the signing step can
