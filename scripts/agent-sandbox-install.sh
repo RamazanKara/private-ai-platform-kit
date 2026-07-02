@@ -14,10 +14,13 @@ if [[ ! -d "$VENDOR_DIR" ]]; then
 fi
 
 # Server-side apply: the vendored CRDs exceed the client-side
-# last-applied-configuration annotation limit.
+# last-applied-configuration annotation limit. --force-conflicts keeps this
+# idempotent next to the GitOps-managed agent-sandbox-controller Application:
+# both apply the identical vendored manifests, so taking field ownership is
+# safe and Argo co-owns again on its next sync.
 log "installing agent-sandbox ${VERSION} from vendored manifests"
-kubectl apply --server-side -f "$VENDOR_DIR/manifest.yaml"
-kubectl apply --server-side -f "$VENDOR_DIR/extensions.yaml"
+kubectl apply --server-side --force-conflicts -f "$VENDOR_DIR/manifest.yaml"
+kubectl apply --server-side --force-conflicts -f "$VENDOR_DIR/extensions.yaml"
 
 log "waiting for agent-sandbox controllers to become available"
 kubectl -n agent-sandbox-system wait --for=condition=Available deployment --all --timeout=180s

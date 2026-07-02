@@ -40,7 +40,9 @@ log "step 3/4: governed model path and agent-action receipts"
 GATEWAY_URL="http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080"
 PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}"
 DEMO_MODEL="${DEMO_MODEL:-qwen2.5:0.5b}"
-AGENT_IMAGE="${AGENT_IMAGE:-paulgauthier/aider}"
+# Pinned tag: the platform's own block-latest-tags policy (rightly) denies
+# tag-less images at admission.
+AGENT_IMAGE="${AGENT_IMAGE:-paulgauthier/aider:v0.86.2}"
 REAL_AGENT="${REAL_AGENT:-1}"
 if kubectl -n inference get deployment inference-gateway-inference-gateway >/dev/null 2>&1; then
   REQUEST_ID="agent-sandbox-demo-$(date -u +%Y%m%dT%H%M%SZ)"
