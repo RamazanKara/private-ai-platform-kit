@@ -216,11 +216,15 @@ def _write_audit_log(
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Eagerly bootstrap the vector store at startup so reachability surfaces early.
+    """Eagerly bootstrap the vector store at startup; close pooled clients at shutdown.
 
     Bootstrapping is best-effort: a failure is recorded on the retriever (and
     reflected by ``/readyz``) rather than crashing startup, avoiding a cold-start
     thundering herd where every concurrent first request races to bootstrap.
+
+    At shutdown the retriever and its embedding/reranker providers each close their
+    shared ``httpx.AsyncClient`` (mirroring the gateway's runtime-client shutdown)
+    so pooled connections are not leaked.
     """
     bootstrap = getattr(app.state.retriever, "bootstrap", None)
     if callable(bootstrap):
@@ -231,6 +235,15 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
                 "vector store bootstrap failed at startup; readiness will report not_ready until it recovers"
             )
     yield
+    retriever = app.state.retriever
+    for dependency in (
+        retriever,
+        getattr(retriever, "embedding_provider", None),
+        getattr(retriever, "reranker_provider", None),
+    ):
+        aclose = getattr(dependency, "aclose", None)
+        if callable(aclose):
+            await aclose()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

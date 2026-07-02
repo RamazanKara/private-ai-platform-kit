@@ -758,3 +758,65 @@ def test_async_http_embedding_provider_uses_async_client(monkeypatch):
     assert vector == [0.1, 0.2, 0.3]
     assert captured["url"] == "http://embeddings.local/v1/embeddings"
     assert captured["body"]["model"] == "private-embedding"
+
+
+def test_qdrant_retriever_reuses_one_shared_client_and_aclose_closes_it(tmp_path):
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+    )
+
+    first = retriever._client()
+    second = retriever._client()
+
+    assert first is second
+    asyncio.run(retriever.aclose())
+    assert first.is_closed
+
+
+def test_qdrant_retriever_aclose_is_safe_when_no_client_was_created(tmp_path):
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+    )
+
+    asyncio.run(retriever.aclose())
+
+
+def test_openai_compatible_embedding_provider_reuses_one_shared_client():
+    provider = OpenAICompatibleEmbeddingProvider(
+        "http://embeddings.local",
+        "private-embedding",
+        dimensions=3,
+        timeout_seconds=1,
+    )
+
+    first = provider._client()
+    second = provider._client()
+
+    assert first is second
+    asyncio.run(provider.aclose())
+    assert first.is_closed
+
+
+def test_openai_compatible_reranker_reuses_one_shared_client():
+    from app.reranker import OpenAICompatibleReranker
+
+    reranker = OpenAICompatibleReranker("http://rerank:8080", "bge-reranker", 2.0)
+
+    first = reranker._client()
+    second = reranker._client()
+
+    assert first is second
+    asyncio.run(reranker.aclose())
+    assert first.is_closed

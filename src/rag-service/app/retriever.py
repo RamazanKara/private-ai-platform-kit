@@ -171,6 +171,7 @@ class QdrantRetriever:
         self.tenant_isolation_enabled = tenant_isolation_enabled
         self.tenant_field = tenant_field
         self._bootstrapped = False
+        self._async_client: httpx.AsyncClient | None = None
         self.last_sync_status = "pending" if bootstrap_from_knowledge else "disabled"
         self.last_sync_error = ""
 
@@ -225,7 +226,20 @@ class QdrantRetriever:
         }
 
     def _client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(timeout=self.timeout_seconds)
+        """Return the shared async client, creating it on first use.
+
+        Reusing one client keeps the connection pool to Qdrant warm instead of paying
+        a new TCP handshake on every bootstrap, readiness, and query call.
+        """
+        if self._async_client is None:
+            self._async_client = httpx.AsyncClient(timeout=self.timeout_seconds)
+        return self._async_client
+
+    async def aclose(self) -> None:
+        """Close the shared async client; called on service shutdown."""
+        if self._async_client is not None:
+            await self._async_client.aclose()
+            self._async_client = None
 
     async def _ensure_collection(self, client: httpx.AsyncClient) -> None:
         collection_url = f"{self.base_url}/collections/{self.collection}"
@@ -285,9 +299,9 @@ class QdrantRetriever:
         if self._bootstrapped or not self.bootstrap_from_knowledge:
             return
         try:
-            async with self._client() as client:
-                await self._ensure_collection(client)
-                await self._upsert_documents(client)
+            client = self._client()
+            await self._ensure_collection(client)
+            await self._upsert_documents(client)
             self._bootstrapped = True
         except httpx.HTTPError as exc:
             self.last_sync_status = "failed"
@@ -305,9 +319,8 @@ class QdrantRetriever:
     async def ping(self) -> bool:
         """Return whether the Qdrant collection endpoint is reachable for readiness."""
         try:
-            async with self._client() as client:
-                response = await client.get(f"{self.base_url}/collections/{self.collection}")
-                response.raise_for_status()
+            response = await self._client().get(f"{self.base_url}/collections/{self.collection}")
+            response.raise_for_status()
         except httpx.HTTPError:
             return False
         return True
@@ -366,18 +379,17 @@ class QdrantRetriever:
         # Over-fetch dense candidates so the lexical rerank has room to reorder.
         candidate_limit = max(top_k, top_k * self.candidate_multiplier)
         try:
-            async with self._client() as client:
-                response = await client.post(
-                    f"{self.base_url}/collections/{self.collection}/points/query",
-                    json={
-                        "query": vector,
-                        "limit": candidate_limit,
-                        "with_payload": True,
-                        "filter": self._query_filter(tenant),
-                    },
-                )
-                response.raise_for_status()
-                payload = response.json()
+            response = await self._client().post(
+                f"{self.base_url}/collections/{self.collection}/points/query",
+                json={
+                    "query": vector,
+                    "limit": candidate_limit,
+                    "with_payload": True,
+                    "filter": self._query_filter(tenant),
+                },
+            )
+            response.raise_for_status()
+            payload = response.json()
         except httpx.HTTPError as exc:
             raise VectorStoreError("qdrant query failed") from exc
 
@@ -408,7 +420,9 @@ class QdrantRetriever:
                         title=title,
                         source=source,
                         content=content,
-                        tokens=Counter(tokenize(content)),
+                        # Token counts are unread on this path (hybrid scoring substring-
+                        # matches content), so skip tokenizing every over-fetched candidate.
+                        tokens=Counter(),
                     ),
                     score=combined,
                     excerpt=_excerpt(content or title, terms, max_context_chars),

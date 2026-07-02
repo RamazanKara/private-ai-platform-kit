@@ -47,6 +47,19 @@ class OpenAICompatibleReranker:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self._async_client: httpx.AsyncClient | None = None
+
+    def _client(self) -> httpx.AsyncClient:
+        """Return the shared async client, creating it on first use."""
+        if self._async_client is None:
+            self._async_client = httpx.AsyncClient(timeout=self.timeout_seconds)
+        return self._async_client
+
+    async def aclose(self) -> None:
+        """Close the shared async client; called on service shutdown."""
+        if self._async_client is not None:
+            await self._async_client.aclose()
+            self._async_client = None
 
     def _parse(self, payload: Any, count: int) -> list[float]:
         results = payload.get("results") if isinstance(payload, dict) else None
@@ -66,14 +79,12 @@ class OpenAICompatibleReranker:
         """Request relevance scores for the documents, aligned to input order."""
         if not documents:
             return []
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.post(
-                f"{self.base_url}/rerank",
-                json={"model": self.model, "query": query, "documents": documents},
-            )
-            response.raise_for_status()
-            payload = response.json()
-        return self._parse(payload, len(documents))
+        response = await self._client().post(
+            f"{self.base_url}/rerank",
+            json={"model": self.model, "query": query, "documents": documents},
+        )
+        response.raise_for_status()
+        return self._parse(response.json(), len(documents))
 
 
 def build_reranker_provider(provider: str, base_url: str, model: str, timeout_seconds: float) -> RerankerProvider:

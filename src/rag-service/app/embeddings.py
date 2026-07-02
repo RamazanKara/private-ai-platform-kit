@@ -81,6 +81,19 @@ class OpenAICompatibleEmbeddingProvider:
         self.model = model
         self.dimensions = dimensions
         self.timeout_seconds = timeout_seconds
+        self._async_client: httpx.AsyncClient | None = None
+
+    def _client(self) -> httpx.AsyncClient:
+        """Return the shared async client, creating it on first use."""
+        if self._async_client is None:
+            self._async_client = httpx.AsyncClient(timeout=self.timeout_seconds)
+        return self._async_client
+
+    async def aclose(self) -> None:
+        """Close the shared async client; called on service shutdown."""
+        if self._async_client is not None:
+            await self._async_client.aclose()
+            self._async_client = None
 
     def _parse(self, payload: object) -> list[float]:
         embedding = payload.get("data", [{}])[0].get("embedding") if isinstance(payload, dict) else None
@@ -104,14 +117,12 @@ class OpenAICompatibleEmbeddingProvider:
 
     async def embed_async(self, value: str) -> list[float]:
         """Request an embedding over async HTTP so the event loop is not blocked."""
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.post(
-                f"{self.base_url}/v1/embeddings",
-                json={"model": self.model, "input": value},
-            )
-            response.raise_for_status()
-            payload = response.json()
-        return self._parse(payload)
+        response = await self._client().post(
+            f"{self.base_url}/v1/embeddings",
+            json={"model": self.model, "input": value},
+        )
+        response.raise_for_status()
+        return self._parse(response.json())
 
 
 def build_embedding_provider(
