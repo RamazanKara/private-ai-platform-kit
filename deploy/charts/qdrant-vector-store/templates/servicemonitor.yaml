@@ -2,6 +2,8 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   name: {{ include "qdrant-vector-store.fullname" . }}
   labels:
     {{- include "qdrant-vector-store.labels" . | nindent 4 }}

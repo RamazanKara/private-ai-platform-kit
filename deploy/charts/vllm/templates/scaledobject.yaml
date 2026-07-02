@@ -9,6 +9,8 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   name: {{ include "vllm.fullname" . }}
   labels:
     {{- include "vllm.labels" . | nindent 4 }}
