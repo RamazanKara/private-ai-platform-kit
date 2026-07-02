@@ -7,7 +7,9 @@ All notable changes to this project are documented in this file. The format is b
 ## Unreleased
 
 Opinionated de-bloat (ADR 0010): one workspace runtime, one install path per
-environment, unambiguous names.
+environment, unambiguous names. Plus a connection-pooling pass on the RAG
+request path, a `Retry-After`-aware SDK with its first test suite, and a
+hygiene guard against stale `make` targets in the docs.
 
 ### Changed
 
@@ -21,12 +23,18 @@ environment, unambiguous names.
   check the GitOps-managed (or explicitly Helm-installed) workspace instead of
   installing a parallel release; `make agent-sandbox-demo` provisions its own
   namespace-scoped instance.
-- `make sandbox-smoke` is renamed `make trace-smoke` (script included) so
-  "sandbox" unambiguously means the workspace runtime, matching the
-  `traceable-sandbox` Application; CI e2e also runs `make agent-sandbox-smoke`.
+- `make sandbox-smoke` is renamed `make trace-smoke` (the script is renamed
+  with it) so "sandbox" unambiguously means the workspace runtime; the new name
+  aligns with the `traceable-sandbox` Application that deploys the traced
+  `ai-sandbox` namespace. CI e2e also runs `make agent-sandbox-smoke`.
 - `C-ISOLATE` is mandated at every risk tier, and live evidence packs fail when
   the agent-sandbox controller is absent instead of recording an unclaimed
   control.
+- The RAG service reuses one pooled `httpx.AsyncClient` per component — Qdrant
+  retriever, OpenAI-compatible embedding provider, and reranker — instead of
+  opening a fresh TCP connection per request (the pattern the gateway's
+  `RuntimeClient` already uses), closes the pools on shutdown, and no longer
+  tokenizes over-fetched Qdrant candidates whose token counts were never read.
 
 ### Added
 
@@ -34,6 +42,16 @@ environment, unambiguous names.
   kind cluster without the default CNI and installs a pinned Calico, so
   default-deny NetworkPolicies and the fail-closed egress smoke are genuinely
   enforced locally instead of advisory (kindnet remains the default).
+- The Python SDK honors the gateway's `Retry-After` header when it retries
+  429/5xx responses, sleeping the longer of the advertised delay (capped by a
+  new `retry_after_cap` argument, default 30 s) and the exponential backoff, so
+  clients stop hammering a gateway that told them when to come back. The SDK
+  also gains its first test suite, run by `make test-gateway` and
+  `make validate`.
+- `make repo-hygiene` (and therefore `make validate`) verifies that every
+  `make <target>` reference in the docs, runbooks, and the recorded quickstart
+  capture names a real Makefile target, so a renamed or removed target can no
+  longer leave stale instructions behind.
 
 ### Fixed
 
@@ -49,6 +67,9 @@ environment, unambiguous names.
   it stays idempotent next to the Argo-managed controller Application, and the
   demo pins the aider image tag — the platform's own `block-latest-tags`
   policy (correctly) denies tag-less images at admission.
+- The traceability runbook and the recorded quickstart output no longer
+  instruct the removed `make sandbox-smoke`, and `make help` now lists
+  `trace-smoke` and `tenant-smoke`.
 
 ### Removed
 
