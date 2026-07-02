@@ -18,7 +18,7 @@ Your team wants coding agents. Your security review asks three questions: **wher
   <img src="docs/assets/private-ai-platform-kit-demo.gif" alt="Terminal demo: hardened agent sandbox, blocked exfiltration, allow/deny receipts, green evidence pack" width="100%">
 </p>
 
-The cut above is scripted from real output ([scripts/demo-live.sh](scripts/demo-live.sh), recorded via [scripts/demo.tape](scripts/demo.tape)); run the genuine end-to-end flow — real coding agent included — with `make agent-sandbox-demo`.
+The cut above is scripted from real output ([scripts/demo-live.sh](scripts/demo-live.sh), recorded via [scripts/demo.tape](scripts/demo.tape)). An **[unscripted real run](docs/assets/private-ai-platform-kit-demo-real.gif)** (3× speed, ~443 KB) shows the live cluster doing the same: the hardened sandbox, a blocked exfiltration attempt — including litellm's own telemetry callout dying against default-deny — the real coding agent through the governed gateway, and the receipts on the chain ([scripts/demo-real.sh](scripts/demo-real.sh) + [scripts/demo-real.tape](scripts/demo-real.tape)). Run it yourself with `make agent-sandbox-demo`.
 
 Under the agents sits a complete private-LLM platform: an OpenAI-compatible gateway (auth, admission, per-sandbox budgets, guardrails), vLLM and Ollama serving from the same charts, RAG with per-tenant isolation, GitOps delivery, and evidence packs an auditor can verify offline. It starts local-first on a laptop `kind` cluster and moves to customer-owned clusters with GPU nodes using the same repo layout — the operating model of a production AI platform, without depending on a specific cloud provider.
 

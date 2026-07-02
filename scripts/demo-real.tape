@@ -12,7 +12,7 @@ Set Theme "Catppuccin Mocha"
 Set Framerate 5
 
 Hide
-Type "make agent-sandbox-demo 2>&1 | grep -v serverside-applied"
+Type "./scripts/demo-real.sh"
 Show
 Enter
-Sleep 330s
+Sleep 150s
