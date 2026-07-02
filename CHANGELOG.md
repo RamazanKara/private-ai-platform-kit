@@ -35,6 +35,21 @@ environment, unambiguous names.
   default-deny NetworkPolicies and the fail-closed egress smoke are genuinely
   enforced locally instead of advisory (kindnet remains the default).
 
+### Fixed
+
+- Fresh-cluster Argo bootstrap actually converges now: Kyverno, KEDA, and
+  Prometheus-operator CRDs exceed the client-side last-applied annotation limit
+  (platform-operators and kube-prometheus-stack sync with ServerSideApply);
+  ServiceMonitors, ScaledObjects, and the PrometheusRule carry
+  `SkipDryRunOnMissingResource` so first-boot syncs no longer deadlock on CRDs
+  installed by sibling Applications; the Kyverno cleanup CronJobs pin
+  `bitnamilegacy/kubectl` (docker.io/bitnami/kubectl was purged from Docker
+  Hub). A long-lived lab never exposed any of this.
+- `make agent-sandbox-install` server-side-applies with `--force-conflicts` so
+  it stays idempotent next to the Argo-managed controller Application, and the
+  demo pins the aider image tag — the platform's own `block-latest-tags`
+  policy (correctly) denies tag-less images at admission.
+
 ### Removed
 
 - `make agent-lab-up` and `scripts/agent-lab-up.sh`: the manual Helm install
