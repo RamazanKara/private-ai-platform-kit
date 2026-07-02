@@ -33,6 +33,41 @@ Inspect the contract:
 
     kubectl -n ai-agents get configmap agent-platform-contract -o yaml
 
+## Hardened Runtime (agent-sandbox)
+
+For `medium`/`high` risk tiers, run the workspace on the kubernetes-sigs/agent-sandbox
+runtime (ADR 0009, `C-ISOLATE`) instead of a bare namespace. Install the vendored,
+checksummed controller and enable the runtime:
+
+    make agent-sandbox-install
+    helm upgrade --install agent-workspace deploy/charts/agent-workspace \
+      --namespace ai-agents \
+      --values deploy/clusters/customer/values/agent-workspace.yaml \
+      --set sandbox.runtime=agent-sandbox
+
+Set `sandbox.runtimeClassName` (for example `gvisor`) where the cluster provides a
+kernel-isolation runtime class; the Kyverno `ai-platform-hardened-sandboxes` policy
+enforces the hardened pod template at admission. Validate the full contract —
+hardening, short-lived projected credential, DNS positive control, and fail-closed
+non-catalog egress:
+
+    make agent-sandbox-smoke
+
+Operational notes:
+
+- The controller does **not** roll the singleton pod when the Sandbox pod template
+  changes; delete the pod (`kubectl -n ai-agents delete pod <sandbox-id>`) and the
+  controller recreates it from the current spec. The smoke does this automatically
+  when it detects image or volume drift.
+- Enable `workspace.credentials.projectedToken` to give agents a short-lived,
+  audience-bound platform credential instead of long-lived secrets; the token path
+  and audience appear in the `agent-platform-contract` ConfigMap, and the gateway
+  verifies it via its JWT/JWKS settings.
+- NetworkPolicy enforcement requires a policy-capable CNI; on kindnet the smoke
+  reports non-enforcement instead of passing vacuously (see the threat model).
+- For an end-to-end demonstration (real coding agent, allow/deny receipts on the
+  audit chain, evidence pack), run `make agent-sandbox-demo`.
+
 ## Customer Adaptation
 
 Edit `deploy/clusters/customer/values/agent-workspace.yaml` for quota, PVC size, tenant labels, and approved external CIDRs. Keep default-deny egress in place. Add only customer-approved Git hosts, package mirrors, artifact stores, or ticketing systems.
