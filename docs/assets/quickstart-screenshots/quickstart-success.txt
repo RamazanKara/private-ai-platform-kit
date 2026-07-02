@@ -279,6 +279,6 @@ make[1]: Entering directory '/home/rambo/git/private-ai-platform-kit'
 [private-ai-platform-kit] RAG smoke completed for agent-lab
 make[1]: Leaving directory '/home/rambo/git/private-ai-platform-kit'
 [private-ai-platform-kit] quickstart completed
-[private-ai-platform-kit] try more checks: make sandbox-smoke, make tenant-smoke, make agent-smoke
+[private-ai-platform-kit] try more checks: make trace-smoke, make tenant-smoke, make agent-smoke, make agent-sandbox-smoke
 [private-ai-platform-kit] generate evidence: make evidence LIVE=1
 [private-ai-platform-kit] cleanup when done: make local-down

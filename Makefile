@@ -32,6 +32,8 @@ help:
 		'  make sync                  Sync local or customer GitOps apps' \
 		'  make smoke                 Run gateway smoke test' \
 		'  make rag-smoke             Run RAG service smoke test' \
+		'  make trace-smoke           Run traceable sandbox (ai-sandbox) smoke job' \
+		'  make tenant-smoke          Run team tenant lab smoke test' \
 		'  make agent-smoke           Run coding-agent workspace smoke test' \
 		'  make agent-sandbox-install Install the vendored agent-sandbox controller' \
 		'  make agent-sandbox-smoke   Run hardened agent-sandbox workspace smoke test' \

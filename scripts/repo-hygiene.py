@@ -11,6 +11,9 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parents[1]
 LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
+MAKE_TARGET_PATTERN = re.compile(r"^([A-Za-z0-9_-]+):", re.MULTILINE)
+MAKE_INVOCATION_PATTERN = re.compile(r"\bmake[ \t]+([a-z0-9][a-z0-9_-]*)")
+INLINE_CODE_PATTERN = re.compile(r"`([^`]+)`")
 
 REQUIRED_FILES = (
     ".editorconfig",
@@ -322,6 +325,48 @@ def check_markdown_links(errors: list[str]) -> None:
                 errors.append(f"{rel(path)} has broken link: {match.group(1)}")
 
 
+def makefile_targets() -> set[str]:
+    text = (ROOT / "Makefile").read_text()
+    targets = set(MAKE_TARGET_PATTERN.findall(text))
+    for line in text.splitlines():
+        if line.startswith(".PHONY:"):
+            targets.update(line.removeprefix(".PHONY:").split())
+    return targets
+
+
+def code_segments(path: Path) -> list[tuple[int, str]]:
+    lines = enumerate(path.read_text().splitlines(), start=1)
+    if path.suffix == ".txt":
+        return list(lines)
+    segments: list[tuple[int, str]] = []
+    in_fence = False
+    for number, line in lines:
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence or line.startswith(("    ", "\t")):
+            segments.append((number, line))
+            continue
+        segments.extend((number, span) for span in INLINE_CODE_PATTERN.findall(line))
+    return segments
+
+
+def check_make_target_references(errors: list[str]) -> None:
+    # `make <target>` in code spans, code blocks, and the committed quickstart
+    # captures must name a real Makefile target so renamed or removed targets
+    # cannot linger in operator-facing docs. docs/adr/ and CHANGELOG.md record
+    # intentional history and are exempt.
+    targets = makefile_targets()
+    captures = sorted((ROOT / "docs/assets/quickstart-screenshots").glob("*.txt"))
+    for path in markdown_files() + captures:
+        relative = rel(path)
+        if relative == "CHANGELOG.md" or relative.startswith("docs/adr/"):
+            continue
+        for number, segment in code_segments(path):
+            for name in MAKE_INVOCATION_PATTERN.findall(segment):
+                require(errors, name in targets, f"{relative}:{number} references unknown make target: make {name}")
+
+
 def run_checks() -> list[str]:
     errors: list[str] = []
     check_required_paths(errors)
@@ -331,11 +376,12 @@ def run_checks() -> list[str]:
     check_toolchain_lookup_policy(errors)
     check_runtime_dependencies(errors)
     check_markdown_links(errors)
+    check_make_target_references(errors)
     return errors
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check repository hygiene, contributor docs, executable bits, dependencies, and markdown links.")
+    parser = argparse.ArgumentParser(description="Check repository hygiene, contributor docs, executable bits, dependencies, markdown links, and make target references.")
     parser.add_argument("--check", action="store_true", help="Run checks and exit non-zero on failures.")
     parser.parse_args()
 

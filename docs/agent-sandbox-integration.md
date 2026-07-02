@@ -310,9 +310,10 @@ Weekend-scoped milestones, target release v0.14.0:
   `sandbox.runtime` toggle was removed (the chart always renders the
   hardened Sandbox), the projected credential became default-on, the
   controller became a platform prerequisite (`agent-sandbox-controller`
-  Application in both overlays + quickstart install), `make agent-lab-up`
-  was removed in favour of the GitOps-owned instance, the smokes became
-  validation-only, and `make sandbox-smoke` was renamed `make trace-smoke`.
+  Application in both overlays + quickstart install), the `agent-lab-up`
+  target was removed in favour of the GitOps-owned instance, the smokes
+  became validation-only, and the `sandbox-smoke` target was renamed
+  `trace-smoke`.
 - **Addendum — receipts, credential broker, real-agent demo. Done
   2026-07-01.** The three deliberately-deferred pieces were implemented the
   same day: (1) agent-action receipt semantics on the gateway audit chain

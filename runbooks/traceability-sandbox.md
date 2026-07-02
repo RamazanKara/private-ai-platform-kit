@@ -27,9 +27,9 @@ From the repository root, run:
     make bootstrap-argocd
     make sync
     make smoke RUNTIME_BACKEND=ollama
-    make sandbox-smoke
+    make trace-smoke
 
-`make smoke` validates the gateway response headers through a port-forward and sends the local demo API key by default. `make sandbox-smoke` runs a Kubernetes Job in `ai-sandbox`, where quota, default resource limits, restricted pod security labels, and default-deny network policy are present.
+`make smoke` validates the gateway response headers through a port-forward and sends the local demo API key by default. `make trace-smoke` runs a Kubernetes Job in `ai-sandbox`, where quota, default resource limits, restricted pod security labels, and default-deny network policy are present.
 
 ## Audit Log Shape
 
