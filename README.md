@@ -1,4 +1,4 @@
-# Private AI Platform Kit: Local-First Kubernetes for Private LLMs
+# Private AI Platform Kit: Coding Agents on Your Kubernetes — With Receipts
 
 [![CI](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/RamazanKara/private-ai-platform-kit)](https://github.com/RamazanKara/private-ai-platform-kit/releases)
@@ -8,7 +8,19 @@
 ![Helm](https://img.shields.io/badge/Helm-charts-0F1689)
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB)
 
-Private AI Platform Kit is a runnable Kubernetes platform stack for private LLMs, RAG, and coding-agent workspaces. It starts on a local `kind` cluster with Ollama, then uses the same Helm charts, GitOps layout, policies, runbooks, and evidence checks on customer-owned clusters with vLLM and GPU nodes — the operating model of a production AI platform, without depending on a specific cloud provider.
+Your team wants coding agents. Your security review asks three questions: **where does the generated code execute, what can it reach, and can you prove what it did?** This kit answers all three as running code, on your own cluster, with no cloud dependency:
+
+- **Kernel-isolatable sandboxes as the standard runtime** — every workspace is a hardened [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) pod: non-root, read-only rootfs, no ambient credentials, and a short-lived audience-bound token instead of long-lived secrets.
+- **Fail-closed egress** — default-deny networking where every exception is a reviewed, expiring catalog entry. Exfiltration attempts don't get logged and forgiven; they don't connect.
+- **Receipts, not just logs** — every governed model call lands on a tamper-evident hash chain as an allowed/denied receipt, crosswalked to the EU AI Act, NIST AI RMF, and ISO/IEC 42001 for the auditors you'll meet anyway.
+
+<p align="center">
+  <img src="docs/assets/private-ai-platform-kit-demo.gif" alt="Terminal demo: hardened agent sandbox, blocked exfiltration, allow/deny receipts, green evidence pack" width="100%">
+</p>
+
+The cut above is scripted from real output ([scripts/demo-live.sh](scripts/demo-live.sh), recorded via [scripts/demo.tape](scripts/demo.tape)); run the genuine end-to-end flow — real coding agent included — with `make agent-sandbox-demo`.
+
+Under the agents sits a complete private-LLM platform: an OpenAI-compatible gateway (auth, admission, per-sandbox budgets, guardrails), vLLM and Ollama serving from the same charts, RAG with per-tenant isolation, GitOps delivery, and evidence packs an auditor can verify offline. It starts on a laptop `kind` cluster and moves to customer GPU clusters with the same repo layout — the operating model of a production AI platform, without depending on a specific cloud provider.
 
 Current release: `v0.14.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
@@ -18,21 +30,19 @@ Current release: `v0.14.0`. Maturity: reference implementation and customer lab;
 
 ## Quickstart
 
-Docker is the only prerequisite. One guided command creates a local `kind` cluster, bootstraps Argo CD, syncs the stack, and runs an Ollama-backed smoke test:
+Docker is the only prerequisite. One guided command creates a local `kind` cluster, installs the agent-sandbox controller, bootstraps Argo CD, syncs the stack, and runs an Ollama-backed smoke test:
 
 ```bash
 make quickstart
 ```
 
+Then watch a real coding agent work inside the governed sandbox:
+
+```bash
+make agent-sandbox-demo
+```
+
 See [docs/quickstart.md](docs/quickstart.md) for expected output, timing, disk needs, and troubleshooting, or [Run It Locally](#run-it-locally) below for the step-by-step path.
-
-## Live Demo
-
-<p align="center">
-  <img src="docs/assets/private-ai-platform-kit-demo.gif" alt="Terminal demo showing a private AI assistant saying hello world" width="100%">
-</p>
-
-The demo is generated from [scripts/demo-live.sh](scripts/demo-live.sh).
 
 ## What You Get
 
