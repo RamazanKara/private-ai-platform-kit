@@ -20,7 +20,7 @@ Your team wants coding agents. Your security review asks three questions: **wher
 
 The cut above is scripted from real output ([scripts/demo-live.sh](scripts/demo-live.sh), recorded via [scripts/demo.tape](scripts/demo.tape)); run the genuine end-to-end flow — real coding agent included — with `make agent-sandbox-demo`.
 
-Under the agents sits a complete private-LLM platform: an OpenAI-compatible gateway (auth, admission, per-sandbox budgets, guardrails), vLLM and Ollama serving from the same charts, RAG with per-tenant isolation, GitOps delivery, and evidence packs an auditor can verify offline. It starts on a laptop `kind` cluster and moves to customer GPU clusters with the same repo layout — the operating model of a production AI platform, without depending on a specific cloud provider.
+Under the agents sits a complete private-LLM platform: an OpenAI-compatible gateway (auth, admission, per-sandbox budgets, guardrails), vLLM and Ollama serving from the same charts, RAG with per-tenant isolation, GitOps delivery, and evidence packs an auditor can verify offline. It starts local-first on a laptop `kind` cluster and moves to customer-owned clusters with GPU nodes using the same repo layout — the operating model of a production AI platform, without depending on a specific cloud provider.
 
 Current release: `v0.14.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
