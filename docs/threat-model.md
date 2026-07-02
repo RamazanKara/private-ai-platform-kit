@@ -79,6 +79,8 @@ application-layer threats (bounded by the egress catalog, budgets, and gateway g
 the sandbox), and exfiltration through *approved* catalog destinations remains a governance
 decision. NetworkPolicy enforcement depends on the CNI — the default `kind` CNI does not enforce
 it, which `make agent-sandbox-smoke` detects and reports rather than reporting a vacuous pass.
+Create the local lab with `LOCAL_CNI=calico make quickstart` to get a pinned,
+NetworkPolicy-enforcing CNI and a genuinely fail-closed egress demo.
 
 ## AI-Specific Threats
 

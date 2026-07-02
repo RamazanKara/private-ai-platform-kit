@@ -88,6 +88,7 @@ Notes:
 | Helm | v3 | [validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml); `azure/setup-helm` in CI | CI uses the action default; the toolchain requires Helm 3. |
 | Go | `1.26` | `.github/workflows/ci.yml`; toolchain install hint | Builds Go-based validation utilities (kubeconform, Kyverno CLI, restore-drill). |
 | agent-sandbox controller | `v0.5.0` | `deploy/vendor/agent-sandbox/` (SHA-256 in the vendor README) | Standard coding-agent workspace runtime (ADR 0010, platform prerequisite); CRDs `agents.x-k8s.io/v1beta1` + `extensions.agents.x-k8s.io/v1beta1`. `v1beta1` API — re-verify spec fields on upgrade. |
+| Calico (optional local CNI) | `v3.29.1` | `CALICO_VERSION` in `scripts/local-up.sh` | Opt-in NetworkPolicy-enforcing CNI for the local lab (`LOCAL_CNI=calico`); default remains kindnet (non-enforcing). |
 
 ## Validation toolchain (pinned tool versions)
 

@@ -80,6 +80,30 @@ spec:
       targetRevision: 3.2.7
       helm:
         releaseName: kyverno
+        # docker.io/bitnami/kubectl was purged from Docker Hub (Bitnami catalog
+        # retirement); pin the archived mirror for the report-cleanup CronJobs.
+        valuesObject:
+          cleanupJobs:
+            admissionReports:
+              image:
+                registry: docker.io
+                repository: bitnamilegacy/kubectl
+            clusterAdmissionReports:
+              image:
+                registry: docker.io
+                repository: bitnamilegacy/kubectl
+            ephemeralReports:
+              image:
+                registry: docker.io
+                repository: bitnamilegacy/kubectl
+            clusterEphemeralReports:
+              image:
+                registry: docker.io
+                repository: bitnamilegacy/kubectl
+          webhooksCleanup:
+            image:
+              registry: docker.io
+              repository: bitnamilegacy/kubectl
     - repoURL: https://kedacore.github.io/charts
       chart: keda
       targetRevision: 2.16.1
@@ -99,6 +123,9 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # Kyverno and KEDA CRDs exceed the client-side last-applied annotation
+      # limit on fresh clusters.
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

@@ -10,6 +10,12 @@ RAG_IMAGE="${RAG_IMAGE:-private-ai-platform-kit/rag-service:local}"
 LOCAL_GATEWAY_HOST_PORT="${LOCAL_GATEWAY_HOST_PORT:-8080}"
 DEFAULT_KIND_NODE_IMAGE="kindest/node:v1.35.1"
 CGROUP_V1_KIND_NODE_IMAGE="kindest/node:v1.31.4"
+LOCAL_CNI="${LOCAL_CNI:-kindnet}"
+CALICO_VERSION="${CALICO_VERSION:-v3.29.1}"
+
+if [[ "$LOCAL_CNI" != "kindnet" && "$LOCAL_CNI" != "calico" ]]; then
+  die "LOCAL_CNI must be kindnet or calico (got ${LOCAL_CNI})"
+fi
 LOCAL_KIND_NODE_IMAGE_WAS_SET="${LOCAL_KIND_NODE_IMAGE+x}"
 LOCAL_KIND_NODE_IMAGE="${LOCAL_KIND_NODE_IMAGE:-$DEFAULT_KIND_NODE_IMAGE}"
 
@@ -42,18 +48,33 @@ fi
 
 if ! kind get clusters | grep -qx "$CLUSTER_NAME"; then
   log "creating kind cluster ${CLUSTER_NAME} with gateway host port ${LOCAL_GATEWAY_HOST_PORT} and node image ${LOCAL_KIND_NODE_IMAGE}"
-  if [[ "$LOCAL_GATEWAY_HOST_PORT" != "8080" || "$LOCAL_KIND_NODE_IMAGE" != "$DEFAULT_KIND_NODE_IMAGE" ]]; then
+  if [[ "$LOCAL_GATEWAY_HOST_PORT" != "8080" || "$LOCAL_KIND_NODE_IMAGE" != "$DEFAULT_KIND_NODE_IMAGE" || "$LOCAL_CNI" == "calico" ]]; then
     RENDERED_KIND_CONFIG="$(mktemp)"
     sed \
       -e "s#image: kindest/node:.*#image: ${LOCAL_KIND_NODE_IMAGE}#" \
       -e "s/hostPort: 8080/hostPort: ${LOCAL_GATEWAY_HOST_PORT}/" \
       "$KIND_CONFIG" >"$RENDERED_KIND_CONFIG"
+    if [[ "$LOCAL_CNI" == "calico" ]]; then
+      printf 'networking:\n  disableDefaultCNI: true\n' >>"$RENDERED_KIND_CONFIG"
+    fi
     kind create cluster --name "$CLUSTER_NAME" --config "$RENDERED_KIND_CONFIG"
   else
     kind create cluster --name "$CLUSTER_NAME" --config "$KIND_CONFIG"
   fi
 else
   log "kind cluster ${CLUSTER_NAME} already exists"
+fi
+
+# kindnet (the kind default) does not enforce NetworkPolicy, so default-deny
+# and the fail-closed egress demo are advisory there. LOCAL_CNI=calico creates
+# the cluster without the default CNI and installs a pinned Calico instead.
+if [[ "$LOCAL_CNI" == "calico" ]]; then
+  if ! kubectl -n kube-system get daemonset calico-node >/dev/null 2>&1; then
+    log "installing Calico ${CALICO_VERSION} (NetworkPolicy-enforcing CNI)"
+    kubectl apply -f "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml" >/dev/null
+  fi
+  kubectl -n kube-system rollout status daemonset/calico-node --timeout=300s
+  kubectl wait --for=condition=Ready node --all --timeout=180s
 fi
 
 log "building gateway image ${GATEWAY_IMAGE}"

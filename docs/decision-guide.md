@@ -51,7 +51,7 @@ platform token instead of long-lived secrets. The one environment-dependent choi
 kernel-isolation runtime class: set `sandbox.runtimeClassName` (e.g. gVisor) where the cluster
 provides one — expected at the `high` risk tier (`C-ISOLATE`). NetworkPolicy enforcement requires
 a policy-capable CNI; `make agent-sandbox-smoke` verifies fail-closed egress and detects
-non-enforcing CNIs. See [agent-sandbox-integration.md](agent-sandbox-integration.md), ADR 0009,
+non-enforcing CNIs (locally, `LOCAL_CNI=calico make quickstart` builds an enforcing lab). See [agent-sandbox-integration.md](agent-sandbox-integration.md), ADR 0009,
 and ADR 0010.
 
 ## Maturity Position

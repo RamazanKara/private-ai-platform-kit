@@ -28,6 +28,13 @@ environment, unambiguous names.
   the agent-sandbox controller is absent instead of recording an unclaimed
   control.
 
+### Added
+
+- `LOCAL_CNI=calico` for the local lab (`scripts/local-up.sh`): creates the
+  kind cluster without the default CNI and installs a pinned Calico, so
+  default-deny NetworkPolicies and the fail-closed egress smoke are genuinely
+  enforced locally instead of advisory (kindnet remains the default).
+
 ### Removed
 
 - `make agent-lab-up` and `scripts/agent-lab-up.sh`: the manual Helm install

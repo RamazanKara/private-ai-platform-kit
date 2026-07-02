@@ -66,6 +66,8 @@ Operational notes:
   multi-node clusters co-schedule them or use RWX storage).
 - NetworkPolicy enforcement requires a policy-capable CNI; on kindnet the smoke
   reports non-enforcement instead of passing vacuously (see the threat model).
+  For a genuinely fail-closed local lab, create it with `LOCAL_CNI=calico
+  make quickstart`.
 - For an end-to-end demonstration (real coding agent, allow/deny receipts on the
   audit chain, evidence pack), run `make agent-sandbox-demo`.
 
