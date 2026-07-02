@@ -4,6 +4,37 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+Opinionated de-bloat (ADR 0010): one workspace runtime, one install path per
+environment, unambiguous names.
+
+### Changed
+
+- The hardened agent-sandbox runtime is the standard and only workspace runtime:
+  the `sandbox.runtime` toggle is gone, the agent-workspace chart always renders
+  the hardened Sandbox, and the controller is a platform prerequisite — a new
+  `agent-sandbox-controller` Argo CD Application in both overlays (server-side
+  apply, early sync wave) and an install step in quickstart.
+- The short-lived projected workspace credential is enabled by default.
+- `make agent-smoke` and `make agent-sandbox-smoke` are validation-only: they
+  check the GitOps-managed (or explicitly Helm-installed) workspace instead of
+  installing a parallel release; `make agent-sandbox-demo` provisions its own
+  namespace-scoped instance.
+- `make sandbox-smoke` is renamed `make trace-smoke` (script included) so
+  "sandbox" unambiguously means the workspace runtime, matching the
+  `traceable-sandbox` Application; CI e2e also runs `make agent-sandbox-smoke`.
+- `C-ISOLATE` is mandated at every risk tier, and live evidence packs fail when
+  the agent-sandbox controller is absent instead of recording an unclaimed
+  control.
+
+### Removed
+
+- `make agent-lab-up` and `scripts/agent-lab-up.sh`: the manual Helm install
+  path collided with the Argo-managed `agent-workspace` Application over
+  resource ownership. GitOps owns the workspace instance; bare clusters use the
+  documented one-line `helm upgrade --install`.
+
 ## v0.14.0 - 2026-07-02
 
 A repository-wide review pass (services, deploy tree, docs, CI) fixing drift,

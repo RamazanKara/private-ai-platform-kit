@@ -23,7 +23,17 @@ log "step 1/4: installing the agent-sandbox controller (vendored, checksummed)"
 "$ROOT/scripts/agent-sandbox-install.sh"
 
 log "step 2/4: hardened workspace + fail-closed egress probe"
-ENVIRONMENT="$ENVIRONMENT" AGENT_NAMESPACE="$AGENT_NAMESPACE" SANDBOX_ID="$SANDBOX_ID" \
+VALUES_FILE="$ROOT/deploy/clusters/${ENVIRONMENT}/values/agent-workspace.yaml"
+[[ -f "$VALUES_FILE" ]] || die "missing agent workspace values file ${VALUES_FILE}"
+# The demo provisions its own release in its own namespace so it never fights
+# the GitOps-managed instance for ownership.
+helm upgrade --install agent-workspace "$ROOT/deploy/charts/agent-workspace" \
+  --namespace "$AGENT_NAMESPACE" \
+  --create-namespace \
+  --values "$VALUES_FILE" \
+  --set namespace.name="$AGENT_NAMESPACE" \
+  --set sandbox.id="$SANDBOX_ID" >/dev/null
+AGENT_NAMESPACE="$AGENT_NAMESPACE" SANDBOX_ID="$SANDBOX_ID" \
   "$ROOT/scripts/agent-sandbox-smoke.sh"
 
 log "step 3/4: governed model path and agent-action receipts"

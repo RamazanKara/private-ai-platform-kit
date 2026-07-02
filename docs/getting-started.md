@@ -97,7 +97,7 @@ The default local runtime is Ollama with `qwen2.5:0.5b`, a fast non-reasoning mo
 Run the traceable sandbox proof:
 
 ```bash
-make sandbox-smoke
+make trace-smoke
 ```
 
 Validate RAG and coding-agent workspace access:

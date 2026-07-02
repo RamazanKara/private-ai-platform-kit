@@ -421,9 +421,10 @@ jobs:
         run: |
           set -euo pipefail
           LOCAL_KIND_NODE_IMAGE=kindest/node:v1.31.4 QUICKSTART_DIRECT_APPLY=1 QUICKSTART_SKIP_VALIDATE=1 make quickstart
-          make sandbox-smoke
+          make trace-smoke
           make tenant-smoke
           make agent-smoke
+          make agent-sandbox-smoke
           make evidence LIVE=1
       - name: Diagnose on failure
         if: failure()

@@ -122,7 +122,7 @@ For a live customer-style proof path, run the local cluster checks and generate 
 
 ```bash
 QUICKSTART_DIRECT_APPLY=1 make quickstart
-make sandbox-smoke
+make trace-smoke
 make tenant-smoke
 make agent-smoke
 make evidence LIVE=1

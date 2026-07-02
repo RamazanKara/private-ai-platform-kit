@@ -263,7 +263,7 @@ def static_controls() -> list[Control]:
         control(
             "Traceable sandbox isolation",
             exists("deploy/sandbox/base/namespace.yaml", "deploy/sandbox/base/networkpolicy.yaml", "deploy/sandbox/base/resource-controls.yaml", "deploy/sandbox/tests/trace-smoke-job.yaml")
-            and executable("scripts/sandbox-smoke.sh"),
+            and executable("scripts/trace-smoke.sh"),
             "Sandbox namespaces carry trace labels, quota, limits, default-deny networking, and a smoke job.",
             ["deploy/sandbox/base/", "deploy/sandbox/tests/trace-smoke-job.yaml", "runbooks/traceability-sandbox.md"],
             "Preserve `X-Request-ID`, `X-Sandbox-ID`, and `traceparent` through ingress, agents, and logs.",
@@ -471,9 +471,9 @@ def static_controls() -> list[Control]:
             and executable("scripts/agent-sandbox-install.sh")
             and executable("scripts/agent-sandbox-smoke.sh")
             and "ai-platform-hardened-sandboxes" in read_text("deploy/policies/kyverno/policies.yaml"),
-            "Coding-agent workspaces can run on the vendored kubernetes-sigs/agent-sandbox runtime with a hardened, Kyverno-enforced pod template and a fail-closed egress smoke (C-ISOLATE).",
+            "Coding-agent workspaces run on the vendored kubernetes-sigs/agent-sandbox runtime as standard (ADR 0010), with a hardened, Kyverno-enforced pod template and a fail-closed egress smoke (C-ISOLATE).",
             ["deploy/vendor/agent-sandbox/", "deploy/charts/agent-workspace/templates/sandbox.yaml", "deploy/policies/kyverno/policies.yaml", "docs/agent-sandbox-integration.md"],
-            "Install the controller (make agent-sandbox-install) and set sandbox.runtime agent-sandbox for medium/high-tier agent workspaces; run make agent-sandbox-smoke for live proof.",
+            "Install the controller (make agent-sandbox-install or the agent-sandbox-controller application); run make agent-sandbox-smoke for live proof.",
         ),
         control(
             "Production validation command",
@@ -556,10 +556,10 @@ def live_controls() -> list[Control]:
         checks.append(
             Control(
                 area="Live agent-sandbox controller",
-                status="pass",
-                summary="agent-sandbox CRDs are not installed; workspaces run on namespace isolation only and C-ISOLATE is not claimed.",
+                status="fail",
+                summary="agent-sandbox CRDs are not installed; the standard workspace runtime (ADR 0010) cannot run and C-ISOLATE is not met.",
                 evidence=["kubectl get crd sandboxes.agents.x-k8s.io"],
-                customer_action="Install the runtime with make agent-sandbox-install to claim C-ISOLATE at medium/high risk tiers.",
+                customer_action="Install the runtime with make agent-sandbox-install (or sync the agent-sandbox-controller application) before provisioning workspaces.",
             )
         )
     return checks

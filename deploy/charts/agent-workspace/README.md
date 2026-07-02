@@ -43,7 +43,6 @@ Isolated namespace template for coding agents that use the Private AI Platform K
 | `sandbox.id` | `agent-lab` |
 | `sandbox.owner` | `agent-platform` |
 | `sandbox.requirePrivateRegistry` | `false` |
-| `sandbox.runtime` | `namespace` |
 | `sandbox.runtimeClassName` | `""` |
 | `sandbox.tenant` | `coding-agents` |
 | `serviceAccount.automountServiceAccountToken` | `false` |
@@ -56,7 +55,7 @@ Isolated namespace template for coding agents that use the Private AI Platform K
 | `workspace.container.resources.requests.cpu` | `100m` |
 | `workspace.container.resources.requests.memory` | `128Mi` |
 | `workspace.credentials.projectedToken.audience` | `inference-gateway` |
-| `workspace.credentials.projectedToken.enabled` | `false` |
+| `workspace.credentials.projectedToken.enabled` | `true` |
 | `workspace.credentials.projectedToken.expirationSeconds` | `600` |
 | `workspace.credentials.projectedToken.mountPath` | `/var/run/platform` |
 | `workspace.mountPath` | `/workspace` |

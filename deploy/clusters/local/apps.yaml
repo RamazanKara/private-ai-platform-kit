@@ -1,6 +1,33 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+  name: agent-sandbox-controller
+  namespace: argocd
+  annotations:
+    # The workspace Application renders Sandbox resources; the controller and
+    # its CRDs must exist first (ADR 0010).
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/RamazanKara/private-ai-platform-kit.git
+    targetRevision: HEAD
+    path: deploy/vendor/agent-sandbox/v0.5.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agent-sandbox-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The vendored CRDs exceed the client-side last-applied annotation limit.
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
   name: model-catalog
   namespace: argocd
 spec:

@@ -13,8 +13,11 @@ data:
   workspace-path: {{ .Values.workspace.mountPath | quote }}
   required-headers: {{ .Values.platform.requiredHeaders | quote }}
   {{- if .Values.workspace.credentials.projectedToken.enabled }}
-  platform-token-path: {{ printf "%s/token" .Values.workspace.credentials.projectedToken.mountPath | quote }}
-  platform-token-audience: {{ .Values.workspace.credentials.projectedToken.audience | quote }}
+  {{- /* Mount path and audience of the projected credential — metadata, not
+         secret material; the credential itself only ever exists inside the
+         sandbox pod's projected volume. */}}
+  platform-credential-path: {{ printf "%s/token" .Values.workspace.credentials.projectedToken.mountPath | quote }}
+  platform-credential-audience: {{ .Values.workspace.credentials.projectedToken.audience | quote }}
   {{- end }}
   compliance-profile: {{ .Values.sandbox.complianceProfile | quote }}
   data-classification: {{ .Values.sandbox.dataClassification | quote }}

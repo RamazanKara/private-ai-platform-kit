@@ -37,9 +37,10 @@ This threat model covers the local lab and customer-owned Kubernetes deployment 
 - Output-side guardrail: model completions are inspected for leaked credentials/PII/blocked
   content and flagged, redacted, or blocked before return (OWASP LLM02/LLM06).
 - Default-deny NetworkPolicies and catalog-backed external egress.
-- Optional hardened agent-sandbox workspace runtime (`sandbox.runtime: agent-sandbox`, ADR 0009):
-  controller-managed sandbox pods with no service-account token, read-only root filesystem, no
-  capabilities, and an optional kernel-isolation runtime class, admission-enforced by the Kyverno
+- Hardened agent-sandbox workspace runtime — the standard and only workspace runtime (ADR 0009,
+  ADR 0010): controller-managed sandbox pods with no service-account token, read-only root
+  filesystem, no capabilities, a short-lived projected platform credential instead of long-lived
+  secrets, and an optional kernel-isolation runtime class, admission-enforced by the Kyverno
   `ai-platform-hardened-sandboxes` policy.
 - Pinned runtime images, hashed Python lockfiles, SBOMs, Trivy scans, and Cosign signing.
 - Strict release gates that require current evidence, including an adversarial safety/jailbreak
@@ -67,14 +68,13 @@ behavior of a hijacked agent or compromised runtime pod. An optional runtime-det
 
 ### Agent workspace isolation boundary
 
-Coding-agent workspaces execute model-generated code. On the default `namespace` runtime the
-isolation boundary is the container runtime plus the restricted pod security profile — there is no
-syscall-level barrier between agent code and the node kernel. The `agent-sandbox` runtime
-(ADR 0009) narrows this: sandbox pods run without ambient Kubernetes credentials on a hardened
-template (the opt-in platform credential is a projected, audience-bound ServiceAccount token with
-a short TTL — useless against the Kubernetes API and self-expiring, replacing long-lived secrets),
-and a kernel-isolation runtime class (gVisor/Kata) can be required at the `high` risk tier
-(`C-ISOLATE`). What kernel isolation does **not** change: prompt injection and tool abuse remain
+Coding-agent workspaces execute model-generated code and always run on the agent-sandbox runtime
+(ADR 0009, ADR 0010): controller-managed sandbox pods without ambient Kubernetes credentials on a
+hardened template. The platform credential is a projected, audience-bound ServiceAccount token
+with a short TTL — useless against the Kubernetes API and self-expiring, replacing long-lived
+secrets. Without a kernel-isolation runtime class the syscall boundary is still the container
+runtime plus the restricted pod profile; set `sandbox.runtimeClassName` (gVisor/Kata) where the
+cluster provides one — expected at the `high` risk tier (`C-ISOLATE`). What kernel isolation does **not** change: prompt injection and tool abuse remain
 application-layer threats (bounded by the egress catalog, budgets, and gateway guardrails, not by
 the sandbox), and exfiltration through *approved* catalog destinations remains a governance
 decision. NetworkPolicy enforcement depends on the CNI — the default `kind` CNI does not enforce

@@ -64,6 +64,7 @@ spec:
           - C-ALLOW  # gateway approved-only allowlist
           - C-ADMIT  # admission + sandbox budgets
           - C-AUDIT  # redacted, hash-chained audit
+          - C-ISOLATE  # hardened agent-sandbox workspace runtime (standard, ADR 0010)
         evidence:
           - results/evals/sample-summary.md
           - results/loadtest/sample-summary.md
@@ -88,10 +89,10 @@ spec:
           - C-EGRESS   # default-deny + catalog-backed egress on the serving namespace
           - C-SECRET   # prompt secret detection enabled
           - C-EVAL     # eval suite must exercise the promoted model (or justified proxy)
+          - C-ISOLATE
         additionalRequirements:
           - Customer replaces the source-reference digest with a pinned model-store digest before production.
           - Coding-agent eval suite includes forbiddenAny secret-leak checks (platform/evals/coding-agent-suite.yaml).
-          - Coding-agent workspaces should enable the agent-sandbox runtime (C-ISOLATE) where the controller is installed; it is mandated at high tier.
         evidence:
           - results/evals/sample-summary.md
           - results/loadtest/sample-summary.md
@@ -122,7 +123,7 @@ spec:
           - dataClassification reviewed and recorded; restricted data requires explicit sign-off in the customer handoff.
           - Strict release gate (make release-gate-strict) run against current evidence before promotion.
           - Operator confirms whether the deployment is EU AI Act high-risk and applies Article 9-15 obligations accordingly.
-          - Agent workspaces run sandbox.runtime agent-sandbox and pair it with a kernel-isolation runtime class (sandbox.runtimeClassName, e.g. gVisor) where the platform provides one.
+          - Agent workspaces pair the standard agent-sandbox runtime with a kernel-isolation runtime class (sandbox.runtimeClassName, e.g. gVisor) where the platform provides one.
         evidence:
           - results/evals/sample-summary.md
           - results/loadtest/sample-summary.md
@@ -414,14 +415,15 @@ spec:
     - id: C-ISOLATE
       name: Hardened agent-sandbox workspace runtime
       summary: >-
-        Coding-agent workspaces can run on the kubernetes-sigs/agent-sandbox
-        runtime (sandbox.runtime agent-sandbox in the agent-workspace chart): a
+        Coding-agent workspaces run on the kubernetes-sigs/agent-sandbox
+        runtime as the standard and only runtime (ADR 0009, ADR 0010): a
         controller-managed Sandbox pod that is non-root, read-only-rootfs, has
         no service-account token and no capabilities, optionally under a
-        kernel-isolation runtime class (gVisor/Kata). The hardened pod template
-        is admission-enforced by the Kyverno ai-platform-hardened-sandboxes
-        policy, and the smoke test proves non-catalog egress fails closed
-        (ADR 0009).
+        kernel-isolation runtime class (gVisor/Kata), with a short-lived
+        projected platform credential instead of long-lived secrets. The
+        hardened pod template is admission-enforced by the Kyverno
+        ai-platform-hardened-sandboxes policy, and the smoke test proves
+        non-catalog egress fails closed.
       kit_implementation:
         - deploy/charts/agent-workspace/templates/sandbox.yaml
         - deploy/vendor/agent-sandbox/

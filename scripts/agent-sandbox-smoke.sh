@@ -4,45 +4,24 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT/scripts/common.sh"
 
-require_cmd helm "Helm is required to install the agent workspace chart."
 require_cmd kubectl "kubectl is required for agent-sandbox smoke validation."
 
-ENVIRONMENT="${ENVIRONMENT:-local}"
 AGENT_NAMESPACE="${AGENT_NAMESPACE:-ai-agents}"
 SANDBOX_ID="${SANDBOX_ID:-agent-lab}"
-VALUES_FILE="$ROOT/deploy/clusters/${ENVIRONMENT}/values/agent-workspace.yaml"
 # RFC 5737 TEST-NET-2 address: never routable, never in the egress catalog.
 EGRESS_PROBE_TARGET="${EGRESS_PROBE_TARGET:-198.51.100.10}"
 
 validate_k8s_name "$AGENT_NAMESPACE" "AGENT_NAMESPACE"
 validate_k8s_name "$SANDBOX_ID" "SANDBOX_ID"
 
-if [[ ! -f "$VALUES_FILE" ]]; then
-  die "missing agent workspace values file ${VALUES_FILE}"
-fi
-
-# Render the Namespace only when this release owns it; on clusters where the
-# namespace pre-exists (e.g. created by GitOps), install into it instead of
-# fighting Helm ownership annotations.
-NS_CREATE=true
-if kubectl get namespace "$AGENT_NAMESPACE" >/dev/null 2>&1; then
-  ns_owner="$(kubectl get namespace "$AGENT_NAMESPACE" \
-    -o jsonpath='{.metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null || true)"
-  if [[ "$ns_owner" != "agent-workspace" ]]; then
-    NS_CREATE=false
-  fi
-fi
-
-log "installing agent workspace with the agent-sandbox runtime into ${AGENT_NAMESPACE} (namespace.create=${NS_CREATE})"
-helm upgrade --install agent-workspace "$ROOT/deploy/charts/agent-workspace" \
-  --namespace "$AGENT_NAMESPACE" \
-  --create-namespace \
-  --values "$VALUES_FILE" \
-  --set namespace.create="$NS_CREATE" \
-  --set namespace.name="$AGENT_NAMESPACE" \
-  --set sandbox.runtime=agent-sandbox \
-  --set sandbox.id="$SANDBOX_ID" \
-  --set workspace.credentials.projectedToken.enabled=true
+# Validation-only (ADR 0010): the workspace is owned by GitOps (the
+# agent-workspace Application) or an explicit `helm upgrade --install`; this
+# smoke never installs a parallel release.
+log "validating the deployed agent workspace in ${AGENT_NAMESPACE}"
+kubectl -n "$AGENT_NAMESPACE" get configmap agent-platform-contract >/dev/null 2>&1 \
+  || die "no agent workspace in ${AGENT_NAMESPACE}: sync the agent-workspace application (make sync) or run: helm upgrade --install agent-workspace deploy/charts/agent-workspace --namespace ${AGENT_NAMESPACE} --create-namespace --values deploy/clusters/local/values/agent-workspace.yaml"
+kubectl -n "$AGENT_NAMESPACE" get "sandbox/${SANDBOX_ID}" >/dev/null 2>&1 \
+  || die "sandbox/${SANDBOX_ID} not found in ${AGENT_NAMESPACE}: is the agent-sandbox controller installed (make agent-sandbox-install) and the workspace synced?"
 
 log "waiting for sandbox ${SANDBOX_ID} to become ready"
 kubectl -n "$AGENT_NAMESPACE" wait --for=condition=Ready "sandbox/${SANDBOX_ID}" --timeout=180s

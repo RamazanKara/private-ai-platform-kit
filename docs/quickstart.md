@@ -98,7 +98,7 @@ The cluster is left running so you can inspect it. This is the same flow — sam
 With the cluster up, try the other smoke paths and generate evidence:
 
 ```bash
-make sandbox-smoke    # traceable sandbox controls
+make trace-smoke    # traceable sandbox controls
 make tenant-smoke     # a team tenant lab
 make agent-smoke      # a locked-down coding-agent workspace
 make evidence LIVE=1  # customer-style evidence pack against the live cluster

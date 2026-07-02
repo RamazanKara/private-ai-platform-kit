@@ -1,7 +1,13 @@
 # Agent-Sandbox Integration Design
 
-Status: Draft (implements [ADR 0009](adr/0009-adopt-agent-sandbox-workspace-runtime.md), Proposed)
-Date: 2026-07-01
+Status: Implemented ([ADR 0009](adr/0009-adopt-agent-sandbox-workspace-runtime.md), Accepted).
+Since [ADR 0010](adr/0010-agent-sandbox-standard-runtime.md) the agent-sandbox
+runtime is the **standard and only** workspace runtime: the `sandbox.runtime`
+toggle described in the design below was removed, the projected workspace
+credential is on by default, and the controller is a platform prerequisite.
+Sections referring to the toggle or the namespace fallback are historical
+design record.
+Date: 2026-07-01 (amended 2026-07-02)
 
 This document describes how the kit adopts
 [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox)
@@ -300,6 +306,13 @@ Weekend-scoped milestones, target release v0.14.0:
   Deferred: the `agent_action` audit-event vocabulary (section 4) ships
   with the auditable-agent-execution paper work, where the untrusted-emitter
   question (open question 4) is resolved.
+- **Addendum — standard runtime (ADR 0010). Done 2026-07-02.** The
+  `sandbox.runtime` toggle was removed (the chart always renders the
+  hardened Sandbox), the projected credential became default-on, the
+  controller became a platform prerequisite (`agent-sandbox-controller`
+  Application in both overlays + quickstart install), `make agent-lab-up`
+  was removed in favour of the GitOps-owned instance, the smokes became
+  validation-only, and `make sandbox-smoke` was renamed `make trace-smoke`.
 - **Addendum — receipts, credential broker, real-agent demo. Done
   2026-07-01.** The three deliberately-deferred pieces were implemented the
   same day: (1) agent-action receipt semantics on the gateway audit chain

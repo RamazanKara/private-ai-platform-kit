@@ -83,9 +83,9 @@ shipped catalog is rated high; this tier is reserved for the operator to apply w
 case warrants it. It is the tier most likely to make the deployment EU AI Act high-risk.
 
 Mandated controls: everything in medium, plus explicit SLO and burn-rate alert coverage (`C-SLO`),
-documented retention and data-classification review (`C-RETAIN`), reviewed RBAC with a named
-human-oversight owner (`C-RBAC`), and coding-agent workspaces on the hardened agent-sandbox runtime
-(`C-ISOLATE`). High-tier promotion expects:
+documented retention and data-classification review (`C-RETAIN`), and reviewed RBAC with a named
+human-oversight owner (`C-RBAC`). The hardened agent-sandbox workspace runtime (`C-ISOLATE`) is
+the standard at every tier (ADR 0010). High-tier promotion expects:
 
 - Two named approvers on the promotion request. Separation of duties (requester is not an approver)
   is already enforced by [`scripts/model-catalog.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-catalog.py); high tier adds a
@@ -95,8 +95,8 @@ human-oversight owner (`C-RBAC`), and coding-agent workspaces on the hardened ag
 - `make release-gate-strict` run against current evidence before promotion.
 - The operator confirms whether the deployment is EU AI Act high-risk and applies the Article 9-15
   obligations accordingly.
-- Agent workspaces run `sandbox.runtime: agent-sandbox`, paired with a kernel-isolation runtime
-  class (`sandbox.runtimeClassName`, e.g. gVisor) where the platform provides one.
+- Agent workspaces pair the standard agent-sandbox runtime with a kernel-isolation runtime class
+  (`sandbox.runtimeClassName`, e.g. gVisor) where the platform provides one.
 
 ## Control crosswalk
 

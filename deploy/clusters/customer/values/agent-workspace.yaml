@@ -7,11 +7,8 @@ sandbox:
   owner: agent-platform
   costCenter: research
   environment: customer
-  # Recommended on customer clusters once the agent-sandbox controller is
-  # installed (make agent-sandbox-install); pair with a kernel-isolation
-  # runtime class where available (ADR 0009).
-  runtime: namespace
-  # runtime: agent-sandbox
+  # Pair the standard agent-sandbox runtime with a kernel-isolation runtime
+  # class where the cluster provides one (ADR 0010); mandated at high tier.
   # runtimeClassName: gvisor
 
 resourceQuota:

@@ -21,37 +21,35 @@ External egress must also be approved in `platform/network/egress-catalog.yaml` 
 
 ## Create A Workspace
 
-Create the default local workspace:
+The workspace is a GitOps-managed instance (the `agent-workspace` Application) and
+always runs on the kubernetes-sigs/agent-sandbox runtime (ADR 0010, `C-ISOLATE`).
+The controller is a platform prerequisite: it syncs as the
+`agent-sandbox-controller` Application, or install it directly with:
 
-    make agent-lab-up
+    make agent-sandbox-install
 
-Validate that a coding-agent-style pod can reach the gateway and RAG service:
+Sync the workspace (or install it on a bare cluster):
 
+    make sync
+    # bare cluster / ad-hoc:
+    helm upgrade --install agent-workspace deploy/charts/agent-workspace \
+      --namespace ai-agents --create-namespace \
+      --values deploy/clusters/local/values/agent-workspace.yaml
+
+Validate the runtime contract — hardening, short-lived projected credential, DNS
+positive control, and fail-closed non-catalog egress — then the platform path:
+
+    make agent-sandbox-smoke
     make agent-smoke
 
 Inspect the contract:
 
     kubectl -n ai-agents get configmap agent-platform-contract -o yaml
 
-## Hardened Runtime (agent-sandbox)
-
-For `medium`/`high` risk tiers, run the workspace on the kubernetes-sigs/agent-sandbox
-runtime (ADR 0009, `C-ISOLATE`) instead of a bare namespace. Install the vendored,
-checksummed controller and enable the runtime:
-
-    make agent-sandbox-install
-    helm upgrade --install agent-workspace deploy/charts/agent-workspace \
-      --namespace ai-agents \
-      --values deploy/clusters/customer/values/agent-workspace.yaml \
-      --set sandbox.runtime=agent-sandbox
-
 Set `sandbox.runtimeClassName` (for example `gvisor`) where the cluster provides a
-kernel-isolation runtime class; the Kyverno `ai-platform-hardened-sandboxes` policy
-enforces the hardened pod template at admission. Validate the full contract —
-hardening, short-lived projected credential, DNS positive control, and fail-closed
-non-catalog egress:
-
-    make agent-sandbox-smoke
+kernel-isolation runtime class — expected at the `high` risk tier. The Kyverno
+`ai-platform-hardened-sandboxes` policy enforces the hardened pod template at
+admission.
 
 Operational notes:
 
@@ -59,10 +57,13 @@ Operational notes:
   changes; delete the pod (`kubectl -n ai-agents delete pod <sandbox-id>`) and the
   controller recreates it from the current spec. The smoke does this automatically
   when it detects image or volume drift.
-- Enable `workspace.credentials.projectedToken` to give agents a short-lived,
-  audience-bound platform credential instead of long-lived secrets; the token path
-  and audience appear in the `agent-platform-contract` ConfigMap, and the gateway
-  verifies it via its JWT/JWKS settings.
+- The projected workspace credential is on by default: a short-lived,
+  audience-bound token replaces long-lived secrets; the token path and audience
+  appear in the `agent-platform-contract` ConfigMap, and the gateway verifies it
+  via its JWT/JWKS settings.
+- The workspace PVC is ReadWriteOnce and is held by the sandbox pod; the
+  `agent-smoke` Job shares it on the same node (fine on single-node labs — on
+  multi-node clusters co-schedule them or use RWX storage).
 - NetworkPolicy enforcement requires a policy-capable CNI; on kindnet the smoke
   reports non-enforcement instead of passing vacuously (see the threat model).
 - For an end-to-end demonstration (real coding agent, allow/deny receipts on the

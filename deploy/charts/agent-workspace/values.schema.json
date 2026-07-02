@@ -14,7 +14,6 @@
       "type": "object",
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "runtime": { "type": "string", "enum": ["namespace", "agent-sandbox"] },
         "runtimeClassName": { "type": "string" }
       }
     },

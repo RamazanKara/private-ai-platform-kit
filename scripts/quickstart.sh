@@ -90,6 +90,7 @@ else
 fi
 
 run_step "creating or reusing local kind cluster" make local-up
+run_step "installing the agent-sandbox controller (workspace runtime prerequisite)" make agent-sandbox-install
 
 if [[ "$DIRECT_APPLY" == "1" ]]; then
   run_step "syncing local charts directly with Helm" env LOCAL_DIRECT_APPLY=1 make sync
@@ -107,6 +108,6 @@ else
 fi
 
 log "quickstart completed"
-log "try more checks: make sandbox-smoke, make tenant-smoke, make agent-smoke"
+log "try more checks: make trace-smoke, make tenant-smoke, make agent-smoke, make agent-sandbox-smoke"
 log "generate evidence: make evidence LIVE=1"
 log "cleanup when done: make local-down"

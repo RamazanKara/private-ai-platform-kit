@@ -13,12 +13,11 @@ sandbox:
   externalEgressAllowed: true
   requirePrivateRegistry: false
   evidenceRetentionDays: ""
-  # namespace: envelope only (current behaviour). agent-sandbox: additionally
-  # render a hardened Sandbox (agents.x-k8s.io/v1beta1); requires the
-  # controller from `make agent-sandbox-install` (ADR 0009).
-  runtime: namespace
-  # Optional pod runtime class for the agent-sandbox path (e.g. gvisor) on
-  # clusters that provide kernel-level isolation runtimes.
+  # Workspaces always run as a hardened Sandbox (agents.x-k8s.io/v1beta1);
+  # the controller is a platform prerequisite (ADR 0010, `make
+  # agent-sandbox-install` or the agent-sandbox-controller Application).
+  # Optional pod runtime class (e.g. gvisor) on clusters that provide
+  # kernel-level isolation runtimes.
   runtimeClassName: ""
 
 serviceAccount:
@@ -56,8 +55,7 @@ workspace:
     size: 10Gi
     storageClassName: ""
   mountPath: /workspace
-  # Workspace container for the agent-sandbox runtime; override image/command
-  # with the coding-agent runner. Ignored when sandbox.runtime is namespace.
+  # Workspace container; override image/command with the coding-agent runner.
   container:
     image: curlimages/curl:8.20.0
     command:
@@ -74,13 +72,14 @@ workspace:
   # Optional bounded lifetime for the sandbox (RFC 3339 timestamp).
   shutdownTime: ""
   shutdownPolicy: Retain
-  # Short-lived platform credential (agent-sandbox runtime only): a projected,
-  # audience-bound ServiceAccount token the kubelet rotates automatically. No
-  # long-lived secret enters the workspace; the gateway verifies it via its
-  # JWT/JWKS auth (jwt_auth_enabled + the cluster's service-account issuer).
+  # Short-lived platform credential: a projected, audience-bound
+  # ServiceAccount token the kubelet rotates automatically. On by default —
+  # no long-lived secret enters the workspace; the gateway verifies it via
+  # its JWT/JWKS auth (jwt_auth_enabled + the cluster's service-account
+  # issuer).
   credentials:
     projectedToken:
-      enabled: false
+      enabled: true
       audience: inference-gateway
       expirationSeconds: 600
       mountPath: /var/run/platform

@@ -15,7 +15,10 @@ PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}"
 validate_k8s_name "$AGENT_NAMESPACE" "AGENT_NAMESPACE"
 validate_k8s_name "$SANDBOX_ID" "SANDBOX_ID"
 
-ENVIRONMENT="$ENVIRONMENT" AGENT_NAMESPACE="$AGENT_NAMESPACE" "$ROOT/scripts/agent-lab-up.sh"
+# Validation-only (ADR 0010): the workspace is owned by GitOps or an explicit
+# helm install; fail with guidance instead of installing a parallel release.
+kubectl -n "$AGENT_NAMESPACE" get configmap agent-platform-contract >/dev/null 2>&1 \
+  || die "no agent workspace in ${AGENT_NAMESPACE}: sync the agent-workspace application (make sync) or run: helm upgrade --install agent-workspace deploy/charts/agent-workspace --namespace ${AGENT_NAMESPACE} --create-namespace --values deploy/clusters/${ENVIRONMENT}/values/agent-workspace.yaml"
 
 log "recreating agent platform smoke job in ${AGENT_NAMESPACE}"
 kubectl -n "$AGENT_NAMESPACE" delete job agent-platform-smoke --ignore-not-found

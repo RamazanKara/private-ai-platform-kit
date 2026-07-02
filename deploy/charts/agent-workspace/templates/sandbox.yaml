@@ -1,8 +1,9 @@
-{{- if eq .Values.sandbox.runtime "agent-sandbox" }}
-{{- /* Hardened workspace on the kubernetes-sigs/agent-sandbox runtime (ADR 0009).
-       The Sandbox name equals sandbox.id, and the controller names the pod after
-       the Sandbox, so the gateway's X-Sandbox-ID binding is physical. Requires
-       the controller from `make agent-sandbox-install`. */}}
+{{- /* Hardened workspace on the kubernetes-sigs/agent-sandbox runtime — the
+       standard and only workspace runtime (ADR 0009, ADR 0010). The Sandbox
+       name equals sandbox.id, and the controller names the pod after the
+       Sandbox, so the gateway's X-Sandbox-ID binding is physical. The
+       controller is a platform prerequisite (make agent-sandbox-install or
+       the agent-sandbox-controller Application). */}}
 apiVersion: agents.x-k8s.io/v1beta1
 kind: Sandbox
 metadata:
@@ -82,4 +83,3 @@ spec:
                   expirationSeconds: {{ .Values.workspace.credentials.projectedToken.expirationSeconds }}
                   path: token
         {{- end }}
-{{- end }}
