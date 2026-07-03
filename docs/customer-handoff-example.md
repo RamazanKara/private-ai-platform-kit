@@ -5,7 +5,7 @@ This example uses a fake customer organization, `acme-ai`, to show the expected 
 ## Inputs
 
 - Customer Git mirror: `https://github.com/acme-ai/private-ai-platform-kit.git`
-- Target revision: `v0.22.0`
+- Target revision: `v0.23.0`
 - GPU profile: `nvidia`
 - Runtime model: `Qwen/Qwen3-Coder-Next`
 - API key hashes: stored in the customer secret backend and surfaced through External Secrets
@@ -15,7 +15,7 @@ This example uses a fake customer organization, `acme-ai`, to show the expected 
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/acme-ai/private-ai-platform-kit.git \
-  CUSTOMER_REVISION=v0.22.0 \
+  CUSTOMER_REVISION=v0.23.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
