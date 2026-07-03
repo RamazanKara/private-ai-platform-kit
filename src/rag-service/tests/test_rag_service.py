@@ -1,7 +1,10 @@
 import asyncio
+import base64
 import hashlib
+import hmac
 import json
 import logging
+import time
 
 import httpx
 import pytest
@@ -997,3 +1000,270 @@ def test_openai_compatible_reranker_reuses_one_shared_client():
     assert first is second
     asyncio.run(reranker.aclose())
     assert first.is_closed
+
+
+# --- Audience-bound JWT verification wired into the RAG query path -----------------------
+#
+# With RAG_JWT_ENABLED the service verifies the caller's own bearer token and DERIVES the
+# tenant from the verified claim, so tenant isolation scopes retrieval to the tenant the
+# *claim* names — never the client-supplied X-Sandbox-ID header. These exercise that wiring
+# end-to-end (a monkeypatched JWKS cache stands in for the IdP), including the fail-closed
+# 401/403/503 boundaries and the JWT-off backward-compatibility path.
+
+
+def _b64url_bytes(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+_JWT_SECRET = b"rag-jwt-signing-secret-0123456789ab"
+
+
+def _rag_jwt(sandbox_id="team-a", claim="sandbox_id", **overrides):
+    claims = {
+        "exp": int(time.time()) + 3600,
+        "iss": "https://idp.example",
+        "aud": "rag",
+    }
+    if sandbox_id is not None:
+        claims[claim] = sandbox_id
+    claims.update(overrides)
+    header = {"alg": "HS256", "typ": "JWT", "kid": "rag-key"}
+    encoded_header = _b64url_bytes(json.dumps(header, separators=(",", ":")).encode("utf-8"))
+    encoded_claims = _b64url_bytes(json.dumps(claims, separators=(",", ":")).encode("utf-8"))
+    signature = hmac.new(_JWT_SECRET, f"{encoded_header}.{encoded_claims}".encode("ascii"), hashlib.sha256).digest()
+    return f"{encoded_header}.{encoded_claims}.{_b64url_bytes(signature)}"
+
+
+class _FakeJwksCache:
+    def __init__(self, keys):
+        self._keys = keys
+
+    async def keys(self):
+        return self._keys
+
+
+def _oct_jwks_key():
+    return [{"kty": "oct", "kid": "rag-key", "use": "sig", "k": _b64url_bytes(_JWT_SECRET)}]
+
+
+def _jwt_app(tmp_path, **jwt_overrides):
+    # Two-tenant lexical corpus with isolation ON: retrieval must scope to the verified tenant.
+    write_doc(tmp_path, "team-a.md", "# Team A\nteam a gateway secret roadmap")
+    write_doc(tmp_path, "team-b.md", "# Team B\nteam b gateway secret roadmap")
+    from app.retriever import LexicalRetriever
+
+    settings = Settings(
+        document_dir=tmp_path,
+        retrieval_tenant_isolation_enabled=True,
+        jwt_enabled=True,
+        jwt_jwks_url="https://idp.example/jwks",
+        jwt_issuer="https://idp.example",
+        jwt_audience="rag",
+        jwt_tenant_claim="sandbox_id",
+        **jwt_overrides,
+    )
+    app = create_app(settings)
+    # Stamp both tenants' documents so isolation can select per-verified-tenant.
+    app.state.retriever = LexicalRetriever(
+        [
+            _lexical_document("team-a-doc", "Team A", "team-a.md", "team a gateway secret roadmap", "team-a"),
+            _lexical_document("team-b-doc", "Team B", "team-b.md", "team b gateway secret roadmap", "team-b"),
+        ],
+        tenant_isolation_enabled=True,
+    )
+    app.state.jwt_verifier.jwks_cache = _FakeJwksCache(_oct_jwks_key())
+    return app
+
+
+def test_rag_jwt_derives_tenant_from_verified_claim_and_scopes_retrieval(tmp_path):
+    app = _jwt_app(tmp_path)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/rag/query",
+        headers={"Authorization": f"Bearer {_rag_jwt('team-a')}"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    # Tenant is taken from the verified claim, echoed on the response, and isolation scopes
+    # retrieval to that tenant only — team-b's document is never returned.
+    assert body["sandbox_id"] == "team-a"
+    assert response.headers["X-Sandbox-ID"] == "team-a"
+    ids = {result["id"] for result in body["results"]}
+    assert ids == {"team-a-doc"}
+
+
+def test_rag_jwt_verified_claim_overrides_contradicting_sandbox_header(tmp_path):
+    # A token bound to team-a plus an X-Sandbox-ID: team-b header must be rejected (403):
+    # the header cannot override the verified identity.
+    app = _jwt_app(tmp_path)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/rag/query",
+        headers={"Authorization": f"Bearer {_rag_jwt('team-a')}", "X-Sandbox-ID": "team-b"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["reason"] == "sandbox_identity_mismatch"
+
+
+def test_rag_jwt_matching_sandbox_header_is_accepted(tmp_path):
+    # A header that agrees with the verified claim is fine (belt-and-suspenders callers).
+    app = _jwt_app(tmp_path)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/rag/query",
+        headers={"Authorization": f"Bearer {_rag_jwt('team-a')}", "X-Sandbox-ID": "team-a"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 200
+    assert {result["id"] for result in response.json()["results"]} == {"team-a-doc"}
+
+
+def test_rag_jwt_missing_tenant_claim_is_forbidden(tmp_path):
+    # A verified token that names no tenant is not authorized for any sandbox -> 403.
+    app = _jwt_app(tmp_path)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/rag/query",
+        headers={"Authorization": f"Bearer {_rag_jwt(sandbox_id=None)}"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["reason"] == "sandbox_claim_invalid"
+
+
+def test_rag_jwt_required_rejects_missing_token(tmp_path):
+    # RAG_JWT_REQUIRED: no token must fail closed with 401.
+    app = _jwt_app(tmp_path, jwt_required=True)
+    client = TestClient(app)
+
+    response = client.post("/v1/rag/query", json={"query": "gateway secret", "top_k": 5})
+
+    assert response.status_code == 401
+    assert response.json()["detail"]["reason"] == "invalid_or_missing_jwt"
+
+
+def test_rag_jwt_required_rejects_invalid_token(tmp_path):
+    # RAG_JWT_REQUIRED: a bad-signature token must fail closed with 401 (not 403/200).
+    app = _jwt_app(tmp_path, jwt_required=True)
+    client = TestClient(app)
+    forged = _rag_jwt("team-a")[:-4] + "AAAA"
+
+    response = client.post(
+        "/v1/rag/query",
+        headers={"Authorization": f"Bearer {forged}"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"]["reason"] == "invalid_or_missing_jwt"
+
+
+def test_rag_jwt_not_required_without_token_falls_back_to_header_trust(tmp_path):
+    # JWT enabled but not required and no token presented: existing header-trust behavior
+    # is preserved (X-Sandbox-ID is honored as the tenant assertion).
+    app = _jwt_app(tmp_path)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/rag/query",
+        headers={"X-Sandbox-ID": "team-b"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 200
+    assert {result["id"] for result in response.json()["results"]} == {"team-b-doc"}
+
+
+def test_rag_jwt_returns_503_when_jwks_unreachable_no_cache(tmp_path, monkeypatch):
+    # A live JwksCache whose issuer is unreachable with no cached keys -> 503 (retry), not a
+    # 401 token rejection.
+    from app import jwt_auth
+    from app.jwt_auth import JwksCache
+
+    write_doc(tmp_path, "team-a.md", "# Team A\nteam a gateway secret")
+    settings = Settings(
+        document_dir=tmp_path,
+        retrieval_tenant_isolation_enabled=True,
+        jwt_enabled=True,
+        jwt_jwks_url="https://idp.example/jwks",
+        jwt_tenant_claim="sandbox_id",
+        jwt_required=True,
+    )
+    app = create_app(settings)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("issuer down")
+
+    real_async_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        jwt_auth.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_async_client(transport=httpx.MockTransport(handler)),
+    )
+    app.state.jwt_verifier.jwks_cache = JwksCache(settings)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/rag/query",
+        headers={"Authorization": f"Bearer {_rag_jwt('team-a')}"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["reason"] == "jwks_unavailable"
+    assert response.headers["Retry-After"] == "5"
+
+
+def test_rag_jwt_disabled_keeps_header_trust_unchanged(tmp_path):
+    # JWT off (default): a bearer token is ignored entirely and X-Sandbox-ID drives the tenant.
+    write_doc(tmp_path, "team-a.md", "# Team A\nteam a gateway secret roadmap")
+    from app.retriever import LexicalRetriever
+
+    settings = Settings(document_dir=tmp_path, retrieval_tenant_isolation_enabled=True)
+    app = create_app(settings)
+    app.state.retriever = LexicalRetriever(
+        [
+            _lexical_document("team-a-doc", "Team A", "team-a.md", "team a gateway secret roadmap", "team-a"),
+            _lexical_document("team-b-doc", "Team B", "team-b.md", "team b gateway secret roadmap", "team-b"),
+        ],
+        tenant_isolation_enabled=True,
+    )
+    client = TestClient(app)
+
+    # A token claiming team-a is ignored; the header selects team-b.
+    response = client.post(
+        "/v1/rag/query",
+        headers={"Authorization": f"Bearer {_rag_jwt('team-a')}", "X-Sandbox-ID": "team-b"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 200
+    assert {result["id"] for result in response.json()["results"]} == {"team-b-doc"}
+
+
+def test_rag_jwt_not_required_but_present_invalid_token_is_rejected(tmp_path):
+    # The critical fix: with JWT enabled but NOT required, a PRESENT but INVALID token must be
+    # rejected with 401 - never silently downgraded to header-trust. Otherwise a caller could
+    # present a forged token alongside a spoofed X-Sandbox-ID and read another tenant's corpus.
+    app = _jwt_app(tmp_path)  # jwt_required defaults to False
+    client = TestClient(app)
+    forged = _rag_jwt("team-a")[:-4] + "AAAA"
+
+    response = client.post(
+        "/v1/rag/query",
+        headers={"Authorization": f"Bearer {forged}", "X-Sandbox-ID": "team-b"},
+        json={"query": "gateway secret", "top_k": 5},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"]["reason"] == "invalid_or_missing_jwt"

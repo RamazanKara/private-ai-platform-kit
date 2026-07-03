@@ -23,6 +23,7 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 ## 3. Platform Hardening
 
 - Shipped (v0.22.0): native Anthropic Messages API (`POST /v1/messages`), translated to/from the OpenAI chat shape and routed through the same governance path as chat (non-streaming this release; a translation sidecar remains the option for streaming).
+- Shipped (v0.23.0): OpenAI Responses API (`POST /v1/responses`, stateless subset), translated to/from the OpenAI chat shape and routed through the same governance path as chat (non-streaming this release; `store`/`previous_response_id` server-side state is out of scope and rejected with `stateful_not_supported`).
 - Add IdP-specific examples and rotation drills for optional OIDC/JWT/JWKS validation.
 - Shipped (v0.22.0): the gateway's JWT signature/claim core now runs on the maintained PyJWT library (`jwt.decode`, algorithm pinned to the configured allowlist), replacing the in-tree RSA/EC verification while preserving the JWKS cache and 503-vs-401 semantics behind the same `JwtVerifier` interface.
 - Keep model-catalog-driven runtime routing and per-sandbox admission policy covered by contracts.
@@ -32,10 +33,11 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 ## 4. RAG Hardening
 
 - Per-tenant retrieval isolation is enforced by default (`retrieval.tenantIsolation` on both the
-  Qdrant and lexical backends, fail-closed on a missing/unasserted tenant). **Remaining:** add
-  per-caller identity to the RAG service itself — audience-bound token verification (JWKS/audience
-  validation, mirroring the gateway's `jwt_auth`) or per-tenant API keys — so the tenant is derived
-  from a verified claim on the RAG service rather than a trusted `X-Sandbox-ID` header set upstream.
+  Qdrant and lexical backends, fail-closed on a missing/unasserted tenant), and the RAG service now
+  derives per-caller identity from its **own** audience-bound token verification (`auth.jwt`, `RAG_JWT_*`
+  — JWKS/issuer/audience/exp/nbf with an alg allowlist, mirroring the gateway's `jwt_auth`): the tenant
+  comes from a verified claim on the RAG service itself (a contradicting `X-Sandbox-ID` header is rejected
+  403, a missing token fails closed 401 when required), with header-trust as the fallback when JWT is off.
 - Replace demo hashed-vector behavior with a pluggable embedding provider interface.
 - Expand collection migration dry runs and rollback guidance around the reviewed ingestion job, source metadata, collection versioning, and Qdrant readiness checks.
 - Add examples for customer document-source approvals and retention classes.

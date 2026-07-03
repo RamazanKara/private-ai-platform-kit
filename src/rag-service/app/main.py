@@ -19,6 +19,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from pydantic import BaseModel, Field
 
 from app.embeddings import build_embedding_provider
+from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.reranker import build_reranker_provider
 from app.retriever import LexicalRetriever, QdrantRetriever, VectorStoreError, build_context
 from app.settings import Settings, validate_sandbox_id
@@ -182,6 +183,124 @@ def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
     return response
 
 
+def _jwks_unavailable_response(request: Request) -> JSONResponse:
+    """Build a 503 response when the JWKS issuer is unreachable (not a token rejection).
+
+    An unreachable issuer with no cached keys is an operational failure to retry, distinct
+    from a rejected token (401); returning 503 lets the caller back off instead of treating
+    a transient IdP outage as an auth denial.
+    """
+    AUTH_FAILURES.labels(request.url.path, "jwks_unavailable").inc()
+    response = JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "message": "authentication is temporarily unavailable",
+                "reason": "jwks_unavailable",
+                "request_id": request.state.request_id,
+                "sandbox_id": request.state.sandbox_id,
+            }
+        },
+        headers={"Retry-After": "5"},
+    )
+    response.headers["X-Request-ID"] = request.state.request_id
+    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+    if request.state.traceparent:
+        response.headers["traceparent"] = request.state.traceparent
+    return response
+
+
+def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
+    """Build a 403 when the verified JWT tenant claim is missing/invalid or contradicts the header.
+
+    A verified token that names a tenant is authoritative: a caller that presents such a token
+    but also asserts a different ``X-Sandbox-ID`` is not authorized for that identity, so the
+    request is rejected rather than silently honoring either value.
+    """
+    AUTH_FAILURES.labels(request.url.path, reason).inc()
+    response = JSONResponse(
+        status_code=403,
+        content={
+            "detail": {
+                "message": "sandbox identity is not authorized for this caller",
+                "reason": reason,
+                "request_id": request.state.request_id,
+                "sandbox_id": request.state.sandbox_id,
+            }
+        },
+    )
+    response.headers["X-Request-ID"] = request.state.request_id
+    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
+    if request.state.traceparent:
+        response.headers["traceparent"] = request.state.traceparent
+    return response
+
+
+def _bearer_token_from_request(request: Request) -> str | None:
+    """Return the bearer token from the Authorization header when present and well-formed.
+
+    Only a three-segment ``Bearer <jwt>`` value is treated as a candidate token; anything
+    else (an API key presented as a bearer, a malformed value) yields None so it is handled
+    as "no JWT presented" rather than a verification failure.
+    """
+    authorization = request.headers.get("authorization", "").strip()
+    if not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization[7:].strip()
+    if not token or token.count(".") != 2:
+        return None
+    return token
+
+
+async def _apply_jwt_identity(request: Request, settings: Settings, verifier: JwtVerifier) -> JSONResponse | None:
+    """Verify the bearer JWT and bind the request's tenant to the verified claim.
+
+    Returns a JSONResponse to short-circuit the request (401/403/503), or None to proceed.
+
+    Security contract (mirrors the inference gateway's ``jwt_auth`` wiring):
+
+    - A verified token derives the tenant from ``jwt_tenant_claim``; the request's
+      ``sandbox_id`` is set to that verified value and marked as an explicit assertion, so
+      the tenant-isolation filter scopes retrieval to the tenant the *claim* names — never
+      the client-supplied header. A missing/empty claim -> 403.
+    - A verified token whose tenant contradicts an explicit ``X-Sandbox-ID`` header -> 403
+      (the header cannot override the verified identity).
+    - An *absent* token: fail closed with 401 when ``jwt_required``; otherwise fall through
+      to the existing header-trust behavior (backward compatible) by returning None.
+    - A *present but invalid* token is ALWAYS rejected with 401, regardless of
+      ``jwt_required`` - it is never downgraded to header-trust, or a caller could present a
+      forged token alongside a spoofed ``X-Sandbox-ID`` and read another tenant's corpus.
+    - JWKS unreachable with no cached keys -> 503 (operational, not an auth denial).
+    """
+    token = _bearer_token_from_request(request)
+    if token is None:
+        # No token presented: honor jwt_required, else fall through to header-trust.
+        if settings.jwt_required:
+            return _auth_failure_response(request, "invalid_or_missing_jwt")
+        return None
+    # A token WAS presented, so it must verify. A present-but-invalid token is rejected
+    # here and never falls through to the header-trust path below.
+    try:
+        claims = await verifier.verify(token)
+    except JwksUnavailableError:
+        return _jwks_unavailable_response(request)
+    except JwtAuthError:
+        return _auth_failure_response(request, "invalid_or_missing_jwt")
+    try:
+        bound = validate_sandbox_id(verifier.tenant_from_claims(claims))
+    except (JwtAuthError, ValueError):
+        return _sandbox_binding_response(request, "sandbox_claim_invalid")
+    explicit = request.headers.get("x-sandbox-id")
+    if explicit is not None and validate_sandbox_id(explicit) != bound:
+        return _sandbox_binding_response(request, "sandbox_identity_mismatch")
+    # Bind the tenant to the verified claim. Marking it as an explicit assertion means the
+    # tenant-isolation filter (which only trusts an explicitly-asserted tenant) scopes
+    # retrieval to the verified tenant instead of failing closed on the server default.
+    request.state.sandbox_id = bound
+    request.state.sandbox_id_from_header = True
+    return None
+
+
 def _write_audit_log(
     settings: Settings,
     request: Request,
@@ -298,6 +417,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             tenant_isolation_enabled=resolved.retrieval_tenant_isolation_enabled,
             tenant_field=resolved.retrieval_tenant_field,
         )
+    # One verifier per app: it owns the JWKS cache (last-known-good keys + TTL) so the JWKS
+    # document is not re-fetched on every request. Constructed even when disabled (cheap and
+    # inert) so tests can inject a stub cache onto app.state.jwt_verifier.
+    app.state.jwt_verifier = JwtVerifier(resolved)
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
     app.state.tracer_provider = tracing[1] if tracing else None
@@ -338,6 +461,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 and not _valid_api_key(request, resolved)
             ):
                 return _auth_failure_response(request, "invalid_or_missing_api_key")
+            # Audience-bound JWT: verify the caller's own token and bind the tenant to the
+            # verified claim (overriding/validating X-Sandbox-ID). Runs after the API-key
+            # auth-N check so a caller is authenticated before its identity is trusted, and
+            # only on business paths (health/metrics stay open for probes and scraping).
+            if resolved.jwt_enabled and _auth_required(request.url.path):
+                jwt_response = await _apply_jwt_identity(request, resolved, request.app.state.jwt_verifier)
+                if jwt_response is not None:
+                    return jwt_response
             response = await call_next(request)
             response.headers["X-Request-ID"] = request.state.request_id
             response.headers["X-Sandbox-ID"] = request.state.sandbox_id
@@ -491,12 +622,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     },
                 )
 
-            # Under tenant isolation the tenant must come from a trusted source: the caller's
-            # explicit X-Sandbox-ID (stamped by the gateway from a verified token, or by a
-            # trusted egress proxy). A request that only inherited the server-side default
-            # sandbox is not treated as a tenant assertion, so it fails closed rather than
-            # reading the default sandbox's corpus. (RAG verifying its own token is roadmap
-            # work — see the RAG service runbook and ROADMAP RAG Hardening.)
+            # Under tenant isolation the tenant must come from a trusted source. When JWT
+            # verification is enabled the auth middleware has already bound sandbox_id to the
+            # verified tenant claim (and marked it an explicit assertion); otherwise the trusted
+            # source is the caller's explicit X-Sandbox-ID (stamped by the gateway from a verified
+            # token, or by a trusted egress proxy). A request that only inherited the server-side
+            # default sandbox is not treated as a tenant assertion, so it fails closed rather than
+            # reading the default sandbox's corpus.
             tenant = request.state.sandbox_id
             if resolved.retrieval_tenant_isolation_enabled and not request.state.sandbox_id_from_header:
                 tenant = None

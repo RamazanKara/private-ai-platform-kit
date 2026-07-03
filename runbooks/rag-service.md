@@ -15,6 +15,8 @@ Queries return retrieved document excerpts, a query SHA-256 fingerprint, optiona
 
 When `auth.enabled` is true, `POST /v1/rag/query` and `GET /v1/rag/documents` require `X-API-Key` or `Authorization: Bearer`. Health and metrics remain unauthenticated for Kubernetes probes and scraping.
 
+When `auth.jwt.enabled` is true (see "Trust boundary" below), the service additionally verifies its own audience-bound bearer token (JWKS/issuer/audience/exp/nbf) and derives the caller's tenant from the verified claim.
+
 The local profile uses lexical retrieval. Customer values can switch to the Qdrant vector-store profile with `retrieval.backend=qdrant`; see `runbooks/vector-rag.md` for storage, network, and collection operations.
 
 ## Local Validation
@@ -82,7 +84,15 @@ Per-tenant retrieval isolation is **enabled by default** (`RAG_RETRIEVAL_TENANT_
 
 The bundled **local lexical lab** ships with isolation **off** (`retrieval.tenantIsolation.enabled: false`) because it serves shared platform documents to every caller as a single tenant. **Multi-tenant / customer profiles must set `retrieval.tenantIsolation.enabled: true`** (the customer values file does; confirm it when handing off).
 
-**Trust boundary and remaining work.** The tenant id is the client-asserted `X-Sandbox-ID` header, verified only insofar as a trusted upstream sets it — the inference gateway derives `X-Sandbox-ID` from a verified JWT tenant claim (`JWT_TENANT_CLAIM`, rejecting mismatches), or a workspace egress proxy stamps it. A direct caller holding the shared RAG API key can still assert another tenant's id. **TODO (roadmap — "RAG Hardening"): give the RAG service its own audience-bound token verification (JWKS/audience validation, mirroring the gateway's `jwt_auth`) so the tenant is derived from a verified claim on the RAG service itself rather than trusting the header.** Until then, keep the RAG service reachable only via the gateway or a header-stamping proxy in multi-tenant clusters, and treat the shared API key as an auth-N control, not a tenant boundary.
+**Trust boundary.** By default the tenant id is the client-asserted `X-Sandbox-ID` header, verified only insofar as a trusted upstream sets it — the inference gateway derives `X-Sandbox-ID` from a verified JWT tenant claim (`JWT_TENANT_CLAIM`, rejecting mismatches), or a workspace egress proxy stamps it. Under header-trust a direct caller holding the shared RAG API key can still assert another tenant's id, so keep the RAG service reachable only via the gateway or a header-stamping proxy and treat the shared API key as an auth-N control, not a tenant boundary.
+
+**Audience-bound JWT verification (shipped).** The RAG service now verifies its **own** token so the tenant is derived from a *verified* claim rather than a trusted header. Set `auth.jwt.enabled: true` (with `jwksUrl`, `issuer`, `audience`, and `tenantClaim`; `RAG_JWT_*` env, mirroring the gateway's `jwt_auth`). When enabled, `POST /v1/rag/query` and `GET /v1/rag/documents`:
+
+- Verify the bearer JWT against the JWKS (algorithm pinned to the `HS256`/`RS256`/`ES256` allowlist — never the token header — so alg-confusion is rejected; issuer/audience/exp/nbf enforced).
+- **Derive the tenant from the verified `tenantClaim`** and use *that* for the tenant-isolation filter, ignoring/validating `X-Sandbox-ID`: a header that contradicts the verified claim is rejected (`403 sandbox_identity_mismatch`), and a token that names no tenant is rejected (`403 sandbox_claim_invalid`).
+- Fail closed when `auth.jwt.required: true`: a missing or invalid token is `401`. An unreachable JWKS issuer with no cached keys is `503` (retry), distinct from a token rejection; a transient outage is covered by the last-known-good key cache (`cacheSeconds`).
+
+Header-trust is the fallback when JWT is off (the default; the base chart and local lab keep it off, backward compatible). The customer overlay ships it on as an operator-completed template (`deploy/clusters/customer/values/rag-service.yaml`) — replace the placeholder issuer/JWKS/audience with the real IdP, and point `tenantClaim` at whatever claim uniquely identifies the tenant (it must match the `owner` documents are ingested with). `required: false` there keeps the API-key path as break-glass during IdP outages.
 
 ## Troubleshooting
 

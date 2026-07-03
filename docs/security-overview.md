@@ -128,13 +128,19 @@ release pipeline trust boundary" section of the threat model.
   filter, and the lexical path (whose corpus is stamped with the default sandbox id) applies the same
   owner scoping. **It fails closed:** a tenant with no matching documents — or a request that did not
   explicitly assert `X-Sandbox-ID` (only the server-side default) — receives no documents rather than
-  the whole corpus, and a missing-tenant query never runs an unfiltered search. **Trust boundary:** the
-  tenant id is the `X-Sandbox-ID` header, and the RAG service authenticates callers with a shared API
-  key, so isolation is only trustworthy when the header comes from a trusted path — gateway-fronted
-  traffic that derives `X-Sandbox-ID` from a verified JWT tenant claim, or a workspace egress proxy that
-  stamps it — not against a direct caller under the shared key that asserts another tenant's id. Closing
-  that last gap (the RAG service verifying its own audience-bound token instead of trusting the header)
-  is roadmap work; see the
+  the whole corpus, and a missing-tenant query never runs an unfiltered search. **Verified-claim tenant
+  binding.** The RAG service can now derive the tenant from its **own** verified token rather than a
+  trusted header: with `auth.jwt.enabled` (`RAG_JWT_*`, mirroring the gateway's `jwt_auth` — JWKS with a
+  last-known-good cache, an `HS256`/`RS256`/`ES256` allowlist pinned so alg-confusion is rejected, and
+  issuer/audience/exp/nbf enforcement) the caller's tenant is taken from the verified `tenantClaim` and
+  used for the isolation filter, so a contradicting `X-Sandbox-ID` header is rejected
+  (`sandbox_identity_mismatch`, 403) and, when `required`, a missing/invalid token fails closed (401)
+  while an unreachable issuer with no cached keys returns 503, not a false denial. This closes the last
+  gap for direct callers; header-trust remains the fallback when JWT is off (the default, and the only
+  shipped configuration on the single-tenant local lab). Without a binding the RAG service is
+  header-trusted, so isolation is only trustworthy when the `X-Sandbox-ID` header comes from a trusted
+  path — gateway-fronted traffic that derives it from a verified JWT tenant claim, or a workspace egress
+  proxy that stamps it — not a direct caller under the shared key asserting another tenant's id. See the
   [RAG service runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/rag-service.md),
   the [Vector RAG runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/vector-rag.md),
   and OWASP LLM01.

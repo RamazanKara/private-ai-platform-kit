@@ -31,6 +31,14 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `auth.enabled` | `false` |
 | `auth.existingSecret.key` | `api-key-sha256s` |
 | `auth.existingSecret.name` | `""` |
+| `auth.jwt.audience` | `""` |
+| `auth.jwt.cacheSeconds` | `300` |
+| `auth.jwt.enabled` | `false` |
+| `auth.jwt.issuer` | `""` |
+| `auth.jwt.jwksUrl` | `""` |
+| `auth.jwt.requestTimeoutSeconds` | `5.0` |
+| `auth.jwt.required` | `false` |
+| `auth.jwt.tenantClaim` | `sandbox_id` |
 | `autoscaling.enabled` | `false` |
 | `autoscaling.maxReplicas` | `5` |
 | `autoscaling.minReplicas` | `1` |

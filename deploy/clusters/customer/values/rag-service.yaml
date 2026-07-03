@@ -44,6 +44,30 @@ auth:
   existingSecret:
     name: rag-service-secrets
     key: api-key-sha256s
+  # Audience-bound JWT verification on the RAG service itself. TEMPLATE - the operator MUST
+  # replace the placeholder issuer/JWKS/audience below with their real IdP before this overlay
+  # verifies any token; until then the API-key hashes above remain the only accepted credential.
+  # With this on, the tenant is DERIVED from the verified `tenantClaim` and the tenant-isolation
+  # filter above scopes retrieval to that verified tenant: a token whose claim contradicts the
+  # X-Sandbox-ID header is rejected (403), closing the last gap where a direct caller under the
+  # shared API key could assert another tenant's id. Point `tenantClaim` at whatever claim your
+  # IdP emits to uniquely identify the tenant (commonly `sandbox_id`, else `azp`/`sub`) — it must
+  # match the `owner` value documents are ingested with. `required: true` is MANDATORY for
+  # this multi-tenant profile: with `required: false`, a caller could simply omit the token
+  # and fall back to the (spoofable) X-Sandbox-ID header, reopening the cross-tenant gap this
+  # config exists to close. Use `required: false` only where the RAG service is reachable
+  # exclusively through the gateway (which already verifies the JWT and stamps the header).
+  jwt:
+    enabled: true
+    # Placeholder - well-formed but non-routable example.com URL so Helm rendering and
+    # `make validate` stay green; the service only fetches it once a JWT is presented.
+    jwksUrl: "https://idp.example.com/.well-known/jwks.json"
+    issuer: "https://idp.example.com/"
+    audience: "private-ai-platform-kit-rag"
+    tenantClaim: "sandbox_id"
+    cacheSeconds: 300
+    requestTimeoutSeconds: 5.0
+    required: true
 
 # Without this egress opening, the RAG pod's own NetworkPolicy blocks the embedding
 # calls that `retrieval.embedding` above configures (chart default is disabled).

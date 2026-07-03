@@ -109,6 +109,22 @@ spec:
               {{- else }}
               value: {{ join "," .Values.auth.apiKeyHashes | quote }}
               {{- end }}
+            - name: RAG_JWT_ENABLED
+              value: {{ .Values.auth.jwt.enabled | quote }}
+            - name: RAG_JWT_JWKS_URL
+              value: {{ .Values.auth.jwt.jwksUrl | quote }}
+            - name: RAG_JWT_ISSUER
+              value: {{ .Values.auth.jwt.issuer | quote }}
+            - name: RAG_JWT_AUDIENCE
+              value: {{ .Values.auth.jwt.audience | quote }}
+            - name: RAG_JWT_TENANT_CLAIM
+              value: {{ .Values.auth.jwt.tenantClaim | quote }}
+            - name: RAG_JWT_CACHE_SECONDS
+              value: {{ .Values.auth.jwt.cacheSeconds | quote }}
+            - name: RAG_JWT_REQUEST_TIMEOUT_SECONDS
+              value: {{ .Values.auth.jwt.requestTimeoutSeconds | quote }}
+            - name: RAG_JWT_REQUIRED
+              value: {{ .Values.auth.jwt.required | quote }}
             - name: OTEL_TRACING_ENABLED
               value: {{ .Values.observability.tracing.enabled | quote }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

@@ -132,6 +132,20 @@ class Settings:
     api_key_auth_enabled: bool = False
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
+    # Audience-bound JWT verification. When enabled the RAG service verifies the bearer token
+    # itself (JWKS/issuer/audience/exp/nbf) and DERIVES the caller's tenant from the verified
+    # ``jwt_tenant_claim`` rather than trusting the X-Sandbox-ID header — a header that
+    # contradicts the verified claim is rejected (403). ``jwt_required`` makes a valid token
+    # mandatory (fail closed: no/invalid token -> 401). OFF by default: behavior is unchanged
+    # (header-trust), so single-tenant labs and existing deployments are backward compatible.
+    jwt_enabled: bool = False
+    jwt_jwks_url: str = ""
+    jwt_issuer: str = ""
+    jwt_audience: str = ""
+    jwt_tenant_claim: str = "sandbox_id"
+    jwt_cache_seconds: int = 300
+    jwt_request_timeout_seconds: float = 5.0
+    jwt_required: bool = False
     otel_tracing_enabled: bool = False
     otel_exporter_otlp_endpoint: str = ""
     otel_service_name: str = "rag-service"
@@ -188,6 +202,14 @@ class Settings:
                 raise ValueError("api_key_sha256s must contain SHA-256 hex digests")
         if not self.api_key_header.strip():
             raise ValueError("api_key_header must not be empty")
+        if self.jwt_enabled and not self.jwt_jwks_url:
+            raise ValueError("jwt_jwks_url must be set when JWT verification is enabled")
+        if self.jwt_enabled and not self.jwt_tenant_claim.strip():
+            raise ValueError("jwt_tenant_claim must be set when JWT verification is enabled")
+        if self.jwt_cache_seconds <= 0:
+            raise ValueError("jwt_cache_seconds must be greater than zero")
+        if self.jwt_request_timeout_seconds <= 0:
+            raise ValueError("jwt_request_timeout_seconds must be greater than zero")
         if self.otel_tracing_enabled and not self.otel_exporter_otlp_endpoint:
             raise ValueError("otel_exporter_otlp_endpoint must be set when OTEL tracing is enabled")
 
@@ -229,6 +251,14 @@ class Settings:
             api_key_auth_enabled=_bool_from_env("API_KEY_AUTH_ENABLED", False),
             api_key_sha256s=_sha256s_from_env("API_KEY_SHA256S"),
             api_key_header=os.getenv("API_KEY_HEADER", "X-API-Key"),
+            jwt_enabled=_bool_from_env("RAG_JWT_ENABLED", False),
+            jwt_jwks_url=os.getenv("RAG_JWT_JWKS_URL", "").strip(),
+            jwt_issuer=os.getenv("RAG_JWT_ISSUER", "").strip(),
+            jwt_audience=os.getenv("RAG_JWT_AUDIENCE", "").strip(),
+            jwt_tenant_claim=os.getenv("RAG_JWT_TENANT_CLAIM", "sandbox_id").strip() or "sandbox_id",
+            jwt_cache_seconds=_positive_int_from_env("RAG_JWT_CACHE_SECONDS", 300),
+            jwt_request_timeout_seconds=_positive_float_from_env_first(("RAG_JWT_REQUEST_TIMEOUT_SECONDS",), 5.0),
+            jwt_required=_bool_from_env("RAG_JWT_REQUIRED", False),
             otel_tracing_enabled=_bool_from_env("OTEL_TRACING_ENABLED", False),
             otel_exporter_otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip(),
             otel_service_name=os.getenv("OTEL_SERVICE_NAME", "rag-service").strip(),

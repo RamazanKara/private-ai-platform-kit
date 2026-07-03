@@ -25,6 +25,24 @@ auth:
   existingSecret:
     name: ""
     key: api-key-sha256s
+  # Audience-bound JWT verification. When enabled the RAG service verifies the caller's own
+  # bearer token (JWKS/issuer/audience/exp/nbf) and DERIVES the tenant from the verified
+  # `tenantClaim` — the tenant-isolation filter then scopes retrieval to that verified tenant
+  # instead of trusting the X-Sandbox-ID header (a contradicting header is rejected with 403).
+  # `required: true` makes a valid token mandatory (no/invalid token -> 401); an unreachable
+  # JWKS issuer with no cached keys -> 503. OFF here (the base chart and local lab keep it off):
+  # header-trust is unchanged and backward compatible. Multi-tenant customer profiles enable it
+  # (see deploy/clusters/customer/values/rag-service.yaml) — the same closed identity boundary
+  # the inference gateway provides, now on the RAG service itself.
+  jwt:
+    enabled: false
+    jwksUrl: ""
+    issuer: ""
+    audience: ""
+    tenantClaim: sandbox_id
+    cacheSeconds: 300
+    requestTimeoutSeconds: 5.0
+    required: false
 
 retrieval:
   backend: lexical
