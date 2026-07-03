@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 
@@ -83,13 +84,25 @@ def collect_artifacts() -> list[Artifact]:
         Artifact("Project README", "README.md", "markdown", "tracked"),
         Artifact("Production readiness matrix", "docs/production-readiness.md", "markdown", "tracked"),
         Artifact("API access runbook", "runbooks/api-access.md", "markdown", "tracked"),
-        Artifact("Gateway OpenAPI contract", "platform/api-contracts/inference-gateway.openapi.json", "json", "tracked"),
+        Artifact(
+            "Gateway OpenAPI contract", "platform/api-contracts/inference-gateway.openapi.json", "json", "tracked"
+        ),
         Artifact("RAG OpenAPI contract", "platform/api-contracts/rag-service.openapi.json", "json", "tracked"),
-        Artifact("Gateway configuration contract", "platform/config-contracts/inference-gateway.config.json", "json", "tracked"),
+        Artifact(
+            "Gateway configuration contract",
+            "platform/config-contracts/inference-gateway.config.json",
+            "json",
+            "tracked",
+        ),
         Artifact("RAG configuration contract", "platform/config-contracts/rag-service.config.json", "json", "tracked"),
         Artifact("Agent workspaces runbook", "runbooks/agent-workspaces.md", "markdown", "tracked"),
         Artifact("Tenant onboarding spec", "tenants/onboarding/coding-agents.yaml", "yaml", "tracked"),
-        Artifact("Regulated offline tenant onboarding spec", "tenants/onboarding/regulated-offline-coding-agents.yaml", "yaml", "tracked"),
+        Artifact(
+            "Regulated offline tenant onboarding spec",
+            "tenants/onboarding/regulated-offline-coding-agents.yaml",
+            "yaml",
+            "tracked",
+        ),
         Artifact("Qdrant vector-store chart", "deploy/charts/qdrant-vector-store/", "helm-chart", "tracked"),
         Artifact("Vector RAG runbook", "runbooks/vector-rag.md", "markdown", "tracked"),
         Artifact("Gateway guardrails runbook", "runbooks/guardrails.md", "markdown", "tracked"),
@@ -124,8 +137,16 @@ def collect_artifacts() -> list[Artifact]:
         latest_artifact("Release gate report", ["results/release-gate/*.md"], "markdown"),
         latest_artifact("Supply-chain scan summary", ["results/supply-chain/*.md"], "markdown"),
         latest_artifact("Load-test summary", ["results/loadtest/*.md"], "markdown"),
-        latest_artifact("Restore-drill JSON evidence", ["results/restore-drill/*run*.json", "results/restore-drill/sample-redis-run.json"], "json"),
-        latest_artifact("Restore-drill compliance report", ["results/restore-drill/*compliance*.html", "results/restore-drill/sample-compliance-report.html"], "html"),
+        latest_artifact(
+            "Restore-drill JSON evidence",
+            ["results/restore-drill/*run*.json", "results/restore-drill/sample-redis-run.json"],
+            "json",
+        ),
+        latest_artifact(
+            "Restore-drill compliance report",
+            ["results/restore-drill/*compliance*.html", "results/restore-drill/sample-compliance-report.html"],
+            "html",
+        ),
     ]:
         if artifact is not None:
             artifacts.append(artifact)
@@ -133,7 +154,9 @@ def collect_artifacts() -> list[Artifact]:
 
 
 def control(area: str, ok: bool, summary: str, evidence: list[str], customer_action: str) -> Control:
-    return Control(area=area, status="pass" if ok else "fail", summary=summary, evidence=evidence, customer_action=customer_action)
+    return Control(
+        area=area, status="pass" if ok else "fail", summary=summary, evidence=evidence, customer_action=customer_action
+    )
 
 
 def static_controls() -> list[Control]:
@@ -165,12 +188,16 @@ def static_controls() -> list[Control]:
 
     allowed = set(nested(local_gateway, "runtime", "allowedModels", default=[]))
     allowed.update(nested(customer_gateway, "runtime", "allowedModels", default=[]))
-    catalog_ids = {model.get("id") for model in nested(model_catalog, "spec", "models", default=[]) if isinstance(model, dict)}
+    catalog_ids = {
+        model.get("id") for model in nested(model_catalog, "spec", "models", default=[]) if isinstance(model, dict)
+    }
 
     return [
         control(
             "Local-first customer-owned Kubernetes",
-            "local" in readme and "customer-owned clusters" in readme and exists("deploy/clusters/local/kind-config.yaml", "deploy/clusters/customer/README.md"),
+            "local" in readme
+            and "customer-owned clusters" in readme
+            and exists("deploy/clusters/local/kind-config.yaml", "deploy/clusters/customer/README.md"),
             "The README keeps the core product local-first and portable to customer-owned clusters.",
             ["README.md", "deploy/clusters/local/kind-config.yaml", "deploy/clusters/customer/README.md"],
             "Provide the customer's ingress, storage class, secret backend, GPU nodes, and observability integrations.",
@@ -182,7 +209,11 @@ def static_controls() -> list[Control]:
             and nested(customer_gateway, "auth", "enabled") is True
             and nested(customer_gateway, "auth", "existingSecret", "name"),
             "Gateway business endpoints require API keys in local and customer values.",
-            ["src/inference-gateway/app/main.py", "deploy/charts/inference-gateway/", "deploy/clusters/customer/values/inference-gateway.yaml"],
+            [
+                "src/inference-gateway/app/main.py",
+                "deploy/charts/inference-gateway/",
+                "deploy/clusters/customer/values/inference-gateway.yaml",
+            ],
             "Back customer key hashes with the customer's secret manager and rotate through External Secrets.",
         ),
         control(
@@ -197,7 +228,11 @@ def static_controls() -> list[Control]:
         ),
         control(
             "API contract governance",
-            exists("platform/api-contracts/inference-gateway.openapi.json", "platform/api-contracts/rag-service.openapi.json", "scripts/api-contract.py")
+            exists(
+                "platform/api-contracts/inference-gateway.openapi.json",
+                "platform/api-contracts/rag-service.openapi.json",
+                "scripts/api-contract.py",
+            )
             and executable("scripts/api-contract.py")
             and "api-contract:" in read_text("Makefile")
             and "createChatCompletion" in read_text("platform/api-contracts/inference-gateway.openapi.json")
@@ -209,7 +244,11 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Configuration contract governance",
-            exists("platform/config-contracts/inference-gateway.config.json", "platform/config-contracts/rag-service.config.json", "scripts/config-contract.py")
+            exists(
+                "platform/config-contracts/inference-gateway.config.json",
+                "platform/config-contracts/rag-service.config.json",
+                "scripts/config-contract.py",
+            )
             and executable("scripts/config-contract.py")
             and "config-contract:" in read_text("Makefile")
             and "SANDBOX_BUDGET_REDIS_URL" in read_text("platform/config-contracts/inference-gateway.config.json")
@@ -217,27 +256,50 @@ def static_controls() -> list[Control]:
             and "secretKeyRef" in read_text("deploy/charts/inference-gateway/templates/deployment.yaml")
             and "secretKeyRef" in read_text("deploy/charts/rag-service/templates/deployment.yaml"),
             "Gateway and RAG runtime configuration snapshots are versioned and checked against service settings, Helm env vars, chart defaults, and secret sourcing.",
-            ["platform/config-contracts/", "scripts/config-contract.py", "deploy/charts/inference-gateway/templates/deployment.yaml", "deploy/charts/rag-service/templates/deployment.yaml"],
+            [
+                "platform/config-contracts/",
+                "scripts/config-contract.py",
+                "deploy/charts/inference-gateway/templates/deployment.yaml",
+                "deploy/charts/rag-service/templates/deployment.yaml",
+            ],
             "Review configuration contract diffs before changing customer overlays, runtime endpoints, budget settings, retrieval settings, or auth secrets.",
         ),
         control(
             "Vector RAG profile",
-            exists("deploy/charts/qdrant-vector-store/templates/deployment.yaml", "deploy/clusters/customer/values/qdrant-vector-store.yaml", "runbooks/vector-rag.md")
+            exists(
+                "deploy/charts/qdrant-vector-store/templates/deployment.yaml",
+                "deploy/clusters/customer/values/qdrant-vector-store.yaml",
+                "runbooks/vector-rag.md",
+            )
             and nested(local_rag, "retrieval", "backend") == "lexical"
             and nested(customer_rag, "retrieval", "backend") == "qdrant"
-            and str(nested(customer_rag, "retrieval", "vectorStore", "url", default="")).startswith("http://qdrant-vector-store.vector.svc")
+            and urlparse(str(nested(customer_rag, "retrieval", "vectorStore", "url", default=""))).hostname
+            == "qdrant-vector-store.vector.svc.cluster.local"
             and nested(customer_qdrant, "persistence", "enabled") is True
             and nested(local_qdrant, "persistence", "enabled") is False,
             "The local lab keeps zero-dependency lexical retrieval while customer values enable a persistent Qdrant vector-store profile.",
-            ["deploy/charts/qdrant-vector-store/", "deploy/clusters/customer/values/rag-service.yaml", "deploy/clusters/customer/values/qdrant-vector-store.yaml", "runbooks/vector-rag.md"],
+            [
+                "deploy/charts/qdrant-vector-store/",
+                "deploy/clusters/customer/values/rag-service.yaml",
+                "deploy/clusters/customer/values/qdrant-vector-store.yaml",
+                "runbooks/vector-rag.md",
+            ],
             "Size Qdrant storage and vector dimensions to the customer's embedding strategy before loading production knowledge.",
         ),
         control(
             "Coding-agent workspaces",
-            exists("deploy/charts/agent-workspace/templates/pvc.yaml", "deploy/charts/agent-workspace/templates/rbac.yaml", "deploy/charts/agent-workspace/templates/networkpolicy.yaml")
+            exists(
+                "deploy/charts/agent-workspace/templates/pvc.yaml",
+                "deploy/charts/agent-workspace/templates/rbac.yaml",
+                "deploy/charts/agent-workspace/templates/networkpolicy.yaml",
+            )
             and executable("scripts/agent-smoke.sh"),
             "Agent workspaces include PVC-backed storage, namespace-scoped RBAC, quota, and approved egress.",
-            ["deploy/charts/agent-workspace/", "deploy/clusters/customer/values/agent-workspace.yaml", "runbooks/agent-workspaces.md"],
+            [
+                "deploy/charts/agent-workspace/",
+                "deploy/clusters/customer/values/agent-workspace.yaml",
+                "runbooks/agent-workspaces.md",
+            ],
             "Create one workspace per team, project, or trust boundary and approve any external egress explicitly.",
         ),
         control(
@@ -257,12 +319,21 @@ def static_controls() -> list[Control]:
             and nested(regulated_onboarding, "spec", "network", "allowedEgressCidrs", default=[]) == []
             and nested(regulated_onboarding, "spec", "agentWorkspace", "rbac", "allowJobManagement") is False,
             "A regulated/offline onboarding profile renders coding-agent tenant controls with no external CIDR egress.",
-            ["tenants/onboarding/regulated-offline-coding-agents.yaml", "scripts/tenant-onboard.py", "runbooks/tenant-labs.md"],
+            [
+                "tenants/onboarding/regulated-offline-coding-agents.yaml",
+                "scripts/tenant-onboard.py",
+                "runbooks/tenant-labs.md",
+            ],
             "Use this profile for offline or regulated teams, then add external dependencies only through reviewed catalog-backed changes.",
         ),
         control(
             "Traceable sandbox isolation",
-            exists("deploy/sandbox/base/namespace.yaml", "deploy/sandbox/base/networkpolicy.yaml", "deploy/sandbox/base/resource-controls.yaml", "deploy/sandbox/tests/trace-smoke-job.yaml")
+            exists(
+                "deploy/sandbox/base/namespace.yaml",
+                "deploy/sandbox/base/networkpolicy.yaml",
+                "deploy/sandbox/base/resource-controls.yaml",
+                "deploy/sandbox/tests/trace-smoke-job.yaml",
+            )
             and executable("scripts/trace-smoke.sh"),
             "Sandbox namespaces carry trace labels, quota, limits, default-deny networking, and a smoke job.",
             ["deploy/sandbox/base/", "deploy/sandbox/tests/trace-smoke-job.yaml", "runbooks/traceability-sandbox.md"],
@@ -275,7 +346,11 @@ def static_controls() -> list[Control]:
             and nested(customer_gateway, "budget", "backend") == "redis"
             and nested(customer_gateway, "budget", "requestLimit", default=0) > 0,
             "Gateway replicas share Redis-compatible request, prompt-character, and estimated-token counters.",
-            ["deploy/charts/budget-redis/", "deploy/clusters/customer/values/inference-gateway.yaml", "runbooks/budget-controls.md"],
+            [
+                "deploy/charts/budget-redis/",
+                "deploy/clusters/customer/values/inference-gateway.yaml",
+                "runbooks/budget-controls.md",
+            ],
             "Map budget limits to customer tenant policies and replace bundled Redis with an enterprise service if required.",
         ),
         control(
@@ -289,22 +364,53 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Model lifecycle governance",
-            exists("scripts/model-catalog.py", "runbooks/model-governance.md", "results/model-catalog/sample-summary.md")
+            exists(
+                "scripts/model-catalog.py", "runbooks/model-governance.md", "results/model-catalog/sample-summary.md"
+            )
             and executable("scripts/model-catalog.py")
-            and exists("platform/model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml", "platform/model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml", "platform/model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml"),
+            and exists(
+                "platform/model-catalog/promotion-requests/qwen2.5-local-lab-approved.yaml",
+                "platform/model-catalog/promotion-requests/qwen3.5-customer-lab-approved.yaml",
+                "platform/model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml",
+            ),
             "Approved models require promotion requests, evidence references, runtime metadata, and approved-only gateway allowlists.",
             ["scripts/model-catalog.py", "platform/model-catalog/promotion-requests/", "runbooks/model-governance.md"],
             "Run `make model-check` before changing model status or gateway allowlists.",
         ),
         control(
             "Model provenance governance",
-            exists("platform/governance/model-provenance.yaml", "scripts/model-provenance.py", "runbooks/model-provenance.md", "results/model-provenance/sample-summary.md")
+            exists(
+                "platform/governance/model-provenance.yaml",
+                "scripts/model-provenance.py",
+                "runbooks/model-provenance.md",
+                "results/model-provenance/sample-summary.md",
+            )
             and executable("scripts/model-provenance.py")
-            and len(nested(model_provenance, "spec", "artifacts", default=[])) >= len([item for item in nested(model_catalog, "spec", "models", default=[]) if isinstance(item, dict) and item.get("status") == "approved"])
-            and {"sourceUri", "immutableRef", "digest", "license", "dataClassification", "riskTier", "promotionRequest", "servingProfiles"}
+            and len(nested(model_provenance, "spec", "artifacts", default=[]))
+            >= len(
+                [
+                    item
+                    for item in nested(model_catalog, "spec", "models", default=[])
+                    if isinstance(item, dict) and item.get("status") == "approved"
+                ]
+            )
+            and {
+                "sourceUri",
+                "immutableRef",
+                "digest",
+                "license",
+                "dataClassification",
+                "riskTier",
+                "promotionRequest",
+                "servingProfiles",
+            }
             <= set(nested(model_provenance, "spec", "requiredEvidence", default=[])),
             "Approved models require source, immutable reference, digest, license, risk, data classification, promotion, serving, and evidence metadata.",
-            ["platform/governance/model-provenance.yaml", "scripts/model-provenance.py", "runbooks/model-provenance.md"],
+            [
+                "platform/governance/model-provenance.yaml",
+                "scripts/model-provenance.py",
+                "runbooks/model-provenance.md",
+            ],
             "Replace source-reference digests with customer model-store artifact digests before production use.",
         ),
         control(
@@ -314,44 +420,104 @@ def static_controls() -> list[Control]:
             and "private_key" in nested(customer_gateway, "guardrails", "promptSecretDetection", "patterns", default=[])
             and exists("runbooks/guardrails.md"),
             "Gateway admission rejects obvious credential material before prompts reach Ollama or vLLM.",
-            ["src/inference-gateway/app/settings.py", "deploy/clusters/customer/values/inference-gateway.yaml", "runbooks/guardrails.md"],
+            [
+                "src/inference-gateway/app/settings.py",
+                "deploy/clusters/customer/values/inference-gateway.yaml",
+                "runbooks/guardrails.md",
+            ],
             "Keep secret detection enabled for coding-agent workspaces and tune pattern lists only after review.",
         ),
         control(
             "Validation toolchain",
-            exists("platform/tools/validation-toolchain.yaml", "scripts/toolchain-doctor.py", "scripts/install-validation-tools.sh", "runbooks/validation-toolchain.md", "results/toolchain/sample-summary.md")
+            exists(
+                "platform/tools/validation-toolchain.yaml",
+                "scripts/toolchain-doctor.py",
+                "scripts/install-validation-tools.sh",
+                "runbooks/validation-toolchain.md",
+                "results/toolchain/sample-summary.md",
+            )
             and executable("scripts/toolchain-doctor.py")
             and executable("scripts/install-validation-tools.sh")
-            and {"python3", "helm", "kubeconform", "kyverno", "restore-drill", "k6", "syft", "argocd", "cosign", "trivy"}
+            and {
+                "python3",
+                "helm",
+                "kubeconform",
+                "kyverno",
+                "restore-drill",
+                "k6",
+                "syft",
+                "argocd",
+                "cosign",
+                "trivy",
+            }
             <= set(nested(toolchain, "spec", "profiles", "strict", "required", default=[])),
             "Validation profiles define the core, local-lab, and strict customer-handoff toolchain with a pinned installer.",
-            ["platform/tools/validation-toolchain.yaml", "scripts/toolchain-doctor.py", "scripts/install-validation-tools.sh", "runbooks/validation-toolchain.md"],
+            [
+                "platform/tools/validation-toolchain.yaml",
+                "scripts/toolchain-doctor.py",
+                "scripts/install-validation-tools.sh",
+                "runbooks/validation-toolchain.md",
+            ],
             "Run `make toolchain-install` and `make toolchain-doctor TOOLCHAIN_PROFILE=strict` before strict customer sign-off.",
         ),
         control(
             "Release gates and SLO evidence",
-            exists("platform/slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md", "results/release-gate/sample-summary.md")
+            exists(
+                "platform/slo/release-gates.yaml",
+                "scripts/release-gate.py",
+                "runbooks/release-gates.md",
+                "results/release-gate/sample-summary.md",
+            )
             and executable("scripts/release-gate.py")
             and "release-gate-strict" in read_text("Makefile")
             and "--require-current-evidence" in read_text("scripts/release-gate.py")
-            and {"eval", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "supplyChain", "evidencePack"} <= set(nested(release_gates, "spec", "gates", default={})),
+            and {
+                "eval",
+                "load",
+                "restore",
+                "toolchain",
+                "egress",
+                "retention",
+                "slo",
+                "quota",
+                "modelProvenance",
+                "supplyChain",
+                "evidencePack",
+            }
+            <= set(nested(release_gates, "spec", "gates", default={})),
             "Customer handoff gates check eval, load, restore, strict toolchain, SLO, governance, supply-chain, evidence-pack thresholds, and strict current-evidence mode.",
             ["platform/slo/release-gates.yaml", "scripts/release-gate.py", "runbooks/release-gates.md"],
             "Run `make release-gate-strict` before demos, releases, restore reviews, and production-readiness handoff.",
         ),
         control(
             "SLO and error budget governance",
-            exists("platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "results/slo/sample-summary.md")
+            exists(
+                "platform/slo/objectives.yaml",
+                "scripts/slo-report.py",
+                "runbooks/slo-error-budget.md",
+                "results/slo/sample-summary.md",
+            )
             and executable("scripts/slo-report.py")
             and len(nested(slo_objectives, "spec", "objectives", default=[])) >= 5
-            and "InferenceGatewayErrorBudgetFastBurn" in read_text("deploy/observability/alerts/ai-platform-alerts.yaml"),
+            and "InferenceGatewayErrorBudgetFastBurn"
+            in read_text("deploy/observability/alerts/ai-platform-alerts.yaml"),
             "SLO objectives cover inference availability, latency, eval pass rate, restore verification, and coding-agent platform readiness.",
-            ["platform/slo/objectives.yaml", "scripts/slo-report.py", "runbooks/slo-error-budget.md", "deploy/observability/alerts/ai-platform-alerts.yaml"],
+            [
+                "platform/slo/objectives.yaml",
+                "scripts/slo-report.py",
+                "runbooks/slo-error-budget.md",
+                "deploy/observability/alerts/ai-platform-alerts.yaml",
+            ],
             "Set targets to the customer's contract and review error-budget burn alerts before production use.",
         ),
         control(
             "Quota and chargeback governance",
-            exists("platform/governance/quota-plans.yaml", "scripts/quota-check.py", "runbooks/quota-chargeback.md", "results/quota/sample-summary.md")
+            exists(
+                "platform/governance/quota-plans.yaml",
+                "scripts/quota-check.py",
+                "runbooks/quota-chargeback.md",
+                "results/quota/sample-summary.md",
+            )
             and executable("scripts/quota-check.py")
             and len(nested(quota_plans, "spec", "plans", default=[])) >= 3
             and {"platform.ai/owner", "platform.ai/cost-center", "platform.ai/environment", "platform.ai/sandbox-id"}
@@ -362,9 +528,19 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Egress governance for coding agents",
-            exists("platform/network/egress-catalog.yaml", "scripts/egress-governance.py", "runbooks/egress-governance.md", "results/egress-governance/sample-summary.md")
+            exists(
+                "platform/network/egress-catalog.yaml",
+                "scripts/egress-governance.py",
+                "runbooks/egress-governance.md",
+                "results/egress-governance/sample-summary.md",
+            )
             and executable("scripts/egress-governance.py")
-            and "customer-git-artifact-mirror-example" in {entry.get("id") for entry in nested(egress_catalog, "spec", "entries", default=[]) if isinstance(entry, dict)}
+            and "customer-git-artifact-mirror-example"
+            in {
+                entry.get("id")
+                for entry in nested(egress_catalog, "spec", "entries", default=[])
+                if isinstance(entry, dict)
+            }
             and "catalogRef" in read_text("tenants/onboarding/coding-agents.yaml"),
             "External coding-agent egress must reference approved catalog entries before NetworkPolicies allow it.",
             ["platform/network/egress-catalog.yaml", "scripts/egress-governance.py", "runbooks/egress-governance.md"],
@@ -372,7 +548,12 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Data retention and privacy governance",
-            exists("platform/governance/data-retention.yaml", "scripts/retention-check.py", "runbooks/data-retention.md", "results/retention/sample-summary.md")
+            exists(
+                "platform/governance/data-retention.yaml",
+                "scripts/retention-check.py",
+                "runbooks/data-retention.md",
+                "results/retention/sample-summary.md",
+            )
             and executable("scripts/retention-check.py")
             and nested(retention_policy, "spec", "classes", "auditLogs", "storesRawPrompt") is False
             and nested(retention_policy, "spec", "classes", "auditLogs", "storesRawQuery") is False,
@@ -382,8 +563,15 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Advanced chaos drills",
-            exists("chaos/drills/gpu-capacity-preflight.yaml", "chaos/drills/qdrant-vector-store-rollout.yaml", "chaos/drills/vllm-runtime-rollout.yaml", "scripts/chaos-drill.sh", "runbooks/chaos-drills.md")
-            and {"gpu-capacity-preflight", "qdrant-vector-store-rollout", "vllm-runtime-rollout", "rag-service-rollout"} <= chaos_drill_names
+            exists(
+                "chaos/drills/gpu-capacity-preflight.yaml",
+                "chaos/drills/qdrant-vector-store-rollout.yaml",
+                "chaos/drills/vllm-runtime-rollout.yaml",
+                "scripts/chaos-drill.sh",
+                "runbooks/chaos-drills.md",
+            )
+            and {"gpu-capacity-preflight", "qdrant-vector-store-rollout", "vllm-runtime-rollout", "rag-service-rollout"}
+            <= chaos_drill_names
             and "capacity-preflight" in read_text("chaos/drills/gpu-capacity-preflight.yaml")
             and "EXPECTED_RAG_BACKEND=qdrant" in read_text("chaos/drills/qdrant-vector-store-rollout.yaml"),
             "The chaos catalog covers RAG, vector-store, vLLM runtime, and GPU capacity preflight drills in addition to core rollouts.",
@@ -396,23 +584,37 @@ def static_controls() -> list[Control]:
             and nested(vllm_amd, "accelerator", "resourceName") == "amd.com/gpu"
             and "rocm" in str(nested(vllm_amd, "image", "repository", default="")).lower(),
             "vLLM customer values include NVIDIA CUDA and AMD ROCm scheduling profiles.",
-            ["deploy/clusters/customer/values/vllm-nvidia.yaml", "deploy/clusters/customer/values/vllm-amd.yaml", "runbooks/gpu-capacity.md"],
+            [
+                "deploy/clusters/customer/values/vllm-nvidia.yaml",
+                "deploy/clusters/customer/values/vllm-amd.yaml",
+                "runbooks/gpu-capacity.md",
+            ],
             "Verify the customer's GPU device plugin resource names and node labels before enabling replicas.",
         ),
         control(
             "Multi-replica runtime availability",
             nested(customer_gateway, "replicaCount", default=0) >= 2
             and nested(customer_gateway, "keda", "enabled") is True
-            and (nested(vllm_nvidia, "autoscaling", "enabled") is True or nested(vllm_nvidia, "keda", "enabled") is True)
+            and (
+                nested(vllm_nvidia, "autoscaling", "enabled") is True or nested(vllm_nvidia, "keda", "enabled") is True
+            )
             and (nested(vllm_amd, "autoscaling", "enabled") is True or nested(vllm_amd, "keda", "enabled") is True),
             "Customer profiles demonstrate multiple replicas, autoscaling, PDBs, and topology spread.",
-            ["deploy/clusters/customer/values/inference-gateway.yaml", "deploy/clusters/customer/values/vllm.yaml", "deploy/charts/inference-gateway/templates/pdb.yaml"],
+            [
+                "deploy/clusters/customer/values/inference-gateway.yaml",
+                "deploy/clusters/customer/values/vllm.yaml",
+                "deploy/charts/inference-gateway/templates/pdb.yaml",
+            ],
             "Tune min/max replicas to customer SLOs, GPU inventory, and maintenance windows.",
         ),
         control(
             "Observability and cost labels",
-            exists("deploy/observability/alerts/ai-platform-alerts.yaml", "deploy/observability/dashboards/inference-dashboard.json")
-            and "platform.ai/cost-center" in set(nested(quota_plans, "spec", "chargeback", "requiredLabels", default=[])),
+            exists(
+                "deploy/observability/alerts/ai-platform-alerts.yaml",
+                "deploy/observability/dashboards/inference-dashboard.json",
+            )
+            and "platform.ai/cost-center"
+            in set(nested(quota_plans, "spec", "chargeback", "requiredLabels", default=[])),
             "Metrics, alerts, dashboards, and cost-label expectations are documented and versioned.",
             ["deploy/observability/", "docs/production-readiness.md"],
             "Connect these signals to the customer's Prometheus, logs, dashboard, and chargeback systems.",
@@ -444,20 +646,40 @@ def static_controls() -> list[Control]:
         ),
         control(
             "Restore-drill integration",
-            exists("deploy/backup/restore-drill/drills/local-redis-aof.yaml", "scripts/restore-drill.sh", "results/restore-drill/sample-redis-run.json")
+            exists(
+                "deploy/backup/restore-drill/drills/local-redis-aof.yaml",
+                "scripts/restore-drill.sh",
+                "results/restore-drill/sample-redis-run.json",
+            )
             and "RamazanKara/restore-drill" in read_text("deploy/backup/restore-drill/README.md"),
             "Application-data restore verification uses the restore-drill project, with Velero examples kept separate.",
-            ["deploy/backup/restore-drill/", "results/restore-drill/sample-redis-run.json", "runbooks/restore-drill.md"],
+            [
+                "deploy/backup/restore-drill/",
+                "results/restore-drill/sample-redis-run.json",
+                "runbooks/restore-drill.md",
+            ],
             "Run scheduled drills against each critical customer data store and retain generated reports per policy.",
         ),
         control(
             "Evaluation, load, and incident evidence",
-            exists("platform/evals/smoke-suite.yaml", "platform/evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/evals/sample-coding-agent-summary.md", "results/loadtest/sample-summary.md")
+            exists(
+                "platform/evals/smoke-suite.yaml",
+                "platform/evals/coding-agent-suite.yaml",
+                "results/evals/sample-summary.md",
+                "results/evals/sample-coding-agent-summary.md",
+                "results/loadtest/sample-summary.md",
+            )
             and executable("scripts/eval.sh")
             and executable("scripts/loadtest.sh")
             and executable("scripts/loadtest-local.sh"),
             "The lab stores smoke and coding-agent evaluation summaries alongside load-test, incident, and chaos evidence.",
-            ["platform/evals/smoke-suite.yaml", "platform/evals/coding-agent-suite.yaml", "results/evals/sample-summary.md", "results/loadtest/sample-summary.md", "scripts/loadtest-local.sh"],
+            [
+                "platform/evals/smoke-suite.yaml",
+                "platform/evals/coding-agent-suite.yaml",
+                "results/evals/sample-summary.md",
+                "results/loadtest/sample-summary.md",
+                "scripts/loadtest-local.sh",
+            ],
             "Keep customer-specific evaluation and load results with release evidence.",
         ),
         control(
@@ -472,12 +694,19 @@ def static_controls() -> list[Control]:
             and executable("scripts/agent-sandbox-smoke.sh")
             and "ai-platform-hardened-sandboxes" in read_text("deploy/policies/kyverno/policies.yaml"),
             "Coding-agent workspaces run on the vendored kubernetes-sigs/agent-sandbox runtime as standard (ADR 0010), with a hardened, Kyverno-enforced pod template and a fail-closed egress smoke (C-ISOLATE).",
-            ["deploy/vendor/agent-sandbox/", "deploy/charts/agent-workspace/templates/sandbox.yaml", "deploy/policies/kyverno/policies.yaml", "docs/agent-sandbox-integration.md"],
+            [
+                "deploy/vendor/agent-sandbox/",
+                "deploy/charts/agent-workspace/templates/sandbox.yaml",
+                "deploy/policies/kyverno/policies.yaml",
+                "docs/agent-sandbox-integration.md",
+            ],
             "Install the controller (make agent-sandbox-install or the agent-sandbox-controller application); run make agent-sandbox-smoke for live proof.",
         ),
         control(
             "Production validation command",
-            executable("scripts/production-check.py") and executable("scripts/validate.sh") and "Evidence pack" in production_doc,
+            executable("scripts/production-check.py")
+            and executable("scripts/validate.sh")
+            and "Evidence pack" in production_doc,
             "`make validate` and `make production-check` include static readiness gates.",
             ["scripts/production-check.py", "scripts/validate.sh", "docs/production-readiness.md"],
             "Run static validation before demos, upgrades, and handoff reviews.",
@@ -502,7 +731,9 @@ def live_controls() -> list[Control]:
             Control(
                 area=f"Live namespace: {namespace}",
                 status="pass" if ok else "fail",
-                summary=f"Namespace `{namespace}` is reachable." if ok else f"Namespace `{namespace}` is not ready: {error}",
+                summary=f"Namespace `{namespace}` is reachable."
+                if ok
+                else f"Namespace `{namespace}` is not ready: {error}",
                 evidence=[f"kubectl get namespace {namespace}"],
                 customer_action="Re-run local sync or inspect cluster access before using this evidence pack.",
             )
@@ -521,7 +752,9 @@ def live_controls() -> list[Control]:
             Control(
                 area=f"Live deployment: {namespace}/{name}",
                 status="pass" if ready else "fail",
-                summary=f"Deployment has {available}/{desired} available replicas." if ok else f"Deployment is not reachable: {error}",
+                summary=f"Deployment has {available}/{desired} available replicas."
+                if ok
+                else f"Deployment is not reachable: {error}",
                 evidence=[f"kubectl -n {namespace} get deployment {name}"],
                 customer_action="Check rollout status, image pull, probes, resource quota, and network policy.",
             )
@@ -541,13 +774,17 @@ def live_controls() -> list[Control]:
 
     crd_ok, _, _ = kubectl_json(["get", "crd", "sandboxes.agents.x-k8s.io"])
     if crd_ok:
-        dep_ok, dep, error = kubectl_json(["-n", "agent-sandbox-system", "get", "deployment", "agent-sandbox-controller"])
+        dep_ok, dep, error = kubectl_json(
+            ["-n", "agent-sandbox-system", "get", "deployment", "agent-sandbox-controller"]
+        )
         available = nested(dep, "status", "availableReplicas", default=0) or 0
         checks.append(
             Control(
                 area="Live agent-sandbox controller",
                 status="pass" if dep_ok and available >= 1 else "fail",
-                summary=f"agent-sandbox controller has {available} available replica(s)." if dep_ok else f"Controller is not reachable: {error}",
+                summary=f"agent-sandbox controller has {available} available replica(s)."
+                if dep_ok
+                else f"Controller is not reachable: {error}",
                 evidence=["kubectl -n agent-sandbox-system get deployment agent-sandbox-controller"],
                 customer_action="Re-run make agent-sandbox-install or inspect the controller rollout before relying on the sandbox runtime.",
             )
@@ -569,7 +806,9 @@ def markdown_escape(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", " ")
 
 
-def write_markdown(path: Path, generated_at: str, controls: list[Control], artifacts: list[Artifact], live: bool) -> None:
+def write_markdown(
+    path: Path, generated_at: str, controls: list[Control], artifacts: list[Artifact], live: bool
+) -> None:
     passes = sum(1 for item in controls if item.status == "pass")
     failures = sum(1 for item in controls if item.status == "fail")
     lines = [
@@ -659,9 +898,13 @@ def write_json(path: Path, generated_at: str, controls: list[Control], artifacts
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate or validate a Private AI Platform Kit customer evidence pack.")
+    parser = argparse.ArgumentParser(
+        description="Generate or validate a Private AI Platform Kit customer evidence pack."
+    )
     parser.add_argument("--output-dir", default="results/evidence")
-    parser.add_argument("--check", action="store_true", help="Validate static evidence-pack inputs without writing a report.")
+    parser.add_argument(
+        "--check", action="store_true", help="Validate static evidence-pack inputs without writing a report."
+    )
     parser.add_argument("--live", action="store_true", help="Include live Kubernetes readiness checks.")
     args = parser.parse_args()
 

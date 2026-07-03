@@ -452,7 +452,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
             request.state.traceparent = _traceparent_from_header(request)
         except ValueError as exc:
-            return JSONResponse(status_code=400, content={"detail": str(exc)})
+            # Log the specific validation reason server-side; return a generic message so no
+            # exception text is reflected to the caller.
+            logging.getLogger("uvicorn.error").warning("rejected malformed request header: %s", exc)
+            return JSONResponse(status_code=400, content={"detail": "malformed request header"})
 
         async def dispatch() -> Response:
             if (

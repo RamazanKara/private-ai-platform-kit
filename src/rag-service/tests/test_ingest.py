@@ -148,8 +148,10 @@ def test_build_chunks_and_chunk_record_payload(tmp_path):
     assert payload["collection_version"] == "v2"
     assert payload["document_path"] == "guide.md"
     assert payload["classification"] == "internal"
-    # point_id is a deterministic UUIDv5 derived from version, source, path, and index.
-    assert first.point_id == first.point_id
+    # point_id is a deterministic UUIDv5 derived from version, source, path, and index:
+    # rebuilding the identical chunk yields the identical id.
+    rebuilt = build_chunks([source], chunk_chars=200, overlap_chars=20, collection_version="v2")
+    assert rebuilt[0].point_id == first.point_id
     assert len(first.point_id) == 36
 
 

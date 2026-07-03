@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Security
+
+- Header-validation failures on the gateway and RAG service now return a generic
+  `malformed request header` message and log the specific reason server-side, instead of
+  reflecting the validation exception text to the caller (CodeQL py/stack-trace-exposure).
+- The build/validation scripts verify image registries and the vector-store URL by exact
+  registry/host match rather than a substring or prefix check (CodeQL
+  py/incomplete-url-substring-sanitization).
+
 ## v0.23.0 - 2026-07-03
 
 The last two implementable items from the capability-audit remediation: the RAG service
