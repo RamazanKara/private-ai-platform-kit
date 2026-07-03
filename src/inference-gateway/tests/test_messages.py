@@ -465,3 +465,187 @@ def test_messages_image_block_is_metered_by_max_image_bytes():
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "image_too_large"
     assert fake.calls == 0
+
+
+# --- Unit coverage for the Anthropic<->OpenAI translation helpers -----------
+
+from app.messages import (  # noqa: E402
+    MessagesRequest,
+    _system_text,
+    _tool_result_text,
+    _translate_tool_choice,
+    _translate_tools,
+    anthropic_to_chat_payload,
+    chat_completion_to_anthropic,
+)
+
+
+def test_system_text_flattens_string_list_and_other():
+    assert _system_text(None) == ""
+    assert _system_text("be terse") == "be terse"
+    assert _system_text([{"type": "text", "text": "a"}, "b", {"type": "image"}]) == "a\nb"
+    assert _system_text(42) == "42"
+
+
+def test_tool_result_text_variants():
+    assert _tool_result_text(None) == ""
+    assert _tool_result_text("done") == "done"
+    assert _tool_result_text([{"type": "text", "text": "x"}, "y"]) == "xy"
+    # A list with no text parts is JSON-serialized rather than dropped.
+    assert _tool_result_text([{"type": "image"}]) == '[{"type": "image"}]'
+    assert _tool_result_text(7) == "7"
+
+
+def test_translate_tools_anthropic_and_passthrough():
+    assert _translate_tools("nope") is None
+    out = _translate_tools(
+        [
+            {"name": "get_weather", "description": "d", "input_schema": {"type": "object"}},
+            {"type": "function", "function": {"name": "already"}},
+            "skip-me",
+        ]
+    )
+    assert out[0] == {
+        "type": "function",
+        "function": {"name": "get_weather", "description": "d", "parameters": {"type": "object"}},
+    }
+    assert out[1] == {"type": "function", "function": {"name": "already"}}
+    assert len(out) == 2
+    # Missing input_schema gets a permissive default object schema.
+    assert _translate_tools([{"name": "n"}])[0]["function"]["parameters"] == {"type": "object", "properties": {}}
+
+
+def test_translate_tool_choice_mapping():
+    assert _translate_tool_choice("nope") is None
+    assert _translate_tool_choice({"type": "auto"}) == "auto"
+    assert _translate_tool_choice({"type": "any"}) == "required"
+    assert _translate_tool_choice({"type": "none"}) == "none"
+    assert _translate_tool_choice({"type": "tool", "name": "f"}) == {"type": "function", "function": {"name": "f"}}
+    assert _translate_tool_choice({"type": "tool"}) is None
+    assert _translate_tool_choice({"type": "unknown"}) is None
+
+
+def test_anthropic_to_chat_payload_full_translation():
+    request = MessagesRequest(
+        model="m",
+        max_tokens=32,
+        temperature=0.5,
+        top_p=0.9,
+        stop_sequences=["STOP"],
+        system=[{"type": "text", "text": "sys"}],
+        tools=[{"name": "t", "input_schema": {"type": "object"}}],
+        tool_choice={"type": "auto"},
+        messages=[
+            {"role": "user", "content": "hello"},
+            {
+                "role": "assistant",
+                "content": [{"type": "tool_use", "id": "tu1", "name": "t", "input": {"a": 1}}],
+            },
+            {
+                "role": "user",
+                "content": [{"type": "tool_result", "tool_use_id": "tu1", "content": "result-text"}],
+            },
+        ],
+    )
+    payload = anthropic_to_chat_payload(request)
+
+    assert payload["messages"][0] == {"role": "system", "content": "sys"}
+    assert payload["messages"][1] == {"role": "user", "content": "hello"}
+    # Assistant tool_use → content=null + tool_calls.
+    assistant = payload["messages"][2]
+    assert assistant["role"] == "assistant" and assistant["content"] is None
+    assert assistant["tool_calls"][0]["function"]["name"] == "t"
+    # tool_result → a role:"tool" message.
+    assert any(m.get("role") == "tool" and m.get("content") == "result-text" for m in payload["messages"])
+    assert payload["max_tokens"] == 32
+    assert payload["model"] == "m"
+    assert payload["temperature"] == 0.5
+    assert payload["top_p"] == 0.9
+    assert payload["stop"] == ["STOP"]
+    assert payload["tools"][0]["function"]["name"] == "t"
+    assert payload["tool_choice"] == "auto"
+
+
+def test_anthropic_to_chat_payload_converts_image_blocks():
+    request = MessagesRequest(
+        max_tokens=16,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "look"},
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": "QUJD"}},
+                    {"type": "image", "source": {"type": "url", "url": "https://x/y.png"}},
+                ],
+            }
+        ],
+    )
+    parts = anthropic_to_chat_payload(request)["messages"][0]["content"]
+    urls = [p["image_url"]["url"] for p in parts if p.get("type") == "image_url"]
+    assert "data:image/png;base64,QUJD" in urls
+    assert "https://x/y.png" in urls
+
+
+def test_chat_completion_to_anthropic_text_and_usage():
+    out = chat_completion_to_anthropic(
+        {
+            "id": "cmpl-1",
+            "model": "srv-model",
+            "choices": [{"message": {"content": "hi there"}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 7, "completion_tokens": 3},
+        },
+        request_model="req-model",
+    )
+    assert out["type"] == "message" and out["role"] == "assistant"
+    assert out["id"] == "cmpl-1" and out["model"] == "srv-model"
+    assert out["content"] == [{"type": "text", "text": "hi there"}]
+    assert out["stop_reason"] == "end_turn"
+    assert out["usage"] == {"input_tokens": 7, "output_tokens": 3}
+
+
+def test_chat_completion_to_anthropic_finish_reason_mapping():
+    def stop_reason(fr):
+        return chat_completion_to_anthropic(
+            {"choices": [{"message": {"content": "x"}, "finish_reason": fr}]}, request_model="m"
+        )["stop_reason"]
+
+    assert stop_reason("length") == "max_tokens"
+    assert stop_reason("tool_calls") == "tool_use"
+    assert stop_reason("content_filter") == "end_turn"
+    assert stop_reason("something-else") == "end_turn"
+
+
+def test_chat_completion_to_anthropic_tool_calls_and_bad_args():
+    out = chat_completion_to_anthropic(
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": None,
+                        "tool_calls": [
+                            {"id": "c1", "function": {"name": "f", "arguments": '{"a": 1}'}},
+                            {"id": "c2", "function": {"name": "g", "arguments": "not-json"}},
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ]
+        },
+        request_model="m",
+    )
+    tool_uses = [b for b in out["content"] if b["type"] == "tool_use"]
+    assert tool_uses[0]["input"] == {"a": 1}
+    # Un-parseable arguments are preserved rather than lost.
+    assert tool_uses[1]["input"] == {"_raw_arguments": "not-json"}
+    # Missing usage defaults to zeros; missing id/model get generated/empty.
+    assert out["usage"] == {"input_tokens": 0, "output_tokens": 0}
+    assert out["id"].startswith("msg_")
+    assert out["model"] == "m"
+
+
+def test_chat_completion_to_anthropic_list_content_parts():
+    out = chat_completion_to_anthropic(
+        {"choices": [{"message": {"content": [{"type": "text", "text": "p1"}, {"type": "other"}]}}]},
+        request_model="m",
+    )
+    assert out["content"] == [{"type": "text", "text": "p1"}]
