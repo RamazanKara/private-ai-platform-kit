@@ -5,7 +5,7 @@ Use this checklist before trusting a public release in a customer-owned cluster.
 Set the release and repository once:
 
 ```bash
-export RELEASE=v0.15.0
+export RELEASE=v0.16.0
 export IMAGE_REPO=ghcr.io/ramazankara/private-ai-platform-kit
 ```
 

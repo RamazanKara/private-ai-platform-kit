@@ -13,8 +13,8 @@ authors:
 repository-code: "https://github.com/RamazanKara/private-ai-platform-kit"
 url: "https://github.com/RamazanKara/private-ai-platform-kit"
 license: Apache-2.0
-version: 0.15.0
-date-released: "2026-07-02"
+version: 0.16.0
+date-released: "2026-07-03"
 keywords:
   - kubernetes
   - gitops
