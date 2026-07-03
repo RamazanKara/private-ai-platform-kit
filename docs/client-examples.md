@@ -56,6 +56,12 @@ curl -fsS "$GATEWAY/v1/completions" \
   -H 'Content-Type: application/json' \
   -d '{"prompt":"Write a haiku about the sea.","max_tokens":64}'
 
+# Native Anthropic Messages API (governed like chat, non-streaming). max_tokens is required.
+curl -fsS "$GATEWAY/v1/messages" \
+  -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"qwen2.5:0.5b","max_tokens":64,"messages":[{"role":"user","content":"hello"}]}'
+
 # Moderations (content policy classification)
 curl -fsS "$GATEWAY/v1/moderations" \
   -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
@@ -82,6 +88,39 @@ budget, output guardrail, and audit — so legacy-completion traffic is not a co
 Streaming is **not** supported on `/v1/completions` in this release (send `stream: false`,
 or use `/v1/chat/completions` for streaming); a streaming request is rejected with a clear
 `streaming_not_supported` error. Prefer `/v1/chat/completions` for new integrations.
+
+## Native Anthropic Messages API (`/v1/messages`)
+
+The gateway exposes a **native** Anthropic-shaped `/v1/messages` endpoint, so Anthropic-SDK
+and Claude-style agents can point at the gateway directly — no translation sidecar required
+for the common case. The Anthropic request and response are translated to and from the
+internal OpenAI chat shape and run through the **same** governance path as chat (model
+allowlist, admission limits, prompt secret policy, sandbox budget, output guardrail, and
+audit), so `/v1/messages` traffic is not a control bypass. Anthropic **requires**
+`max_tokens`; a request that omits it is rejected, and the value is also enforced against the
+gateway's completion-token cap. The response is an Anthropic `Message` (`type: "message"`,
+`content` blocks, `stop_reason`, `usage.input_tokens`/`output_tokens`).
+
+```bash
+curl -fsS "$GATEWAY/v1/messages" \
+  -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "model": "qwen2.5:0.5b",
+        "max_tokens": 128,
+        "system": "You are a terse assistant.",
+        "messages": [{"role": "user", "content": "Give me one fact about the sea."}]
+      }'
+```
+
+Translation is faithful but pragmatic: message and `system` text are exact; Anthropic tool
+definitions (`name`/`description`/`input_schema`) and `tool_use`/`tool_result` content blocks
+are mapped to their closest OpenAI equivalents on a best-effort basis. Streaming is **not**
+supported on `/v1/messages` in this release (send `stream: false`, or use
+`/v1/chat/completions` for OpenAI-shaped streaming); a streaming request is rejected with a
+clear `streaming_not_supported` error. For Anthropic-shaped features the native endpoint does
+not yet cover, such as streaming or blocks with no OpenAI equivalent, the translation-sidecar
+approach below remains available.
 
 ## Error responses
 
@@ -231,17 +270,17 @@ http://<gateway-host>/v1`, the API key, and a `requestOptions.headers` entry set
 > Frameworks that cannot set a custom header should bind the sandbox with a JWT tenant claim
 > (`auth.jwt.tenantClaim`) so per-sandbox budgets and attribution cannot be spoofed.
 
-## Anthropic SDK / Claude-style agents (translation sidecar)
+## Anthropic SDK / Claude-style agents (translation sidecar — alternative)
 
-The gateway speaks the **OpenAI chat-completions** protocol. It does **not** implement the
-native Anthropic Messages API (`/v1/messages`). Anthropic-SDK or Claude-style agents that
-require `/v1/messages` can still run against the gateway by putting a small protocol
-**translation sidecar** in front of it — for example a [LiteLLM](https://docs.litellm.ai/)
-proxy that exposes an Anthropic-shaped `/v1/messages` endpoint and forwards to the gateway's
-`/v1/chat/completions`. The sidecar does the Anthropic-to-OpenAI request/response
-translation; the gateway still applies auth, model allowlists, budgets, guardrails, and
-audit. Point the sidecar's upstream at the gateway and set the platform headers on the
-forwarded request.
+The gateway now exposes a native Anthropic `/v1/messages` endpoint (see above), which is the
+preferred path for Anthropic-SDK and Claude-style agents. A translation **sidecar** remains a
+supported **alternative** for Anthropic-shaped features the native endpoint does not yet cover
+(most notably streaming, and content blocks with no OpenAI equivalent) — for example a
+[LiteLLM](https://docs.litellm.ai/) proxy that exposes an Anthropic-shaped `/v1/messages`
+endpoint and forwards to the gateway's `/v1/chat/completions`. The sidecar does the
+Anthropic-to-OpenAI request/response translation; the gateway still applies auth, model
+allowlists, budgets, guardrails, and audit. Point the sidecar's upstream at the gateway and
+set the platform headers on the forwarded request.
 
 Minimal LiteLLM config sketch (`config.yaml`), with the gateway as the OpenAI-compatible
 upstream:
@@ -261,8 +300,8 @@ model_list:
 litellm --config config.yaml   # serves an Anthropic-compatible /v1/messages
 ```
 
-Anthropic-SDK clients then point `base_url` at the sidecar (not the gateway directly). This
-is a translation shim, not native support: features without an OpenAI chat-completions
-equivalent are limited by what the sidecar can map. See
-[Scope and non-goals](scope-and-non-goals.md) for the exact list of protocol surfaces the
-gateway does and does not implement.
+Anthropic-SDK clients then point `base_url` at the sidecar (rather than the gateway's native
+`/v1/messages`) only when they need Anthropic behavior the native endpoint does not yet cover:
+this is a translation shim, and features without an OpenAI chat-completions equivalent are
+limited by what the sidecar can map. See [Scope and non-goals](scope-and-non-goals.md) for the
+exact list of protocol surfaces the gateway does and does not implement.

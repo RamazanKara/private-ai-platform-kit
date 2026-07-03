@@ -40,6 +40,11 @@ the runtime controls. All are documented per-control in the OWASP mapping and th
 - **Authentication.** API-key SHA-256 digest auth (`API_KEY_AUTH_ENABLED`, `API_KEY_SHA256S`) and/or
   JWT bearer auth with JWKS-backed HS256/RS256/ES256 verification
   ([`src/inference-gateway/app/jwt_auth.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/jwt_auth.py)).
+  Signature and standard-claim checks are performed by the maintained
+  [PyJWT](https://pyjwt.readthedocs.io/) library (`jwt.decode`), with the verifying algorithm pinned
+  to the configured allowlist rather than read from the token header (alg-confusion defense); the
+  gateway retains its own JWKS fetch, last-known-good cache, and the 503-vs-401 distinction (issuer
+  unreachable with no cached keys is a retryable 503, a rejected token is a 401).
   Optional **API-key records** (`API_KEY_RECORDS_PATH`,
   [`src/inference-gateway/app/key_records.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/key_records.py))
   add per-key scopes, expiry (`api_key_expired` on a stale key), sandbox binding, and budget overrides

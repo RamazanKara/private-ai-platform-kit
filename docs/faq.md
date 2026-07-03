@@ -57,12 +57,17 @@ quantization, and guided/speculative decoding. See
 
 ### Can I use the Anthropic SDK / Claude-style agents against it?
 
-Not natively. The gateway speaks the OpenAI chat-completions protocol and does **not**
-implement the native Anthropic Messages API (`/v1/messages`). Claude-style agents can still
-run against it through a translation sidecar (e.g. a LiteLLM proxy that exposes
-`/v1/messages` and forwards to the gateway's `/v1/chat/completions`); a concrete config
-sketch is in [Client examples](client-examples.md). The full list of OpenAI/Anthropic
-surfaces the gateway does and does not implement is in
+Yes. The gateway exposes a native Anthropic `/v1/messages` endpoint. The Anthropic request
+and response are translated to and from the internal OpenAI chat shape and run through the
+**same** governance path as `/v1/chat/completions` (auth, model allowlist, admission limits,
+prompt-secret policy, budget, output guardrail, audit); text is exact and tool blocks are
+mapped best-effort. Streaming is not supported on `/v1/messages` in this release (send
+`stream: false`, or use `/v1/chat/completions` for OpenAI-shaped streaming). For
+Anthropic-shaped features the native endpoint does not yet cover, such as streaming, a
+translation sidecar (e.g. a LiteLLM proxy that exposes `/v1/messages` and forwards to the
+gateway's `/v1/chat/completions`) remains a supported alternative; a config sketch and a
+native-endpoint example are in [Client examples](client-examples.md). The full list of
+OpenAI/Anthropic surfaces the gateway does and does not implement is in
 [Scope and non-goals](scope-and-non-goals.md).
 
 ### How do I upgrade or roll back?

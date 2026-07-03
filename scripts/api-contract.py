@@ -54,6 +54,12 @@ CONTRACTS = {
                 "post",
                 request_schema="CompletionRequest",
             ),
+            # Native Anthropic Messages API, translated to/from the OpenAI chat shape and
+            # routed through the same governance path (auth-required like the other routes).
+            "/v1/messages": RouteContract(
+                "post",
+                request_schema="MessagesRequest",
+            ),
             "/v1/embeddings": RouteContract(
                 "post",
                 request_schema="EmbeddingsRequest",
@@ -79,6 +85,7 @@ CONTRACTS = {
             "/v1/usage",
             "/v1/chat/completions",
             "/v1/completions",
+            "/v1/messages",
             "/v1/embeddings",
             "/v1/moderations",
             "/v1/batch-inference",
@@ -108,6 +115,24 @@ CONTRACTS = {
             "CompletionRequest": {
                 "properties": {"model", "prompt", "max_tokens", "stream"},
                 "required": {"prompt"},
+            },
+            # Anthropic Messages request. ``max_tokens`` is required by Anthropic (and drives
+            # the admission cap), so it is a required field alongside ``messages``.
+            "MessagesRequest": {
+                "properties": {
+                    "model",
+                    "messages",
+                    "system",
+                    "max_tokens",
+                    "temperature",
+                    "top_p",
+                    "stop_sequences",
+                    "tools",
+                    "tool_choice",
+                    "stream",
+                    "metadata",
+                },
+                "required": {"messages", "max_tokens"},
             },
             "EmbeddingsRequest": {
                 "properties": {"model", "input"},

@@ -93,11 +93,15 @@ backup platform, or incident process. Concretely:
 ### API protocol surfaces not implemented
 
 The gateway implements the **OpenAI chat-completions** protocol and a governed subset around
-it (`/v1/chat/completions`, `/v1/completions` legacy text completions, `/v1/embeddings`,
-`/v1/moderations` against the governance taxonomy, `/v1/models`, a synchronous
-`/v1/batch-inference` fan-out, and the platform's own `/v1/usage` and `/v1/sandbox/budget`).
-It is not a full re-implementation of every OpenAI or Anthropic surface. Stated explicitly so
-an evaluator does not have to diff the route list, the following are **not** implemented:
+it (`/v1/chat/completions`, `/v1/completions` legacy text completions, the native Anthropic
+`/v1/messages` Messages API, `/v1/embeddings`, `/v1/moderations` against the governance
+taxonomy, `/v1/models`, a synchronous `/v1/batch-inference` fan-out, and the platform's own
+`/v1/usage` and `/v1/sandbox/budget`). The Anthropic `/v1/messages` endpoint is translated
+to and from the internal OpenAI chat shape and runs through the **same** governance path as
+chat (allowlist, admission, prompt-secret policy, budget, output guardrail, audit); text is
+exact and tool blocks are mapped best-effort. It is not a full re-implementation of every
+OpenAI or Anthropic surface. Stated explicitly so an evaluator does not have to diff the
+route list, the following are **not** implemented:
 
 - **OpenAI Responses API** (`/v1/responses`) — the stateful successor to chat completions.
 - **OpenAI asynchronous file-batch API** (the real `/v1/batches` with a batch id, JSONL input
@@ -106,10 +110,12 @@ an evaluator does not have to diff the route list, the following are **not** imp
   legacy `/v1/batches` alias is that same synchronous handler, not the OpenAI file-batch API.
 - **Files** (`/v1/files`), **Audio** (`/v1/audio/*` transcription/TTS), **Images**
   (`/v1/images/*`), and **fine-tuning** (`/v1/fine_tuning/*`).
-- **Native Anthropic Messages API** (`/v1/messages`). Claude-style agents run against the
-  gateway through a translation sidecar instead (see [Client examples](client-examples.md)).
 
-Streaming is supported on `/v1/chat/completions` but not on `/v1/completions` in this release.
+Streaming is supported on `/v1/chat/completions`, but not on `/v1/completions` or the native
+`/v1/messages` endpoint in this release (send `stream: false`, or use `/v1/chat/completions`
+for streaming). A translation sidecar (e.g. a LiteLLM proxy) remains a supported alternative
+for Anthropic-shaped features the native endpoint does not yet cover, such as streaming (see
+[Client examples](client-examples.md)).
 
 ### Operator-owned operational decisions
 
@@ -140,8 +146,10 @@ ones for an evaluator are:
 - **A maintained JWT library.** Gateway JWT verification is a hand-rolled HS256/RS256/ES256 path on
   `cryptography`; swapping it for a maintained library (e.g. PyJWT) is a code-hardening item, not a
   feature gap (the JWKS/audience/issuer/scope semantics already hold).
-- **Native Anthropic `/v1/messages`.** Not implemented; Claude-style agents run through a
-  translation sidecar (see the API-surfaces list above and [client examples](client-examples.md)).
+- **Native Anthropic `/v1/messages`.** Implemented (translated to/from the OpenAI chat shape
+  through the same governance path; non-streaming this release). A translation sidecar remains
+  an alternative for Anthropic-shaped features the native endpoint does not yet cover, such as
+  streaming (see the API-surfaces list above and [client examples](client-examples.md)).
 - **Semantic (embedding-similarity) response caching.** The response cache is exact-match only by
   design; the reasoning for deferring semantic caching is recorded in the ROADMAP
   ([Deliberate Deferrals](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/ROADMAP.md)).

@@ -1,21 +1,40 @@
-"""JWT bearer authentication with JWKS-backed HS256, RS256, and ES256 verification."""
+"""JWT bearer authentication with JWKS-backed HS256, RS256, and ES256 verification.
+
+Signature and standard-claim verification is delegated to the maintained
+`PyJWT <https://pyjwt.readthedocs.io/>`_ library (``jwt.decode``) rather than a
+hand-rolled RSA/EC implementation, while the JWKS fetch, last-known-good cache,
+503-vs-401 distinction, algorithm allowlist, and tenant/scope enforcement remain
+owned here so the external contract is byte-for-byte unchanged.
+"""
 
 from __future__ import annotations
 
 import base64
-import hashlib
-import hmac
 import json
 from time import time
 from typing import Any
 
 import httpx
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
-from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+import jwt
+from jwt import PyJWK
+from jwt.exceptions import (
+    ExpiredSignatureError,
+    ImmatureSignatureError,
+    InvalidAudienceError,
+    InvalidIssuerError,
+    PyJWKError,
+    PyJWTError,
+)
 
 from app.settings import Settings
+
+# Algorithm allowlist. The verifying algorithm is always taken from this set (never
+# from the untrusted token header), which is what closes the classic alg-confusion
+# attack where an attacker swaps an RS256 header for HS256 and signs with the public key.
+_SUPPORTED_ALGORITHMS = ("HS256", "RS256", "ES256")
+
+# JWK key type expected for each allowed signing algorithm.
+_ALG_TO_KTY = {"HS256": "oct", "RS256": "RSA", "ES256": "EC"}
 
 
 class JwtAuthError(ValueError):
@@ -49,10 +68,6 @@ def _b64url_json(value: str) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise JwtAuthError("jwt segment must decode to an object")
     return payload
-
-
-def _b64url_int(value: str) -> int:
-    return int.from_bytes(_b64url_decode(value), "big")
 
 
 # Cap the negative-cache backoff so a transient issuer outage is retried quickly
@@ -129,33 +144,125 @@ class JwtVerifier:
 
         Awaits the JWKS cache (async HTTP fetch). Raises :class:`JwksUnavailableError`
         when keys cannot be obtained, distinct from a :class:`JwtAuthError` rejection.
+
+        The signature check and the exp/nbf/iss/aud claim checks are performed by
+        PyJWT (``jwt.decode``); the verifying algorithm is pinned to the configured
+        allowlist (never read from the token header) and the required-scope check is
+        applied here since PyJWT has no notion of it.
         """
         parts = token.split(".")
         if len(parts) != 3:
             raise JwtAuthError("jwt must have three segments")
-        signing_input = f"{parts[0]}.{parts[1]}".encode("ascii")
         header = _b64url_json(parts[0])
-        claims = _b64url_json(parts[1])
+        # Surface a base64url-garbage signature/claims segment as a 401 (not a PyJWT
+        # DecodeError-with-different-wording) before ever touching the network.
+        _b64url_json(parts[1])
+        _b64url_decode(parts[2])
         algorithm = str(header.get("alg") or "")
         # Resolve the algorithm before fetching keys so an unsupported/none alg is
         # rejected as a 401 without ever touching the network (algorithm-confusion defense).
-        if algorithm not in {"HS256", "RS256", "ES256"}:
+        if algorithm not in _SUPPORTED_ALGORITHMS:
             raise JwtAuthError("unsupported jwt alg; supported algorithms: HS256, RS256, ES256")
         jwks_keys = await self.jwks_cache.keys()
-        if algorithm == "HS256":
-            key = self._oct_key_for(header, jwks_keys)
-            expected = hmac.new(key, signing_input, hashlib.sha256).digest()
-            actual = _b64url_decode(parts[2])
-            if not hmac.compare_digest(expected, actual):
-                raise JwtAuthError("jwt signature verification failed")
-        elif algorithm == "RS256":
-            key = self._rsa_key_for(header, jwks_keys)
-            self._verify_rsa(key, signing_input, parts[2])
-        else:  # algorithm == "ES256"
-            key = self._ec_key_for(header, jwks_keys)
-            self._verify_ec(key, signing_input, parts[2])
-        self._validate_claims(claims)
+        key = self._verifying_key(algorithm, header, jwks_keys)
+        claims = self._decode(token, key, algorithm)
+        self._validate_scopes(claims)
         return claims
+
+    def _decode(self, token: str, key: PyJWK, algorithm: str) -> dict[str, Any]:
+        """Run ``jwt.decode`` and translate PyJWT failures to the gateway's contract.
+
+        ``algorithms`` is pinned to the single configured algorithm resolved from the
+        allowlist, so PyJWT never honors a token-header algorithm (alg-confusion defense).
+        Issuer/audience/exp/nbf are enforced by PyJWT; each specific rejection is mapped
+        back to the exact 401 message the gateway has always returned.
+        """
+        issuer = self.settings.jwt_issuer or None
+        audience = self.settings.jwt_audience or None
+        options = {
+            "require": ["exp"],
+            "verify_exp": True,
+            "verify_nbf": True,
+            "verify_iss": issuer is not None,
+            "verify_aud": audience is not None,
+            "verify_signature": True,
+        }
+        try:
+            claims = jwt.decode(
+                token,
+                key,  # type: ignore[arg-type]  # PyJWK carries the verifying key material
+                algorithms=[algorithm],
+                audience=audience,
+                issuer=issuer,
+                options=options,
+            )
+        except ExpiredSignatureError as exc:
+            raise JwtAuthError("jwt is expired or missing exp") from exc
+        except ImmatureSignatureError as exc:
+            raise JwtAuthError("jwt is not yet valid") from exc
+        except InvalidIssuerError as exc:
+            raise JwtAuthError("jwt issuer mismatch") from exc
+        except InvalidAudienceError as exc:
+            raise JwtAuthError("jwt audience mismatch") from exc
+        except PyJWTError as exc:
+            # DecodeError/InvalidSignatureError/MissingRequiredClaimError/... all land
+            # here. A missing exp is reported as an expiry failure to match the legacy
+            # message; everything else is a signature/format rejection.
+            missing_exp = "exp" in str(exc).lower()
+            message = "jwt is expired or missing exp" if missing_exp else "jwt signature verification failed"
+            raise JwtAuthError(message) from exc
+        if not isinstance(claims, dict):  # pragma: no cover - PyJWT always returns a dict here
+            raise JwtAuthError("jwt payload must decode to an object")
+        return claims
+
+    def _verifying_key(self, algorithm: str, header: dict[str, Any], jwks_keys: list[dict[str, Any]]) -> PyJWK:
+        """Select the matching JWK for the header and build a PyJWT verifying key.
+
+        Key selection (kid/kty/use matching and the algorithm's key type) stays here so
+        the exact "matching JWKS <type> key was not found" rejection and the JWKS-cache
+        rotation semantics are preserved; PyJWK only turns the chosen JWK into key material.
+        """
+        kty = _ALG_TO_KTY[algorithm]
+        jwk = self._select_jwk(algorithm, kty, header, jwks_keys)
+        try:
+            return PyJWK.from_dict(jwk, algorithm=algorithm)
+        except (PyJWKError, PyJWTError, ValueError, KeyError, TypeError) as exc:
+            # A JWK that matched by kid/kty but is structurally unusable (bad modulus,
+            # wrong curve, missing field) is a rejected token, not a 500.
+            raise JwtAuthError(f"matching JWKS {self._key_kind(algorithm)} key was not found") from exc
+
+    def _select_jwk(
+        self, algorithm: str, kty: str, header: dict[str, Any], jwks_keys: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Return the JWK dict matching the header kid and the algorithm's key type.
+
+        Raises :class:`JwtAuthError` with the algorithm-specific "key was not found"
+        message when no candidate matches, exactly as before.
+        """
+        for jwk in self._matching_keys(header, kty, jwks_keys):
+            alg = jwk.get("alg")
+            if alg not in (None, algorithm):
+                continue
+            if algorithm == "ES256" and jwk.get("crv") != "P-256":
+                continue
+            if self._jwk_has_material(jwk, kty):
+                return jwk
+        raise JwtAuthError(f"matching JWKS {self._key_kind(algorithm)} key was not found")
+
+    @staticmethod
+    def _jwk_has_material(jwk: dict[str, Any], kty: str) -> bool:
+        """Return whether a matched JWK carries the string fields its key type requires."""
+        if kty == "oct":
+            return isinstance(jwk.get("k"), str)
+        if kty == "RSA":
+            return isinstance(jwk.get("n"), str) and isinstance(jwk.get("e"), str)
+        # EC
+        return isinstance(jwk.get("x"), str) and isinstance(jwk.get("y"), str)
+
+    @staticmethod
+    def _key_kind(algorithm: str) -> str:
+        """Return the human key-type name used in the "key was not found" rejection."""
+        return {"HS256": "oct", "RS256": "RSA", "ES256": "P-256 EC"}[algorithm]
 
     @staticmethod
     def _matching_keys(header: dict[str, Any], kty: str, jwks_keys: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -172,94 +279,8 @@ class JwtVerifier:
             keys.append(key)
         return keys
 
-    def _oct_key_for(self, header: dict[str, Any], jwks_keys: list[dict[str, Any]]) -> bytes:
-        """Return the symmetric (oct) key bytes for HS256 verification."""
-        for key in self._matching_keys(header, "oct", jwks_keys):
-            material = key.get("k")
-            if not isinstance(material, str):
-                continue
-            return _b64url_decode(material)
-        raise JwtAuthError("matching JWKS oct key was not found")
-
-    def _rsa_key_for(self, header: dict[str, Any], jwks_keys: list[dict[str, Any]]):
-        """Return the RSA public key for RS256 verification."""
-        for key in self._matching_keys(header, "RSA", jwks_keys):
-            if key.get("alg") not in {None, "RS256"}:
-                continue
-            n = key.get("n")
-            e = key.get("e")
-            if not isinstance(n, str) or not isinstance(e, str):
-                continue
-            public_numbers = rsa.RSAPublicNumbers(_b64url_int(e), _b64url_int(n))
-            return public_numbers.public_key()
-        raise JwtAuthError("matching JWKS RSA key was not found")
-
-    def _ec_key_for(self, header: dict[str, Any], jwks_keys: list[dict[str, Any]]):
-        """Return the P-256 elliptic-curve public key for ES256 verification."""
-        for key in self._matching_keys(header, "EC", jwks_keys):
-            if key.get("alg") not in {None, "ES256"}:
-                continue
-            if key.get("crv") != "P-256":
-                continue
-            x = key.get("x")
-            y = key.get("y")
-            if not isinstance(x, str) or not isinstance(y, str):
-                continue
-            public_numbers = ec.EllipticCurvePublicNumbers(
-                _b64url_int(x),
-                _b64url_int(y),
-                ec.SECP256R1(),
-            )
-            return public_numbers.public_key()
-        raise JwtAuthError("matching JWKS P-256 EC key was not found")
-
-    @staticmethod
-    def _verify_rsa(key: rsa.RSAPublicKey, signing_input: bytes, encoded_signature: str) -> None:
-        try:
-            key.verify(
-                _b64url_decode(encoded_signature),
-                signing_input,
-                padding.PKCS1v15(),
-                hashes.SHA256(),
-            )
-        except InvalidSignature as exc:
-            raise JwtAuthError("jwt signature verification failed") from exc
-
-    @staticmethod
-    def _verify_ec(key: ec.EllipticCurvePublicKey, signing_input: bytes, encoded_signature: str) -> None:
-        raw_signature = _b64url_decode(encoded_signature)
-        if len(raw_signature) != 64:
-            raise JwtAuthError("ES256 jwt signature must contain 64 raw signature bytes")
-        r = int.from_bytes(raw_signature[:32], "big")
-        s = int.from_bytes(raw_signature[32:], "big")
-        der_signature = encode_dss_signature(r, s)
-        try:
-            key.verify(
-                der_signature,
-                signing_input,
-                ec.ECDSA(hashes.SHA256()),
-            )
-        except InvalidSignature as exc:
-            raise JwtAuthError("jwt signature verification failed") from exc
-
-    def _validate_claims(self, claims: dict[str, Any]) -> None:
-        """Validate expiry, not-before, issuer, audience, and required scopes."""
-        now = int(time())
-        exp = claims.get("exp")
-        if not isinstance(exp, (int, float)) or exp <= now:
-            raise JwtAuthError("jwt is expired or missing exp")
-        nbf = claims.get("nbf")
-        if isinstance(nbf, (int, float)) and nbf > now:
-            raise JwtAuthError("jwt is not yet valid")
-        issuer = self.settings.jwt_issuer
-        if issuer and claims.get("iss") != issuer:
-            raise JwtAuthError("jwt issuer mismatch")
-        audience = self.settings.jwt_audience
-        if audience:
-            raw_audience = claims.get("aud")
-            audiences = raw_audience if isinstance(raw_audience, list) else [raw_audience]
-            if audience not in audiences:
-                raise JwtAuthError("jwt audience mismatch")
+    def _validate_scopes(self, claims: dict[str, Any]) -> None:
+        """Enforce the required-scope policy (PyJWT does not model scopes)."""
         missing_scopes = sorted(set(self.settings.jwt_required_scopes) - self._claim_scopes(claims))
         if missing_scopes:
             raise JwtAuthError(f"jwt missing required scopes: {missing_scopes}")

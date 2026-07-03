@@ -22,7 +22,9 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 
 ## 3. Platform Hardening
 
+- Shipped (v0.22.0): native Anthropic Messages API (`POST /v1/messages`), translated to/from the OpenAI chat shape and routed through the same governance path as chat (non-streaming this release; a translation sidecar remains the option for streaming).
 - Add IdP-specific examples and rotation drills for optional OIDC/JWT/JWKS validation.
+- Shipped (v0.22.0): the gateway's JWT signature/claim core now runs on the maintained PyJWT library (`jwt.decode`, algorithm pinned to the configured allowlist), replacing the in-tree RSA/EC verification while preserving the JWKS cache and 503-vs-401 semantics behind the same `JwtVerifier` interface.
 - Keep model-catalog-driven runtime routing and per-sandbox admission policy covered by contracts.
 - Expand runtime retry, timeout, readiness, and circuit-breaker fault-injection coverage.
 - Expand streaming test coverage for Ollama and vLLM compatibility.

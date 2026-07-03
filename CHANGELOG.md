@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+Native Anthropic clients and a maintained JWT core - closing the last two items the
+capability-audit remediation had scheduled for their own iteration.
+
+### Added
+
+- Native `POST /v1/messages` (the Anthropic Messages API shape): Claude-style agents and
+  the Anthropic SDK can now point at the gateway directly, no translation sidecar required.
+  It translates the Anthropic request (system, content blocks, tools, `max_tokens`,
+  `stop_sequences`) into the internal chat payload and runs the **same** governance path as
+  chat - model allowlist, admission (the `max_tokens` cap applies), prompt-secret mode,
+  sandbox budget (charged exactly as chat charges it), output guardrail, tenant binding,
+  and audit - then renders an Anthropic `message` response. Non-streaming this release (a
+  streaming request is rejected with a clear error); the LiteLLM sidecar remains an
+  alternative for streaming. Anthropic `image` blocks are converted to the metered
+  image-part shape so the `max_image_bytes` cap applies to them too.
+
+### Changed
+
+- JWT verification now runs on the maintained **PyJWT** library instead of hand-rolled
+  RSA/EC signature math, behind an unchanged interface: the algorithm is pinned to the
+  configured allowlist (never the token header), and issuer, audience, expiry, not-before,
+  required scopes, the JWKS last-known-good cache, and the 503-vs-401 distinction are all
+  preserved - removing the bespoke-crypto surface a security reviewer flags on principle.
+
 ## v0.21.0 - 2026-07-03
 
 Operations and adoption: an answer to "where do I type?", first-class external stateful

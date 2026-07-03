@@ -10,6 +10,7 @@ import pytest
 from app import jwt_auth
 from app.jwt_auth import JwksCache, JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.settings import Settings
+from cryptography.hazmat.primitives import serialization
 
 SECRET = b"super-secret-signing-key-0123456789"
 
@@ -242,3 +243,144 @@ def test_jwks_cache_treats_non_json_body_as_unavailable(monkeypatch):
 
     with pytest.raises(JwksUnavailableError):
         asyncio.run(cache.keys())
+
+
+# --- PyJWT-backed asymmetric (RS256/ES256) verification ---------------------------------
+#
+# The signature/claim core is delegated to PyJWT (``jwt.decode``). These tests prove the
+# swap preserves behavior at the API boundary: the verifying algorithm is pinned to the
+# configured allowlist (never the token header), so an alg-confusion attempt is rejected;
+# a valid RS256 and ES256 token still verifies; and bad-signature / wrong-audience /
+# wrong-issuer / expired tokens are all still 401 (JwtAuthError), while an unreachable
+# JWKS with no cache is still a 503 (JwksUnavailableError), not a 401.
+
+import jwt as _pyjwt  # noqa: E402  (grouped with the PyJWT-specific tests below)
+from cryptography.hazmat.primitives.asymmetric import ec as _ec  # noqa: E402
+from cryptography.hazmat.primitives.asymmetric import rsa as _rsa  # noqa: E402
+
+
+def _int_b64(value: int) -> str:
+    length = (value.bit_length() + 7) // 8
+    return _b64url(value.to_bytes(length, "big"))
+
+
+def _rsa_keypair(kid: str = "rsa-key"):
+    private_key = _rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    numbers = private_key.public_key().public_numbers()
+    jwk = {"kty": "RSA", "kid": kid, "use": "sig", "n": _int_b64(numbers.n), "e": _int_b64(numbers.e)}
+    return private_key, jwk
+
+
+def _ec_keypair(kid: str = "ec-key"):
+    private_key = _ec.generate_private_key(_ec.SECP256R1())
+    numbers = private_key.public_key().public_numbers()
+    jwk = {"kty": "EC", "kid": kid, "use": "sig", "crv": "P-256", "x": _int_b64(numbers.x), "y": _int_b64(numbers.y)}
+    return private_key, jwk
+
+
+def _asym_verifier(jwk: dict, **overrides) -> JwtVerifier:
+    settings = Settings(
+        runtime_backend="ollama",
+        ollama_base_url="http://o:1",
+        vllm_base_url="http://v:1",
+        model_id="m",
+        request_timeout_seconds=5,
+        jwt_auth_enabled=True,
+        jwt_jwks_url="https://idp.example/jwks",
+        **overrides,
+    )
+    return JwtVerifier(settings, jwks_cache=_FakeJwks([jwk]))
+
+
+def _rs256(private_key, claims: dict, kid: str = "rsa-key") -> str:
+    return _pyjwt.encode(claims, private_key, algorithm="RS256", headers={"kid": kid})
+
+
+def _es256(private_key, claims: dict, kid: str = "ec-key") -> str:
+    return _pyjwt.encode(claims, private_key, algorithm="ES256", headers={"kid": kid})
+
+
+def test_verify_accepts_valid_rs256_token():
+    private_key, jwk = _rsa_keypair()
+    verifier = _asym_verifier(
+        jwk, jwt_issuer="https://idp.example", jwt_audience="platform", jwt_required_scopes=("read",)
+    )
+    claims = _verify(verifier, _rs256(private_key, _claims()))
+    assert claims["aud"] == "platform"
+
+
+def test_verify_accepts_valid_es256_token():
+    private_key, jwk = _ec_keypair()
+    verifier = _asym_verifier(
+        jwk, jwt_issuer="https://idp.example", jwt_audience="platform", jwt_required_scopes=("read",)
+    )
+    claims = _verify(verifier, _es256(private_key, _claims()))
+    assert claims["aud"] == "platform"
+
+
+def test_verify_rejects_alg_confusion_hs256_token_when_rs256_key_published():
+    # Classic RS256->HS256 confusion: the attacker HMAC-signs the token with the RSA
+    # public key material and sets alg=HS256, hoping the verifier trusts the header.
+    # The gateway pins algorithms to the RSA key's type, so PyJWT refuses to treat the
+    # asymmetric key as an HMAC secret -> 401, never an accepted forgery.
+    private_key, jwk = _rsa_keypair()
+    public_pem = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    header = _b64url(json.dumps({"alg": "HS256", "typ": "JWT", "kid": "rsa-key"}).encode("utf-8"))
+    payload = _b64url(json.dumps(_claims()).encode("utf-8"))
+    signature = hmac.new(public_pem, f"{header}.{payload}".encode("ascii"), hashlib.sha256).digest()
+    forged = f"{header}.{payload}.{_b64url(signature)}"
+    with pytest.raises(JwtAuthError):
+        _verify(_asym_verifier(jwk), forged)
+
+
+def test_verify_rejects_key_type_mismatch_es256_token_against_rsa_key():
+    # A key-type mismatch: an ES256 token presented while only an RSA JWK is published.
+    # Key selection finds no EC key -> the algorithm-specific "key was not found" 401.
+    ec_private, _ = _ec_keypair(kid="rsa-key")
+    _, rsa_jwk = _rsa_keypair(kid="rsa-key")
+    with pytest.raises(JwtAuthError, match="P-256 EC key was not found"):
+        _verify(_asym_verifier(rsa_jwk), _es256(ec_private, _claims(), kid="rsa-key"))
+
+
+def test_verify_rejects_rs256_bad_signature():
+    _, jwk = _rsa_keypair()
+    other_key, _ = _rsa_keypair()  # sign with a key that does not match the published JWK
+    token = _rs256(other_key, _claims())
+    with pytest.raises(JwtAuthError, match="signature verification failed"):
+        _verify(_asym_verifier(jwk), token)
+
+
+def test_verify_rejects_rs256_wrong_audience():
+    private_key, jwk = _rsa_keypair()
+    with pytest.raises(JwtAuthError, match="audience mismatch"):
+        _verify(_asym_verifier(jwk, jwt_audience="platform"), _rs256(private_key, _claims(aud="other")))
+
+
+def test_verify_rejects_rs256_wrong_issuer():
+    private_key, jwk = _rsa_keypair()
+    with pytest.raises(JwtAuthError, match="issuer mismatch"):
+        _verify(_asym_verifier(jwk, jwt_issuer="https://idp.example"), _rs256(private_key, _claims(iss="https://evil")))
+
+
+def test_verify_rejects_rs256_expired_token():
+    private_key, jwk = _rsa_keypair()
+    with pytest.raises(JwtAuthError, match="expired or missing exp"):
+        _verify(_asym_verifier(jwk), _rs256(private_key, _claims(exp=int(time.time()) - 10)))
+
+
+def test_verify_returns_503_not_401_when_jwks_unreachable_and_no_cache(monkeypatch):
+    # A live JwksCache (not the fake) whose issuer is unreachable and which has never
+    # cached a key must surface JwksUnavailableError (a 503 retry), never a JwtAuthError
+    # 401 token rejection. This is the PyJWT-backed path's operational-vs-auth boundary.
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("issuer down")
+
+    _mock_async_client(monkeypatch, handler)
+    private_key, _ = _rsa_keypair()
+    settings = _jwks_settings()
+    verifier = JwtVerifier(settings, jwks_cache=JwksCache(settings))
+    with pytest.raises(JwksUnavailableError):
+        _verify(verifier, _rs256(private_key, _claims()))

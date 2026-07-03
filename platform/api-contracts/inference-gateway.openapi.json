@@ -340,6 +340,146 @@
         "title": "Message",
         "type": "object"
       },
+      "MessagesRequest": {
+        "additionalProperties": true,
+        "description": "Request body for a native Anthropic ``POST /v1/messages`` call.\n\nMirrors the Anthropic Messages API shape. ``max_tokens`` is required by Anthropic, so\nit is modelled as required here and its absence is a 422 before the governance path\nruns (it also becomes the OpenAI ``max_tokens`` cap that admission enforces). ``system``\naccepts either a plain string or an Anthropic block array. ``extra=\"allow\"`` forwards\nany other Anthropic sampling field (``temperature``, ``top_p``, ``stop_sequences``,\n``tools``, ``tool_choice``, ``stream``, ``metadata``, ...) so nothing is silently dropped.",
+        "properties": {
+          "max_tokens": {
+            "title": "Max Tokens",
+            "type": "integer"
+          },
+          "messages": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "stop_sequences": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Sequences"
+          },
+          "stream": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": false,
+            "title": "Stream"
+          },
+          "system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "tool_choice": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Choice"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tools"
+          },
+          "top_p": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top P"
+          }
+        },
+        "required": [
+          "messages",
+          "max_tokens"
+        ],
+        "title": "MessagesRequest",
+        "type": "object"
+      },
       "ModerationRequest": {
         "additionalProperties": true,
         "description": "Request body for an OpenAI-compatible moderations call.",
@@ -758,6 +898,58 @@
           }
         ],
         "summary": "Create private embeddings",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/v1/messages": {
+      "post": {
+        "description": "Native Anthropic Messages API endpoint. The request/response are translated to and from the internal OpenAI chat shape and routed through the SAME governance path as POST /v1/chat/completions: model allowlist, admission limits (including the max_tokens cap), prompt secret policy, sandbox budget, output guardrail, and audit. Anthropic requires max_tokens; a request omitting it is rejected. Streaming is not supported on this endpoint in this release; send stream=false or use POST /v1/chat/completions for OpenAI-shaped streaming.",
+        "operationId": "createMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessagesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Createmessage",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Create a private Anthropic-style message",
         "tags": [
           "inference"
         ]
