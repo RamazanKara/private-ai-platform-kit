@@ -143,6 +143,14 @@ make eval-local             # scored evals against an ephemeral mock runtime
 make supply-chain-check     # validate local image SBOM/SARIF/checksum evidence
 ```
 
+Every governed model call also lands on a tamper-evident hash chain, and the same verifier an auditor would run ships in the box. `make audit-verify` checks a chain of receipts; `make audit-verify-demo` shows it catching a tampered receipt and a rolled-back (truncated) log against the committed sample:
+
+<p align="center">
+  <img src="docs/assets/audit-verify-demo.gif" alt="Terminal: make audit-verify confirms a receipt chain, then catches a tampered receipt (record_hash_mismatch) and a rolled-back log against an anchored head" width="100%">
+</p>
+
+Point `make audit-verify AUDIT_LOG=<exported-pod-log>` (optionally `--anchor` a committed head) at real logs offline; see the [audit-chain runbook](runbooks/audit-chain.md) for verification, head anchoring, and SIEM forwarding.
+
 Runtime images use a pinned Alpine Python base and exclude test-only dependencies. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
 
 ## Trademark Notice
