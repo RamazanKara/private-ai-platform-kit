@@ -48,7 +48,7 @@ TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2
 # canonical(record_i)). Matches paper/evidence-model/audit_chain.py so the live audit log
 # is verifiable by the same auditor tooling. The chain is per-process (per gateway replica).
 AUDIT_GENESIS = hashlib.sha256(b"genesis").hexdigest()
-SERVICE_VERSION = "0.19.0"
+SERVICE_VERSION = "0.20.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
