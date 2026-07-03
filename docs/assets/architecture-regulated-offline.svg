@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="740" viewBox="0 0 1200 740" role="img" aria-labelledby="title desc">
   <title id="title">Regulated-offline tenant deployment profile</title>
-  <desc id="desc">Air-gapped regulated tenant: coding agents in a confidential, restricted tenant namespace may reach only in-cluster DNS, the inference gateway, and the RAG service; a default-deny no-egress NetworkPolicy boundary blocks all external traffic. The gateway routes to the in-cluster runtime and RAG, with GitOps, observability, and evidence retained in-cluster and images pulled from a private registry.</desc>
+  <desc id="desc">Air-gapped regulated tenant: coding agents in hardened agent-sandbox pods in a confidential, restricted tenant namespace may reach only in-cluster DNS, the inference gateway, and the RAG service; a default-deny no-egress NetworkPolicy boundary blocks all external traffic. The gateway routes to the in-cluster runtime and RAG, with GitOps, observability, and evidence retained in-cluster and images pulled from a private registry.</desc>
   <defs>
     <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
       <path d="M2,2 L10,6 L2,10 Z" fill="#334155"/>
@@ -52,7 +52,7 @@
   <text x="312" y="230" class="muted tiny">confidential; PSA restricted</text>
   <rect x="310" y="248" width="220" height="96" rx="10" fill="#ffffff" stroke="#7aa7d9" stroke-width="1.5"/>
   <text x="330" y="280" class="ink small">Coding agents</text>
-  <text x="330" y="304" class="muted tiny">workspace PVC</text>
+  <text x="330" y="304" class="muted tiny">hardened sandbox + PVC</text>
   <text x="330" y="326" class="muted tiny">viewer-only RBAC</text>
   <rect x="310" y="360" width="220" height="70" rx="10" fill="#ffffff" stroke="#7aa7d9" stroke-width="1.5"/>
   <text x="330" y="390" class="ink small">Allowed egress</text>

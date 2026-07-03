@@ -87,9 +87,10 @@ Captures for the follow-up steps live alongside them — Argo CD applications, t
 1. `make toolchain-doctor TOOLCHAIN_PROFILE=local` — check the local toolchain.
 2. `make validate` — static validation (skipped if `QUICKSTART_SKIP_VALIDATE=1`).
 3. `make local-up` — create the local `kind` cluster.
-4. `make bootstrap-argocd` and `make sync` — install Argo CD and sync the platform (skipped if `QUICKSTART_DIRECT_APPLY=1`).
-5. `make smoke RUNTIME_BACKEND=ollama` — a chat completion through the gateway.
-6. `make rag-smoke` — a grounded RAG query (skipped if `QUICKSTART_SKIP_RAG=1`).
+4. `make agent-sandbox-install` — install the agent-sandbox controller, the workspace-runtime prerequisite.
+5. `make bootstrap-argocd` and `make sync` — install Argo CD and sync the platform (with `QUICKSTART_DIRECT_APPLY=1` the charts are applied directly with Helm instead).
+6. `make smoke RUNTIME_BACKEND=ollama` — a chat completion through the gateway.
+7. `make rag-smoke` — a grounded RAG query (skipped if `QUICKSTART_SKIP_RAG=1`).
 
 The cluster is left running so you can inspect it. This is the same flow — same charts, policies, and checks — that runs against customer clusters; only the runtime backend and GPU profile change.
 
@@ -98,10 +99,11 @@ The cluster is left running so you can inspect it. This is the same flow — sam
 With the cluster up, try the other smoke paths and generate evidence:
 
 ```bash
-make trace-smoke    # traceable sandbox controls
-make tenant-smoke     # a team tenant lab
-make agent-smoke      # a locked-down coding-agent workspace
-make evidence LIVE=1  # customer-style evidence pack against the live cluster
+make trace-smoke          # traceable sandbox controls
+make tenant-smoke         # a team tenant lab
+make agent-smoke          # a locked-down coding-agent workspace
+make agent-sandbox-smoke  # the hardened workspace-runtime contract
+make evidence LIVE=1      # customer-style evidence pack against the live cluster
 ```
 
 ## Clean up

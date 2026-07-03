@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
   <title id="title">Private AI Platform Kit architecture</title>
-  <desc id="desc">API clients and coding agents call an inference gateway that authenticates, applies admission, budgets, and input/output guardrails, routes to Ollama or vLLM, and grounds answers with the RAG service and Qdrant. A GitOps control plane and governance inputs configure the platform; observability and evidence flow out. The same charts run on local kind and customer-owned Kubernetes.</desc>
+  <desc id="desc">API clients and coding agents in hardened agent-sandbox workspace pods call an inference gateway that authenticates, applies admission, budgets, and input/output guardrails, routes to Ollama or vLLM, and grounds answers with the RAG service and Qdrant. A GitOps control plane (including the agent-sandbox controller) and governance inputs configure the platform; observability and evidence flow out. The same charts run on local kind and customer-owned Kubernetes.</desc>
 
   <defs>
     <marker id="arrow" markerWidth="13" markerHeight="13" refX="9" refY="6" orient="auto" markerUnits="userSpaceOnUse">
@@ -20,7 +20,7 @@
   <!-- Control plane band -->
   <rect x="48" y="112" width="574" height="86" rx="14" fill="#fffbeb" stroke="#f1cf7a" stroke-width="2"/>
   <text x="72" y="146" font-size="19" font-weight="700" fill="#0f172a">GitOps control plane</text>
-  <text x="72" y="176" font-size="15" fill="#7c5b1e">Argo CD · Helm · Kyverno policies · Pod Security Admission</text>
+  <text x="72" y="176" font-size="15" fill="#7c5b1e">Argo CD · Helm · Kyverno · Pod Security Admission · agent-sandbox controller</text>
 
   <rect x="646" y="112" width="586" height="86" rx="14" fill="#fffbeb" stroke="#f1cf7a" stroke-width="2"/>
   <text x="670" y="146" font-size="19" font-weight="700" fill="#0f172a">Governance inputs</text>
@@ -34,8 +34,9 @@
 
   <rect x="48" y="368" width="228" height="118" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
   <text x="72" y="406" font-size="19" font-weight="700" fill="#0f172a">Coding agents</text>
-  <text x="72" y="434" font-size="14" fill="#475569">Isolated workspace + PVC</text>
-  <text x="72" y="458" font-size="14" fill="#475569">RBAC · approved egress</text>
+  <text x="72" y="430" font-size="14" fill="#475569">Hardened agent-sandbox pod</text>
+  <text x="72" y="453" font-size="14" fill="#475569">read-only rootfs · no SA token</text>
+  <text x="72" y="476" font-size="14" fill="#475569">approved egress</text>
 
   <!-- Gateway -->
   <rect x="332" y="222" width="404" height="340" rx="16" fill="#eff4ff" stroke="#8fb0ee" stroke-width="2.5"/>

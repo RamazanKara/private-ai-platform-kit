@@ -18,7 +18,7 @@ It is for teams that want the operating model of a production AI platform withou
 - OpenAI-compatible gateway with API-key + JWT/JWKS auth, model allowlists, admission limits, per-sandbox budgets and rate limiting, input prompt-secret detection and a response-path **output guardrail**, a shared response cache, canary/shadow delivery, and a tamper-evident audit chain.
 - A local Ollama profile and vLLM profiles for NVIDIA/AMD GPUs from the **same** charts, with prefix caching, FP8/AWQ quantization, and guided/speculative decoding.
 - RAG with hybrid dense + lexical retrieval, an optional cross-encoder reranker, per-tenant retrieval isolation, and RAGAS-style faithfulness evals.
-- Locked-down coding-agent workspaces: namespace isolation, RBAC, quotas, default-deny networking, governed egress, and RAG access.
+- Coding-agent workspaces on the hardened kubernetes-sigs/agent-sandbox runtime — the standard and only workspace runtime (ADR 0010): non-root, read-only rootfs, no ambient credentials, short-lived audience-bound workspace tokens — plus namespace isolation, RBAC, quotas, default-deny networking, governed egress, and RAG access.
 - Governance & compliance: approved-only model catalog with promotion requests, reproducible provenance digests, model cards, a safety/jailbreak release gate, and an OWASP LLM Top 10 + NIST/EU-AI-Act/ISO-42001 crosswalk.
 - Operations & evidence: SLOs and release gates, quota/chargeback, retention, egress governance; Prometheus + Grafana, Tempo tracing, Loki, and cost/OpenCost dashboards; Pod Security Admission, encryption-in-transit overlay, and Falco; restore/chaos drills and a disaster-recovery runbook; SBOMs, scans, signed images, provenance attestations, OpenSSF Scorecard, and evidence packs.
 

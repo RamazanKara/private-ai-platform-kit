@@ -17,6 +17,16 @@ secret-detection policy. Rejections return HTTP 400 and are counted by
 and [Traceability sandbox](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/traceability-sandbox.md)
 runbooks.
 
+**Agent sandbox (workspace runtime)** — The hardened kubernetes-sigs/agent-sandbox `Sandbox` that
+every coding-agent workspace runs on ([ADR 0010](adr/0010-agent-sandbox-standard-runtime.md)):
+non-root, read-only root filesystem, no ambient ServiceAccount token, and an optional
+kernel-isolation runtime class (`sandbox.runtimeClassName`). Each workspace is bound 1:1 to the
+sandbox id the gateway sees as `X-Sandbox-ID`. The controller is a platform prerequisite — synced
+as the `agent-sandbox-controller` Application, or installed with `make agent-sandbox-install` —
+and `make agent-sandbox-smoke` verifies the runtime contract. Distinct from the *traceable sandbox*
+namespace (see below). See
+[Agent workspaces](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/agent-workspaces.md).
+
 ## B
 
 **Budget window / estimated-token budget** — The rolling time window (`windowSeconds`, default 86400)
@@ -255,3 +265,11 @@ coding-agent workspace values. Driven by a spec under `tenants/onboarding/` via 
 (or `make tenant-onboard-regulated` for the offline profile), with output written under
 `.out/tenants/<sandbox-id>/`. See
 [Tenant labs](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/tenant-labs.md).
+
+**Traceable sandbox** — The `ai-sandbox` namespace deployed by the `traceable-sandbox` Application:
+quota, default resource limits, restricted Pod Security Admission labels, and default-deny network
+policy, proving that a request can be traced end to end without leaking prompt text. Exercised by
+`make trace-smoke` (renamed from the retired `sandbox-smoke` target in
+[ADR 0010](adr/0010-agent-sandbox-standard-runtime.md)). Distinct from the *agent sandbox* workspace
+runtime (see above). See
+[Traceability sandbox](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/traceability-sandbox.md).

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1180" height="720" viewBox="0 0 1180 720" role="img" aria-labelledby="title desc">
   <title id="title">Local kind/Ollama deployment profile</title>
-  <desc id="desc">Local kind cluster: API clients and coding agents call the inference gateway via port-forward; the gateway authenticates with an inline API-key digest, enforces budgets via Redis, routes to the Ollama runtime, and calls the RAG service for lexical context, with Argo CD GitOps and an in-cluster observability stack.</desc>
+  <desc id="desc">Local kind cluster: API clients and coding agents in hardened agent-sandbox workspace pods call the inference gateway via port-forward; the gateway authenticates with an inline API-key digest, enforces budgets via Redis, routes to the Ollama runtime, and calls the RAG service for lexical context, with Argo CD GitOps and an in-cluster observability stack.</desc>
   <defs>
     <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
       <path d="M2,2 L10,6 L2,10 Z" fill="#334155"/>
@@ -41,7 +41,8 @@
   <text x="88" y="262" class="muted tiny">OpenAI-compatible</text>
   <rect x="70" y="300" width="170" height="86" rx="10" fill="#ffffff" stroke="#7aa7d9" stroke-width="1.5"/>
   <text x="88" y="332" class="ink small">Coding agents</text>
-  <text x="88" y="356" class="muted tiny">ns ai-agents, PVC</text>
+  <text x="88" y="356" class="muted tiny">agent-sandbox pod</text>
+  <text x="88" y="378" class="muted tiny">ns ai-agents, PVC</text>
   <rect x="70" y="402" width="170" height="62" rx="10" fill="#ffffff" stroke="#7aa7d9" stroke-width="1.5"/>
   <text x="88" y="432" class="ink small">Platform team</text>
   <text x="88" y="452" class="muted tiny">port-forward :8080</text>

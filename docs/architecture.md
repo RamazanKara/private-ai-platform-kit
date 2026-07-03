@@ -24,7 +24,8 @@ Every profile deploys the same Argo CD `Application` set (`deploy/clusters/local
 | Budget Redis | `budget` | `budget-redis.budget.svc.cluster.local:6379` | `deploy/charts/budget-redis` |
 | Ollama runtime | `ollama` | `ollama.ollama.svc.cluster.local:11434` | `deploy/charts/ollama` |
 | vLLM runtime | `vllm` | `vllm.vllm.svc.cluster.local:8000` | `deploy/charts/vllm` |
-| Agent workspaces | `ai-agents` | namespace-scoped PVC workspaces | `deploy/charts/agent-workspace` |
+| Agent workspaces | `ai-agents` | hardened `Sandbox` workspaces (`agents.x-k8s.io`) + PVC | `deploy/charts/agent-workspace` |
+| Agent-sandbox controller | cluster-scoped CRD + controller | `Sandbox` API, controller in `agent-sandbox-system` | `deploy/vendor/agent-sandbox/v0.5.0` |
 | Model catalog | `inference` | reviewed allowlist ConfigMaps | `platform/model-catalog/k8s` |
 | Traceable sandbox | `ai-sandbox` | trace-contract base | `deploy/sandbox/base` |
 | Kyverno policies | `kyverno` | admission policies | `deploy/policies/kyverno` |
@@ -104,8 +105,9 @@ does not implement NetworkPolicy, so the default-deny sandbox/tenant isolation a
 ingress restrictions render but do not block traffic on this profile. They are validated
 structurally (chart render + kubeconform + policy tests); enforcement is exercised on the
 customer profile, whose CNI (Calico, Cilium, or the cloud provider's) must implement
-NetworkPolicy. To enforce locally, create the kind cluster with `disableDefaultCNI: true` and
-install Calico or Cilium before `make sync`.
+NetworkPolicy. To enforce locally, create the cluster with `LOCAL_CNI=calico make local-up`,
+which disables the default CNI and installs Calico before the stack syncs
+(`scripts/local-up.sh`).
 
 ## Profile 2: Customer Cluster (vLLM + GPU)
 
