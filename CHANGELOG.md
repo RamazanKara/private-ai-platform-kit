@@ -4,6 +4,57 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+Client-visible governance: budget headroom on every response, receipts that
+prove *when*, a fail-fast SDK, and architecture diagrams that finally show the
+hardened runtime.
+
+### Added
+
+- The gateway reports sandbox budget headroom on inference responses with
+  OpenAI-style `x-ratelimit-limit-requests` / `x-ratelimit-remaining-requests` /
+  `x-ratelimit-limit-tokens` / `x-ratelimit-remaining-tokens` headers — the
+  headers agent frameworks and SDK middleware already parse. Each dimension is
+  emitted only when a budget limit is configured, remaining counts floor at
+  zero, and cache hits (which reserve nothing) omit them. Documented in the
+  client examples and the budget-controls runbook.
+- Audit receipts now carry a chain-covered `ts` timestamp (Unix epoch seconds)
+  inside the tamper-evident hash. Previously the only timestamps lived in the
+  log transport, outside the chain, so log access was enough to rewrite *when*
+  an action happened without breaking the chain that proves *what* happened;
+  the auditor reference's time-window queries now match live gateway events.
+  Events recorded before v0.16.0 lack the field (noted in ADR 0006).
+
+### Changed
+
+- The Python SDK fails fast with a typed `GatewayRetryAfterError` (an
+  `httpx.HTTPStatusError` subclass carrying `retry_after`) when the gateway
+  advertises a `Retry-After` beyond `retry_after_cap` — retrying sooner cannot
+  succeed, so the client no longer burns capped sleeps against an exhausted
+  budget window. Delays at or under the cap keep the sleep-and-retry behavior.
+- The gateway's streaming path no longer JSON-parses every SSE delta chunk
+  hunting for the terminal usage object: a `"usage"` substring pre-filter skips
+  the parse for the hundreds of delta events per completion that cannot carry
+  it.
+- The architecture diagrams (all four profiles) and the component table now
+  show the hardened agent-sandbox runtime and its controller — the README's
+  headline control was previously invisible in every diagram — and the
+  local-lab CNI guidance points at the shipped `LOCAL_CNI=calico` path instead
+  of hand-rolled kind config.
+
+### Fixed
+
+- The quickstart's "What just happened" recap now matches what
+  `make quickstart` actually runs: the agent-sandbox controller install step
+  was missing, and `QUICKSTART_DIRECT_APPLY=1` replaces only the Argo
+  bootstrap — sync still runs, as a direct Helm apply. The "Keep exploring"
+  list gains `make agent-sandbox-smoke` and realigned comments.
+- The docs-site landing page now leads with the hardened workspace runtime,
+  and the glossary disambiguates the three colliding "sandbox" usages: the
+  agent-sandbox workspace runtime, the traceable `ai-sandbox` namespace, and
+  `X-Sandbox-ID`.
+
 ## v0.15.0 - 2026-07-02
 
 Opinionated de-bloat (ADR 0010): one workspace runtime, one install path per
