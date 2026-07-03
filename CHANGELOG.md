@@ -4,6 +4,38 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+Identity and tenancy: stronger per-key identity, tenant-scoped introspection, and RAG
+retrieval that isolates tenants by default and fails closed.
+
+### Added
+
+- API-key records (`auth.keyRecords`, `API_KEY_RECORDS_PATH`): each key can now carry a
+  sandbox binding, scopes, an expiry, and per-key budget overrides, loaded from a mounted
+  secret. A bound key can only act as - and read the usage/budget of - its own sandbox
+  (a contradicting `X-Sandbox-ID` is rejected `403`, a missing one adopts the binding); an
+  expired key is rejected `401`. Records take precedence over the flat `apiKeyHashes` list,
+  which stays fully supported for unbound keys. A malformed records file fails closed at
+  startup.
+- `GET /v1/usage` and `GET /v1/sandbox/budget` are scoped to the authenticated tenant: a
+  caller bound by a JWT `tenantClaim` or a key record can no longer read another sandbox's
+  usage or budget by changing the header. The customer overlay ships JWT + `tenantClaim`
+  as an operator-completed template.
+- Human-SSO example configuration for the operator dashboards - Grafana OIDC and Argo CD
+  SSO (OIDC/Dex) templates - documented distinctly from the machine JWT/API-key auth on
+  the gateway (the kit does not run an IdP).
+
+### Changed
+
+- RAG per-tenant retrieval isolation is enabled by default and enforced on **both** the
+  Qdrant and lexical backends (the lexical path previously ignored the owner filter). A
+  query only sees documents stamped with its own tenant and **fails closed** - returning
+  no documents - when the tenant is unresolved, rather than silently searching the whole
+  corpus. The customer profile ships isolation on. The tenant id must reach the RAG
+  service from a trusted source (the gateway derives it from a verified JWT claim);
+  RAG-side token verification remains tracked on the roadmap.
+
 ## v0.18.0 - 2026-07-03
 
 Protocol honesty: the gateway now tells clients the truth about what it speaks, in the

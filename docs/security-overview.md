@@ -40,8 +40,18 @@ the runtime controls. All are documented per-control in the OWASP mapping and th
 - **Authentication.** API-key SHA-256 digest auth (`API_KEY_AUTH_ENABLED`, `API_KEY_SHA256S`) and/or
   JWT bearer auth with JWKS-backed HS256/RS256/ES256 verification
   ([`src/inference-gateway/app/jwt_auth.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/jwt_auth.py)).
-  Wiring auth to the enterprise identity boundary and backing the hashes with the customer secret
-  manager is operator-owned (RS256/ES256 preferred for customer IdPs).
+  Optional **API-key records** (`API_KEY_RECORDS_PATH`,
+  [`src/inference-gateway/app/key_records.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/key_records.py))
+  add per-key scopes, expiry (`api_key_expired` on a stale key), sandbox binding, and budget overrides
+  beside the flat hash list; a malformed records file fails the gateway closed at startup. Wiring auth to
+  the enterprise identity boundary and backing the hashes/records with the customer secret manager is
+  operator-owned (RS256/ES256 preferred for customer IdPs). **Tenant binding:** with a JWT `tenantClaim`
+  or a sandbox-bound key record, the sandbox is taken from the verified identity, not the client
+  `X-Sandbox-ID` header — a contradicting header is rejected (`sandbox_identity_mismatch`), and the
+  read-only `GET /v1/usage` and `GET /v1/sandbox/budget` endpoints are thereby scoped to the caller's own
+  tenant. Without a binding the gateway is header-trusted (the documented single-tenant/local default).
+  Human SSO for the operator dashboards (Grafana, Argo CD) is distinct from this machine auth; see the
+  [API access runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/api-access.md).
 - **Admission limits.** `Settings.validate_admission` and `_validate_tools`
   ([`src/inference-gateway/app/settings.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/settings.py))
   bound message count, prompt characters, completion tokens, temperature, streaming, and tool
@@ -104,16 +114,24 @@ release pipeline trust boundary" section of the threat model.
   detective coverage —
   [runtime-threat-detection.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md).
 - **Per-tenant RAG isolation.** The RAG service scopes retrieval to the caller's tenant via the
-  ingest-stamped `owner` payload field when `retrieval.tenantIsolation` is enabled
-  (`RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED`,
-  [`src/rag-service/app/settings.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/rag-service/app/settings.py)),
-  complementing the existing per-classification retrieval allowlist. It is off by default, so an operator
-  must enable it per multi-tenant corpus. **Trust boundary:** the tenant id is the `X-Sandbox-ID`
-  header, and the RAG service authenticates callers with a shared API key — so the isolation holds
-  for trusted callers (gateway-fronted traffic with JWT tenant binding, or workspaces whose egress
-  proxy stamps the header), not against a direct caller that asserts another tenant's id. Per-caller
-  identity on the RAG service itself is roadmap work. See the
-  [Vector RAG runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/vector-rag.md)
+  ingest-stamped `owner` payload field, complementing the existing per-classification retrieval
+  allowlist. It is **enabled by default** (`RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED` defaults true,
+  [`src/rag-service/app/settings.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/rag-service/app/settings.py));
+  the bundled single-tenant local lexical profile is the only shipped configuration that turns it off
+  (`retrieval.tenantIsolation.enabled: false` in the chart), and multi-tenant/customer profiles keep it
+  on. **Both retrieval backends enforce it:** the Qdrant path appends an `owner` match to the query
+  filter, and the lexical path (whose corpus is stamped with the default sandbox id) applies the same
+  owner scoping. **It fails closed:** a tenant with no matching documents — or a request that did not
+  explicitly assert `X-Sandbox-ID` (only the server-side default) — receives no documents rather than
+  the whole corpus, and a missing-tenant query never runs an unfiltered search. **Trust boundary:** the
+  tenant id is the `X-Sandbox-ID` header, and the RAG service authenticates callers with a shared API
+  key, so isolation is only trustworthy when the header comes from a trusted path — gateway-fronted
+  traffic that derives `X-Sandbox-ID` from a verified JWT tenant claim, or a workspace egress proxy that
+  stamps it — not against a direct caller under the shared key that asserts another tenant's id. Closing
+  that last gap (the RAG service verifying its own audience-bound token instead of trusting the header)
+  is roadmap work; see the
+  [RAG service runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/rag-service.md),
+  the [Vector RAG runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/vector-rag.md),
   and OWASP LLM01.
 
 ## Audit and evaluation evidence

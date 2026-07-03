@@ -322,6 +322,7 @@ class Settings:
     api_key_auth_enabled: bool = False
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
+    api_key_records_path: Path | None = None
     prompt_secret_detection_enabled: bool = True
     prompt_secret_mode: str = "block"
     prompt_secret_patterns: tuple[str, ...] = DEFAULT_SECRET_PATTERNS
@@ -393,8 +394,11 @@ class Settings:
             raise ValueError(f"output_guardrail_patterns contains unknown patterns: {unknown_output_patterns}")
         if not self.sandbox_budget_key_prefix.strip():
             raise ValueError("sandbox_budget_key_prefix must not be empty")
-        if self.api_key_auth_enabled and not self.api_key_sha256s:
-            raise ValueError("api_key_sha256s must be set when API key auth is enabled")
+        if self.api_key_auth_enabled and not self.api_key_sha256s and self.api_key_records_path is None:
+            # Records-only auth is valid (a key-records file with no flat hashes), so require
+            # at least one key source rather than the flat list specifically. An empty records
+            # file is still fail-closed at load time via KeyRecordSet.from_path.
+            raise ValueError("api_key_sha256s or api_key_records_path must be set when API key auth is enabled")
         for item in self.api_key_sha256s:
             if not re.fullmatch(r"[\da-f]{64}", item):
                 raise ValueError("api_key_sha256s must contain SHA-256 hex digests")
@@ -508,6 +512,7 @@ class Settings:
             api_key_auth_enabled=_bool_from_env("API_KEY_AUTH_ENABLED", False),
             api_key_sha256s=_sha256s_from_env("API_KEY_SHA256S"),
             api_key_header=os.getenv("API_KEY_HEADER", "X-API-Key"),
+            api_key_records_path=_path_from_env("API_KEY_RECORDS_PATH"),
             prompt_secret_detection_enabled=_bool_from_env(
                 "PROMPT_SECRET_DETECTION_ENABLED",
                 True,

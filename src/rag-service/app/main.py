@@ -290,7 +290,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             tenant_field=resolved.retrieval_tenant_field,
         )
     else:
-        app.state.retriever = LexicalRetriever.from_directory(resolved.document_dir)
+        app.state.retriever = LexicalRetriever.from_directory(
+            resolved.document_dir,
+            # Stamp the local corpus with the default sandbox so tenant isolation (when enabled)
+            # scopes the single-tenant lab to its own id and fails closed for any other caller.
+            owner=resolved.default_sandbox_id,
+            tenant_isolation_enabled=resolved.retrieval_tenant_isolation_enabled,
+            tenant_field=resolved.retrieval_tenant_field,
+        )
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
     app.state.tracer_provider = tracing[1] if tracing else None
@@ -312,8 +319,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def request_context(request: Request, call_next):
         try:
             request.state.request_id = _request_id_from_header(request)
+            sandbox_header = request.headers.get("x-sandbox-id")
+            # Track whether the tenant was explicitly asserted by the caller vs defaulted
+            # server-side. Under tenant isolation the retriever only trusts an explicit id, so
+            # a request that merely inherits the default sandbox does not read a tenant corpus.
+            request.state.sandbox_id_from_header = sandbox_header is not None
             request.state.sandbox_id = validate_sandbox_id(
-                request.headers.get("x-sandbox-id", resolved.default_sandbox_id)
+                sandbox_header if sandbox_header is not None else resolved.default_sandbox_id
             )
             request.state.traceparent = _traceparent_from_header(request)
         except ValueError as exc:
@@ -479,9 +491,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     },
                 )
 
-            results = await app.state.retriever.query(
-                query_text, top_k, max_context_chars, tenant=request.state.sandbox_id
-            )
+            # Under tenant isolation the tenant must come from a trusted source: the caller's
+            # explicit X-Sandbox-ID (stamped by the gateway from a verified token, or by a
+            # trusted egress proxy). A request that only inherited the server-side default
+            # sandbox is not treated as a tenant assertion, so it fails closed rather than
+            # reading the default sandbox's corpus. (RAG verifying its own token is roadmap
+            # work — see the RAG service runbook and ROADMAP RAG Hardening.)
+            tenant = request.state.sandbox_id
+            if resolved.retrieval_tenant_isolation_enabled and not request.state.sandbox_id_from_header:
+                tenant = None
+            results = await app.state.retriever.query(query_text, top_k, max_context_chars, tenant=tenant)
             result_ids = [result.document.id for result in results]
             context = build_context(results, max_context_chars)
             RETRIEVAL_RESULTS.labels(request.state.sandbox_id).observe(len(results))

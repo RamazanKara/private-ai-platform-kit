@@ -56,6 +56,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": null,
+      "chart_default": "",
+      "chart_value": "auth.keyRecordsPath",
+      "description": "Optional path to a JSON/YAML API-key records file (per-key scopes, expiry, sandbox binding, budget overrides); a malformed file fails closed at startup. Mount it via auth.keyRecords.existingSecret.",
+      "field": "api_key_records_path",
+      "name": "API_KEY_RECORDS_PATH",
+      "sensitive": false,
+      "type": "path"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": [],
       "chart_default": [],
       "chart_value": "auth.apiKeyHashes",

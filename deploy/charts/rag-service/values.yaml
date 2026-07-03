@@ -39,13 +39,23 @@ retrieval:
   candidateMultiplier: 4
   lexicalWeight: 0.5
   allowedClassifications: []
-  # Per-tenant retrieval isolation (Qdrant backend): when enabled, a caller only retrieves
-  # documents whose `field` payload value (stamped at ingest, default `owner`) equals the
-  # request's X-Sandbox-ID. Fails closed — a tenant with no matching documents gets none.
-  # Requires ingesting documents with owner set to the tenant/sandbox id. Trust boundary:
-  # X-Sandbox-ID is client-asserted under the shared API key, so this isolates tenants
-  # whose traffic arrives via a trusted path (gateway JWT tenant binding or a header-
-  # stamping egress proxy), not against a direct caller lying about its tenant.
+  # Per-tenant retrieval isolation: when enabled, a caller only retrieves documents whose
+  # `field` payload value (stamped at ingest, default `owner`) equals the request's
+  # X-Sandbox-ID. Both backends honor it (the lexical corpus is stamped with the default
+  # sandbox id). Fails closed: a tenant with no matching documents — or a request that did not
+  # explicitly assert X-Sandbox-ID — gets nothing rather than the whole corpus. Requires
+  # ingesting documents with owner set to the tenant/sandbox id.
+  #
+  # The application default is ON (`RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED` defaults true).
+  # This chart ships it OFF because the bundled local profile is a single-tenant lexical lab
+  # that serves shared platform docs to every caller; MULTI-TENANT / customer profiles MUST
+  # set `enabled: true` (see deploy/clusters/customer/values/rag-service.yaml and the RAG
+  # service runbook).
+  #
+  # Trust boundary: X-Sandbox-ID is client-asserted under the shared API key, so this isolates
+  # tenants whose traffic arrives via a trusted path (gateway JWT tenant binding or a header-
+  # stamping egress proxy), not against a direct caller lying about its tenant. Per-caller
+  # identity on the RAG service itself (RAG verifying its own token) is roadmap work.
   tenantIsolation:
     enabled: false
     field: owner

@@ -65,13 +65,18 @@ list (LLM01..LLM10). Coverage is stated per item; where a control is described a
 - The RAG corpus is mounted read-only and is loaded from `RAG_DOCUMENT_DIR`
   (`src/rag-service/app/retriever.py` `load_documents`); the service has no write path back into the
   knowledge set at request time.
-- Per-tenant and per-classification retrieval scoping ship: `QdrantRetriever._query_filter`
-  (`src/rag-service/app/retriever.py`) appends a tenant-owner match when
-  `retrieval_tenant_isolation_enabled` is set (`RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED`, matching the
-  ingest-stamped `owner` field to the request's `X-Sandbox-ID`, fail-closed), and a `classification`
-  allowlist match when `retrieval_allowed_classifications` is set
-  (`RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS`, `src/rag-service/app/settings.py`). An operator enables the
-  isolation and/or allowlist per tenant to get the scoping benefit.
+- Per-tenant and per-classification retrieval scoping ship. Per-tenant isolation is **enabled by
+  default** (`retrieval_tenant_isolation_enabled`, `RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED`) and enforced
+  on **both** backends: `QdrantRetriever._query_filter` appends a tenant-owner match, and
+  `LexicalRetriever` applies the same owner scoping to its (default-sandbox-stamped) corpus
+  (`src/rag-service/app/retriever.py`). It **fails closed** — the ingest-stamped `owner` field must equal
+  the request's `X-Sandbox-ID`, a request that does not explicitly assert `X-Sandbox-ID` is not treated
+  as a tenant, and a missing-tenant query never runs unfiltered. The bundled single-tenant local lexical
+  profile is the only shipped config that disables it. A `classification` allowlist match is added when
+  `retrieval_allowed_classifications` is set (`RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS`,
+  `src/rag-service/app/settings.py`). Residual: the tenant id is the client-asserted header, trustworthy
+  only from a gateway/proxy path that sets it from a verified identity (RAG-side token verification is
+  roadmap work).
 - A response-path output guardrail inspects completions for injected exfiltration/credential material
   before they return to the caller (see LLM02).
 - Adversarial coverage is exercised by evals: `platform/evals/coding-agent-suite.yaml` has a

@@ -63,6 +63,10 @@ class ChunkRecord:
         return str(uuid5(NAMESPACE_URL, key))
 
     def payload(self) -> dict[str, Any]:
+        # ``owner`` is the tenant-isolation key: the RAG query filter matches its configured
+        # tenant field (RAG_RETRIEVAL_TENANT_FIELD, default ``owner``) against the caller's
+        # tenant (X-Sandbox-ID). For per-tenant isolation, set each source's ``owner`` to the
+        # owning tenant/sandbox id so query-time scoping matches ingest-time stamping.
         return {
             "collection_version": self.collection_version,
             "source_id": self.source.id,

@@ -17,13 +17,19 @@ from app.reranker import NoopReranker, RerankerProvider
 
 @dataclass(frozen=True)
 class KnowledgeDocument:
-    """An indexed knowledge document with its text and token frequency counts."""
+    """An indexed knowledge document with its text and token frequency counts.
+
+    ``owner`` is the tenant that owns the document (empty when the corpus is unscoped).
+    The lexical retriever matches it against the caller's tenant when tenant isolation is
+    enabled, mirroring the Qdrant path's ``owner`` payload filter.
+    """
 
     id: str
     title: str
     source: str
     content: str
     tokens: Counter[str]
+    owner: str = ""
 
 
 @dataclass(frozen=True)
@@ -49,8 +55,13 @@ def _title_from_content(path: Path, content: str) -> str:
     return path.stem
 
 
-def load_documents(document_dir: Path) -> list[KnowledgeDocument]:
-    """Load markdown and text files under the directory into knowledge documents."""
+def load_documents(document_dir: Path, owner: str = "") -> list[KnowledgeDocument]:
+    """Load markdown and text files under the directory into knowledge documents.
+
+    ``owner`` stamps every loaded document with the corpus tenant so the lexical retriever
+    can enforce the same per-tenant scoping as the Qdrant path. The local single-tenant lab
+    passes its default sandbox id; an unscoped corpus leaves it empty.
+    """
     if not document_dir.exists():
         return []
     documents: list[KnowledgeDocument] = []
@@ -70,6 +81,7 @@ def load_documents(document_dir: Path) -> list[KnowledgeDocument]:
                 source=relative,
                 content=content,
                 tokens=Counter(tokenize(content)),
+                owner=owner,
             )
         )
     return documents
@@ -92,23 +104,58 @@ def _excerpt(content: str, terms: set[str], max_chars: int = 700) -> str:
 class LexicalRetriever:
     """In-memory retriever ranking documents by token overlap with the query."""
 
-    def __init__(self, documents: list[KnowledgeDocument]) -> None:
+    def __init__(
+        self,
+        documents: list[KnowledgeDocument],
+        tenant_isolation_enabled: bool = False,
+        tenant_field: str = "owner",
+    ) -> None:
         self.documents = documents
+        self.tenant_isolation_enabled = tenant_isolation_enabled
+        # Accepted for parity with the Qdrant retriever; the lexical corpus only carries the
+        # ``owner`` attribute, so a non-``owner`` field simply matches no document (fail closed).
+        self.tenant_field = tenant_field
 
     @classmethod
-    def from_directory(cls, document_dir: Path) -> LexicalRetriever:
-        """Build a lexical retriever from documents loaded under a directory."""
-        return cls(load_documents(document_dir))
+    def from_directory(
+        cls,
+        document_dir: Path,
+        owner: str = "",
+        tenant_isolation_enabled: bool = False,
+        tenant_field: str = "owner",
+    ) -> LexicalRetriever:
+        """Build a lexical retriever from documents loaded under a directory.
+
+        ``owner`` stamps the loaded corpus so per-tenant isolation can be enforced; the local
+        lab passes its default sandbox id.
+        """
+        return cls(
+            load_documents(document_dir, owner=owner),
+            tenant_isolation_enabled=tenant_isolation_enabled,
+            tenant_field=tenant_field,
+        )
+
+    def _document_owner(self, document: KnowledgeDocument) -> str:
+        """Return the tenant-owner attribute the isolation filter matches against."""
+        if self.tenant_field == "owner":
+            return document.owner
+        # No other per-document tenant attribute exists on the lexical corpus, so any other
+        # configured field can never match: isolation then excludes every document (fail closed).
+        return ""
 
     async def query(
         self, query: str, top_k: int, max_context_chars: int, tenant: str | None = None
     ) -> list[RetrievalResult]:
         """Return the top-k documents scored by term, phrase, and title matches.
 
-        ``tenant`` is accepted for interface parity with the Qdrant retriever but ignored:
-        the lexical backend serves a single local corpus loaded from disk with no per-document
-        owner metadata, so it is intended for local-lab use, not multi-tenant isolation.
+        When ``tenant_isolation_enabled``, only documents whose owner equals ``tenant`` are
+        eligible, mirroring the Qdrant path's ``owner`` payload filter. Isolation fails closed:
+        a query with no resolvable ``tenant`` (or a corpus with no matching owner) returns
+        nothing rather than the whole corpus. With isolation off the lexical backend serves its
+        single local corpus to every caller (local-lab default).
         """
+        if self.tenant_isolation_enabled and not tenant:
+            return []
         terms = tokenize(query)
         if not terms:
             return []
@@ -116,6 +163,8 @@ class LexicalRetriever:
         query_lower = query.lower()
         ranked: list[RetrievalResult] = []
         for document in self.documents:
+            if self.tenant_isolation_enabled and self._document_owner(document) != tenant:
+                continue
             score = 0.0
             for term in unique_terms:
                 score += document.tokens.get(term, 0)
@@ -335,7 +384,8 @@ class QdrantRetriever:
         When ``tenant_isolation_enabled`` and a tenant is supplied, a ``tenant_field``
         (default ``owner``, stamped per point at ingest) match is appended so a caller only
         retrieves documents owned by its own tenant — closing cross-tenant retrieval in the
-        shared collection. Fails closed: a tenant with no matching documents gets none.
+        shared collection. Fails closed: a tenant with no matching documents gets none, and a
+        query with no resolvable tenant is rejected before this filter is built (see ``query``).
         """
         must: list[dict[str, Any]] = [{"key": "collection_version", "match": {"value": self.collection_version}}]
         if self.allowed_classifications:
@@ -369,8 +419,12 @@ class QdrantRetriever:
 
         Candidates are over-fetched and reordered by the hybrid (dense + lexical) score; when a
         cross-encoder reranker is configured it is applied as a precision-oriented second stage.
-        When tenant isolation is enabled, ``tenant`` scopes retrieval to that tenant's documents.
+        When tenant isolation is enabled, ``tenant`` scopes retrieval to that tenant's documents;
+        a query with no resolvable ``tenant`` fails closed (returns nothing) rather than searching
+        the whole collection unfiltered.
         """
+        if self.tenant_isolation_enabled and not tenant:
+            return []
         terms = set(tokenize(query))
         if not terms:
             return []

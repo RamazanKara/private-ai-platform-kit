@@ -115,7 +115,11 @@ class Settings:
     retrieval_candidate_multiplier: int = 4
     retrieval_lexical_weight: float = 0.5
     retrieval_allowed_classifications: tuple[str, ...] = ()
-    retrieval_tenant_isolation_enabled: bool = False
+    # Per-tenant retrieval isolation defaults ON: retrieval is scoped to the caller's tenant
+    # (the ingest-stamped ``retrieval_tenant_field`` payload value) so a shared multi-tenant
+    # collection never returns another tenant's documents. Single-tenant local labs opt out by
+    # setting this False (the chart's local profile does). Fails closed — see the retrievers.
+    retrieval_tenant_isolation_enabled: bool = True
     retrieval_tenant_field: str = "owner"
     reranker_provider: str = "none"
     reranker_base_url: str = ""
@@ -212,7 +216,7 @@ class Settings:
             retrieval_candidate_multiplier=_positive_int_from_env("RAG_RETRIEVAL_CANDIDATE_MULTIPLIER", 4),
             retrieval_lexical_weight=_float_from_env("RAG_RETRIEVAL_LEXICAL_WEIGHT", 0.5),
             retrieval_allowed_classifications=_csv_from_env("RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS", ()),
-            retrieval_tenant_isolation_enabled=_bool_from_env("RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED", False),
+            retrieval_tenant_isolation_enabled=_bool_from_env("RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED", True),
             retrieval_tenant_field=os.getenv("RAG_RETRIEVAL_TENANT_FIELD", "owner").strip() or "owner",
             reranker_provider=os.getenv("RAG_RERANKER_PROVIDER", "none").strip().lower(),
             reranker_base_url=os.getenv("RAG_RERANKER_BASE_URL", "").strip(),

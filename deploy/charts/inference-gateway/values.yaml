@@ -145,6 +145,20 @@ auth:
   existingSecret:
     name: ""
     key: api-key-sha256s
+  # Optional richer API-key records (per-key scopes, expiry, sandbox binding, and budget
+  # overrides) beside the flat apiKeyHashes list. A flat hash stays an unbound, unexpiring,
+  # unscoped key. The records file is sensitive (it maps key hashes to tenant bindings), so
+  # it is mounted from an existing Secret rather than templated into values. A malformed
+  # file fails the gateway closed at startup. Leave existingSecret.name empty to disable.
+  keyRecords:
+    existingSecret:
+      name: ""
+      key: key-records.json
+    # Directory the records Secret is mounted into; the file is <mountPath>/<existingSecret.key>.
+    mountPath: /etc/private-ai-platform-kit/auth
+  # Explicit path override for API_KEY_RECORDS_PATH when NOT using keyRecords.existingSecret
+  # (e.g. a records file supplied by a sidecar or a different volume). Empty disables records.
+  keyRecordsPath: ""
   jwt:
     enabled: false
     jwksUrl: ""

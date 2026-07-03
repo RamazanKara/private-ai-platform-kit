@@ -23,8 +23,11 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 
 ## 4. RAG Hardening
 
-- Add per-caller identity to the RAG service (per-tenant API keys or JWT tenant binding, as the
-  gateway has) so `retrieval.tenantIsolation` no longer depends on a trusted `X-Sandbox-ID` header.
+- Per-tenant retrieval isolation is enforced by default (`retrieval.tenantIsolation` on both the
+  Qdrant and lexical backends, fail-closed on a missing/unasserted tenant). **Remaining:** add
+  per-caller identity to the RAG service itself — audience-bound token verification (JWKS/audience
+  validation, mirroring the gateway's `jwt_auth`) or per-tenant API keys — so the tenant is derived
+  from a verified claim on the RAG service rather than a trusted `X-Sandbox-ID` header set upstream.
 - Replace demo hashed-vector behavior with a pluggable embedding provider interface.
 - Expand collection migration dry runs and rollback guidance around the reviewed ingestion job, source metadata, collection versioning, and Qdrant readiness checks.
 - Add examples for customer document-source approvals and retention classes.

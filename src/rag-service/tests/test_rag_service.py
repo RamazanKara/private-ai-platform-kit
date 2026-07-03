@@ -368,6 +368,175 @@ def test_qdrant_tenant_isolation_disabled_omits_owner_filter(tmp_path, monkeypat
     assert "owner" not in keys
 
 
+def test_qdrant_tenant_isolation_fails_closed_without_tenant(tmp_path, monkeypatch):
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        return httpx.Response(200, json={"result": {"points": []}})
+
+    retriever = QdrantRetriever.from_directory(
+        tmp_path,
+        "http://qdrant.local:6333",
+        "lab",
+        "v1",
+        timeout_seconds=1.0,
+        vector_dimensions=16,
+        bootstrap_from_knowledge=False,
+        tenant_isolation_enabled=True,
+    )
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+
+    # No tenant under isolation must fail closed: no unfiltered query is sent to Qdrant at all.
+    results = asyncio.run(retriever.query("anything", top_k=1, max_context_chars=200, tenant=None))
+
+    assert results == []
+    assert calls == []
+
+
+def _lexical_document(doc_id, title, source, content, owner):
+    from collections import Counter
+
+    from app.embeddings import tokenize
+    from app.retriever import KnowledgeDocument
+
+    return KnowledgeDocument(
+        id=doc_id,
+        title=title,
+        source=source,
+        content=content,
+        tokens=Counter(tokenize(content)),
+        owner=owner,
+    )
+
+
+def _lexical_two_tenant_documents():
+    return [
+        _lexical_document("team-a-doc", "Team A Secret", "a.md", "team a gateway secret roadmap", "team-a"),
+        _lexical_document("team-b-doc", "Team B Secret", "b.md", "team b gateway secret roadmap", "team-b"),
+    ]
+
+
+def test_lexical_tenant_isolation_scopes_to_owner_and_excludes_other_tenant():
+    from app.retriever import LexicalRetriever
+
+    retriever = LexicalRetriever(_lexical_two_tenant_documents(), tenant_isolation_enabled=True)
+
+    results = asyncio.run(retriever.query("gateway secret", top_k=5, max_context_chars=200, tenant="team-a"))
+
+    ids = {result.document.id for result in results}
+    assert ids == {"team-a-doc"}
+    assert "team-b-doc" not in ids
+
+
+def test_lexical_tenant_isolation_fails_closed_without_tenant():
+    from app.retriever import LexicalRetriever
+
+    retriever = LexicalRetriever(_lexical_two_tenant_documents(), tenant_isolation_enabled=True)
+
+    # Isolation on but no resolvable tenant: the whole corpus must not leak.
+    results = asyncio.run(retriever.query("gateway secret", top_k=5, max_context_chars=200, tenant=None))
+
+    assert results == []
+
+
+def test_lexical_tenant_isolation_nonowner_field_fails_closed():
+    from app.retriever import LexicalRetriever
+
+    # A tenant field the lexical corpus cannot carry matches no document (fail closed), never all.
+    retriever = LexicalRetriever(_lexical_two_tenant_documents(), tenant_isolation_enabled=True, tenant_field="sandbox")
+
+    results = asyncio.run(retriever.query("gateway secret", top_k=5, max_context_chars=200, tenant="team-a"))
+
+    assert results == []
+
+
+def test_lexical_tenant_isolation_off_serves_shared_corpus():
+    from app.retriever import LexicalRetriever
+
+    # Off mode is unchanged: the shared local corpus is served to any caller regardless of tenant.
+    retriever = LexicalRetriever(_lexical_two_tenant_documents(), tenant_isolation_enabled=False)
+
+    results = asyncio.run(retriever.query("gateway secret", top_k=5, max_context_chars=200, tenant="team-a"))
+
+    ids = {result.document.id for result in results}
+    assert ids == {"team-a-doc", "team-b-doc"}
+
+
+def test_lexical_from_directory_stamps_corpus_owner(tmp_path):
+    from app.retriever import LexicalRetriever
+
+    write_doc(tmp_path, "shared.md", "# Shared\nteam gateway notes")
+    retriever = LexicalRetriever.from_directory(tmp_path, owner="local-lab", tenant_isolation_enabled=True)
+
+    assert all(document.owner == "local-lab" for document in retriever.documents)
+    served = asyncio.run(retriever.query("gateway", top_k=5, max_context_chars=200, tenant="local-lab"))
+    other = asyncio.run(retriever.query("gateway", top_k=5, max_context_chars=200, tenant="intruder"))
+    assert {result.document.id for result in served} == {"shared"}
+    assert other == []
+
+
+def test_qdrant_tenant_isolation_end_to_end_excludes_other_tenant(tmp_path, monkeypatch):
+    # A Qdrant that honors the owner filter returns only the caller's documents; the RAG query
+    # endpoint (tenant from X-Sandbox-ID) must therefore never surface another tenant's docs.
+    corpus = {
+        "team-a": {"document_id": "team-a-doc", "title": "A", "source": "a.md", "content": "team a secret"},
+        "team-b": {"document_id": "team-b-doc", "title": "B", "source": "b.md", "content": "team b secret"},
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/collections/lab/points/query":
+            must = json.loads(request.content)["filter"]["must"]
+            owner = next((c["match"]["value"] for c in must if c["key"] == "owner"), None)
+            points = [{"id": owner, "score": 0.9, "payload": corpus[owner]}] if owner in corpus else []
+            return httpx.Response(200, json={"result": {"points": points}})
+        return httpx.Response(500)
+
+    settings = Settings(
+        document_dir=tmp_path,
+        retrieval_backend="qdrant",
+        vector_store_url="http://qdrant.local:6333",
+        vector_collection="lab",
+        vector_dimensions=16,
+        vector_bootstrap_enabled=False,
+        retrieval_tenant_isolation_enabled=True,
+    )
+    app = create_app(settings)
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(app.state.retriever, "_client", lambda: httpx.AsyncClient(transport=transport))
+    client = TestClient(app)
+
+    resp_a = client.post("/v1/rag/query", headers={"X-Sandbox-ID": "team-a"}, json={"query": "secret", "top_k": 5})
+    resp_b = client.post("/v1/rag/query", headers={"X-Sandbox-ID": "team-b"}, json={"query": "secret", "top_k": 5})
+
+    ids_a = {result["id"] for result in resp_a.json()["results"]}
+    ids_b = {result["id"] for result in resp_b.json()["results"]}
+    assert ids_a == {"team-a-doc"}
+    assert ids_b == {"team-b-doc"}
+    assert "team-b-doc" not in ids_a
+
+
+def test_rag_query_fails_closed_when_isolation_on_and_no_sandbox_header(tmp_path):
+    # Trusted-source rule: with isolation on, a request that does not explicitly assert
+    # X-Sandbox-ID (only the server default) must not read the default sandbox's corpus.
+    write_doc(tmp_path, "shared.md", "# Shared\nlocal-lab gateway notes")
+    settings = Settings(
+        document_dir=tmp_path,
+        default_sandbox_id="local-lab",
+        retrieval_tenant_isolation_enabled=True,
+    )
+    client = TestClient(create_app(settings))
+
+    without_header = client.post("/v1/rag/query", json={"query": "gateway"})
+    with_header = client.post("/v1/rag/query", headers={"X-Sandbox-ID": "local-lab"}, json={"query": "gateway"})
+
+    assert without_header.status_code == 200
+    assert without_header.json()["results"] == []
+    # The same query with the matching tenant explicitly asserted is served.
+    assert {result["id"] for result in with_header.json()["results"]} == {"shared"}
+
+
 def _two_point_handler():
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "POST" and request.url.path == "/collections/lab/points/query":
@@ -462,7 +631,10 @@ def test_rag_query_returns_grounded_messages_and_trace_headers(tmp_path):
         "# Coding Agents\nCoding agents must send X-Request-ID and X-Sandbox-ID to the inference gateway.",
     )
     write_doc(tmp_path, "restore.md", "# Restore\nrestore-drill validates backups.")
-    app = create_app(Settings(document_dir=tmp_path, default_sandbox_id="local-lab"))
+    # Single-tenant lexical lab: isolation off so the shared corpus is served to any caller.
+    app = create_app(
+        Settings(document_dir=tmp_path, default_sandbox_id="local-lab", retrieval_tenant_isolation_enabled=False)
+    )
     client = TestClient(app)
     traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
 
@@ -509,6 +681,8 @@ def test_rag_query_requires_api_key_when_auth_is_enabled(tmp_path):
         document_dir=tmp_path,
         api_key_auth_enabled=True,
         api_key_sha256s=(hashlib.sha256(b"secret-key").hexdigest(),),
+        # Auth test, not an isolation test: keep the single-tenant lexical corpus servable.
+        retrieval_tenant_isolation_enabled=False,
     )
     client = TestClient(create_app(settings))
 
@@ -597,6 +771,9 @@ def _qdrant_settings(tmp_path):
         vector_store_url="http://qdrant.local:6333",
         vector_collection="lab",
         vector_dimensions=16,
+        # These fixtures exercise readiness/lifespan/bootstrap, not tenant isolation; keep
+        # isolation off so a tenant-less query is not short-circuited before reaching Qdrant.
+        retrieval_tenant_isolation_enabled=False,
     )
 
 

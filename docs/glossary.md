@@ -162,10 +162,12 @@ under `guardrails.outputGuardrail`. See
 
 ## P
 
-**Per-tenant RAG isolation** — A retrieval scope filter that limits a caller to points stamped with
-their tenant. When `retrieval.tenantIsolation.enabled` is set, the Qdrant query filter appends a match
-on the configured `retrieval.tenantIsolation.field` (default `owner`, stamped per point at ingest) so a
-caller only sees their own documents. Off by default (the lab is single-tenant). See
+**Per-tenant RAG isolation** — A retrieval scope filter that limits a caller to documents stamped with
+their tenant on the configured `retrieval.tenantIsolation.field` (default `owner`, stamped per point at
+ingest and matched against the caller's `X-Sandbox-ID`). Both backends enforce it (the Qdrant query
+filter appends the match; the lexical corpus is stamped with the default sandbox id) and it fails closed
+— a missing or unasserted tenant returns no documents, never the whole corpus. **Enabled by default;**
+the single-tenant local lexical lab is the only shipped profile that turns it off. See
 [`src/rag-service/app/retriever.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/rag-service/app/retriever.py).
 
 **Pod Security Admission (restricted)** — The Kubernetes built-in that enforces the `restricted` Pod

@@ -48,6 +48,10 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `auth.jwt.jwksUrl` | `""` |
 | `auth.jwt.requiredScopes` | `[]` |
 | `auth.jwt.tenantClaim` | `""` |
+| `auth.keyRecords.existingSecret.key` | `key-records.json` |
+| `auth.keyRecords.existingSecret.name` | `""` |
+| `auth.keyRecords.mountPath` | `/etc/private-ai-platform-kit/auth` |
+| `auth.keyRecordsPath` | `""` |
 | `budget.backend` | `memory` |
 | `budget.enabled` | `true` |
 | `budget.estimatedCharsPerToken` | `4` |

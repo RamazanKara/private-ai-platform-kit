@@ -1648,6 +1648,35 @@ def test_jwt_tenant_claim_missing_is_rejected(monkeypatch):
     assert response.json()["detail"]["reason"] == "sandbox_claim_invalid"
 
 
+def test_jwt_tenant_binding_scopes_usage_and_budget_reads(monkeypatch):
+    # 4.2: with JWT tenant binding active, the GET /v1/usage and /v1/sandbox/budget routes
+    # cannot read another tenant via X-Sandbox-ID - the binding check runs in middleware for
+    # every auth-required route, so a mismatched header is rejected and a missing one adopts
+    # the bound sandbox.
+    secret = b"jwt-test-secret"
+
+    async def fake_keys(self):
+        return [{"kty": "oct", "kid": "test-key", "k": _b64url(secret)}]
+
+    monkeypatch.setattr(JwksCache, "keys", fake_keys)
+    app = create_app(_hs256_jwt_settings(secret, jwt_tenant_claim="sandbox"))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    token = _signed_hs256_jwt(secret, {"sandbox": "team-a", "exp": int(time.time()) + 300})
+
+    cross_usage = client.get("/v1/usage", headers={"Authorization": f"Bearer {token}", "X-Sandbox-ID": "team-b"})
+    own_usage = client.get("/v1/usage", headers={"Authorization": f"Bearer {token}"})
+    cross_budget = client.get(
+        "/v1/sandbox/budget", headers={"Authorization": f"Bearer {token}", "X-Sandbox-ID": "team-b"}
+    )
+
+    assert cross_usage.status_code == 403
+    assert cross_usage.json()["detail"]["reason"] == "sandbox_identity_mismatch"
+    assert own_usage.status_code == 200
+    assert own_usage.json()["sandbox_id"] == "team-a"
+    assert cross_budget.status_code == 403
+
+
 def test_api_key_principal_is_recorded_in_audit(caplog):
     caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
     api_key = "secret-key-value"

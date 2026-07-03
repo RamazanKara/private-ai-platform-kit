@@ -76,6 +76,25 @@ auth:
   existingSecret:
     name: inference-gateway-secrets
     key: api-key-sha256s
+  # JWT bearer validation with per-tenant sandbox binding. TEMPLATE - the operator MUST
+  # replace the placeholder issuer/JWKS/audience below with their real IdP before this
+  # overlay authenticates anyone by JWT; until then only the API-key hashes above work.
+  # With tenantClaim set, the sandbox id is taken from the verified `sandbox_id` claim:
+  # a token whose claim contradicts the X-Sandbox-ID header is rejected (403), and
+  # /v1/usage + /v1/sandbox/budget then reflect only the caller's own tenant. If your IdP
+  # cannot emit a `sandbox_id` claim, point tenantClaim at a claim it does emit that
+  # uniquely identifies the tenant (commonly `azp` for the client-credentials app id, or
+  # `sub`). API-key hashes remain the break-glass path during IdP outages.
+  jwt:
+    enabled: true
+    # Placeholder - well-formed but non-routable example.com URL so Helm rendering and
+    # `make validate` stay green; the gateway only fetches it once a JWT is presented.
+    jwksUrl: "https://idp.example.com/.well-known/jwks.json"
+    issuer: "https://idp.example.com/"
+    audience: "private-ai-platform-kit"
+    requiredScopes: []
+    cacheSeconds: 300
+    tenantClaim: "sandbox_id"
 keda:
   enabled: true
   minReplicaCount: 2

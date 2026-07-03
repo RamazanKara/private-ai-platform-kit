@@ -181,6 +181,12 @@ spec:
               {{- else }}
               value: {{ join "," .Values.auth.apiKeyHashes | quote }}
               {{- end }}
+            - name: API_KEY_RECORDS_PATH
+              {{- if .Values.auth.keyRecords.existingSecret.name }}
+              value: {{ printf "%s/%s" .Values.auth.keyRecords.mountPath .Values.auth.keyRecords.existingSecret.key | quote }}
+              {{- else }}
+              value: {{ .Values.auth.keyRecordsPath | quote }}
+              {{- end }}
             - name: OTEL_TRACING_ENABLED
               value: {{ .Values.observability.tracing.enabled | quote }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -210,17 +216,31 @@ spec:
               drop:
                 - ALL
             readOnlyRootFilesystem: true
-          {{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled }}
+          {{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled .Values.auth.keyRecords.existingSecret.name }}
           volumeMounts:
+            {{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled }}
             - name: gateway-policies
               mountPath: /etc/private-ai-platform-kit
               readOnly: true
+            {{- end }}
+            {{- if .Values.auth.keyRecords.existingSecret.name }}
+            - name: gateway-key-records
+              mountPath: {{ .Values.auth.keyRecords.mountPath | quote }}
+              readOnly: true
+            {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled }}
+      {{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled .Values.auth.keyRecords.existingSecret.name }}
       volumes:
+        {{- if or .Values.routing.policy.enabled .Values.sandboxPolicy.policy.enabled }}
         - name: gateway-policies
           configMap:
             name: {{ include "inference-gateway.fullname" . }}-policies
+        {{- end }}
+        {{- if .Values.auth.keyRecords.existingSecret.name }}
+        - name: gateway-key-records
+          secret:
+            secretName: {{ .Values.auth.keyRecords.existingSecret.name | quote }}
+        {{- end }}
       {{- end }}

@@ -7,6 +7,7 @@ import json
 import logging
 import random
 import re
+from dataclasses import replace
 from time import perf_counter, time
 from typing import Any, Literal
 from uuid import uuid4
@@ -26,6 +27,7 @@ from app.budget import (
 )
 from app.cache import build_response_cache, cache_key
 from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
+from app.key_records import KeyRecord, KeyRecordSet, key_record_effective_budget_updates
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
 from app.runtime_client import REDACTED_MESSAGE_FIELDS, RuntimeClient
@@ -477,13 +479,63 @@ def _api_key_from_request(request: Request, settings: Settings) -> str | None:
     return None
 
 
-def _valid_api_key(request: Request, settings: Settings) -> bool:
-    """Return whether the request carries an API key matching a configured digest."""
+def _api_key_digest(request: Request, settings: Settings) -> str | None:
+    """Return the lowercase hex SHA-256 of the presented API key, or None when absent."""
     api_key = _api_key_from_request(request, settings)
     if not api_key:
-        return False
-    digest = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
-    return any(hmac.compare_digest(digest, expected) for expected in settings.api_key_sha256s)
+        return None
+    return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+
+
+def _matches_flat_key(digest: str, settings: Settings) -> bool:
+    """Return whether the digest matches a flat ``api_key_sha256s`` hash (constant time)."""
+    matched = False
+    for expected in settings.api_key_sha256s:
+        # Compare every entry (no early return) so the match does not leak, via timing,
+        # which flat hash matched or how many precede it.
+        if hmac.compare_digest(digest, expected):
+            matched = True
+    return matched
+
+
+class ApiKeyOutcome:
+    """Result of resolving a presented API key against flat hashes and key records.
+
+    ``valid`` is True when the key matched either a flat hash or a non-expired record.
+    ``record`` is the matched :class:`KeyRecord` (records carry binding/scope/budget),
+    or None for a flat-hash match. ``expired`` is True when the key matched a record
+    whose expiry has passed - a distinct 401 reason from an unrecognized key.
+    """
+
+    __slots__ = ("expired", "record", "valid")
+
+    def __init__(self, valid: bool, record: KeyRecord | None, expired: bool) -> None:
+        self.valid = valid
+        self.record = record
+        self.expired = expired
+
+
+def _resolve_api_key(request: Request, settings: Settings, record_set: KeyRecordSet) -> ApiKeyOutcome:
+    """Resolve the presented API key against key records and flat hashes.
+
+    Records take precedence over the flat allowlist: a digest that matches a record is
+    always governed by that record's binding/scopes/expiry, even if the same digest is
+    also flat-listed - so hardening a flat key by adding a binding record can never be
+    silently voided by leaving the flat entry in place. A flat-only match authenticates
+    as an unbound principal. An expired record is rejected (never fails open to unbound).
+    The digest is computed once and compared in constant time by each source.
+    """
+    digest = _api_key_digest(request, settings)
+    if digest is None:
+        return ApiKeyOutcome(valid=False, record=None, expired=False)
+    record = record_set.match(digest)
+    if record is not None:
+        if record.is_expired(time()):
+            return ApiKeyOutcome(valid=False, record=record, expired=True)
+        return ApiKeyOutcome(valid=True, record=record, expired=False)
+    if _matches_flat_key(digest, settings):
+        return ApiKeyOutcome(valid=True, record=None, expired=False)
+    return ApiKeyOutcome(valid=False, record=None, expired=False)
 
 
 async def _valid_jwt(request: Request, verifier: JwtVerifier) -> dict[str, Any] | None:
@@ -506,12 +558,21 @@ async def _valid_jwt(request: Request, verifier: JwtVerifier) -> dict[str, Any] 
         return None
 
 
-def _api_key_principal(request: Request, settings: Settings) -> dict[str, Any]:
+def _api_key_principal(request: Request, settings: Settings, record: KeyRecord | None = None) -> dict[str, Any]:
     """Build a non-reversible audit principal for an API-key caller.
 
-    The key itself is never logged; ``key_id`` is a stable digest prefix so audit
-    consumers can attribute requests to a specific issued key.
+    The key itself is never logged. For a flat-hash key ``key_id`` is a stable digest
+    prefix; for a matched :class:`KeyRecord` it is the record's ``name`` (else its own
+    12-char digest prefix) and the record's scopes and sandbox binding are recorded so
+    audit consumers can attribute the request to the specific issued key.
     """
+    if record is not None:
+        principal: dict[str, Any] = {"auth": "api_key", "key_id": record.key_id}
+        if record.scopes:
+            principal["scopes"] = sorted(record.scopes)
+        if record.sandbox is not None:
+            principal["bound_sandbox"] = record.sandbox
+        return principal
     api_key = _api_key_from_request(request, settings) or ""
     # Non-reversible attribution identifier, not a security control and not password
     # storage: API keys are high-entropy random tokens, so a digest prefix is a stable
@@ -1119,6 +1180,22 @@ def _write_audit_log(
     logging.getLogger("uvicorn.error").info(line)
 
 
+def _effective_settings(request: Request, policy_set: SandboxPolicySet, settings: Settings) -> Settings:
+    """Return the request's effective settings: sandbox-policy overrides, then per-key budgets.
+
+    Composes the two override sources onto the base settings for the (already bound)
+    sandbox: the SandboxPolicySet's per-sandbox admission/budget overrides first, then
+    any per-key budget overrides carried by a matched API-key record. The per-key budget
+    takes precedence for the three budget dimensions so a key's issued allowance is what
+    the request is metered against - and what /v1/usage and /v1/sandbox/budget report.
+    """
+    effective = policy_set.effective_settings(settings, request.state.sandbox_id)
+    key_updates = getattr(request.state, "key_budget_updates", None)
+    if key_updates:
+        effective = replace(effective, **key_updates)
+    return effective
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     resolved = settings or Settings.from_env()
     app = FastAPI(
@@ -1144,6 +1221,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         else ModelRoutingPolicy.default(resolved)
     )
     app.state.sandbox_policy_set = SandboxPolicySet.from_path(resolved.sandbox_policy_path)
+    # Optional richer API-key records (scopes/expiry/sandbox binding/budget). Fails closed:
+    # a malformed key store raises here and stops startup rather than silently disabling
+    # per-key controls. No records file -> an empty set, preserving flat-hash behavior.
+    app.state.key_record_set = KeyRecordSet.from_path(resolved.api_key_records_path)
     app.state.jwt_verifier = JwtVerifier(resolved)
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
@@ -1162,26 +1243,52 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
             request.state.traceparent = _traceparent_from_header(request)
             request.state.principal = None
+            # Per-key budget overrides (from a matched API-key record) folded into the
+            # request's effective settings; empty for flat keys and unauthenticated paths.
+            request.state.key_budget_updates = {}
         except ValueError as exc:
             return JSONResponse(status_code=400, content=_error_envelope(400, str(exc)))
 
         async def dispatch() -> Response:
             if (resolved.api_key_auth_enabled or resolved.jwt_auth_enabled) and _auth_required(request.url.path):
-                api_key_ok = resolved.api_key_auth_enabled and _valid_api_key(request, resolved)
+                api_key_outcome = (
+                    _resolve_api_key(request, resolved, request.app.state.key_record_set)
+                    if resolved.api_key_auth_enabled
+                    else ApiKeyOutcome(valid=False, record=None, expired=False)
+                )
                 jwt_claims: dict[str, Any] | None = None
-                if not api_key_ok and resolved.jwt_auth_enabled:
+                if not api_key_outcome.valid and resolved.jwt_auth_enabled:
                     try:
                         jwt_claims = await _valid_jwt(request, request.app.state.jwt_verifier)
                     except JwksUnavailableError:
                         # Issuer JWKS is unreachable: this is a 503 (retry later),
                         # not a 401 token rejection.
                         return _jwks_unavailable_response(request)
-                if not api_key_ok and jwt_claims is None:
-                    return _auth_failure_response(request, "invalid_or_missing_api_key")
+                if not api_key_outcome.valid and jwt_claims is None:
+                    # A presented key that matched a record but is expired is a distinct,
+                    # more actionable rejection than an unrecognized key - never fall
+                    # through to accepting it as unbound.
+                    reason = "api_key_expired" if api_key_outcome.expired else "invalid_or_missing_api_key"
+                    return _auth_failure_response(request, reason)
                 # Propagate the authenticated principal so the audit trail records who
                 # called, not just the (client-asserted) sandbox header.
-                if api_key_ok:
-                    request.state.principal = _api_key_principal(request, resolved)
+                if api_key_outcome.valid:
+                    record = api_key_outcome.record
+                    request.state.principal = _api_key_principal(request, resolved, record)
+                    if record is not None:
+                        # A record with a sandbox binding is enforced exactly like the JWT
+                        # tenant claim: a mismatched X-Sandbox-ID is rejected; a missing one
+                        # adopts the bound sandbox. This closes the cross-tenant read on
+                        # /v1/usage and /v1/sandbox/budget for API-key callers.
+                        if record.sandbox is not None:
+                            explicit = request.headers.get("x-sandbox-id")
+                            if explicit is not None and validate_sandbox_id(explicit) != record.sandbox:
+                                return _sandbox_binding_response(request, "sandbox_identity_mismatch")
+                            request.state.sandbox_id = record.sandbox
+                        # Fold per-key budget overrides into the request's effective settings
+                        # via the same mechanism the sandbox policy set uses.
+                        if record.has_budget_override():
+                            request.state.key_budget_updates = key_record_effective_budget_updates(record)
                 elif jwt_claims is not None:
                     request.state.principal = _jwt_principal(jwt_claims)
                     # Bind the sandbox to the verified tenant claim when configured,
@@ -1339,9 +1446,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         operation_id="getSandboxBudget",
     )
     async def sandbox_budget(request: Request) -> dict[str, Any]:
+        # request.state.sandbox_id is the caller's bound sandbox when a principal is bound
+        # (JWT tenant claim or an API-key record with a sandbox): the auth middleware rejects
+        # a mismatched X-Sandbox-ID and rebinds a missing one upstream, so a bound caller can
+        # only ever read its own budget here. In header-trusted mode (no binding) the header is
+        # honored as-is - the documented insecure default.
         tracker: SandboxBudgetTracker = request.app.state.budget_tracker
         policy_set: SandboxPolicySet = request.app.state.sandbox_policy_set
-        effective = policy_set.effective_settings(resolved, request.state.sandbox_id)
+        effective = _effective_settings(request, policy_set, resolved)
         try:
             return await asyncio.to_thread(tracker.snapshot, request.state.sandbox_id, effective)
         except BudgetBackendError as exc:
@@ -1360,9 +1472,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def sandbox_usage(request: Request) -> dict[str, Any]:
         # Per-sandbox usage plus an estimated monetary cost (the data layer an admin/usage
         # console renders). USD_PER_1K_TOKENS of 0 leaves the cost model off (cost = 0).
+        # Like /v1/sandbox/budget, this reflects only request.state.sandbox_id, which the auth
+        # middleware forces to the caller's bound sandbox for a bound principal (JWT tenant
+        # claim or an API-key record with a sandbox) - a bound caller cannot read another
+        # tenant's usage via X-Sandbox-ID. Header-trusted mode (no binding) is unchanged.
         tracker: SandboxBudgetTracker = request.app.state.budget_tracker
         policy_set: SandboxPolicySet = request.app.state.sandbox_policy_set
-        effective = policy_set.effective_settings(resolved, request.state.sandbox_id)
+        effective = _effective_settings(request, policy_set, resolved)
         try:
             snapshot = await asyncio.to_thread(tracker.snapshot, request.state.sandbox_id, effective)
         except BudgetBackendError as exc:
@@ -1420,7 +1536,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
-            effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
+            effective = _effective_settings(request, sandbox_policies, resolved)
             try:
                 chain = policy.resolve_chain(payload_dict.get("model"), effective.model_id)
             except ValueError as exc:
@@ -1742,7 +1858,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
-            effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
+            effective = _effective_settings(request, sandbox_policies, resolved)
             try:
                 model_route = policy.resolve(payload_dict.get("model"), effective.model_id)
             except ValueError as exc:
@@ -1897,7 +2013,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
-            effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
+            effective = _effective_settings(request, sandbox_policies, resolved)
             try:
                 model_route = policy.resolve(payload_dict.get("model"), effective.model_id)
             except ValueError as exc:
@@ -2098,7 +2214,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 )
             policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
-            effective = sandbox_policies.effective_settings(resolved, request.state.sandbox_id)
+            effective = _effective_settings(request, sandbox_policies, resolved)
             tracker: SandboxBudgetTracker = request.app.state.budget_tracker
             client: RuntimeClient = request.app.state.runtime_client
             # Bound per-batch fan-out so one batch cannot saturate the upstream pool.
