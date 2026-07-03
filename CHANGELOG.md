@@ -4,6 +4,51 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+Enforcement hardening: the governance controls now hold against the request tricks that
+slipped past them, and the shipped defaults stop fighting the platform they run on.
+
+### Added
+
+- OpenAI `n` (completions per request) is capped by `admission.maxCompletionsPerRequest`
+  (default 1) and the completion budget is charged `n` times, so a caller can no longer
+  request many completions - or a huge one - for the price of one.
+- Multimodal prompts are metered: each `image_url` content part adds a flat
+  `admission.imagePartTokenEstimate` to the budget (previously image bytes counted as
+  zero), and `admission.maxImageBytes` caps a single data-URL image (0 disables it).
+- Input secret detection gains a `mode` (`block` | `redact` | `flag`). `redact` strips
+  matched credentials from the prompt before it is cached, budgeted, or forwarded - so an
+  agent that reads a `.env` or a lockfile is not killed mid-conversation - while `flag`
+  allows and records. A `prompt_guardrail` metric, an `X-Prompt-Guardrail` response
+  header, and a `prompt_guardrail_action` audit field record the action (attributed
+  per item on `/v1/batches`). AWS (`AKIA`/`ASIA…`) and Google (`AIza…`) API-key
+  detectors are on by default.
+
+### Changed
+
+- The completion-token cap is enforced on both `max_completion_tokens` and the legacy
+  `max_tokens` (either can be the field a runtime honors), and the budget charges the
+  larger of the two - closing the bypass where renaming one field dodged the cap.
+- Streamed responses are metered and redacted like non-streaming ones: the gateway
+  injects `stream_options.include_usage` so token usage and cost are recorded even when
+  the client omits it (and filters the induced usage event back out when the client did
+  not ask for it), and strips `reasoning`/`thinking` deltas that setting `stream: true`
+  previously slipped past the response-path redaction.
+- Streaming is admitted by default in every shipped profile
+  (`admission.allowStreaming: true`); the local lab and customer overlay no longer return
+  `400 streaming_disabled` out of the box. Air-gapped/regulated deployments set it `false`.
+- The customer profile's admission ceilings match the large-context runtime it serves
+  (`maxMessages` 512, `maxPromptChars` 786432, `maxCompletionTokens` 32768) so a coding
+  session does not hit a hard 400 in its first exchanges, and it defaults prompt secret
+  detection to `redact`.
+
+### Fixed
+
+- `/v1/batches` receipts are emitted to the uvicorn logger like `inference_request`
+  events, so batch actions appear in pod logs / Loki instead of silently advancing the
+  audit chain past events an operator cannot observe.
+
 ## v0.16.0 - 2026-07-03
 
 Client-visible governance: budget headroom on every response, receipts that
