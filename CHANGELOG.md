@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+The last two implementable items from the capability-audit remediation: the RAG service
+verifies its own tenant identity, and the OpenAI Responses API is supported natively.
+
+### Added
+
+- Native `POST /v1/responses` (the OpenAI Responses API, stateless subset): agents and
+  tooling built on the Responses API can point at the gateway directly. It translates the
+  request (`input` as a string or item array, `instructions`, `max_output_tokens`, tools)
+  into the internal chat payload and runs the **same** governance path as chat - model
+  allowlist, admission (the completion cap applies), prompt-secret mode, sandbox budget,
+  output guardrail, tenant binding, and audit - then renders a Responses `output`. Stateful
+  features (`store: true`, `previous_response_id`) are rejected rather than silently
+  ignored, and streaming is non-streaming-this-release (rejected with a clear error).
+- RAG-side per-caller identity: the RAG service can verify its own audience-bound JWT
+  (`RAG_JWT_*`, PyJWT, JWKS with a last-known-good cache) and **derive the tenant from the
+  verified claim** rather than trusting the `X-Sandbox-ID` header - closing the gap where a
+  direct caller under the shared RAG API key could assert another tenant's id. A token
+  whose claim contradicts the header is rejected (403); a present-but-invalid token is
+  always rejected (401), never downgraded to header-trust; algorithms are pinned to the
+  configured allowlist. Off by default (header-trust preserved for gateway-fronted
+  deployments); the multi-tenant customer overlay enables it with a mandatory token.
+
 ## v0.22.0 - 2026-07-03
 
 Native Anthropic clients and a maintained JWT core - closing the last two items the
