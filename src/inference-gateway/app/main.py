@@ -7,7 +7,7 @@ import json
 import logging
 import random
 import re
-from time import perf_counter
+from time import perf_counter, time
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -764,14 +764,20 @@ def _usage_from_sse_chunk(chunk: bytes) -> dict[str, Any] | None:
     OpenAI-compatible streams emit a final ``data:`` event carrying a ``usage``
     object (when usage reporting is enabled) before ``data: [DONE]``. Each chunk may
     contain several SSE events; scan them and return the last usage object found.
+
+    Any JSON object with a ``usage`` member necessarily contains the literal bytes
+    ``"usage"``, so chunks and lines without them are skipped without parsing rather
+    than json-decoding every delta event on the event loop.
     """
+    if b'"usage"' not in chunk:
+        return None
     found: dict[str, Any] | None = None
     for line in chunk.split(b"\n"):
         line = line.strip()
         if not line.startswith(b"data:"):
             continue
         data = line[5:].strip()
-        if not data or data == b"[DONE]":
+        if not data or data == b"[DONE]" or b'"usage"' not in data:
             continue
         try:
             parsed = json.loads(data)
@@ -814,6 +820,29 @@ def _record_budget_reservation(reservation: BudgetReservation | None, settings: 
         SANDBOX_BUDGET_LIMIT.labels(_sandbox_label(reservation.sandbox_id), budget_type).set(limits[budget_type])
 
 
+def _budget_headers(reservation: BudgetReservation | None, settings: Settings) -> dict[str, str]:
+    """Build OpenAI-style ``x-ratelimit-*`` response headers from a budget reservation.
+
+    Mirrors the OpenAI API's budget headers so agent frameworks that parse them can
+    pace themselves against the sandbox budget. Remaining values are floored at zero;
+    a limit of zero means unlimited and emits no headers for that dimension.
+    """
+    if reservation is None:
+        return {}
+    headers: dict[str, str] = {}
+    if settings.sandbox_request_budget > 0:
+        headers["x-ratelimit-limit-requests"] = str(settings.sandbox_request_budget)
+        headers["x-ratelimit-remaining-requests"] = str(
+            max(settings.sandbox_request_budget - reservation.usage.requests, 0)
+        )
+    if settings.sandbox_estimated_token_budget > 0:
+        headers["x-ratelimit-limit-tokens"] = str(settings.sandbox_estimated_token_budget)
+        headers["x-ratelimit-remaining-tokens"] = str(
+            max(settings.sandbox_estimated_token_budget - reservation.usage.estimated_tokens, 0)
+        )
+    return headers
+
+
 def _admission_status(reason: str, settings: Settings) -> tuple[int, dict[str, str] | None]:
     if reason.startswith("sandbox_") and reason.endswith("_exceeded"):
         headers = None
@@ -854,6 +883,9 @@ def _write_audit_log(
         "status_code": status_code,
         "runtime_status_code": runtime_status_code,
         "latency_ms": round(latency_seconds * 1000, 2),
+        # Chain-covered wall-clock timestamp: keeping WHEN inside the hash chain means
+        # rewriting event times is as detectable as rewriting the events themselves.
+        "ts": time(),
         "usage": (runtime_response or {}).get("usage"),
         "error": error,
         "budget": getattr(request.state, "budget_reservation", None),
@@ -1000,6 +1032,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 response.headers["traceparent"] = request.state.traceparent
             if getattr(request.state, "cache_status", None):
                 response.headers["X-Cache"] = request.state.cache_status
+            for header, value in getattr(request.state, "budget_headers", {}).items():
+                response.headers[header] = value
             if getattr(request.state, "output_guardrail_action", None):
                 response.headers["X-Output-Guardrail"] = request.state.output_guardrail_action
             return response
@@ -1187,6 +1221,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             reservation = await asyncio.to_thread(tracker.reserve, request.state.sandbox_id, payload_dict, effective)
             request.state.budget_reservation = reservation.audit_dict() if reservation is not None else None
             _record_budget_reservation(reservation, effective)
+            request.state.budget_headers = _budget_headers(reservation, effective)
             client: RuntimeClient = request.app.state.runtime_client
             if payload_dict.get("stream"):
                 # Open the stream with cross-runtime fallback: a pre-first-byte failure
@@ -1443,6 +1478,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             reservation = await asyncio.to_thread(tracker.reserve, request.state.sandbox_id, budget_payload, effective)
             request.state.budget_reservation = reservation.audit_dict() if reservation is not None else None
             _record_budget_reservation(reservation, effective)
+            request.state.budget_headers = _budget_headers(reservation, effective)
             client: RuntimeClient = request.app.state.runtime_client
             runtime_response = await client.embeddings(
                 payload_dict,
@@ -1740,6 +1776,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "items": sorted(audit_items, key=lambda entry: entry["index"]),
                     "status_code": status_code,
                     "latency_ms": round(latency_seconds * 1000, 2),
+                    "ts": time(),
                     "error": error,
                 }
                 _chain_audit_event(request, event)

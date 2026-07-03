@@ -621,14 +621,20 @@ def test_audit_events_form_tamper_evident_chain(caplog):
     client = TestClient(app)
     body = {"messages": [{"role": "user", "content": "hi"}]}
 
+    started_at = time.time()
     client.post("/v1/chat/completions", json=body)
     client.post("/v1/chat/completions", json=body)
+    finished_at = time.time()
 
     events = [json.loads(r.getMessage()) for r in caplog.records if '"event": "inference_request"' in r.getMessage()]
     assert len(events) >= 2
     genesis = hashlib.sha256(b"genesis").hexdigest()
     prev = genesis
     for event in events:
+        # WHEN is chain-covered, not just WHAT: every event carries a wall-clock ts
+        # inside the hashed record (range-checked only; time.time() is not monotonic).
+        assert isinstance(event["ts"], float)
+        assert started_at <= event["ts"] <= finished_at
         assert event["prev_hash"] == prev
         record = {k: v for k, v in event.items() if k not in ("prev_hash", "record_hash")}
         canonical = json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -1227,6 +1233,41 @@ def test_streaming_pre_first_byte_upstream_error_returns_502():
     # No bytes were sent yet, so a clean 502 JSON error is returned instead of a 200.
     assert response.status_code == 502
     assert response.json()["detail"]["runtime_status"] == 503
+
+
+def test_usage_from_sse_chunk_skips_parsing_delta_chunks_without_usage(monkeypatch):
+    def _fail(*args, **kwargs):
+        raise AssertionError("chunks without a usage member must not be JSON-parsed")
+
+    monkeypatch.setattr(gateway_main.json, "loads", _fail)
+
+    chunk = b'data: {"choices":[{"delta":{"content":"hel"}}]}\n\ndata: [DONE]\n\n'
+    assert gateway_main._usage_from_sse_chunk(chunk) is None
+
+
+def test_usage_from_sse_chunk_extracts_terminal_usage_object():
+    chunk = b'data: {"choices":[],"usage":{"prompt_tokens":7,"completion_tokens":3,"total_tokens":10}}\n\n'
+    assert gateway_main._usage_from_sse_chunk(chunk) == {
+        "prompt_tokens": 7,
+        "completion_tokens": 3,
+        "total_tokens": 10,
+    }
+
+
+def test_usage_from_sse_chunk_ignores_null_usage():
+    # Interim events in some runtimes carry `"usage": null`; the literal is present,
+    # so the line is parsed and rejected by the isinstance check, same as before.
+    chunk = b'data: {"choices":[{"delta":{"content":"x"}}],"usage": null}\n\n'
+    assert gateway_main._usage_from_sse_chunk(chunk) is None
+
+
+def test_usage_from_sse_chunk_finds_usage_in_multi_event_chunk():
+    chunk = (
+        b'data: {"choices":[{"delta":{"content":"a"}}]}\n\n'
+        b'data: {"choices":[],"usage":{"total_tokens":4}}\n\n'
+        b"data: [DONE]\n\n"
+    )
+    assert gateway_main._usage_from_sse_chunk(chunk) == {"total_tokens": 4}
 
 
 def test_chat_completion_uses_default_model_when_model_is_omitted():
@@ -2187,6 +2228,100 @@ def test_sandbox_budget_rejects_estimated_token_overage_before_runtime():
     assert response.headers["Retry-After"] == "86400"
     assert response.json()["detail"]["reason"] == "sandbox_token_budget_exceeded"
     assert fake.calls == 0
+
+
+def _budget_header_settings(**overrides):
+    base = {
+        "sandbox_budget_enabled": True,
+        "sandbox_request_budget": 5,
+        "sandbox_estimated_token_budget": 1000,
+        "budget_estimated_chars_per_token": 4,
+    }
+    base.update(overrides)
+    return _tool_settings(**base)
+
+
+def test_chat_completion_reports_ratelimit_budget_headers():
+    app = create_app(_budget_header_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"X-Sandbox-ID": "budget-lab"},
+        json={"messages": [{"role": "user", "content": "hello"}], "max_tokens": 5},
+    )
+
+    assert response.status_code == 200
+    # One request reserved; estimated tokens = ceil(5 chars / 4) + max_tokens 5 = 7.
+    assert response.headers["x-ratelimit-limit-requests"] == "5"
+    assert response.headers["x-ratelimit-remaining-requests"] == "4"
+    assert response.headers["x-ratelimit-limit-tokens"] == "1000"
+    assert response.headers["x-ratelimit-remaining-tokens"] == "993"
+
+
+def test_embeddings_report_ratelimit_budget_headers():
+    app = create_app(_budget_header_settings(allowed_models=("default-model",)))
+    app.state.runtime_client = FakeRuntimeClient(response={"object": "list", "data": [{"embedding": [0.1]}]})
+    client = TestClient(app)
+
+    response = client.post("/v1/embeddings", headers={"X-Sandbox-ID": "budget-lab"}, json={"input": "embed this"})
+
+    assert response.status_code == 200
+    # Embedding inputs are budgeted like prompts with max_tokens 0: ceil(10 chars / 4) = 3.
+    assert response.headers["x-ratelimit-limit-requests"] == "5"
+    assert response.headers["x-ratelimit-remaining-requests"] == "4"
+    assert response.headers["x-ratelimit-limit-tokens"] == "1000"
+    assert response.headers["x-ratelimit-remaining-tokens"] == "997"
+
+
+def test_cache_hit_omits_ratelimit_budget_headers():
+    app = create_app(_budget_header_settings(response_cache_enabled=True))
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
+    body = {"messages": [{"role": "user", "content": "same question"}], "max_tokens": 5}
+
+    first = client.post("/v1/chat/completions", json=body)
+    second = client.post("/v1/chat/completions", json=body)
+
+    assert first.headers["X-Cache"] == "MISS"
+    assert first.headers["x-ratelimit-remaining-requests"] == "4"
+    # A cache hit consumes no budget, so it reports no budget headers.
+    assert second.headers["X-Cache"] == "HIT"
+    assert "x-ratelimit-remaining-requests" not in second.headers
+    assert "x-ratelimit-limit-tokens" not in second.headers
+
+
+def test_streaming_response_carries_ratelimit_budget_headers():
+    app = create_app(_budget_header_settings(allow_streaming=True))
+    app.state.runtime_client = FakeRuntimeClient()
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/v1/chat/completions",
+        json={"stream": True, "messages": [{"role": "user", "content": "hello"}], "max_tokens": 5},
+    ) as response:
+        response.read()
+
+    assert response.status_code == 200
+    assert response.headers["x-ratelimit-limit-requests"] == "5"
+    assert response.headers["x-ratelimit-remaining-requests"] == "4"
+    assert response.headers["x-ratelimit-remaining-tokens"] == "993"
+
+
+def test_ratelimit_budget_headers_omitted_when_budget_disabled_or_unlimited():
+    runtime_response = {"id": "x", "object": "chat.completion", "choices": []}
+    disabled = create_app(_tool_settings())
+    disabled.state.runtime_client = FakeRuntimeClient(response=runtime_response)
+    unlimited = create_app(_budget_header_settings(sandbox_request_budget=0, sandbox_estimated_token_budget=0))
+    unlimited.state.runtime_client = FakeRuntimeClient(response=runtime_response)
+    body = {"messages": [{"role": "user", "content": "hi"}], "max_tokens": 5}
+
+    for app in (disabled, unlimited):
+        response = TestClient(app).post("/v1/chat/completions", json=body)
+        assert response.status_code == 200
+        assert not [name for name in response.headers if name.lower().startswith("x-ratelimit-")]
 
 
 def test_redis_budget_tracker_shares_usage_across_tracker_instances():

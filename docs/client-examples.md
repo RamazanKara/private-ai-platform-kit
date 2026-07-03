@@ -16,6 +16,20 @@ All business endpoints accept:
 - `X-Sandbox-ID: <sandbox>` — the tenant/sandbox the request is attributed to
 - `X-Request-ID` and W3C `traceparent` — optional, echoed back for tracing
 
+Responses echo `X-Request-ID`, `X-Sandbox-ID`, and `traceparent` for correlation. When
+sandbox budgets are enabled, `/v1/chat/completions` (including streaming) and
+`/v1/embeddings` responses also carry the OpenAI-style budget headers that agent
+frameworks parse to pace themselves:
+
+- `x-ratelimit-limit-requests` / `x-ratelimit-remaining-requests` — the sandbox request
+  budget and what remains of it in the current window
+- `x-ratelimit-limit-tokens` / `x-ratelimit-remaining-tokens` — the estimated-token budget
+  and what remains of it, floored at zero
+
+Each pair is present only when the corresponding limit is configured (greater than zero);
+cache hits (`X-Cache: HIT`) consume no budget and omit them. See the
+[budget controls runbook](runbooks/budget-controls.md) for sizing and triage.
+
 ## curl
 
 ```bash

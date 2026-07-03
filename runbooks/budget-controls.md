@@ -75,6 +75,17 @@ Expected shape:
       "estimated_chars_per_token": 4
     }
 
+## Response Budget Headers
+
+When budgets are enabled, successful `/v1/chat/completions` (including streaming) and `/v1/embeddings` responses report the sandbox budget after the request's own reservation, using the OpenAI-style header names agent frameworks already parse:
+
+    x-ratelimit-limit-requests: 250
+    x-ratelimit-remaining-requests: 247
+    x-ratelimit-limit-tokens: 150000
+    x-ratelimit-remaining-tokens: 148900
+
+Remaining values are floored at zero. A header pair is omitted when its limit is 0 (unlimited), and cache hits (`X-Cache: HIT`) omit all four because they reserve no budget. Token values are the same estimated tokens the budget enforces, not runtime-reported usage.
+
 ## Triage Rejections
 
 Budget rejections return HTTP 400. Check `detail.reason`:

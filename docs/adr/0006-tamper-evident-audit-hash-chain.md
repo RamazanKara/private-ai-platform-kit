@@ -28,6 +28,11 @@ Link each audit event into a per-process tamper-evident SHA-256 hash chain.
   digest prefix or summarized JWT claims) and payloads are summarized into fingerprints
   (`_payload_fingerprint`: counts, roles, prompt hash), so chaining adds integrity without
   reintroducing raw prompt or credential data.
+- Each record carries a chain-covered wall-clock timestamp (`ts`, Unix epoch seconds as a float),
+  so WHEN an action happened is protected by the same chain as WHAT happened; timestamps added by
+  the log transport sit outside the chain and could be rewritten silently. The auditor reference's
+  time-window query reads this field (treating a missing `ts` as `-1`). Events emitted before
+  v0.16.0 lack the field.
 - The live construction matches the auditor/verifier reference in
   [`paper/evidence-model/audit_chain.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/paper/evidence-model/audit_chain.py) byte for byte
   (same genesis, same canonical form, same `SHA-256(prev || canonical(record))`), so the same tooling
