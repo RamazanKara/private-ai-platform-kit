@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## v0.21.0 - 2026-07-03
 
 Operations and adoption: an answer to "where do I type?", first-class external stateful
 stores, a broader safety eval set, and an honest map of what is dev-footprint versus
