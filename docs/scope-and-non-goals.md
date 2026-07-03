@@ -1,6 +1,6 @@
 # Scope and Non-Goals
 
-This document draws an explicit boundary around what Private AI Platform Kit (v0.21.0) is and is not,
+This document draws an explicit boundary around what Private AI Platform Kit (v0.22.0) is and is not,
 and then maps the controls it ships to the six AWS Well-Architected pillars. Use it to set
 expectations before adoption and to sanity-check that the operator-owned gaps are understood.
 
