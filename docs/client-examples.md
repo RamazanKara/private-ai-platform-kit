@@ -6,9 +6,11 @@ port-forward address (`make local-up` then port-forward the gateway service); re
 with your Ingress host in a customer cluster.
 
 The `model` id must be on the active profile's allowlist: the local lab allows
-`qwen2.5:0.5b` (and disables streaming via `admission.allowStreaming: false`), while the
-customer profiles default to `qwen3.5:0.8b` (Ollama) and `Qwen/Qwen3-Coder-Next` (vLLM).
-Examples below that stream or use a customer model are marked accordingly.
+`qwen2.5:0.5b`, while the customer profiles default to `qwen3.5:0.8b` (Ollama) and
+`Qwen/Qwen3-Coder-Next` (vLLM). Streaming is admitted by default in every shipped
+profile (`admission.allowStreaming: true`); an air-gapped/regulated deployment that
+requires end-of-stream-only guardrail enforcement sets it `false`. Examples below that
+use a customer model are marked accordingly.
 
 All business endpoints accept:
 
@@ -80,7 +82,7 @@ resp = client.chat.completions.create(
 )
 print(resp.choices[0].message)
 
-# Streaming (customer profiles only: the local lab disables streaming admission)
+# Streaming (admitted by default in every shipped profile)
 for chunk in client.chat.completions.create(
     model="qwen3.5:0.8b",
     messages=[{"role": "user", "content": "stream a haiku"}],

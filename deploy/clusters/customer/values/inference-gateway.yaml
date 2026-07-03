@@ -20,17 +20,27 @@ routing:
       - id: BAAI/bge-small-en-v1.5
         backend: vllm
 admission:
-  maxMessages: 32
-  maxPromptChars: 131072
-  maxCompletionTokens: 8192
-  allowStreaming: false
+  # Sized for a real coding-agent session against a large-context vLLM model (the
+  # runtime chart serves a 262k-token context): a long multi-turn session must not hit
+  # a hard 400 on message count or prompt size within the first few exchanges.
+  maxMessages: 512
+  maxPromptChars: 786432
+  maxCompletionTokens: 32768
+  # Streaming on: chat UIs and coding agents stream by default. Air-gapped/regulated
+  # deployments that require end-of-stream-only guardrail enforcement set this false.
+  allowStreaming: true
 guardrails:
   promptSecretDetection:
     enabled: true
+    # Redact (not reject) so an agent reading a .env or lockfile keeps working while the
+    # credential is still stripped before it reaches the runtime.
+    mode: redact
     patterns:
       - private_key
       - github_token
       - slack_token
+      - aws_access_key_id
+      - google_api_key
       - bearer_token
       - generic_api_key_assignment
 budget:

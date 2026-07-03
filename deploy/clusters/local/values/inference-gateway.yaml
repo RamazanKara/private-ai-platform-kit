@@ -19,7 +19,7 @@ admission:
   maxMessages: 16
   maxPromptChars: 8192
   maxCompletionTokens: 1024
-  allowStreaming: false
+  allowStreaming: true
 guardrails:
   promptSecretDetection:
     enabled: true
