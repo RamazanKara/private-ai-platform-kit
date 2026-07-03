@@ -516,6 +516,160 @@
         "title": "ModerationRequest",
         "type": "object"
       },
+      "ResponsesRequest": {
+        "additionalProperties": true,
+        "description": "Request body for a native OpenAI ``POST /v1/responses`` call (stateless subset).\n\nMirrors the OpenAI Responses API shape. ``input`` is required and accepts either a plain\nstring (translated to a single user message) or an array of input items / messages.\n``instructions`` is prepended as a system message. ``max_output_tokens`` becomes the\nOpenAI ``max_tokens`` cap that admission enforces. ``extra=\"allow\"`` forwards any other\nResponses field so nothing is silently dropped.\n\nThe stateful fields ``store`` and ``previous_response_id`` are modelled explicitly so the\nhandler can reject them (this subset is stateless) instead of forwarding them into the\nchat payload where they would be meaningless.",
+        "properties": {
+          "input": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Input"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions"
+          },
+          "max_output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Output Tokens"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "previous_response_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Response Id"
+          },
+          "store": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "stream": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": false,
+            "title": "Stream"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "tool_choice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Choice"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tools"
+          },
+          "top_p": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top P"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "title": "ResponsesRequest",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -1032,6 +1186,58 @@
           }
         ],
         "summary": "Classify content against the gateway policy",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/v1/responses": {
+      "post": {
+        "description": "OpenAI Responses API endpoint (stateless subset). The request/response are translated to and from the internal OpenAI chat shape and routed through the SAME governance path as POST /v1/chat/completions: model allowlist, admission limits (including the max_output_tokens cap), prompt secret policy, sandbox budget, output guardrail, and audit. This subset is STATELESS: server-side conversation state is not implemented, so store=true or previous_response_id is rejected with stateful_not_supported rather than silently ignored. Streaming is not supported on this endpoint in this release; send stream=false or use POST /v1/chat/completions for OpenAI-shaped streaming.",
+        "operationId": "createResponse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Createresponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Create a private OpenAI Responses API response",
         "tags": [
           "inference"
         ]

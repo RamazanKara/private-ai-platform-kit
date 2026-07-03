@@ -62,6 +62,12 @@ curl -fsS "$GATEWAY/v1/messages" \
   -H 'Content-Type: application/json' \
   -d '{"model":"qwen2.5:0.5b","max_tokens":64,"messages":[{"role":"user","content":"hello"}]}'
 
+# OpenAI Responses API (stateless subset; governed like chat, non-streaming).
+curl -fsS "$GATEWAY/v1/responses" \
+  -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"qwen2.5:0.5b","input":"hello","max_output_tokens":64}'
+
 # Moderations (content policy classification)
 curl -fsS "$GATEWAY/v1/moderations" \
   -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
@@ -121,6 +127,41 @@ supported on `/v1/messages` in this release (send `stream: false`, or use
 clear `streaming_not_supported` error. For Anthropic-shaped features the native endpoint does
 not yet cover, such as streaming or blocks with no OpenAI equivalent, the translation-sidecar
 approach below remains available.
+
+## OpenAI Responses API (`/v1/responses`, stateless subset)
+
+The gateway exposes the OpenAI **Responses API** as a **stateless** subset, so tooling built
+on `client.responses.create(...)` can point at the gateway directly. The Responses request and
+response are translated to and from the internal OpenAI chat shape and run through the **same**
+governance path as chat (model allowlist, admission limits, prompt secret policy, sandbox
+budget, output guardrail, and audit), so `/v1/responses` traffic is not a control bypass.
+`input` accepts a plain string or an array of input items/messages; `instructions` is prepended
+as a system message; `max_output_tokens` maps to the gateway's completion-token cap and is
+enforced against it. The response is a Responses object (`object: "response"`, `status`,
+`output[]` with `output_text` content parts and any `function_call` items,
+`usage.input_tokens`/`output_tokens`/`total_tokens`).
+
+```bash
+curl -fsS "$GATEWAY/v1/responses" \
+  -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "model": "qwen2.5:0.5b",
+        "max_output_tokens": 128,
+        "instructions": "You are a terse assistant.",
+        "input": "Give me one fact about the sea."
+      }'
+```
+
+This is the **stateless** subset: the gateway does not persist responses, so `store: true` or a
+`previous_response_id` is **rejected** with a clear `stateful_not_supported` error rather than
+silently ignored (a caller expecting server-side conversation state is told it is unavailable,
+not misled). Streaming is **not** supported on `/v1/responses` in this release (send
+`stream: false`, or use `/v1/chat/completions` for OpenAI-shaped streaming); a streaming request
+is rejected with a clear `streaming_not_supported` error. Assistant `tool_calls` are mapped to
+`function_call` output items (`name`, `arguments`, `call_id`) on a best-effort basis, and a
+`length` finish maps to `status: "incomplete"` with `incomplete_details.reason:
+"max_output_tokens"`.
 
 ## Error responses
 

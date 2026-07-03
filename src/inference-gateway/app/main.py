@@ -36,6 +36,11 @@ from app.messages import (
 )
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
+from app.responses import (
+    ResponsesRequest,
+    chat_completion_to_responses,
+    responses_to_chat_payload,
+)
 from app.runtime_client import REDACTED_MESSAGE_FIELDS, RuntimeClient
 from app.settings import (
     AdmissionPolicyError,
@@ -2182,6 +2187,188 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             _record_estimated_cost(resolved, request.state.sandbox_id, backend, (runtime_response or {}).get("usage"))
             # Audit the translated (OpenAI-shaped) payload_dict so the fingerprint (message
             # count, roles, prompt hash) is computed the same way as chat - /v1/messages
+            # traffic is attributable with the identical redacted receipt shape.
+            _write_audit_log(
+                resolved,
+                request,
+                payload_dict,
+                status_code=status_code,
+                latency_seconds=latency_seconds,
+                backend=backend,
+                runtime_response=runtime_response,
+                runtime_status_code=runtime_status_code,
+                error=error,
+            )
+
+    @app.post(
+        "/v1/responses",
+        tags=["inference"],
+        summary="Create a private OpenAI Responses API response",
+        description=(
+            "OpenAI Responses API endpoint (stateless subset). The request/response are "
+            "translated to and from the internal OpenAI chat shape and routed through the "
+            "SAME governance path as POST /v1/chat/completions: model allowlist, admission "
+            "limits (including the max_output_tokens cap), prompt secret policy, sandbox "
+            "budget, output guardrail, and audit. This subset is STATELESS: server-side "
+            "conversation state is not implemented, so store=true or previous_response_id is "
+            "rejected with stateful_not_supported rather than silently ignored. Streaming is "
+            "not supported on this endpoint in this release; send stream=false or use POST "
+            "/v1/chat/completions for OpenAI-shaped streaming."
+        ),
+        operation_id="createResponse",
+    )
+    async def responses_endpoint(request: Request, payload: ResponsesRequest) -> dict[str, Any]:
+        route = "/v1/responses"
+        backend = resolved.runtime_backend
+        start = perf_counter()
+        status = "200"
+        status_code = 200
+        runtime_status_code = None
+        runtime_response = None
+        error = None
+        # Translate the Responses request into the internal OpenAI chat payload up front so
+        # the whole governance path (admission, prompt-secret modes, budget, audit) operates
+        # on the translated messages exactly as it does for chat - not a second, weaker path.
+        payload_dict = responses_to_chat_payload(payload)
+        request_model = payload.model
+        request.state.budget_reservation = None
+        try:
+            # Stateless subset: reject any request that asks the server to persist or
+            # continue conversation state, rather than silently dropping store /
+            # previous_response_id and returning a response the caller wrongly believes was
+            # remembered. Checked before admission so it is a clear, deterministic 400.
+            if payload.store or payload.previous_response_id is not None:
+                raise AdmissionPolicyError(
+                    "stateful_not_supported",
+                    "server-side response state (store / previous_response_id) is not "
+                    "supported on /v1/responses; this is the stateless subset",
+                )
+            policy: ModelRoutingPolicy = request.app.state.model_routing_policy
+            sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
+            effective = _effective_settings(request, sandbox_policies, resolved)
+            try:
+                model_route = policy.resolve(payload_dict.get("model"), effective.model_id)
+            except ValueError as exc:
+                raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
+            backend = model_route.backend
+            payload_dict["model"] = model_route.model_id
+            # Streaming translation to the Responses SSE event sequence is not wired through
+            # the metering/guardrail machinery yet; reject it explicitly (mirroring
+            # /v1/completions & /v1/messages' streaming_not_supported) rather than silently
+            # forwarding an unmetered or non-Responses-shaped stream.
+            if payload.stream:
+                raise AdmissionPolicyError(
+                    "streaming_not_supported",
+                    "streaming is not supported on /v1/responses; use /v1/chat/completions",
+                )
+            # Same admission as chat, on the translated messages: enforces the max_tokens
+            # cap (from max_output_tokens), message/prompt-size limits, tool checks, and the
+            # prompt-secret BLOCK mode. A missing/empty input translates to no messages and is
+            # rejected here by the shared missing_messages check.
+            effective.validate_admission(payload_dict)
+            # Redact/flag prompt secrets (non-block modes) on the translated messages before
+            # the payload is reserved or sent, so a redacted credential is never forwarded.
+            prompt_action = _apply_prompt_secret_mode(effective, payload_dict, route)
+            if prompt_action:
+                request.state.prompt_guardrail_action = prompt_action
+            tracker: SandboxBudgetTracker = request.app.state.budget_tracker
+            reservation = await asyncio.to_thread(tracker.reserve, request.state.sandbox_id, payload_dict, effective)
+            request.state.budget_reservation = reservation.audit_dict() if reservation is not None else None
+            _record_budget_reservation(reservation, effective)
+            request.state.budget_headers = _budget_headers(reservation, effective)
+            client: RuntimeClient = request.app.state.runtime_client
+            runtime_response = await client.chat_completions(
+                payload_dict,
+                headers=_runtime_headers(request),
+                backend=backend,
+            )
+            # The output guardrail is endpoint-independent: /v1/responses must not be a bypass
+            # around the redact/block policy the chat path enforces (OWASP LLM02/LLM06). It
+            # runs on the OpenAI-shaped completion before translation to the Responses shape.
+            _apply_output_guardrail(runtime_response, resolved, route, request)
+            # Translate the governed OpenAI completion into a Responses object. The finally
+            # block reads runtime_response (the OpenAI shape) for token-usage metrics and the
+            # audit fingerprint, so it is bound above rather than returned inline.
+            return chat_completion_to_responses(runtime_response, request_model=request_model)
+        except AdmissionPolicyError as exc:
+            status_code, headers = _admission_status(exc.reason, resolved)
+            status = str(status_code)
+            error = str(exc)
+            ADMISSION_REJECTIONS.labels(exc.reason, backend, _sandbox_label(request.state.sandbox_id)).inc()
+            raise HTTPException(
+                status_code=status_code,
+                detail={
+                    "message": error,
+                    "reason": exc.reason,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+                headers=headers,
+            ) from exc
+        except BudgetBackendError as exc:
+            status = "503"
+            status_code = 503
+            error = "sandbox budget backend is unavailable"
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": error,
+                    "reason": "budget_backend_unavailable",
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+                headers={"Retry-After": "5"},
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            status = "502"
+            status_code = 502
+            runtime_status_code = exc.response.status_code
+            error = "runtime returned an error"
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "message": error,
+                    "runtime_status": exc.response.status_code,
+                    "backend": backend,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+            ) from exc
+        except httpx.HTTPError as exc:
+            status = "502"
+            status_code = 502
+            error = "runtime request failed"
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "message": error,
+                    "backend": backend,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+            ) from exc
+        except ValueError as exc:
+            status = "502"
+            status_code = 502
+            error = "runtime returned an invalid response"
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "message": error,
+                    "backend": backend,
+                    "request_id": request.state.request_id,
+                    "sandbox_id": request.state.sandbox_id,
+                },
+            ) from exc
+        finally:
+            REQUESTS.labels(route, backend, status).inc()
+            SANDBOX_REQUESTS.labels(_sandbox_label(request.state.sandbox_id), backend, status).inc()
+            latency_seconds = perf_counter() - start
+            LATENCY.labels(route, backend).observe(latency_seconds)
+            _record_token_usage(backend, runtime_response)
+            _record_estimated_cost(resolved, request.state.sandbox_id, backend, (runtime_response or {}).get("usage"))
+            # Audit the translated (OpenAI-shaped) payload_dict so the fingerprint (message
+            # count, roles, prompt hash) is computed the same way as chat - /v1/responses
             # traffic is attributable with the identical redacted receipt shape.
             _write_audit_log(
                 resolved,

@@ -60,6 +60,12 @@ CONTRACTS = {
                 "post",
                 request_schema="MessagesRequest",
             ),
+            # OpenAI Responses API (stateless subset), translated to/from the OpenAI chat
+            # shape and routed through the same governance path (auth-required).
+            "/v1/responses": RouteContract(
+                "post",
+                request_schema="ResponsesRequest",
+            ),
             "/v1/embeddings": RouteContract(
                 "post",
                 request_schema="EmbeddingsRequest",
@@ -86,6 +92,7 @@ CONTRACTS = {
             "/v1/chat/completions",
             "/v1/completions",
             "/v1/messages",
+            "/v1/responses",
             "/v1/embeddings",
             "/v1/moderations",
             "/v1/batch-inference",
@@ -133,6 +140,25 @@ CONTRACTS = {
                     "metadata",
                 },
                 "required": {"messages", "max_tokens"},
+            },
+            # OpenAI Responses request (stateless subset). ``input`` is required; ``store`` and
+            # ``previous_response_id`` are modelled so the handler can reject the stateful path.
+            "ResponsesRequest": {
+                "properties": {
+                    "model",
+                    "input",
+                    "instructions",
+                    "max_output_tokens",
+                    "temperature",
+                    "top_p",
+                    "tools",
+                    "tool_choice",
+                    "stream",
+                    "metadata",
+                    "store",
+                    "previous_response_id",
+                },
+                "required": {"input"},
             },
             "EmbeddingsRequest": {
                 "properties": {"model", "input"},
