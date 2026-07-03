@@ -8,12 +8,17 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Security
 
-- Header-validation failures on the gateway and RAG service now return a generic
-  `malformed request header` message and log the specific reason server-side, instead of
-  reflecting the validation exception text to the caller (CodeQL py/stack-trace-exposure).
-- The build/validation scripts verify image registries and the vector-store URL by exact
+- The build/validation scripts verify the image registry and vector-store URL by exact
   registry/host match rather than a substring or prefix check (CodeQL
   py/incomplete-url-substring-sanitization).
+- Tightened the OpenSSF Scorecard workflow to least privilege: the workflow default is now
+  read-only, and the SARIF-upload and OIDC token writes are confined to the single job that
+  uses them instead of being granted workflow-wide.
+- Extended the hash-pinned supply chain to the documentation (mkdocs-material) and coverage
+  (pytest-cov) tooling: both are now installed with `--require-hashes` from pinned locks.
+- Header-validation rejections on the gateway and RAG service are now logged server-side for
+  triage. The actionable `400` message returned to the caller (e.g. the sandbox-id charset
+  rule) is unchanged — these are controlled validation strings, not exception internals.
 
 ## v0.23.0 - 2026-07-03
 

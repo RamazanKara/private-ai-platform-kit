@@ -8,11 +8,9 @@ on:
     branches:
       - main
 
+# Least privilege: read-only by default. The one job escalates only to what it needs.
 permissions:
   contents: read
-  actions: read
-  security-events: write
-  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,6 +20,11 @@ jobs:
   scorecard:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read          # checkout
+      actions: read           # Scorecard reads workflow-run metadata for its checks
+      security-events: write  # upload the SARIF results
+      id-token: write         # canonical scorecard-action permission; kept job-scoped, not workflow-wide
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:

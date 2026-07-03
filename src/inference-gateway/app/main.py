@@ -1272,10 +1272,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # request's effective settings; empty for flat keys and unauthenticated paths.
             request.state.key_budget_updates = {}
         except ValueError as exc:
-            # A request header failed validation. Log the specific reason server-side and
-            # return a generic message so no exception text is reflected to the caller.
-            logging.getLogger("uvicorn.error").warning("rejected malformed request header: %s", exc)
-            return JSONResponse(status_code=400, content=_error_envelope(400, "malformed request header"))
+            # A request header failed validation. The message is a controlled, developer-authored
+            # validation string describing the malformed header (e.g. the sandbox-id charset rule) —
+            # it carries no stack trace or server internals, so returning it as an actionable 400 is
+            # correct API behavior, not information disclosure. Also logged for server-side triage.
+            reason = str(exc)
+            logging.getLogger("uvicorn.error").warning("rejected malformed request header: %s", reason)
+            return JSONResponse(status_code=400, content={"detail": reason})
 
         async def dispatch() -> Response:
             if (resolved.api_key_auth_enabled or resolved.jwt_auth_enabled) and _auth_required(request.url.path):
