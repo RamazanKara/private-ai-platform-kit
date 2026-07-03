@@ -52,6 +52,27 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 - Expand mypy strictness (stricter optional handling) once the baseline holds across releases.
 - Expand runtime streaming and circuit-breaker fault-injection coverage for Ollama and vLLM.
 
+## Deliberate Deferrals
+
+These were evaluated and deliberately deferred, not overlooked. They are recorded here so the
+decision reads as intentional and can be revisited with evidence.
+
+- **Semantic (embedding-similarity) response caching.** The gateway response cache
+  (`responseCache`, `src/inference-gateway/app/cache.py`) is **exact-match only**: a hit requires
+  the same sandbox and a byte-identical request payload. Semantic caching — embedding the prompt
+  and serving a cached completion for a *similar* (not identical) prompt — was considered and
+  deferred. The reasoning: for the agent and tool-use traffic this gateway is built around, a
+  near-miss is a correctness/staleness hazard, not a convenience. Two prompts a similarity
+  threshold treats as equivalent routinely demand different answers (a changed file path, an
+  off-by-one arg, a different tenant's context, a "now do the opposite" turn), so a semantic hit
+  risks returning a confidently wrong prior completion; the hit rate that would justify it is
+  exactly the regime where staleness bites hardest. It also adds an embedding call and a vector
+  lookup on the hot path, weakens the audit story (what was served vs. what was requested), and
+  interacts badly with the output guardrail (a cached hit skips re-inspection). Exact-match
+  caching keeps the semantics obvious and safe. Revisit only behind an explicit opt-in with a
+  conservative threshold, per-sandbox scoping, TTL, and cache-hit audit — and only for workloads
+  (e.g. FAQ-style retrieval) where a near-duplicate answer is acceptable.
+
 ## Seed Issue List
 
 Use these labels when opening public issues: `good first issue`, `help wanted`, `security`, `docs`, `helm`, `runtime`, `rag`, `tenant`.

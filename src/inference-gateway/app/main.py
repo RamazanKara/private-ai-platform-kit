@@ -107,6 +107,12 @@ RATE_LIMITED = Counter(
     "Total gateway requests rejected by the per-sandbox rate limiter.",
     ["sandbox"],
 )
+RATE_LIMIT_FAIL_OPEN = Counter(
+    "inference_gateway_rate_limit_fail_open_total",
+    "Requests admitted without a rate-limit check because the backend was down and "
+    "RATE_LIMIT_FAIL_OPEN is enabled (deliberate availability-over-enforcement fallback).",
+    ["sandbox"],
+)
 RUNTIME_FALLBACKS = Counter(
     "inference_gateway_runtime_fallbacks_total",
     "Total times a request failed over from one runtime route to a fallback.",
@@ -1324,9 +1330,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         request.app.state.rate_limiter.check, request.state.sandbox_id
                     )
                 except BudgetBackendError:
-                    return _rate_limit_backend_unavailable_response(request)
-                if not allowed:
-                    return _rate_limited_response(request, retry_after)
+                    # Deliberate availability-vs-enforcement tradeoff. Fail closed by default
+                    # (503, matching the budget tracker); when RATE_LIMIT_FAIL_OPEN is set,
+                    # admit the request instead so a Redis outage does not take down all
+                    # traffic - recorded via a warning log and a metric so the degraded
+                    # window is visible. Budgets are unaffected and stay fail-closed.
+                    if not resolved.rate_limit_fail_open:
+                        return _rate_limit_backend_unavailable_response(request)
+                    RATE_LIMIT_FAIL_OPEN.labels(_sandbox_label(request.state.sandbox_id)).inc()
+                    logging.getLogger("uvicorn.error").warning(
+                        "rate limit backend unavailable; failing open (RATE_LIMIT_FAIL_OPEN=1) "
+                        "for sandbox %s request %s",
+                        request.state.sandbox_id,
+                        request.state.request_id,
+                    )
+                else:
+                    if not allowed:
+                        return _rate_limited_response(request, retry_after)
 
             # Bounded concurrency with fast-fail load shedding: the check + increment is
             # synchronous (no await between), so it is atomic on the event loop. Excess

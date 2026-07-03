@@ -13,6 +13,7 @@ Operational procedures, incident playbooks, and governance runbooks for Private 
 | [Agent workspaces](agent-workspaces.md) | Design and operate locked-down coding-agent workspaces |
 | [Tenant labs](tenant-labs.md) | Onboard a tenant lab with quotas, egress, and isolation |
 | [API access](api-access.md) | API-key access model and rotation |
+| [External / managed stores](external-managed-stores.md) | Swap the bundled Redis, Qdrant, and Loki footprints for external/HA services |
 
 ## Runtime, RAG & guardrails
 
@@ -25,6 +26,7 @@ Operational procedures, incident playbooks, and governance runbooks for Private 
 | [Traceability sandbox](traceability-sandbox.md) | Sandbox trace contract and request correlation |
 | [Budget controls](budget-controls.md) | Redis-backed sandbox spend/abuse budgets |
 | [Evaluation harness](evaluation-harness.md) | Run and interpret eval suites |
+| [End-user chat UI](chat-ui.md) | Put a self-hosted Open WebUI chat frontend in front of the gateway |
 
 ## Governance & evidence
 

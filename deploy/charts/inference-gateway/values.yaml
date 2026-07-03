@@ -56,6 +56,13 @@ rateLimit:
   enabled: false
   requestsPerWindow: 0
   windowSeconds: 60
+  # Availability-vs-enforcement tradeoff when backend=redis. If the shared rate-limit
+  # backend (Redis) is unreachable, the limiter fails CLOSED by default (503 for all
+  # traffic, matching the budget tracker). Set true to fail OPEN instead: admit the
+  # request with a logged warning and the inference_gateway_rate_limit_fail_open_total
+  # metric, for operators who prefer availability over the throttle during a Redis
+  # outage. Budgets stay fail-closed regardless of this flag.
+  failOpen: false
 
 # Bounded in-flight concurrency: requests beyond the limit are shed with 503 (not
 # queued). 0 disables the limit.

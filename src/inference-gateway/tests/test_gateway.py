@@ -2774,6 +2774,12 @@ class _BrokenRedis:
     def expire(self, key, window):
         raise OSError("redis down")
 
+    def eval(self, *args, **kwargs):
+        raise OSError("redis down")
+
+    def hgetall(self, key):
+        raise OSError("redis down")
+
 
 class _CountingRedis:
     """Redis stand-in tracking INCR counters and EXPIRE calls per key."""
@@ -2813,6 +2819,65 @@ def test_rate_limit_backend_outage_returns_503_not_500():
     assert response.status_code == 503
     assert response.json()["detail"]["reason"] == "rate_limit_backend_unavailable"
     assert response.headers["Retry-After"] == "5"
+
+
+def test_rate_limit_fail_open_admits_when_backend_down():
+    # Opt-in availability-over-enforcement: with RATE_LIMIT_FAIL_OPEN set, a Redis outage
+    # on the rate-limit path admits the request (no 503) instead of failing closed, and
+    # records the fail-open metric so the degraded window is visible.
+    from app.ratelimit import RedisRateLimiter
+    from prometheus_client import REGISTRY
+
+    settings = _tool_settings(
+        rate_limit_enabled=True,
+        rate_limit_requests_per_window=1,
+        rate_limit_window_seconds=60,
+        rate_limit_fail_open=True,
+    )
+    app = create_app(settings)
+    completion = {
+        "id": "x",
+        "object": "chat.completion",
+        "choices": [{"message": {"role": "assistant", "content": "hi"}}],
+    }
+    app.state.runtime_client = FakeRuntimeClient(response=completion)
+    app.state.rate_limiter = RedisRateLimiter(settings, client=_BrokenRedis())
+    client = TestClient(app)
+
+    before = REGISTRY.get_sample_value("inference_gateway_rate_limit_fail_open_total", {"sandbox": "local-lab"}) or 0.0
+    response = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "hi"}]})
+
+    assert response.status_code == 200
+    after = REGISTRY.get_sample_value("inference_gateway_rate_limit_fail_open_total", {"sandbox": "local-lab"})
+    assert after == before + 1
+
+
+def test_rate_limit_fail_open_does_not_weaken_budget_fail_closed():
+    # Budgets must stay fail-closed even when the rate limiter is configured to fail open:
+    # a budget-backend outage is still a 503, never admitted, regardless of the flag.
+    from app.budget import RedisSandboxBudgetTracker
+    from app.ratelimit import RedisRateLimiter
+
+    settings = _tool_settings(
+        rate_limit_enabled=True,
+        rate_limit_requests_per_window=1,
+        rate_limit_window_seconds=60,
+        rate_limit_fail_open=True,
+        sandbox_budget_enabled=True,
+        sandbox_budget_backend="redis",
+        sandbox_request_budget=100,
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    # Rate limiter is healthy (allows), but the budget backend is down.
+    app.state.rate_limiter = RedisRateLimiter(settings, client=_CountingRedis())
+    app.state.budget_tracker = RedisSandboxBudgetTracker(settings, client=_BrokenRedis())
+    client = TestClient(app)
+
+    response = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "hi"}]})
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["reason"] == "budget_backend_unavailable"
 
 
 def test_redis_rate_limiter_rearms_lost_ttl():

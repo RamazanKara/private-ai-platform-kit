@@ -56,4 +56,4 @@ and ADR 0010.
 
 ## Maturity Position
 
-The project is usable as a reference implementation and local/customer lab. Treat production use as a controlled handoff: replace sample evidence with current evidence, wire customer identity and secrets, size runtime capacity, validate backups, and run strict release gates.
+The project is usable as a reference implementation and local/customer lab. Treat production use as a controlled handoff: replace sample evidence with current evidence, wire customer identity and secrets, size runtime capacity, move the bundled single-node stateful stores (budget Redis, Qdrant, Loki) to their external/HA path ([production readiness matrix](production-readiness.md)), validate backups, and run strict release gates.

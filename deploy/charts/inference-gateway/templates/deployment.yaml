@@ -94,6 +94,8 @@ spec:
               value: {{ .Values.rateLimit.requestsPerWindow | quote }}
             - name: RATE_LIMIT_WINDOW_SECONDS
               value: {{ .Values.rateLimit.windowSeconds | quote }}
+            - name: RATE_LIMIT_FAIL_OPEN
+              value: {{ .Values.rateLimit.failOpen | quote }}
             - name: MAX_CONCURRENT_REQUESTS
               value: {{ .Values.concurrency.maxConcurrentRequests | quote }}
             - name: MAX_BATCH_REQUESTS

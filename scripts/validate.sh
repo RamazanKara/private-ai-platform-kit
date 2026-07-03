@@ -139,6 +139,7 @@ src/inference-gateway/.venv/bin/python scripts/model-provenance.py --check
 log "checking eval suite syntax"
 src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite platform/evals/smoke-suite.yaml --check-config
 src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite platform/evals/coding-agent-suite.yaml --check-config
+src/inference-gateway/.venv/bin/python scripts/eval-suite.py --suite platform/evals/safety-suite.yaml --check-config
 
 if require_optional_or_full kubeconform "kubeconform is needed for Kubernetes schema validation."; then
   kubeconform -summary -ignore-missing-schemas "${rendered_manifests[@]}"

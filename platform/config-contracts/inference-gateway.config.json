@@ -546,6 +546,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "rateLimit.failOpen",
+      "description": "When the shared rate-limit backend (Redis) is unreachable, fail OPEN (admit with a logged warning + metric) instead of the default fail-closed 503. Deliberate availability-over-enforcement tradeoff; budgets stay fail-closed regardless.",
+      "field": "rate_limit_fail_open",
+      "name": "RATE_LIMIT_FAIL_OPEN",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 0,
       "chart_default": 0,
       "chart_value": "rateLimit.requestsPerWindow",

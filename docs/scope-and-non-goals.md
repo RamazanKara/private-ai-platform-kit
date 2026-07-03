@@ -14,17 +14,22 @@ that boundary.
 The kit ships and validates the following, all runnable on a local `kind` cluster and portable to a
 customer-owned cluster:
 
-- An OpenAI-compatible inference gateway (`src/inference-gateway/app`) with API-key and optional
-  JWT/JWKS auth, model allowlists, admission limits, prompt secret detection, sandbox budgets,
-  canary/shadow progressive delivery, runtime failover, Prometheus metrics, and a tamper-evident
-  SHA-256 audit chain.
+- An OpenAI-compatible inference gateway (`src/inference-gateway/app`) with API-key (including
+  per-key records: sandbox binding, scopes, expiry, budget overrides) and optional JWT/JWKS auth,
+  model allowlists, admission limits, prompt secret detection, an output guardrail, sandbox
+  budgets, an opt-in per-sandbox rate limiter, canary/shadow progressive delivery, runtime
+  failover, Prometheus metrics, OpenAI-shaped error envelopes, and a tamper-evident SHA-256 audit
+  chain with an offline verifier (`make audit-verify`) and head anchoring. It speaks chat
+  completions, legacy `/v1/completions`, `/v1/embeddings`, `/v1/moderations`, and a synchronous
+  `/v1/batch-inference` fan-out (streaming on by default for chat).
 - A RAG service (`src/rag-service`) with lexical retrieval and an optional Qdrant hybrid vector
-  profile, plus OpenAI-compatible embeddings.
+  profile, per-tenant retrieval isolation (fail-closed) on both backends, plus OpenAI-compatible
+  embeddings.
 - GitOps via Argo CD (`deploy/gitops/argocd`, `deploy/clusters/{local,customer}`), Helm charts
   (`deploy/charts/`), and Kyverno policy-as-code (`deploy/policies/kyverno`).
 - Observability (kube-prometheus-stack, Loki, Promtail, pushgateway, OpenCost), SLOs
   (`platform/slo`), governance (`platform/governance`), a model catalog (`platform/model-catalog`),
-  egress catalog (`platform/network`), backup/restore drills (`deploy/backup`), and roughly 28
+  egress catalog (`platform/network`), backup/restore drills (`deploy/backup`), and roughly 30
   operational runbooks (`runbooks/`).
 - Validation tooling: API and config contract snapshots, evidence packs, release gates, supply-chain
   scanning, SBOMs, Cosign signing, and provenance attestations.
@@ -117,6 +122,29 @@ flip per environment (ROADMAP `security`):
   command ships ready.
 - Replacing source-reference model digests with the customer's model-store digests before production
   ([production-readiness.md](production-readiness.md) Model provenance).
+- **Moving the bundled stateful stores to external/HA services.** The budget/response-cache Redis,
+  Qdrant, and Loki footprints are single-node dev/reference defaults; swap them for managed/HA
+  services before a regulated or multi-tenant handoff
+  ([production-readiness.md](production-readiness.md) Stateful stores;
+  [external / managed stores runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md)).
+
+### Remaining and deferred engineering work
+
+A few items are neither shipped nor purely operator-owned — they are tracked, remaining, or
+deliberately deferred engineering work. They are listed in full in the ROADMAP; the load-bearing
+ones for an evaluator are:
+
+- **RAG-side token verification.** RAG per-tenant isolation is enforced, but the RAG service still
+  trusts the tenant id asserted upstream; deriving it from a RAG-service-verified claim
+  (JWKS/audience or per-tenant keys) is tracked ([ROADMAP](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/ROADMAP.md) `rag`).
+- **A maintained JWT library.** Gateway JWT verification is a hand-rolled HS256/RS256/ES256 path on
+  `cryptography`; swapping it for a maintained library (e.g. PyJWT) is a code-hardening item, not a
+  feature gap (the JWKS/audience/issuer/scope semantics already hold).
+- **Native Anthropic `/v1/messages`.** Not implemented; Claude-style agents run through a
+  translation sidecar (see the API-surfaces list above and [client examples](client-examples.md)).
+- **Semantic (embedding-similarity) response caching.** The response cache is exact-match only by
+  design; the reasoning for deferring semantic caching is recorded in the ROADMAP
+  ([Deliberate Deferrals](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/ROADMAP.md)).
 
 ## Well-Architected Pillar Mapping
 

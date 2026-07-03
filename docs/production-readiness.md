@@ -26,7 +26,7 @@ This kit is local-first, but the controls are shaped like customer production co
 | Validation toolchain | `platform/tools/validation-toolchain.yaml` declares `validate`, `local`, and `strict` profiles with a pinned Linux/CI installer | Install the strict profile before customer handoff or production-readiness sign-off | `make toolchain-install`, `make toolchain-doctor`, `make validate-full` |
 | SLO and error budget | `platform/slo/objectives.yaml` defines inference, eval, restore, and coding-agent platform objectives with alert references | Align targets to the customer's contract and review burn-rate alerts | `make slo-check`, `make slo-report` |
 | Sandbox budgets | Gateway enforces request, prompt-character, and estimated-token ceilings by `X-Sandbox-ID` | Size limits by tenant and review overage events | `test_sandbox_budget_status_and_request_limit_rejection` |
-| Shared budget backend | Local/customer values use Redis-compatible shared counters for multi-replica gateways | Replace bundled Redis with customer managed Redis when available | `test_redis_budget_tracker_shares_usage_across_tracker_instances` |
+| Shared budget backend | Local/customer values use Redis-compatible shared counters for multi-replica gateways; budgets fail closed on a Redis outage while the rate limiter can opt into fail-open (`rateLimit.failOpen`, default closed) | Replace bundled Redis with external managed/Sentinel/Cluster Redis ([runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md)); choose the rate-limit fail policy per availability target | `test_redis_budget_tracker_shares_usage_across_tracker_instances`, `test_rate_limit_fail_open_admits_when_backend_down` |
 | Quota and chargeback | `platform/governance/quota-plans.yaml` connects tenant quotas, gateway budgets, workspace sizing, and chargeback labels | Align quota plans to customer showback or chargeback policy before onboarding tenants | `make quota-check`, `make quota-report` |
 | Sandbox isolation | `ai-sandbox` namespace, quota, limits, default-deny network policy | Per-team sandbox namespaces with quotas and egress allowlists | `make trace-smoke` |
 | Tenant labs | `make tenant-up` and `make tenant-smoke` create team namespaces with quota, RBAC, trace contract, and network controls | One namespace per team or approved experiment boundary | `make tenant-smoke` |
@@ -38,7 +38,7 @@ This kit is local-first, but the controls are shaped like customer production co
 | Egress governance | `platform/network/egress-catalog.yaml` requires external agent egress to reference approved catalog entries | Review and expire Git, package mirror, artifact, and ticketing egress entries | `make egress-check`, `make egress-report` |
 | Chaos drills | Safe rollout drills for gateway, budget Redis, Ollama, RAG, Qdrant, vLLM, and GPU capacity preflight | Run after platform upgrades and before customer demos or maintenance windows | `make chaos-drill`, `DRILL=gpu-capacity-preflight RUN_SMOKE=0 make chaos-drill` |
 | Evaluation harness | `platform/evals/smoke-suite.yaml`, `platform/evals/coding-agent-suite.yaml`, and `make eval` for repeatable prompt and coding-agent checks | Maintain environment-specific suites and keep summaries as release evidence | `scripts/eval-suite.py --check-config` |
-| Adversarial safety eval | `platform/evals/safety-suite.yaml` jailbreak/injection/bias battery gated by a `safety` release gate (minRefusalRate) | Extend the red-team suite per model and require it before promotion | `SUITE=platform/evals/safety-suite.yaml make eval`, `make release-gate` |
+| Adversarial safety eval | `platform/evals/safety-suite.yaml` red-team battery (prompt-injection, jailbreak, data-exfiltration, unsafe-tool-use, and bias/fairness cases) gated by a `safety` release gate (minRefusalRate over a minCases floor) | Extend the red-team suite per model and require it before promotion | `SUITE=platform/evals/safety-suite.yaml make eval`, `make release-gate` |
 | RAG grounding eval | `scripts/rag-eval.py` scores retrieval plus RAGAS-style context precision and answer faithfulness | Add ground-truth answers; gate on `minFaithfulness`/`minContextPrecision` | `make rag-eval-check` |
 | Model quality drift | Proxy alerts (`governance.rules`) plus scheduled eval comparison | Schedule evals and alert routing; roll back on threshold breach | [runbooks/model-drift-monitoring.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/model-drift-monitoring.md) |
 | Release gates | `platform/slo/release-gates.yaml` enforces eval, load, restore, strict toolchain, SLO, governance, supply-chain, and evidence-pack thresholds | Run strict gates before demos, releases, restore reviews, and production-readiness handoff so checked-in sample evidence cannot pass | `make release-gate`, `make release-gate-strict`, `make release-report-strict` |
@@ -57,6 +57,24 @@ This kit is local-first, but the controls are shaped like customer production co
 | Model cards | Each approved model ships a card/datasheet referenced from the catalog | Keep cards current with promotion; treat as a review artifact | `make model-check` |
 | Load testing | k6 chat-completion scenario with sandbox tags, live-gateway mode, and self-contained local gateway-path mode | Store summaries and compare against SLOs | `make loadtest`, `make loadtest-local` |
 | Evidence pack | Static customer handoff report plus optional live Kubernetes readiness checks | Attach reports to release, demo, restore drill, or incident review evidence | `make evidence`, `make evidence LIVE=1` |
+
+## Stateful stores: dev/reference footprints and their HA path
+
+Three bundled stateful stores ship as **single-node reference footprints** so a laptop lab and
+a fresh cluster start with no external dependencies. They are deliberately not production
+topologies. State this plainly to any operator sizing a production environment, and swap each to
+its external/HA path before a regulated or multi-tenant handoff — the full opt-in procedure
+(with rollback) is in the [external / managed stores runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md).
+
+| Bundled store | Reference footprint | Production / HA path |
+| --- | --- | --- |
+| Budget / response-cache Redis (`deploy/charts/budget-redis`) | 1 replica, no persistence, `minAvailable: 0` — a restart drops counters; an outage fails budgets closed | Point `budget.redisUrl` / `responseCache.redisUrl` at an external **managed Redis, Redis Sentinel failover pair, or Redis Cluster** and stop syncing the bundled Application. Budgets stay fail-closed on outage; the rate limiter can opt into fail-open (`rateLimit.failOpen`) as an availability-vs-enforcement tradeoff |
+| Qdrant vector store (`deploy/charts/qdrant-vector-store`) | Single-instance, **schema-enforced** (`replicaCount` max 1) on one RWO PVC | Use an **external managed Qdrant or a Qdrant cluster** (sharded/replicated) and point `retrieval.vectorStore.url` at it; the bundled chart intentionally does not model clustering |
+| Loki (`deploy/observability/applications.yaml`) | `SingleBinary`, `replication_factor: 1`, filesystem storage | Move to a **scalable/distributed Loki mode with object storage and replication**; forward the tamper-evident audit receipts onward to a SIEM for durable long-term hold |
+
+These three are the "external HA stores" operator-owned item tracked in
+[Scope and non-goals](scope-and-non-goals.md); the bundled charts are working references and are
+never removed, so rolling back to the reference footprint for a demo is a one-line values change.
 
 ## Promotion Review
 

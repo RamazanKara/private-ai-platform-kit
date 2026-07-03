@@ -67,6 +67,7 @@ GATEWAY_VARS = (
     ConfigVar("RATE_LIMIT_ENABLED", "rate_limit_enabled", "boolean", False, "rateLimit.enabled", False, "Whether the short-window per-sandbox request rate limiter is enabled."),
     ConfigVar("RATE_LIMIT_REQUESTS_PER_WINDOW", "rate_limit_requests_per_window", "integer", 0, "rateLimit.requestsPerWindow", 0, "Max requests per sandbox per rate-limit window; zero means unlimited."),
     ConfigVar("RATE_LIMIT_WINDOW_SECONDS", "rate_limit_window_seconds", "integer", 60, "rateLimit.windowSeconds", 60, "Rate-limit fixed-window length in seconds."),
+    ConfigVar("RATE_LIMIT_FAIL_OPEN", "rate_limit_fail_open", "boolean", False, "rateLimit.failOpen", False, "When the shared rate-limit backend (Redis) is unreachable, fail OPEN (admit with a logged warning + metric) instead of the default fail-closed 503. Deliberate availability-over-enforcement tradeoff; budgets stay fail-closed regardless."),
     ConfigVar("MAX_CONCURRENT_REQUESTS", "max_concurrent_requests", "integer", 0, "concurrency.maxConcurrentRequests", 0, "Max in-flight requests before load shedding with 503; zero disables the limit."),
     ConfigVar("MAX_BATCH_REQUESTS", "max_batch_requests", "integer", 32, "concurrency.maxBatchRequests", 32, "Maximum number of chat requests accepted in one /v1/batches call."),
     ConfigVar("USD_PER_1K_TOKENS", "usd_per_1k_tokens", "float", 0.0, "cost.usdPer1kTokens", 0, "Estimated cost per 1000 tokens surfaced by /v1/usage; zero disables the cost model."),

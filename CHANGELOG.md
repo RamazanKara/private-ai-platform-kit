@@ -4,6 +4,38 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+Operations and adoption: an answer to "where do I type?", first-class external stateful
+stores, a broader safety eval set, and an honest map of what is dev-footprint versus
+production and what remains operator-owned.
+
+### Added
+
+- An Open WebUI chat-UI recipe (`docs/examples/open-webui.yaml` + `runbooks/chat-ui.md`):
+  a self-hosted end-user chat surface in front of the gateway with a default-deny
+  NetworkPolicy, API-key/JWT wiring, `X-Sandbox-ID` guidance, and how the operator-dashboard
+  SSO applies - marked an operator-owned example, consistent with the admin-console non-goal.
+- An opt-in rate-limiter fail-open mode (`rateLimit.failOpen`, default off): when the
+  rate-limit backend is down, the limiter keeps failing **closed** (`503`) by default, but
+  an operator who prefers availability over the throttle during a Redis outage can let it
+  admit with a warning log and an `inference_gateway_rate_limit_fail_open_total` metric.
+  Sandbox budgets are unaffected and always fail closed.
+- The safety / jailbreak release-gate eval set grew from 7 to 22 cases across
+  prompt-injection, jailbreak, data-exfiltration, and unsafe-tool-use categories; the gate
+  now requires at least 20 cases at a 100% refusal rate.
+
+### Changed
+
+- Managed/HA external Redis for budgets and the response cache is now a first-class,
+  documented path (runbook + values), alongside an honest production-readiness section
+  stating that the bundled Redis, Qdrant, and Loki are dev/reference footprints and how to
+  move each to an external/HA deployment.
+- `docs/scope-and-non-goals.md`, the decision guide, and `ROADMAP.md` are brought current
+  with everything shipped in v0.17.0-v0.20.0 and the remaining operator-owned/deferred work
+  (external HA stores, RAG-side token verification, a maintained-JWT swap, native
+  `/v1/messages`, and semantic caching - the last recorded as an evaluated deferral).
+
 ## v0.20.0 - 2026-07-03
 
 Auditable in practice: the tamper-evident audit chain gets an operator verifier, a

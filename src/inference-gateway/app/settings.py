@@ -305,6 +305,12 @@ class Settings:
     rate_limit_enabled: bool = False
     rate_limit_requests_per_window: int = 0
     rate_limit_window_seconds: int = 60
+    # Deliberate availability-vs-enforcement tradeoff. When the shared rate-limit backend
+    # (Redis) is unreachable the limiter fails CLOSED by default (503 for all traffic),
+    # matching the budget tracker. Set this true to fail OPEN instead: admit the request
+    # with a logged warning and a metric so an operator can prefer availability over the
+    # throttle during a Redis outage. Budgets stay fail-closed regardless of this flag.
+    rate_limit_fail_open: bool = False
     max_concurrent_requests: int = 0
     max_batch_requests: int = 32
     usd_per_1k_tokens: float = 0.0
@@ -486,6 +492,7 @@ class Settings:
             rate_limit_enabled=_bool_from_env("RATE_LIMIT_ENABLED", False),
             rate_limit_requests_per_window=_int_from_env("RATE_LIMIT_REQUESTS_PER_WINDOW", 0),
             rate_limit_window_seconds=_positive_int_from_env("RATE_LIMIT_WINDOW_SECONDS", 60),
+            rate_limit_fail_open=_bool_from_env("RATE_LIMIT_FAIL_OPEN", False),
             max_concurrent_requests=_int_from_env("MAX_CONCURRENT_REQUESTS", 0),
             max_batch_requests=_positive_int_from_env("MAX_BATCH_REQUESTS", 32),
             usd_per_1k_tokens=_float_from_env("USD_PER_1K_TOKENS", 0.0),

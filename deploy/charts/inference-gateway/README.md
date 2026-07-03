@@ -104,6 +104,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `podLabels.platform.ai/owner` | `platform-team` |
 | `podLabels.platform.ai/sandbox-id` | `local-lab` |
 | `rateLimit.enabled` | `false` |
+| `rateLimit.failOpen` | `false` |
 | `rateLimit.requestsPerWindow` | `0` |
 | `rateLimit.windowSeconds` | `60` |
 | `replicaCount` | `1` |
