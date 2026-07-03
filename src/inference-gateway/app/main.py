@@ -27,7 +27,7 @@ from app.cache import build_response_cache, cache_key
 from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
-from app.runtime_client import RuntimeClient
+from app.runtime_client import REDACTED_MESSAGE_FIELDS, RuntimeClient
 from app.settings import (
     AdmissionPolicyError,
     Settings,
@@ -134,6 +134,11 @@ SHADOW_REQUESTS = Counter(
 OUTPUT_GUARDRAIL = Counter(
     "inference_gateway_output_guardrail_total",
     "Model completions acted on by the output guardrail, by action and surface.",
+    ["action", "route"],
+)
+PROMPT_GUARDRAIL = Counter(
+    "inference_gateway_prompt_guardrail_total",
+    "Prompts acted on by the input secret guardrail in redact/flag mode, by action and surface.",
     ["action", "route"],
 )
 ESTIMATED_COST = Counter(
@@ -758,6 +763,23 @@ def _apply_output_guardrail(
         request.state.output_guardrail_action = action
 
 
+def _apply_prompt_secret_mode(settings: Settings, payload: dict[str, Any], route: str) -> str | None:
+    """Redact or flag prompt secrets (redact/flag modes); return the action taken or None.
+
+    Block mode is enforced earlier in admission; this handles the non-rejecting modes so
+    an agent reading a ``.env`` or a lockfile does not kill its own conversation while the
+    credential is still kept out of the runtime call (redact) or recorded (flag). Returning
+    the action (rather than writing request state directly) lets the batch path attribute it
+    to the individual item instead of clobbering one shared per-request field.
+    """
+    matched = settings.apply_prompt_secret_mode(payload)
+    if not matched:
+        return None
+    action = "redacted" if settings.prompt_secret_mode == "redact" else "flagged"
+    PROMPT_GUARDRAIL.labels(action, route).inc()
+    return action
+
+
 def _usage_from_sse_chunk(chunk: bytes) -> dict[str, Any] | None:
     """Return the ``usage`` object from a terminal SSE chunk, or None when absent.
 
@@ -786,6 +808,85 @@ def _usage_from_sse_chunk(chunk: bytes) -> dict[str, Any] | None:
         if isinstance(parsed, dict) and isinstance(parsed.get("usage"), dict):
             found = parsed["usage"]
     return found
+
+
+_STREAM_REASONING_MARKERS: tuple[bytes, ...] = tuple(f'"{field}"'.encode() for field in REDACTED_MESSAGE_FIELDS)
+
+
+def _is_usage_only_event(obj: dict[str, Any]) -> bool:
+    """True when an SSE chunk object carries a usage object but no completion choices.
+
+    This is the shape of the terminal usage event vLLM emits under
+    ``stream_options.include_usage``; a normal content chunk that also carries usage
+    keeps its choices and is not matched, so real content is never dropped.
+    """
+    return isinstance(obj.get("usage"), dict) and not obj.get("choices")
+
+
+def _strip_reasoning_delta(obj: dict[str, Any]) -> bool:
+    """Remove reasoning/thinking fields from each choice's delta/message in place.
+
+    Returns True when anything was removed. Mirrors the non-streaming
+    ``sanitize_chat_completion`` redaction so chain-of-thought cannot leak through
+    the streaming path that a caller reaches by setting ``stream: true``.
+    """
+    choices = obj.get("choices")
+    if not isinstance(choices, list):
+        return False
+    changed = False
+    for choice in choices:
+        if not isinstance(choice, dict):
+            continue
+        for container_key in ("delta", "message"):
+            container = choice.get(container_key)
+            if isinstance(container, dict):
+                for field in REDACTED_MESSAGE_FIELDS:
+                    if field in container:
+                        del container[field]
+                        changed = True
+    return changed
+
+
+def _rewrite_stream_segment(segment: bytes, *, drop_usage_only: bool, strip_reasoning: bool) -> bytes:
+    """Filter a complete run of SSE text before it is forwarded to the client.
+
+    ``drop_usage_only`` removes the synthetic usage-only event induced by injecting
+    ``stream_options.include_usage`` when the caller did not request usage, so the
+    client-facing stream matches what it asked for. ``strip_reasoning`` removes
+    reasoning/thinking fields from streamed deltas. Lines triggering neither transform
+    are passed through byte-for-byte, keeping the common delta path cheap and lossless.
+    """
+    need_usage = drop_usage_only and b'"usage"' in segment
+    need_reasoning = strip_reasoning and any(marker in segment for marker in _STREAM_REASONING_MARKERS)
+    if not need_usage and not need_reasoning:
+        return segment
+    out: list[bytes] = []
+    # When a usage-only event is dropped, also swallow the blank line that terminated it so
+    # removing the event does not leave a stray extra separator in the client stream.
+    skip_blank = False
+    for line in segment.split(b"\n"):
+        stripped = line.strip()
+        if skip_blank and not stripped:
+            skip_blank = False
+            continue
+        skip_blank = False
+        if stripped.startswith(b"data:"):
+            data = stripped[5:].strip()
+            if data and data != b"[DONE]":
+                try:
+                    obj = json.loads(data)
+                except (ValueError, UnicodeDecodeError):
+                    out.append(line)
+                    continue
+                if isinstance(obj, dict):
+                    if need_usage and _is_usage_only_event(obj):
+                        skip_blank = True
+                        continue
+                    if need_reasoning and _strip_reasoning_delta(obj):
+                        out.append(b"data: " + json.dumps(obj, separators=(",", ":")).encode("utf-8"))
+                        continue
+        out.append(line)
+    return b"\n".join(out)
 
 
 def _terminal_stream_error_event(backend: str, request: Request) -> bytes:
@@ -874,6 +975,7 @@ def _write_audit_log(
         "action_type": "model_call",
         "decision": "allowed" if status_code < 400 else "denied",
         "guardrail_action": getattr(request.state, "output_guardrail_action", None),
+        "prompt_guardrail_action": getattr(request.state, "prompt_guardrail_action", None),
         "request_id": request.state.request_id,
         "traceparent": request.state.traceparent,
         "sandbox_id": request.state.sandbox_id,
@@ -1036,6 +1138,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 response.headers[header] = value
             if getattr(request.state, "output_guardrail_action", None):
                 response.headers["X-Output-Guardrail"] = request.state.output_guardrail_action
+            if getattr(request.state, "prompt_guardrail_action", None):
+                response.headers["X-Prompt-Guardrail"] = request.state.prompt_guardrail_action
             return response
 
         tracer = request.app.state.tracer
@@ -1201,6 +1305,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             backend = model_route.backend
             payload_dict["model"] = model_route.model_id
             effective.validate_admission(payload_dict)
+            # Redact/flag prompt secrets (non-block modes) before the payload is cached,
+            # reserved, or sent - so a redacted credential is never persisted or forwarded.
+            prompt_action = _apply_prompt_secret_mode(effective, payload_dict, route)
+            if prompt_action:
+                request.state.prompt_guardrail_action = prompt_action
             # Exact-match per-sandbox cache (non-streaming only). A hit returns the prior
             # response without a runtime call or budget reservation.
             cache_enabled = resolved.response_cache_enabled and not payload_dict.get("stream")
@@ -1224,6 +1333,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request.state.budget_headers = _budget_headers(reservation, effective)
             client: RuntimeClient = request.app.state.runtime_client
             if payload_dict.get("stream"):
+                # Force the runtime to emit a terminal usage event so streamed traffic is
+                # metered even when the caller forgot ``stream_options.include_usage``.
+                # If the caller did not ask for usage, the induced event is filtered back
+                # out below so the client-facing stream is unchanged.
+                existing_stream_options = payload_dict.get("stream_options")
+                has_stream_options = isinstance(existing_stream_options, dict)
+                client_wants_usage = has_stream_options and bool(existing_stream_options.get("include_usage"))
+                merged_stream_options = dict(existing_stream_options) if has_stream_options else {}
+                merged_stream_options["include_usage"] = True
+                payload_dict["stream_options"] = merged_stream_options
                 # Open the stream with cross-runtime fallback: a pre-first-byte failure
                 # on the primary route retries the next route in the chain. Once a byte
                 # is yielded the response is committed and cannot fail over.
@@ -1244,25 +1363,40 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     # bounded copy and detect+flag at end-of-stream (enforce via non-stream).
                     scan_enabled = resolved.output_guardrail_enabled
                     scanned = bytearray()
+                    # Rewrite complete SSE segments before forwarding: drop the induced
+                    # usage-only event when the caller did not ask for usage, and strip
+                    # reasoning/thinking deltas (matching the non-streaming redaction).
+                    drop_usage_only = not client_wants_usage
                     # SSE events can split across network chunks; carry the trailing
-                    # partial line so the terminal usage object is parsed even when the
-                    # ``data:`` line straddles a chunk boundary. Bounded so a pathological
-                    # never-terminated line cannot grow memory.
+                    # partial line so the terminal usage object is parsed - and so no
+                    # rewrite ever sees half a ``data:`` line - even when it straddles a
+                    # chunk boundary. Bounded so a pathological never-terminated line
+                    # cannot grow memory.
                     pending = b""
                     try:
                         chunk = first_chunk
                         while chunk is not None:
                             buffered = pending + chunk
-                            # rpartition: everything before the last newline is complete;
-                            # with no newline the whole buffer stays pending.
-                            complete_lines, _, pending = buffered.rpartition(b"\n")
+                            # rpartition: everything up to and including the last newline
+                            # is complete; with no newline the whole buffer stays pending.
+                            complete_lines, newline, pending = buffered.rpartition(b"\n")
                             pending = pending[-65536:]
-                            parsed_usage = _usage_from_sse_chunk(complete_lines)
-                            if parsed_usage is not None:
-                                usage = parsed_usage
-                            if scan_enabled and len(scanned) < 262144:
-                                scanned.extend(chunk)
-                            yield chunk
+                            # segment is every byte up to and including the last newline;
+                            # guarding on `segment` (not `complete_lines`) keeps a lone
+                            # trailing "\n" - e.g. an event terminator flushed in its own
+                            # chunk - from being silently dropped.
+                            segment = complete_lines + newline
+                            if segment:
+                                parsed_usage = _usage_from_sse_chunk(segment)
+                                if parsed_usage is not None:
+                                    usage = parsed_usage
+                                segment = _rewrite_stream_segment(
+                                    segment, drop_usage_only=drop_usage_only, strip_reasoning=True
+                                )
+                                if scan_enabled and len(scanned) < 262144:
+                                    scanned.extend(segment)
+                                if segment:
+                                    yield segment
                             try:
                                 chunk = await stream.__anext__()
                             except StopAsyncIteration:
@@ -1271,6 +1405,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             parsed_usage = _usage_from_sse_chunk(pending)
                             if parsed_usage is not None:
                                 usage = parsed_usage
+                            tail = _rewrite_stream_segment(
+                                pending, drop_usage_only=drop_usage_only, strip_reasoning=True
+                            )
+                            if scan_enabled and len(scanned) < 262144:
+                                scanned.extend(tail)
+                            if tail:
+                                yield tail
                     except httpx.HTTPError as exc:
                         # Upstream failed after headers were sent: emit a terminal SSE
                         # error event and map the recorded status to 502.
@@ -1470,6 +1611,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             backend = model_route.backend
             payload_dict["model"] = model_route.model_id
             effective.validate_embedding_admission(payload_dict)
+            prompt_action = _apply_prompt_secret_mode(effective, payload_dict, route)
+            if prompt_action:
+                request.state.prompt_guardrail_action = prompt_action
             # Count embedding inputs against the sandbox budget the same way prompts are.
             raw_input = payload_dict.get("input")
             texts = raw_input if isinstance(raw_input, list) else [raw_input]
@@ -1676,18 +1820,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # Bound per-batch fan-out so one batch cannot saturate the upstream pool.
             semaphore = asyncio.Semaphore(min(8, max(1, len(payload.requests))))
 
-            def _audit_item(index: int, status_code: int, item_dict: dict[str, Any]) -> None:
+            def _audit_item(
+                index: int, status_code: int, item_dict: dict[str, Any], prompt_guardrail_action: str | None = None
+            ) -> None:
                 entry: dict[str, Any] = {
                     "index": index,
                     "status_code": status_code,
                     "model": item_dict.get("model") or effective.model_id,
                 }
+                if prompt_guardrail_action is not None:
+                    entry["prompt_guardrail_action"] = prompt_guardrail_action
                 entry.update(_payload_fingerprint(item_dict))
                 audit_items.append(entry)
 
             async def _process(index: int, item: ChatCompletionRequest) -> dict[str, Any]:
                 item_dict = item.model_dump(exclude_none=True)
                 item_dict.pop("stream", None)
+                item_prompt_action: str | None = None
                 async with semaphore:
                     try:
                         try:
@@ -1696,6 +1845,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
                         item_dict["model"] = model_route.model_id
                         effective.validate_admission(item_dict)
+                        # Attribute the redact/flag action to this item's audit receipt rather
+                        # than the one shared per-request field (concurrent items would race it).
+                        item_prompt_action = _apply_prompt_secret_mode(effective, item_dict, route)
                         await asyncio.to_thread(tracker.reserve, request.state.sandbox_id, item_dict, effective)
                         response = await client.chat_completions(
                             item_dict, headers=_runtime_headers(request), backend=model_route.backend
@@ -1711,7 +1863,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             model_route.backend,
                             response.get("usage") if isinstance(response, dict) else None,
                         )
-                        _audit_item(index, 200, item_dict)
+                        _audit_item(index, 200, item_dict, item_prompt_action)
                         return {"index": index, "status_code": 200, "response": response}
                     except AdmissionPolicyError as exc:
                         item_code, _ = _admission_status(exc.reason, resolved)
@@ -1722,7 +1874,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             "error": {"reason": exc.reason, "message": str(exc)},
                         }
                     except httpx.HTTPStatusError as exc:
-                        _audit_item(index, 502, item_dict)
+                        _audit_item(index, 502, item_dict, item_prompt_action)
                         return {
                             "index": index,
                             "status_code": 502,
@@ -1732,14 +1884,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             },
                         }
                     except BudgetBackendError:
-                        _audit_item(index, 503, item_dict)
+                        _audit_item(index, 503, item_dict, item_prompt_action)
                         return {
                             "index": index,
                             "status_code": 503,
                             "error": {"reason": "budget_backend_unavailable", "message": "budget backend unavailable"},
                         }
                     except (httpx.HTTPError, ValueError):
-                        _audit_item(index, 502, item_dict)
+                        _audit_item(index, 502, item_dict, item_prompt_action)
                         return {"index": index, "status_code": 502, "error": {"message": "runtime request failed"}}
 
             results = await asyncio.gather(*[_process(index, item) for index, item in enumerate(payload.requests)])
@@ -1780,7 +1932,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "error": error,
                 }
                 _chain_audit_event(request, event)
-                AUDIT_LOGGER.info(json.dumps(event, sort_keys=True))
+                # Emit to both the audit logger and uvicorn.error so batch receipts reach
+                # pod logs (kubectl logs / Loki) exactly like inference_request events; a
+                # receipt that advanced the chain but was invisible would read as a hole
+                # to an operator verifying the chain against the logs.
+                batch_line = json.dumps(event, sort_keys=True)
+                AUDIT_LOGGER.info(batch_line)
+                logging.getLogger("uvicorn.error").info(batch_line)
 
     _install_openapi_contract(app, resolved)
     return app

@@ -14,6 +14,11 @@ BUILT_IN_SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
     "private_key": re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----"),
     "github_token": re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
     "slack_token": re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
+    # Canonical AWS access-key-id shape (as used by GitHub secret scanning). A 20-char
+    # all-caps/digit token beginning AKIA/ASIA can false-positive; that is the accepted
+    # trade for catching leaked keys, and redact mode makes it non-fatal for coding traffic.
+    "aws_access_key_id": re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
+    "google_api_key": re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b"),
     "bearer_token": re.compile(
         r"\b(?:authorization|bearer)\s*[:=]\s*bearer\s+[A-Za-z0-9._~+/=-]{20,}\b",
         re.IGNORECASE,
@@ -35,10 +40,15 @@ DEFAULT_SECRET_PATTERNS: tuple[str, ...] = (
     "private_key",
     "github_token",
     "slack_token",
+    "aws_access_key_id",
+    "google_api_key",
     "bearer_token",
     "generic_api_key_assignment",
 )
 CREDENTIAL_PATTERN_NAMES = frozenset(DEFAULT_SECRET_PATTERNS)
+# Modes for prompt secret handling: reject the request, redact the matched spans before
+# forwarding, or allow-and-record. ``block`` preserves the historical fail-closed default.
+PROMPT_SECRET_MODES = frozenset({"block", "redact", "flag"})
 PII_PATTERN_NAMES = frozenset({"email", "us_ssn", "credit_card"})
 
 # Patterns scanned on the model's *output* (the response path) when the output guardrail
@@ -50,6 +60,8 @@ OUTPUT_DEFAULT_PATTERNS: tuple[str, ...] = (
     "private_key",
     "github_token",
     "slack_token",
+    "aws_access_key_id",
+    "google_api_key",
     "bearer_token",
     "generic_api_key_assignment",
     "email",
@@ -134,6 +146,66 @@ def extract_text_content(content: Any) -> str:
     return str(content)
 
 
+def max_requested_completion_tokens(payload: dict[str, Any]) -> int | None:
+    """Return the largest valid completion-token cap the caller requested, or None.
+
+    OpenAI's modern ``max_completion_tokens`` and the legacy ``max_tokens`` may both be
+    present and both are forwarded to the runtime; budget estimation charges the larger so
+    it upper-bounds whatever field the backend actually honors. An explicit ``0`` (the
+    embeddings path passes ``max_tokens=0`` to mean "no completion cost") is honored;
+    non-integer values are ignored. Returns None when no valid integer field is present.
+    """
+    values = [
+        value
+        for field in ("max_completion_tokens", "max_tokens")
+        if isinstance((value := payload.get(field)), int) and not isinstance(value, bool) and value >= 0
+    ]
+    return max(values) if values else None
+
+
+def requested_completion_count(payload: dict[str, Any]) -> Any:
+    """Return the caller's requested number of completions (``n``), defaulting to 1.
+
+    Returns the raw value (possibly a non-int, for the validator to reject).
+    """
+    value = payload.get("n")
+    return 1 if value is None else value
+
+
+def _image_part_bytes(part: dict[str, Any]) -> int:
+    """Estimate the decoded byte size of an OpenAI ``image_url`` part (data URLs only).
+
+    Remote (http/https) image URLs carry no local bytes and count as zero; a
+    ``data:`` URL is measured from its base64 payload (3 bytes per 4 chars).
+    """
+    image = part.get("image_url")
+    url = image.get("url") if isinstance(image, dict) else image
+    if not isinstance(url, str) or not url.startswith("data:"):
+        return 0
+    _, _, b64 = url.partition(",")
+    return (len(b64) * 3) // 4
+
+
+def _iter_image_parts(messages: list[Any]) -> Any:
+    """Yield every OpenAI ``image_url`` content part across the given messages."""
+    for message in messages:
+        content = message.get("content") if isinstance(message, dict) else None
+        if isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and part.get("type") == "image_url":
+                    yield part
+
+
+def count_image_parts(messages: list[Any]) -> int:
+    """Count OpenAI ``image_url`` content parts across all messages."""
+    return sum(1 for _ in _iter_image_parts(messages))
+
+
+def largest_image_bytes(messages: list[Any]) -> int:
+    """Return the largest decoded data-URL image byte size across all messages."""
+    return max((_image_part_bytes(part) for part in _iter_image_parts(messages)), default=0)
+
+
 def validate_sandbox_id(value: str) -> str:
     """Normalize and validate a sandbox id, raising ValueError when malformed."""
     sandbox_id = value.strip().lower()
@@ -200,6 +272,9 @@ class Settings:
     max_messages: int = 16
     max_prompt_chars: int = 8192
     max_completion_tokens: int = 1024
+    max_completions_per_request: int = 1
+    image_part_token_estimate: int = 768
+    max_image_bytes: int = 0
     max_tools: int = 64
     max_tool_chars: int = 32768
     allow_streaming: bool = False
@@ -234,6 +309,7 @@ class Settings:
     api_key_sha256s: tuple[str, ...] = ()
     api_key_header: str = "X-API-Key"
     prompt_secret_detection_enabled: bool = True
+    prompt_secret_mode: str = "block"
     prompt_secret_patterns: tuple[str, ...] = DEFAULT_SECRET_PATTERNS
     blocked_content_terms: tuple[str, ...] = ()
     model_routing_policy_path: Path | None = None
@@ -278,6 +354,12 @@ class Settings:
             raise ValueError("max_concurrent_requests must be zero or greater")
         if self.max_batch_requests <= 0:
             raise ValueError("max_batch_requests must be greater than zero")
+        if self.max_completions_per_request <= 0:
+            raise ValueError("max_completions_per_request must be greater than zero")
+        if self.image_part_token_estimate < 0:
+            raise ValueError("image_part_token_estimate must be zero or greater")
+        if self.max_image_bytes < 0:
+            raise ValueError("max_image_bytes must be zero or greater")
         if self.usd_per_1k_tokens < 0:
             raise ValueError("usd_per_1k_tokens must be zero or greater")
         if self.response_cache_ttl_seconds <= 0:
@@ -321,6 +403,8 @@ class Settings:
         unknown_patterns = sorted(set(self.prompt_secret_patterns) - set(BUILT_IN_SECRET_PATTERNS))
         if unknown_patterns:
             raise ValueError(f"prompt_secret_patterns contains unknown patterns: {unknown_patterns}")
+        if self.prompt_secret_mode not in PROMPT_SECRET_MODES:
+            raise ValueError("prompt_secret_mode must be one of: block, redact, flag")
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -347,6 +431,9 @@ class Settings:
             max_messages=_int_from_env("MAX_MESSAGES", 16),
             max_prompt_chars=_int_from_env("MAX_PROMPT_CHARS", 8192),
             max_completion_tokens=_int_from_env("MAX_COMPLETION_TOKENS", 1024),
+            max_completions_per_request=_positive_int_from_env("MAX_COMPLETIONS_PER_REQUEST", 1),
+            image_part_token_estimate=_int_from_env("IMAGE_PART_TOKEN_ESTIMATE", 768),
+            max_image_bytes=_int_from_env("MAX_IMAGE_BYTES", 0),
             max_tools=_int_from_env("MAX_TOOLS", 64),
             max_tool_chars=_int_from_env("MAX_TOOL_CHARS", 32768),
             allow_streaming=_bool_from_env("ALLOW_STREAMING", False),
@@ -411,6 +498,7 @@ class Settings:
                 "PROMPT_SECRET_DETECTION_ENABLED",
                 True,
             ),
+            prompt_secret_mode=os.getenv("PROMPT_SECRET_MODE", "block").strip().lower(),
             prompt_secret_patterns=_secret_pattern_names_from_env("PROMPT_SECRET_PATTERNS"),
             blocked_content_terms=_csv_from_env("BLOCKED_CONTENT_TERMS", ()),
             model_routing_policy_path=_path_from_env("MODEL_ROUTING_POLICY_PATH"),
@@ -480,17 +568,43 @@ class Settings:
         self._validate_tools(payload)
         for message in messages:
             self._enforce_content_policy(extract_text_content(message.get("content")))
-        requested_tokens = payload.get("max_tokens")
-        if requested_tokens is not None:
-            if not isinstance(requested_tokens, int) or requested_tokens <= 0:
+        # Validate BOTH completion-cap fields independently: the request forwards both to
+        # the runtime, and different runtimes honor different fields (vLLM prefers
+        # max_completion_tokens, Ollama honors max_tokens), so a cap on only the "preferred"
+        # field would let the other slip an uncapped value through to the backend.
+        for field in ("max_completion_tokens", "max_tokens"):
+            value = payload.get(field)
+            if value is None:
+                continue
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
                 raise AdmissionPolicyError(
                     "invalid_max_tokens",
-                    "max_tokens must be a positive integer",
+                    "max_tokens/max_completion_tokens must be a positive integer",
                 )
-            if requested_tokens > self.max_completion_tokens:
+            if value > self.max_completion_tokens:
                 raise AdmissionPolicyError(
                     "max_tokens_too_large",
-                    f"max_tokens is {requested_tokens}; limit is {self.max_completion_tokens}",
+                    f"requested completion tokens is {value}; limit is {self.max_completion_tokens}",
+                )
+        requested_completions = payload.get("n")
+        if requested_completions is not None:
+            if (
+                not isinstance(requested_completions, int)
+                or isinstance(requested_completions, bool)
+                or requested_completions <= 0
+            ):
+                raise AdmissionPolicyError("invalid_n", "n must be a positive integer")
+            if requested_completions > self.max_completions_per_request:
+                raise AdmissionPolicyError(
+                    "too_many_completions",
+                    f"n is {requested_completions}; limit is {self.max_completions_per_request}",
+                )
+        if self.max_image_bytes > 0:
+            oversized = largest_image_bytes(messages)
+            if oversized > self.max_image_bytes:
+                raise AdmissionPolicyError(
+                    "image_too_large",
+                    f"an image part is ~{oversized} bytes; limit is {self.max_image_bytes}",
                 )
         temperature = payload.get("temperature")
         if temperature is not None:
@@ -554,8 +668,13 @@ class Settings:
         return None
 
     def _enforce_content_policy(self, text: str) -> None:
-        """Reject text that matches the secret/PII detector or a blocked-term denylist."""
-        if self.prompt_secret_detection_enabled:
+        """Reject text matching the secret detector (block mode only) or a blocked term.
+
+        In ``redact``/``flag`` mode the secret detector does not reject here; the
+        request proceeds and :meth:`apply_prompt_secret_mode` redacts or records the
+        match before the payload is forwarded. The blocked-term denylist always rejects.
+        """
+        if self.prompt_secret_detection_enabled and self.prompt_secret_mode == "block":
             pattern = self.matched_secret_pattern(text)
             if pattern is not None:
                 raise AdmissionPolicyError(
@@ -568,6 +687,72 @@ class Settings:
                 "content_blocked",
                 "input contains content blocked by policy",
             )
+
+    def _redact_secret_text(self, text: str) -> tuple[str, list[str]]:
+        """Return the text with matched prompt-secret spans replaced, plus the matched names."""
+        matched: list[str] = []
+        for name in self.prompt_secret_patterns:
+            pattern = BUILT_IN_SECRET_PATTERNS[name]
+            if pattern.search(text):
+                matched.append(name)
+                text = pattern.sub(f"[REDACTED:{name}]", text)
+        return text, matched
+
+    def _apply_secret_mode_to_content(self, content: Any, redact: bool) -> tuple[Any, list[str]]:
+        """Redact/scan a chat message ``content`` (string or content-part array)."""
+        if isinstance(content, str):
+            new_text, names = self._redact_secret_text(content)
+            return (new_text if redact else content), names
+        if isinstance(content, list):
+            matched: list[str] = []
+            new_parts: list[Any] = []
+            for part in content:
+                if isinstance(part, dict) and isinstance(part.get("text"), str):
+                    new_text, names = self._redact_secret_text(part["text"])
+                    matched.extend(names)
+                    if redact and names:
+                        part = {**part, "text": new_text}
+                new_parts.append(part)
+            return (new_parts if redact else content), matched
+        return content, []
+
+    def apply_prompt_secret_mode(self, payload: dict[str, Any]) -> list[str]:
+        """Redact or flag prompt secrets per ``prompt_secret_mode``; mutate payload in redact mode.
+
+        A no-op in ``block`` mode (admission already rejected) or when detection is
+        disabled. Handles both chat ``messages`` and embedding ``input``. Returns the
+        sorted unique matched pattern names for metrics and the audit receipt.
+        """
+        if not self.prompt_secret_detection_enabled or self.prompt_secret_mode == "block":
+            return []
+        redact = self.prompt_secret_mode == "redact"
+        matched: list[str] = []
+        messages = payload.get("messages")
+        if isinstance(messages, list):
+            for message in messages:
+                if isinstance(message, dict):
+                    new_content, names = self._apply_secret_mode_to_content(message.get("content"), redact)
+                    matched.extend(names)
+                    if redact and names:
+                        message["content"] = new_content
+        raw_input = payload.get("input")
+        if isinstance(raw_input, str):
+            new_text, names = self._redact_secret_text(raw_input)
+            matched.extend(names)
+            if redact and names:
+                payload["input"] = new_text
+        elif isinstance(raw_input, list):
+            new_list: list[Any] = []
+            for item in raw_input:
+                if isinstance(item, str):
+                    new_text, names = self._redact_secret_text(item)
+                    matched.extend(names)
+                    new_list.append(new_text if redact else item)
+                else:
+                    new_list.append(item)
+            if redact:
+                payload["input"] = new_list
+        return sorted(set(matched))
 
     def output_findings(self, text: str) -> tuple[list[str], list[str]]:
         """Return (matched secret/PII pattern names, matched blocked terms) found in output.

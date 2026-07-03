@@ -35,9 +35,19 @@ admission:
   maxMessages: 16
   maxPromptChars: 8192
   maxCompletionTokens: 1024
+  # Cap on the OpenAI `n` parameter (completions per request); the completion budget is
+  # charged n times so a caller cannot request many completions for the price of one.
+  maxCompletionsPerRequest: 1
+  # Flat token estimate charged per image_url content part so multimodal prompts are
+  # metered rather than counting as zero toward the budget.
+  imagePartTokenEstimate: 768
+  # Maximum decoded size (bytes) of a single data-URL image part; 0 disables the check.
+  maxImageBytes: 0
   maxTools: 64
   maxToolChars: 32768
-  allowStreaming: false
+  # Streaming is shipped on so chat UIs and coding agents work out of the box; the
+  # regulated-offline profile turns it off where end-of-stream-only guardrails matter.
+  allowStreaming: true
 
 # Short-window per-sandbox request throttle (distinct from the cumulative budget).
 # Uses the same backend as budgets (budget.backend); 0 requests means unlimited.
@@ -74,12 +84,18 @@ cost:
 guardrails:
   promptSecretDetection:
     enabled: true
+    # Action on a match: "block" (reject the request - the fail-closed default),
+    # "redact" (replace matched spans before forwarding so an agent reading a .env or
+    # lockfile is not killed mid-conversation), or "flag" (allow and record only).
+    mode: block
     # Built-in detectors applied to prompt/embedding input. Credential detectors are
     # the default; add the PII detectors (email, us_ssn, credit_card) to reject PII.
     patterns:
       - private_key
       - github_token
       - slack_token
+      - aws_access_key_id
+      - google_api_key
       - bearer_token
       - generic_api_key_assignment
   # Case-insensitive substrings rejected anywhere in input (e.g. project codenames).
@@ -98,6 +114,8 @@ guardrails:
       - private_key
       - github_token
       - slack_token
+      - aws_access_key_id
+      - google_api_key
       - bearer_token
       - generic_api_key_assignment
       - email

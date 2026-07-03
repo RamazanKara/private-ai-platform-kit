@@ -27,8 +27,11 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 
 | Value | Default |
 | --- | --- |
-| `admission.allowStreaming` | `false` |
+| `admission.allowStreaming` | `true` |
+| `admission.imagePartTokenEstimate` | `768` |
 | `admission.maxCompletionTokens` | `1024` |
+| `admission.maxCompletionsPerRequest` | `1` |
+| `admission.maxImageBytes` | `0` |
 | `admission.maxMessages` | `16` |
 | `admission.maxPromptChars` | `8192` |
 | `admission.maxToolChars` | `32768` |
@@ -62,9 +65,10 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `guardrails.blockedContentTerms` | `[]` |
 | `guardrails.outputGuardrail.enabled` | `false` |
 | `guardrails.outputGuardrail.mode` | `redact` |
-| `guardrails.outputGuardrail.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment", "email", "us_ssn", "cred...` |
+| `guardrails.outputGuardrail.patterns` | `["private_key", "github_token", "slack_token", "aws_access_key_id", "google_api_key", "bearer_token", "generic_api_ke...` |
 | `guardrails.promptSecretDetection.enabled` | `true` |
-| `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "bearer_token", "generic_api_key_assignment"]` |
+| `guardrails.promptSecretDetection.mode` | `block` |
+| `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "aws_access_key_id", "google_api_key", "bearer_token", "generic_api_ke...` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` |
 | `image.tag` | `v0.16.0` |

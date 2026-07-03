@@ -8,7 +8,14 @@ from threading import Lock
 from time import time
 from typing import Any, Protocol
 
-from app.settings import AdmissionPolicyError, Settings, extract_text_content
+from app.settings import (
+    AdmissionPolicyError,
+    Settings,
+    count_image_parts,
+    extract_text_content,
+    max_requested_completion_tokens,
+    requested_completion_count,
+)
 
 try:  # redis is an optional dependency; only present when the redis backend is used.
     from redis.exceptions import RedisError as _RedisError
@@ -86,13 +93,28 @@ def budget_delta(settings: Settings, payload: dict[str, Any]) -> BudgetDelta:
 
     Counts prompt characters with the same ``extract_text_content`` the admission
     checks use, so multimodal content-part arrays and null content are charged by
-    their text - not by the repr of their JSON scaffolding.
+    their text - not by the repr of their JSON scaffolding. Image parts add a flat
+    ``image_part_token_estimate`` each (they carry no text but real runtime cost), the
+    requested completion cap honors ``max_completion_tokens`` as well as the legacy
+    ``max_tokens``, and the completion estimate is multiplied by ``n`` so a caller
+    cannot request many completions - or dodge the cap by field name - for the price
+    of one.
     """
-    prompt_chars = sum(len(extract_text_content(message.get("content"))) for message in payload.get("messages", []))
-    requested_completion_tokens = payload.get("max_tokens")
-    if not isinstance(requested_completion_tokens, int):
-        requested_completion_tokens = settings.max_completion_tokens
-    estimated_tokens = ceil(prompt_chars / settings.budget_estimated_chars_per_token) + requested_completion_tokens
+    messages = payload.get("messages", [])
+    prompt_chars = sum(len(extract_text_content(message.get("content"))) for message in messages)
+    # Charge the larger of the two completion-cap fields (both are forwarded to the
+    # runtime); a missing/invalid pair falls back to the cap, while an explicit 0 (the
+    # embeddings path) is honored as zero completion cost.
+    completion_tokens = max_requested_completion_tokens(payload)
+    if completion_tokens is None:
+        completion_tokens = settings.max_completion_tokens
+    completions = requested_completion_count(payload)
+    if not isinstance(completions, int) or isinstance(completions, bool) or completions <= 0:
+        completions = 1
+    image_tokens = count_image_parts(messages) * settings.image_part_token_estimate
+    estimated_tokens = (
+        ceil(prompt_chars / settings.budget_estimated_chars_per_token) + image_tokens + completion_tokens * completions
+    )
     return BudgetDelta(
         requests=1,
         prompt_chars=prompt_chars,

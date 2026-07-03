@@ -76,6 +76,12 @@ spec:
               value: {{ .Values.admission.maxPromptChars | quote }}
             - name: MAX_COMPLETION_TOKENS
               value: {{ .Values.admission.maxCompletionTokens | quote }}
+            - name: MAX_COMPLETIONS_PER_REQUEST
+              value: {{ .Values.admission.maxCompletionsPerRequest | quote }}
+            - name: IMAGE_PART_TOKEN_ESTIMATE
+              value: {{ .Values.admission.imagePartTokenEstimate | quote }}
+            - name: MAX_IMAGE_BYTES
+              value: {{ .Values.admission.maxImageBytes | quote }}
             - name: MAX_TOOLS
               value: {{ .Values.admission.maxTools | quote }}
             - name: MAX_TOOL_CHARS
@@ -112,6 +118,8 @@ spec:
               value: {{ .Values.responseCache.keyPrefix | quote }}
             - name: PROMPT_SECRET_DETECTION_ENABLED
               value: {{ .Values.guardrails.promptSecretDetection.enabled | quote }}
+            - name: PROMPT_SECRET_MODE
+              value: {{ .Values.guardrails.promptSecretDetection.mode | quote }}
             - name: PROMPT_SECRET_PATTERNS
               value: {{ join "," .Values.guardrails.promptSecretDetection.patterns | quote }}
             - name: BLOCKED_CONTENT_TERMS
