@@ -32,10 +32,14 @@ Every profile deploys the same Argo CD `Application` set (`deploy/clusters/local
 | Observability stack | `monitoring` | kube-prometheus-stack, Loki, Promtail, pushgateway | `deploy/observability` |
 
 The inference gateway is the single ingress point for model traffic. It exposes an
-OpenAI-compatible API on port `8080`: `POST /v1/chat/completions`, `POST /v1/embeddings`,
-`POST /v1/moderations`, `POST /v1/batches`, `GET /v1/models`, `GET /v1/usage`, and
-`GET /v1/sandbox/budget`, plus unauthenticated `/healthz`, `/readyz`, and `/metrics`
-(`src/inference-gateway/app/main.py`). Cross-cutting controls applied to every request:
+OpenAI-compatible API on port `8080`: `POST /v1/chat/completions`, `POST /v1/completions`,
+`POST /v1/embeddings`, `POST /v1/moderations`, `POST /v1/batch-inference` (with the legacy
+`POST /v1/batches` kept behind a `Deprecation` header), the native `POST /v1/messages`
+(Anthropic Messages) and `POST /v1/responses` (OpenAI Responses) surfaces, `GET /v1/models`,
+`GET /v1/usage`, and `GET /v1/sandbox/budget`, plus unauthenticated `/healthz`, `/readyz`,
+and `/metrics` (`src/inference-gateway/app/main.py`). Every business endpoint runs the same
+governance path and returns OpenAI-shaped error envelopes. Cross-cutting controls applied to
+every request:
 
 - **Authentication.** API-key auth is enabled by default via the `X-API-Key` header; the gateway
   stores only SHA-256 digests of accepted keys and compares with constant-time `hmac.compare_digest`
