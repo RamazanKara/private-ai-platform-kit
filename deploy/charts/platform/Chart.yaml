@@ -6,8 +6,8 @@ description: >-
   component is toggled with its <name>.enabled flag. GitOps (Argo CD) remains the recommended
   path for multi-namespace installs; this chart is for a single-command dev/demo bring-up.
 type: application
-version: 0.18.0
-appVersion: "0.18.0"
+version: 0.19.0
+appVersion: "0.19.0"
 dependencies:
   - name: inference-gateway
     version: ">=0.0.0"
