@@ -7,7 +7,7 @@ with a recorder, so the suite is deterministic and never sleeps for real.
 import ai_platform_client
 import httpx
 import pytest
-from ai_platform_client import GatewayClient, GatewayStreamError
+from ai_platform_client import GatewayClient, GatewayRetryAfterError, GatewayStreamError
 
 
 def _mock_transport(monkeypatch, handler):
@@ -44,14 +44,33 @@ def test_retry_honors_retry_after_header(monkeypatch):
     assert calls == ["/v1/chat/completions", "/v1/chat/completions"]
 
 
-def test_retry_after_above_cap_sleeps_exactly_the_cap(monkeypatch):
+def test_retry_after_above_cap_fails_fast(monkeypatch):
+    calls = []
+
+    def handler(request):
+        calls.append(request.url.path)
+        # Budget-window 429s advertise the whole window (e.g. an hour).
+        return httpx.Response(429, headers={"Retry-After": "3600"}, json={"error": "budget exceeded"})
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test", retry_after_cap=5.0)
+    sleeps = _record_sleeps(monkeypatch, client)
+
+    with pytest.raises(GatewayRetryAfterError) as excinfo:
+        client.usage()
+    assert isinstance(excinfo.value, httpx.HTTPStatusError)
+    assert excinfo.value.retry_after == 3600
+    assert calls == ["/v1/usage"]
+    assert sleeps == []
+
+
+def test_retry_after_equal_to_cap_still_sleeps_and_retries(monkeypatch):
     calls = []
 
     def handler(request):
         calls.append(request.url.path)
         if len(calls) == 1:
-            # Budget-window 429s advertise the whole window (e.g. an hour).
-            return httpx.Response(429, headers={"Retry-After": "3600"}, json={"error": "budget exceeded"})
+            return httpx.Response(429, headers={"Retry-After": "5"}, json={"error": "rate limited"})
         return httpx.Response(200, json={"ok": True})
 
     _mock_transport(monkeypatch, handler)
@@ -60,6 +79,27 @@ def test_retry_after_above_cap_sleeps_exactly_the_cap(monkeypatch):
 
     assert client.usage() == {"ok": True}
     assert sleeps == [5.0]
+    assert calls == ["/v1/usage", "/v1/usage"]
+
+
+def test_retry_after_above_cap_on_last_attempt_fails_fast(monkeypatch):
+    calls = []
+
+    def handler(request):
+        calls.append(request.url.path)
+        if len(calls) <= 2:
+            return httpx.Response(429, headers={"Retry-After": "2"}, json={"error": "rate limited"})
+        return httpx.Response(429, headers={"Retry-After": "6"}, json={"error": "budget exceeded"})
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test", max_retries=2, retry_after_cap=5.0)
+    sleeps = _record_sleeps(monkeypatch, client)
+
+    with pytest.raises(GatewayRetryAfterError) as excinfo:
+        client.usage()
+    assert excinfo.value.retry_after == 6
+    assert calls == ["/v1/usage"] * 3
+    assert sleeps == [2.0, 2.0]
 
 
 @pytest.mark.parametrize("retry_after", ["soon", "-2", "1.5", ""])
