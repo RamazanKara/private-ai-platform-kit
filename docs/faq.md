@@ -55,6 +55,16 @@ production-style GPU runtime for customer clusters (NVIDIA/AMD), with prefix cac
 quantization, and guided/speculative decoding. See
 [GPU capacity](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md).
 
+### Can I use the Anthropic SDK / Claude-style agents against it?
+
+Not natively. The gateway speaks the OpenAI chat-completions protocol and does **not**
+implement the native Anthropic Messages API (`/v1/messages`). Claude-style agents can still
+run against it through a translation sidecar (e.g. a LiteLLM proxy that exposes
+`/v1/messages` and forwards to the gateway's `/v1/chat/completions`); a concrete config
+sketch is in [Client examples](client-examples.md). The full list of OpenAI/Anthropic
+surfaces the gateway does and does not implement is in
+[Scope and non-goals](scope-and-non-goals.md).
+
 ### How do I upgrade or roll back?
 
 Move the immutable `CUSTOMER_REVISION` tag and let Argo CD sync; roll back by pointing it at the

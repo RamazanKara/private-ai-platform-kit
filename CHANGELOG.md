@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+Protocol honesty: the gateway now tells clients the truth about what it speaks, in the
+shape they expect, and admits what it does not implement.
+
+### Added
+
+- Error responses are OpenAI-shaped. Every gateway error now carries
+  `{"error": {"message", "type", "code", …}}` so an OpenAI SDK's typed exceptions
+  (`RateLimitError`, `AuthenticationError`, …) map correctly; the legacy `detail` object
+  is preserved alongside for one release while callers migrate. Pydantic request-validation
+  (422) keeps FastAPI's default shape.
+- `POST /v1/completions` (legacy prompt-based text completion) for tools that still send a
+  `prompt` instead of `messages`. It runs through the same governance path as chat - model
+  allowlist, admission ceilings, prompt secret policy, sandbox budget (the completion cap
+  and `n` are charged exactly as chat charges them), output guardrail, and audit - so it is
+  not a control bypass. Non-streaming only this release (a streaming request is rejected
+  with a clear `streaming_not_supported` error).
+- `POST /v1/batch-inference` is the canonical name for the synchronous batch fan-out.
+  `/v1/batches` still works but returns a `Deprecation` header pointing to the new path;
+  the OpenAI name collided with its asynchronous file-batch API, which this endpoint is not.
+- `/v1/moderations` responses carry a `"taxonomy": "governance"` marker so a caller can
+  distinguish the platform's credential/PII/denylist categories from OpenAI's harm taxonomy.
+- Docs: an Anthropic-SDK / Claude-agent path via a translation sidecar (client examples +
+  FAQ), and an explicit statement in scope-and-non-goals of the API surfaces the gateway
+  does not implement (Responses API, OpenAI async file-batch, Files, Audio, Images,
+  fine-tuning, native `/v1/messages`) so an evaluator need not diff the route list.
+
 ## v0.17.0 - 2026-07-03
 
 Enforcement hardening: the governance controls now hold against the request tricks that

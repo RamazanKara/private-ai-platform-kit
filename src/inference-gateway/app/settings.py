@@ -146,6 +146,20 @@ def extract_text_content(content: Any) -> str:
     return str(content)
 
 
+def completion_prompt_texts(prompt: Any) -> list[str]:
+    """Return the legacy-completion ``prompt`` as a list of non-empty strings.
+
+    Accepts a bare string or a list of strings (the two forms OpenAI's ``/v1/completions``
+    ``prompt`` takes); token-array prompts and other shapes contribute no text. Empty
+    strings are dropped so an all-empty prompt reads as missing.
+    """
+    if isinstance(prompt, str):
+        return [prompt] if prompt else []
+    if isinstance(prompt, list):
+        return [item for item in prompt if isinstance(item, str) and item]
+    return []
+
+
 def max_requested_completion_tokens(payload: dict[str, Any]) -> int | None:
     """Return the largest valid completion-token cap the caller requested, or None.
 
@@ -650,6 +664,62 @@ class Settings:
         for text in texts:
             self._enforce_content_policy(text)
 
+    def validate_completion_admission(self, payload: dict) -> None:
+        """Enforce model, prompt-size, secret, token, and streaming rules for legacy completions.
+
+        The legacy ``/v1/completions`` API carries a ``prompt`` (a string or a list of
+        strings) instead of ``messages``; this applies the same ceilings as chat: model
+        allowlist, aggregate prompt-character limit, secret/blocked-term content policy,
+        completion-token cap, and the streaming toggle.
+        """
+        self.validate_model(payload.get("model"))
+        prompt_texts = completion_prompt_texts(payload.get("prompt"))
+        if not prompt_texts:
+            raise AdmissionPolicyError(
+                "missing_prompt",
+                "completions request must include a non-empty prompt",
+            )
+        prompt_chars = sum(len(text) for text in prompt_texts)
+        if prompt_chars > self.max_prompt_chars:
+            raise AdmissionPolicyError(
+                "prompt_too_large",
+                f"prompt has {prompt_chars} characters; limit is {self.max_prompt_chars}",
+            )
+        for text in prompt_texts:
+            self._enforce_content_policy(text)
+        for field in ("max_completion_tokens", "max_tokens"):
+            value = payload.get(field)
+            if value is None:
+                continue
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                raise AdmissionPolicyError(
+                    "invalid_max_tokens",
+                    "max_tokens/max_completion_tokens must be a positive integer",
+                )
+            if value > self.max_completion_tokens:
+                raise AdmissionPolicyError(
+                    "max_tokens_too_large",
+                    f"requested completion tokens is {value}; limit is {self.max_completion_tokens}",
+                )
+        requested_completions = payload.get("n")
+        if requested_completions is not None:
+            if (
+                not isinstance(requested_completions, int)
+                or isinstance(requested_completions, bool)
+                or requested_completions <= 0
+            ):
+                raise AdmissionPolicyError("invalid_n", "n must be a positive integer")
+            if requested_completions > self.max_completions_per_request:
+                raise AdmissionPolicyError(
+                    "too_many_completions",
+                    f"n is {requested_completions}; limit is {self.max_completions_per_request}",
+                )
+        if payload.get("stream") and not self.allow_streaming:
+            raise AdmissionPolicyError(
+                "streaming_disabled",
+                "streaming responses are disabled for this gateway",
+            )
+
     def matched_secret_pattern(self, text: str) -> str | None:
         """Return the name of the first configured secret/PII pattern matched, or None."""
         for pattern_name in self.prompt_secret_patterns:
@@ -735,23 +805,26 @@ class Settings:
                     matched.extend(names)
                     if redact and names:
                         message["content"] = new_content
-        raw_input = payload.get("input")
-        if isinstance(raw_input, str):
-            new_text, names = self._redact_secret_text(raw_input)
-            matched.extend(names)
-            if redact and names:
-                payload["input"] = new_text
-        elif isinstance(raw_input, list):
-            new_list: list[Any] = []
-            for item in raw_input:
-                if isinstance(item, str):
-                    new_text, names = self._redact_secret_text(item)
-                    matched.extend(names)
-                    new_list.append(new_text if redact else item)
-                else:
-                    new_list.append(item)
-            if redact:
-                payload["input"] = new_list
+        # ``input`` (embeddings) and ``prompt`` (legacy completions) share the same
+        # str-or-list-of-str shape, so redact/scan both the same way.
+        for field in ("input", "prompt"):
+            raw_field = payload.get(field)
+            if isinstance(raw_field, str):
+                new_text, names = self._redact_secret_text(raw_field)
+                matched.extend(names)
+                if redact and names:
+                    payload[field] = new_text
+            elif isinstance(raw_field, list):
+                new_list: list[Any] = []
+                for item in raw_field:
+                    if isinstance(item, str):
+                        new_text, names = self._redact_secret_text(item)
+                        matched.extend(names)
+                        new_list.append(new_text if redact else item)
+                    else:
+                        new_list.append(item)
+                if redact:
+                    payload[field] = new_list
         return sorted(set(matched))
 
     def output_findings(self, text: str) -> tuple[list[str], list[str]]:

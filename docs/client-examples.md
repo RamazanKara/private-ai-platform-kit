@@ -50,12 +50,62 @@ curl -fsS "$GATEWAY/v1/embeddings" \
   -H 'Content-Type: application/json' \
   -d '{"input":"embed this text"}'
 
+# Legacy text completion (prompt-based; governed like chat, non-streaming)
+curl -fsS "$GATEWAY/v1/completions" \
+  -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"Write a haiku about the sea.","max_tokens":64}'
+
 # Moderations (content policy classification)
 curl -fsS "$GATEWAY/v1/moderations" \
   -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
   -H 'Content-Type: application/json' \
   -d '{"input":"text to classify"}'
 ```
+
+## Moderations taxonomy (not OpenAI's harm categories)
+
+`/v1/moderations` is OpenAI-compatible in shape but classifies against the platform
+*governance* taxonomy, not OpenAI's harm taxonomy. The response carries a top-level
+`"taxonomy": "governance"` marker and the `categories`/`category_scores` keys are
+`credential`, `pii`, and `blocked_terms` (rule-based credential/PII/denylist detection),
+not `hate`, `violence`, `self-harm`, etc. Branch on the `taxonomy` field if you consume
+both a real OpenAI moderation endpoint and this one. A semantic toxicity classifier can be
+layered behind the same endpoint later without changing callers.
+
+## Legacy `/v1/completions` (prompt-based)
+
+The gateway also exposes the pre-chat `/v1/completions` endpoint for tools that still use a
+`prompt` (a string or list of strings) instead of `messages`. It runs through the **same**
+governance path as chat — model allowlist, admission limits, prompt secret policy, sandbox
+budget, output guardrail, and audit — so legacy-completion traffic is not a control bypass.
+Streaming is **not** supported on `/v1/completions` in this release (send `stream: false`,
+or use `/v1/chat/completions` for streaming); a streaming request is rejected with a clear
+`streaming_not_supported` error. Prefer `/v1/chat/completions` for new integrations.
+
+## Error responses
+
+Every gateway error body is OpenAI-shaped:
+
+```json
+{
+  "error": {
+    "message": "requested completion tokens is 50; limit is 10",
+    "type": "invalid_request_error",
+    "code": "max_tokens_too_large",
+    "request_id": "…",
+    "sandbox_id": "demo"
+  },
+  "detail": { "…": "original detail, preserved this release" }
+}
+```
+
+`error.type` follows the OpenAI taxonomy (`invalid_request_error`,
+`authentication_error`, `permission_error`, `rate_limit_error`, `api_error`, …) so an
+OpenAI SDK's typed exceptions (e.g. `RateLimitError`) map correctly. `error.code` carries
+the gateway's machine reason. The legacy `detail` object is preserved alongside for one
+release while callers migrate; do not depend on it long-term. Pydantic request-validation
+errors (HTTP 422) keep FastAPI's default `{"detail": [...]}` shape.
 
 ## Python (openai SDK)
 
@@ -180,3 +230,39 @@ http://<gateway-host>/v1`, the API key, and a `requestOptions.headers` entry set
 
 > Frameworks that cannot set a custom header should bind the sandbox with a JWT tenant claim
 > (`auth.jwt.tenantClaim`) so per-sandbox budgets and attribution cannot be spoofed.
+
+## Anthropic SDK / Claude-style agents (translation sidecar)
+
+The gateway speaks the **OpenAI chat-completions** protocol. It does **not** implement the
+native Anthropic Messages API (`/v1/messages`). Anthropic-SDK or Claude-style agents that
+require `/v1/messages` can still run against the gateway by putting a small protocol
+**translation sidecar** in front of it — for example a [LiteLLM](https://docs.litellm.ai/)
+proxy that exposes an Anthropic-shaped `/v1/messages` endpoint and forwards to the gateway's
+`/v1/chat/completions`. The sidecar does the Anthropic-to-OpenAI request/response
+translation; the gateway still applies auth, model allowlists, budgets, guardrails, and
+audit. Point the sidecar's upstream at the gateway and set the platform headers on the
+forwarded request.
+
+Minimal LiteLLM config sketch (`config.yaml`), with the gateway as the OpenAI-compatible
+upstream:
+
+```yaml
+model_list:
+  - model_name: claude-shim            # the name Anthropic-SDK clients request
+    litellm_params:
+      model: openai/qwen2.5:0.5b       # an allowlisted gateway model
+      api_base: http://<gateway-host>/v1
+      api_key: os.environ/GATEWAY_API_KEY
+      extra_headers:
+        X-Sandbox-ID: demo             # or bind the sandbox via a JWT tenant claim
+```
+
+```bash
+litellm --config config.yaml   # serves an Anthropic-compatible /v1/messages
+```
+
+Anthropic-SDK clients then point `base_url` at the sidecar (not the gateway directly). This
+is a translation shim, not native support: features without an OpenAI chat-completions
+equivalent are limited by what the sidecar can map. See
+[Scope and non-goals](scope-and-non-goals.md) for the exact list of protocol surfaces the
+gateway does and does not implement.

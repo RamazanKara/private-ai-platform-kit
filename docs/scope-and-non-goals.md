@@ -75,7 +75,8 @@ backup platform, or incident process. Concretely:
   sizing the operator is the operator's (ROADMAP `runtime`).
 - **No general-purpose training or batch-inference platform.** "A general-purpose distributed
   training or batch inference platform" is a Poor Fit ([decision-guide.md](decision-guide.md)). The
-  gateway exposes a `/v1/batches` API for inference batching, not a training/data platform.
+  gateway exposes a synchronous `/v1/batch-inference` API (the older `/v1/batches` path is a
+  deprecated alias) for inference batching, not a training/data platform.
 - **No admin/usage console UI.** A standalone admin or usage console is a separate web application.
   The kit ships the `/v1/usage` data layer, the metrics, and the client SDK such a console would
   build on (ROADMAP `dx`).
@@ -83,6 +84,27 @@ backup platform, or incident process. Concretely:
   gateway with managed identity, billing, and support" are both Poor Fit
   ([decision-guide.md](decision-guide.md)). The kit is a Kubernetes operating model, not a desktop
   app or a managed SaaS.
+
+### API protocol surfaces not implemented
+
+The gateway implements the **OpenAI chat-completions** protocol and a governed subset around
+it (`/v1/chat/completions`, `/v1/completions` legacy text completions, `/v1/embeddings`,
+`/v1/moderations` against the governance taxonomy, `/v1/models`, a synchronous
+`/v1/batch-inference` fan-out, and the platform's own `/v1/usage` and `/v1/sandbox/budget`).
+It is not a full re-implementation of every OpenAI or Anthropic surface. Stated explicitly so
+an evaluator does not have to diff the route list, the following are **not** implemented:
+
+- **OpenAI Responses API** (`/v1/responses`) — the stateful successor to chat completions.
+- **OpenAI asynchronous file-batch API** (the real `/v1/batches` with a batch id, JSONL input
+  files, status polling, result-file retrieval, and cancellation). The gateway's
+  `/v1/batch-inference` is a *synchronous* fan-out with a deliberately different name; the
+  legacy `/v1/batches` alias is that same synchronous handler, not the OpenAI file-batch API.
+- **Files** (`/v1/files`), **Audio** (`/v1/audio/*` transcription/TTS), **Images**
+  (`/v1/images/*`), and **fine-tuning** (`/v1/fine_tuning/*`).
+- **Native Anthropic Messages API** (`/v1/messages`). Claude-style agents run against the
+  gateway through a translation sidecar instead (see [Client examples](client-examples.md)).
+
+Streaming is supported on `/v1/chat/completions` but not on `/v1/completions` in this release.
 
 ### Operator-owned operational decisions
 

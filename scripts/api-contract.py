@@ -50,6 +50,10 @@ CONTRACTS = {
                 "post",
                 request_schema="ChatCompletionRequest",
             ),
+            "/v1/completions": RouteContract(
+                "post",
+                request_schema="CompletionRequest",
+            ),
             "/v1/embeddings": RouteContract(
                 "post",
                 request_schema="EmbeddingsRequest",
@@ -57,6 +61,12 @@ CONTRACTS = {
             "/v1/moderations": RouteContract(
                 "post",
                 request_schema="ModerationRequest",
+            ),
+            # /v1/batch-inference is the canonical synchronous-batch route; /v1/batches is
+            # the deprecated alias kept one release (both use the same BatchRequest schema).
+            "/v1/batch-inference": RouteContract(
+                "post",
+                request_schema="BatchRequest",
             ),
             "/v1/batches": RouteContract(
                 "post",
@@ -68,8 +78,10 @@ CONTRACTS = {
             "/v1/sandbox/budget",
             "/v1/usage",
             "/v1/chat/completions",
+            "/v1/completions",
             "/v1/embeddings",
             "/v1/moderations",
+            "/v1/batch-inference",
             "/v1/batches",
         }),
         required_schemas={
@@ -92,6 +104,10 @@ CONTRACTS = {
                 # content is optional: an assistant turn may carry only tool_calls.
                 "properties": {"role", "content", "name", "tool_calls", "tool_call_id"},
                 "required": {"role"},
+            },
+            "CompletionRequest": {
+                "properties": {"model", "prompt", "max_tokens", "stream"},
+                "required": {"prompt"},
             },
             "EmbeddingsRequest": {
                 "properties": {"model", "input"},

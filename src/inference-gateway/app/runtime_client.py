@@ -91,6 +91,9 @@ class RuntimeClient:
     def _chat_completions_url(self, backend: str | None = None) -> str:
         return f"{self._base_url(backend)}/v1/chat/completions"
 
+    def _completions_url(self, backend: str | None = None) -> str:
+        return f"{self._base_url(backend)}/v1/completions"
+
     def _check_circuit(self, backend: str) -> None:
         opened_until = self._opened_until.get(backend, 0)
         if opened_until > time():
@@ -209,6 +212,73 @@ class RuntimeClient:
         return await self._post_json_with_retry(
             f"{self._base_url(resolved_backend)}/v1/embeddings", body, headers, resolved_backend
         )
+
+    async def completions(
+        self,
+        payload: dict[str, Any],
+        headers: dict[str, str] | None = None,
+        backend: str | None = None,
+    ) -> dict[str, Any]:
+        """Send a legacy text-completion request to the backend's ``/v1/completions`` endpoint.
+
+        Mirrors :meth:`embeddings`: reuses the shared retry/circuit path and defaults the
+        model. Legacy completions carry no assistant ``message`` object, so the chat
+        reasoning sanitizer does not apply.
+        """
+        body = dict(payload)
+        body["model"] = body.get("model") or self.settings.model_id
+        resolved_backend = backend or self.settings.runtime_backend
+        return await self._post_json_with_retry(
+            self._completions_url(resolved_backend), body, headers, resolved_backend
+        )
+
+    async def stream_completions(
+        self,
+        payload: dict[str, Any],
+        headers: dict[str, str] | None = None,
+        backend: str | None = None,
+    ):
+        """Yield raw streamed chunks from the runtime legacy ``/v1/completions`` endpoint.
+
+        Mirrors :meth:`stream_chat_completions` (bounded pre-first-byte retry, circuit
+        check) but targets ``/v1/completions``.
+        """
+        body = dict(payload)
+        body["model"] = body.get("model") or self.settings.model_id
+        resolved_backend = backend or self.settings.runtime_backend
+        attempts = self.settings.runtime_max_retries + 1
+        client = self._client_instance()
+        last_error: httpx.HTTPError | None = None
+        for attempt in range(attempts):
+            self._check_circuit(resolved_backend)
+            try:
+                async with client.stream(
+                    "POST",
+                    self._completions_url(resolved_backend),
+                    json=body,
+                    headers=headers,
+                ) as response:
+                    if response.status_code in RETRYABLE_STATUS and attempt + 1 < attempts:
+                        await response.aread()
+                        self._record_failure(resolved_backend)
+                        await self._sleep_before_retry(attempt, response)
+                        continue
+                    response.raise_for_status()
+                    self._record_success(resolved_backend)
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+                    return
+            except httpx.HTTPStatusError:
+                self._record_failure(resolved_backend)
+                raise
+            except httpx.HTTPError as exc:
+                last_error = exc
+                self._record_failure(resolved_backend)
+                if attempt + 1 >= attempts:
+                    raise
+                await self._sleep_before_retry(attempt, None)
+        if last_error is not None:
+            raise last_error
 
     async def stream_chat_completions(
         self,

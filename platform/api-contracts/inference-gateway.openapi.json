@@ -154,6 +154,65 @@
         "title": "ChatCompletionRequest",
         "type": "object"
       },
+      "CompletionRequest": {
+        "additionalProperties": true,
+        "description": "Request body for an OpenAI-compatible legacy text completion call.\n\nThe pre-chat ``/v1/completions`` API takes a ``prompt`` (a string or list of strings)\nrather than ``messages``. Routing it through the gateway subjects legacy-completion\ntraffic to the same auth, allowlist, admission, budget, and audit controls as chat.\n``extra=\"allow\"`` forwards any other OpenAI sampling parameter to the runtime verbatim.",
+        "properties": {
+          "max_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "title": "Prompt"
+          },
+          "stream": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": false,
+            "title": "Stream"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "title": "CompletionRequest",
+        "type": "object"
+      },
       "EmbeddingsRequest": {
         "additionalProperties": true,
         "description": "Request body for an OpenAI-compatible embeddings call.\n\nRouting embeddings through the gateway (rather than calling a separate embedding\nservice directly) subjects them to the same auth, model allowlist, budget, and\naudit controls as chat completions. ``extra=\"allow\"`` forwards provider params\nsuch as ``dimensions`` or ``encoding_format`` unchanged.",
@@ -446,9 +505,61 @@
         ]
       }
     },
-    "/v1/batches": {
+    "/v1/batch-inference": {
       "post": {
         "description": "Synchronous, size-bounded (MAX_BATCH_REQUESTS) fan-out that runs every item concurrently and returns per-item results inline. This is NOT the OpenAI asynchronous file-batch API: there is no batch id, status polling, result-file retrieval, or cancellation. Use it for small offline batches that fit within the request timeout and gateway concurrency limit.",
+        "operationId": "createBatchInference",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Createbatchinference",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Process a batch of chat completions synchronously",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/v1/batches": {
+      "post": {
+        "description": "Synchronous, size-bounded (MAX_BATCH_REQUESTS) fan-out that runs every item concurrently and returns per-item results inline. This is NOT the OpenAI asynchronous file-batch API: there is no batch id, status polling, result-file retrieval, or cancellation. Use it for small offline batches that fit within the request timeout and gateway concurrency limit. Deprecated: this path is renamed to /v1/batch-inference to avoid colliding with the name of OpenAI's asynchronous file-batch API; it still works but sends a Deprecation response header and will be removed in a future release. Migrate to POST /v1/batch-inference (Link: </v1/batch-inference>; rel=\"successor-version\").",
         "operationId": "createBatch",
         "requestBody": {
           "content": {
@@ -492,7 +603,7 @@
             "ApiKeyAuth": []
           }
         ],
-        "summary": "Process a batch of chat completions synchronously",
+        "summary": "Process a batch of chat completions synchronously (deprecated path)",
         "tags": [
           "inference"
         ]
@@ -544,6 +655,58 @@
           }
         ],
         "summary": "Create a private chat completion",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/v1/completions": {
+      "post": {
+        "description": "OpenAI-compatible legacy text-completion endpoint (prompt-based, pre-chat). Routed through the same governance path as chat: model allowlist, admission limits, prompt secret policy, sandbox budget, output guardrail, and audit. Streaming is not supported on this endpoint in this release; send stream=false or use POST /v1/chat/completions for streaming.",
+        "operationId": "createCompletion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Createcompletion",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Create a private legacy text completion",
         "tags": [
           "inference"
         ]
