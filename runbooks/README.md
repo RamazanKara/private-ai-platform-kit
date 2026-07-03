@@ -30,6 +30,7 @@ Operational procedures, incident playbooks, and governance runbooks for Private 
 
 | Runbook | Purpose |
 | --- | --- |
+| [Audit chain & SIEM forwarding](audit-chain.md) | Verify the tamper-evident audit hash chain, anchor its head, and forward receipts to a SIEM |
 | [Model governance](model-governance.md) | Model lifecycle, promotion requests, and approval |
 | [Model provenance](model-provenance.md) | Artifact provenance and reproducible digest verification |
 | [Model drift monitoring](model-drift-monitoring.md) | Detect production model-quality drift via metrics and scheduled evals |

@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 import random
 import re
 from dataclasses import replace
@@ -1153,6 +1154,9 @@ def _write_audit_log(
     # reason in `error`; the guardrail outcome is recorded even when allowed.
     event = {
         "event": "inference_request",
+        # Per-process chain identity (hash-covered): lets the verifier group records into
+        # independent per-replica chains and anchor each head. Pre-v0.20.0 events lack it.
+        "chain_id": getattr(request.app.state, "audit_chain_id", None),
         "action_type": "model_call",
         "decision": "allowed" if status_code < 400 else "denied",
         "guardrail_action": getattr(request.state, "output_guardrail_action", None),
@@ -1213,6 +1217,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.rate_limiter = build_rate_limiter(resolved)
     app.state.inflight = 0
     app.state.audit_prev_hash = AUDIT_GENESIS
+    # Per-process audit chain identity: pod identity + process start time. It is stamped
+    # onto every audit event (hash-covered) so the operator verifier can group records into
+    # independent per-replica chains and anchor each head, instead of guessing chain
+    # boundaries from genesis restarts in interleaved multi-replica logs.
+    app.state.audit_chain_id = f"{os.getenv('HOSTNAME', 'gateway')}:{int(time())}"
     app.state.background_tasks = set()
     app.state.response_cache = build_response_cache(resolved)
     app.state.model_routing_policy = (
@@ -2318,6 +2327,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if resolved.audit_log_enabled:
                 event = {
                     "event": "batch_request",
+                    # Per-process chain identity (hash-covered); see _write_audit_log.
+                    "chain_id": getattr(request.app.state, "audit_chain_id", None),
                     "action_type": "model_call",
                     "decision": "allowed" if status_code < 400 else "denied",
                     "request_id": request.state.request_id,

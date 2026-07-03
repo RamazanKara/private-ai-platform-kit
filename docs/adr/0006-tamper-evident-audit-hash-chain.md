@@ -33,6 +33,13 @@ Link each audit event into a per-process tamper-evident SHA-256 hash chain.
   the log transport sit outside the chain and could be rewritten silently. The auditor reference's
   time-window query reads this field (treating a missing `ts` as `-1`). Events emitted before
   v0.16.0 lack the field.
+- Each record also carries a chain-covered `chain_id` (`HOSTNAME:process_start`, set once at
+  `create_app`), identifying the per-replica chain the record belongs to. It lets the verifier
+  group records into independent per-process chains and anchor each head, instead of guessing
+  chain boundaries from genesis restarts in interleaved multi-replica logs. Events emitted before
+  v0.20.0 lack the field; the verifier falls back to genesis-restart segmentation for them.
+  Per-process chains (a new one per replica and per restart) are expected, and verification is
+  per chain.
 - The live construction matches the auditor/verifier reference in
   [`paper/evidence-model/audit_chain.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/paper/evidence-model/audit_chain.py) byte for byte
   (same genesis, same canonical form, same `SHA-256(prev || canonical(record))`), so the same tooling
@@ -47,6 +54,19 @@ Link each audit event into a per-process tamper-evident SHA-256 hash chain.
   commitment to the head hash. The reference model is explicit about this: editing a record without
   re-chaining is caught by the internal consistency check, while a full re-chain is caught only by an
   anchor mismatch against an externally committed head.
+- As of v0.20.0 the operator tooling for both checks ships in-tree:
+  [`scripts/audit-verify.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/audit-verify.py)
+  (`make audit-verify`) reads a gateway JSONL log, deduplicates the double-logged copies, groups by
+  `chain_id`, and **verifies the gateway's embedded `prev_hash`/`record_hash`** (unlike the
+  `paper/evidence-model` reference, which re-chains from genesis for its evidence demo); it is
+  stdlib-only so an auditor runs it offline, has a `--selftest` wired into `make validate`, and
+  exits non-zero on any break.
+  [`scripts/audit-anchor.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/audit-anchor.py)
+  (`make audit-anchor`) emits the per-chain head (`{chain_id, count, last record_hash}`); a later
+  `audit-verify --anchor <file>` flags a shrunk chain (rollback), a changed head (re-chain), or a
+  missing chain. A CronJob example that anchors the head into a ConfigMap and the SIEM-forwarding
+  procedure are documented in `runbooks/audit-chain.md`. Committing/exporting the anchor externally
+  remains the operator's decision.
 - The chain is per gateway replica (per process); the head lives in `app.state`. With multiple
   replicas there are multiple chains, and a process restart starts a new chain from genesis.
   Verification therefore operates per-chain, and cross-replica/long-horizon integrity depends on the

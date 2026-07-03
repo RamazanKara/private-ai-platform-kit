@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+Auditable in practice: the tamper-evident audit chain gets an operator verifier, a
+per-process chain id, head anchoring to catch a wholesale re-chain, and a documented
+path off the cluster.
+
+### Added
+
+- `make audit-verify` (`scripts/audit-verify.py`): an operator/auditor tool that reads a
+  gateway JSONL log (or stdin), deduplicates the double-logged copies, and verifies the
+  gateway's embedded `prev_hash`/`record_hash` chain back to genesis - reporting the first
+  broken position and exiting non-zero on any edit, insertion, deletion, or a tampered
+  duplicate copy that kept its hash. It ships with a `--selftest` (wired into
+  `make validate`) that fails the build if the tool's canonicalization ever drifts from
+  the gateway's.
+- Audit events now carry a hash-covered `chain_id` (pod identity + process start), so the
+  verifier can group and check each per-process chain independently, and
+  `make audit-anchor` (`scripts/audit-anchor.py`) commits each chain's head; the verifier's
+  `--anchor` mode then flags a shrunk chain (rollback), a changed head (re-chain), or a
+  missing chain - the wholesale-re-chain gap ADR 0006 previously only described. A
+  ready-to-adapt anchoring CronJob ships as a documented example.
+- A `runbooks/audit-chain.md` runbook covering offline verification, head anchoring, and
+  forwarding the audit receipts to a SIEM.
+
+### Changed
+
+- Loki ships with a default retention period and a documented multi-tenant-auth hardening
+  path (kept single-tenant by default so the bundled Promtail push is not silently broken).
+
 ## v0.19.0 - 2026-07-03
 
 Identity and tenancy: stronger per-key identity, tenant-scoped introspection, and RAG

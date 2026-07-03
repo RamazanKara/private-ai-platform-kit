@@ -24,6 +24,10 @@ log "checking RAG retrieval-eval metrics and golden suite"
 src/inference-gateway/.venv/bin/python scripts/rag-eval.py --selftest
 src/inference-gateway/.venv/bin/python scripts/rag-eval.py --check-config --suite platform/evals/rag-retrieval-suite.yaml
 
+log "checking audit-chain verifier self-test and the checked-in sample log"
+python3 scripts/audit-verify.py --selftest
+python3 scripts/audit-verify.py results/sample-gateway-audit.log
+
 log "running Python lint, format, and type checks"
 ./scripts/quality.sh
 

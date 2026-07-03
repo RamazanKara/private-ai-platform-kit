@@ -19,7 +19,7 @@ PYTHON := src/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke trace-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu tenant-offboard customer-overlay customer-overlay-check agent-smoke chaos-drill eval eval-local rag-eval rag-eval-check loadtest loadtest-local benchmark-local docs-install docs-serve docs-build restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag lint format format-check typecheck quality coverage dashboard-check dashboard-update paths paths-check
+.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke trace-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu tenant-offboard customer-overlay customer-overlay-check agent-smoke chaos-drill eval eval-local rag-eval rag-eval-check loadtest loadtest-local benchmark-local docs-install docs-serve docs-build restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag lint format format-check typecheck quality coverage dashboard-check dashboard-update paths paths-check audit-verify audit-anchor
 
 help:
 	@printf '%s\n' \
@@ -66,6 +66,8 @@ help:
 		'  make slo-report            Write SLO report evidence' \
 		'  make quota-report          Write quota and chargeback evidence' \
 		'  make model-provenance-report  Write model provenance evidence' \
+		'  make audit-verify          Verify the gateway audit hash chain (AUDIT_LOG=...)' \
+		'  make audit-anchor          Emit per-chain audit head anchors (AUDIT_ANCHOR=...)' \
 		'' \
 		'Customer handoff:' \
 		'  make customer-overlay      Configure customer GitOps overlay' \
@@ -228,6 +230,18 @@ retention-check: python-env
 
 retention-report: python-env
 	$(PYTHON) scripts/retention-check.py --check --report
+
+# Operator audit-chain verifier. AUDIT_LOG defaults to the checked-in sample so the target
+# runs offline in CI/self-test; point it at exported gateway JSONL (or - for stdin) to verify
+# a real log. AUDIT_ANCHOR, when set, additionally compares heads against an anchor file.
+AUDIT_LOG ?= results/sample-gateway-audit.log
+AUDIT_ANCHOR ?=
+
+audit-verify:
+	python3 scripts/audit-verify.py "$(AUDIT_LOG)" $(if $(AUDIT_ANCHOR),--anchor "$(AUDIT_ANCHOR)",)
+
+audit-anchor:
+	python3 scripts/audit-anchor.py "$(AUDIT_LOG)" $(if $(AUDIT_ANCHOR),--output "$(AUDIT_ANCHOR)",)
 
 model-check: python-env
 	$(PYTHON) scripts/model-catalog.py --check

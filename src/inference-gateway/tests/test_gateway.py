@@ -644,6 +644,9 @@ def test_audit_events_form_tamper_evident_chain(caplog):
         # inside the hashed record (range-checked only; time.time() is not monotonic).
         assert isinstance(event["ts"], float)
         assert started_at <= event["ts"] <= finished_at
+        # The per-process chain_id is present and hash-covered (part of the record the
+        # record_hash is computed over), so the verifier can group per-replica chains.
+        assert event["chain_id"] == app.state.audit_chain_id
         assert event["prev_hash"] == prev
         record = {k: v for k, v in event.items() if k not in ("prev_hash", "record_hash")}
         canonical = json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8")

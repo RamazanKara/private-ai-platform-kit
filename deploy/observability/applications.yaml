@@ -107,9 +107,26 @@ spec:
       values: |
         deploymentMode: SingleBinary
         loki:
+          # Single-tenant reference footprint. auth_enabled stays false deliberately: the
+          # bundled Promtail client (below) pushes without an X-Scope-OrgID tenant header, so
+          # flipping this to true would 401 every push and silently drop the audit stream.
+          # HARDENING PATH (multi-tenant / stricter isolation): set auth_enabled: true AND set
+          # `clients[].tenant_id: <tenant>` on the Promtail values so pushes carry X-Scope-OrgID,
+          # AND add the same header on every read path (the Grafana Loki datasource / any
+          # audit-anchor Loki query -> `-H "X-Scope-OrgID: <tenant>"`). See runbooks/audit-chain.md.
           auth_enabled: false
           commonConfig:
             replication_factor: 1
+          # Default retention so the audit/log stream is bounded instead of growing without limit.
+          # The compactor enforces deletes; limits_config sets the horizon. Size per environment
+          # and per your evidence-retention obligation (the tamper-evident audit receipts should
+          # be shipped onward to a SIEM/object store for long-term hold — see the SIEM runbook —
+          # not kept solely in Loki).
+          limits_config:
+            retention_period: 744h  # 31 days
+          compactor:
+            retention_enabled: true
+            delete_request_store: filesystem
         singleBinary:
           replicas: 1
   destination:

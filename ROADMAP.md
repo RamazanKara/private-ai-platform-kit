@@ -13,6 +13,12 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 - Publish current strict evidence for every release.
 - Keep scheduled `validate-full`, local E2E, image scan, supply-chain, load-test, and strict release-gate checks green.
 - Keep documented verification current for SBOMs, checksums, Cosign signatures, provenance attestations, and OpenSSF Scorecard findings.
+- Shipped (v0.20.0): the operator audit-chain verifier (`make audit-verify`, stdlib-only, offline,
+  `--selftest` wired into `make validate`) and head anchoring (`make audit-anchor`,
+  `audit-verify --anchor`) with a hash-covered per-replica `chain_id`. This closes the
+  head-anchoring gap ADR 0006 flagged. **Remaining (operator-owned):** committing/exporting the
+  anchor and forwarding the audit receipts to a SIEM for long-term hold — the CronJob example and
+  the procedure ship in `runbooks/audit-chain.md`.
 
 ## 3. Platform Hardening
 
