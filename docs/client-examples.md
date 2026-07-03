@@ -28,7 +28,7 @@ frameworks parse to pace themselves:
 
 Each pair is present only when the corresponding limit is configured (greater than zero);
 cache hits (`X-Cache: HIT`) consume no budget and omit them. See the
-[budget controls runbook](runbooks/budget-controls.md) for sizing and triage.
+[budget controls runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/budget-controls.md) for sizing and triage.
 
 ## curl
 
