@@ -1,6 +1,6 @@
 # Scope and Non-Goals
 
-This document draws an explicit boundary around what Private AI Platform Kit (v0.24.0) is and is not,
+This document draws an explicit boundary around what Private AI Platform Kit (v0.25.0) is and is not,
 and then maps the controls it ships to the six AWS Well-Architected pillars. Use it to set
 expectations before adoption and to sanity-check that the operator-owned gaps are understood.
 
@@ -94,7 +94,7 @@ backup platform, or incident process. Concretely:
 
 The gateway implements the **OpenAI chat-completions** protocol and a governed subset around
 it (`/v1/chat/completions`, `/v1/completions` legacy text completions, the native Anthropic
-`/v1/messages` Messages API, the OpenAI `/v1/responses` Responses API (stateless subset),
+`/v1/messages` Messages API, the OpenAI `/v1/responses` Responses API (with opt-in server-side state),
 `/v1/embeddings`, `/v1/moderations` against the governance taxonomy, `/v1/models`, a
 synchronous `/v1/batch-inference` fan-out, the asynchronous OpenAI Files + Batch API
 (`/v1/files`, `/v1/batches`) processed by a separate batch-processor worker that replays each
@@ -106,11 +106,12 @@ audit); text is exact and tool blocks are mapped best-effort. It is not a full
 re-implementation of every OpenAI or Anthropic surface. Stated explicitly so an evaluator does
 not have to diff the route list, the following are **not** implemented:
 
-- **The stateful surface of the OpenAI Responses API.** `/v1/responses` is implemented as a
-  **stateless** subset (translated to/from the OpenAI chat shape, same governance path,
-  non-streaming this release). Server-side response state is out of scope: a request with
-  `store: true` or `previous_response_id` is rejected with `stateful_not_supported` rather
-  than silently ignored, and background/streaming response objects are not implemented.
+- **Background and streaming Responses objects.** `/v1/responses` supports the synchronous
+  surface, including **opt-in server-side state** — `store: true`, `previous_response_id`, and
+  the `GET`/`DELETE`/`input_items` routes, enabled with `RESPONSES_STORE_ENABLED` (ADR 0012; off
+  by default because storing responses persists raw conversation content). Background responses
+  (`background: true`) and streaming response objects are not implemented; when the store is
+  disabled, `store` / `previous_response_id` are rejected with `stateful_not_supported`.
 - **The stateful/scheduling surface of the OpenAI Batch API.** `/v1/batches` is implemented
   (file upload, async processing, status polling, output/error files, cancellation), but the
   `completion_window` is honored as an *expiry* bound rather than a scheduling SLA, there is no

@@ -768,7 +768,7 @@
   "info": {
     "description": "OpenAI-compatible private inference gateway with sandbox traceability, admission controls, budget enforcement, redacted audit events, and runtime routing to Ollama or vLLM.",
     "title": "Private AI Platform Kit Inference Gateway",
-    "version": "0.24.0"
+    "version": "0.25.0"
   },
   "openapi": "3.1.0",
   "paths": {

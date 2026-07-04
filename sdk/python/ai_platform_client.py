@@ -283,6 +283,39 @@ class GatewayClient:
             params["after"] = after
         return self._request("GET", "/v1/batches", params=params).json()
 
+    # --- OpenAI Responses API (stateful with store / previous_response_id when the gateway enables it) ---
+
+    def create_response(
+        self,
+        input: str | list[dict[str, Any]],
+        model: str | None = None,
+        store: bool | None = None,
+        previous_response_id: str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Create a Responses API response. Set store=True (+ previous_response_id to chain) for
+        server-side conversation state, which requires RESPONSES_STORE_ENABLED on the gateway."""
+        body: dict[str, Any] = {"input": input, **kwargs}
+        if model is not None:
+            body["model"] = model
+        if store is not None:
+            body["store"] = store
+        if previous_response_id is not None:
+            body["previous_response_id"] = previous_response_id
+        return self._post("/v1/responses", body)
+
+    def get_response(self, response_id: str) -> dict[str, Any]:
+        """Retrieve a stored response by id."""
+        return self._request("GET", f"/v1/responses/{response_id}").json()
+
+    def delete_response(self, response_id: str) -> dict[str, Any]:
+        """Delete a stored response by id."""
+        return self._request("DELETE", f"/v1/responses/{response_id}").json()
+
+    def response_input_items(self, response_id: str) -> dict[str, Any]:
+        """List the input items of a stored response."""
+        return self._request("GET", f"/v1/responses/{response_id}/input_items").json()
+
     def models(self) -> dict[str, Any]:
         """List the approved private models the gateway will route to."""
         return self._request("GET", "/v1/models").json()

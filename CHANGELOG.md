@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.25.0 - 2026-07-04
+
+### Added
+
+- **Stateful Responses API (ADR 0012).** `POST /v1/responses` now supports opt-in server-side
+  state (`RESPONSES_STORE_ENABLED`): `store: true` persists the response object, `previous_response_id`
+  chains a new turn onto a prior stored response (the gateway prepends the stored conversation so the
+  stateless runtime is shown the full history), and `GET`/`DELETE /v1/responses/{id}` plus
+  `GET /v1/responses/{id}/input_items` retrieve and manage stored responses. Tenant-scoped and
+  TTL-bounded, on a Memory or Redis backend. Every stateful request still runs the full chat
+  governance path. **Off by default** — storing responses persists raw conversation content, kept
+  distinct from the redacted audit chain; when disabled, `store`/`previous_response_id` are rejected
+  with `stateful_not_supported` as before. The Python SDK gains `create_response`, `get_response`,
+  `delete_response`, and `response_input_items`.
+
 ## v0.24.0 - 2026-07-04
 
 ### Added

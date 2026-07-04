@@ -45,7 +45,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `autoscaling.targetCPUUtilizationPercentage` | `70` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/rag-service` |
-| `image.tag` | `v0.24.0` |
+| `image.tag` | `v0.25.0` |
 | `ingestion.annotations` | `{}` |
 | `ingestion.backoffLimit` | `1` |
 | `ingestion.chunkChars` | `1200` |

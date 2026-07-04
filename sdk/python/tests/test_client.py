@@ -245,3 +245,24 @@ def test_batch_lifecycle_and_file_accessors(monkeypatch):
     assert client.list_batches(limit=5)["object"] == "list"
     assert client.get_file_content("file-out") == b'{"custom_id":"a"}\n'
     assert client.delete_file("file-out")["deleted"] is True
+
+
+def test_create_and_manage_responses(monkeypatch):
+    def handler(request):
+        path = request.url.path
+        if path == "/v1/responses" and request.method == "POST":
+            return httpx.Response(200, json={"id": "resp_1", "object": "response", "status": "completed"})
+        if path == "/v1/responses/resp_1" and request.method == "DELETE":
+            return httpx.Response(200, json={"id": "resp_1", "object": "response.deleted", "deleted": True})
+        if path == "/v1/responses/resp_1/input_items":
+            return httpx.Response(200, json={"object": "list", "data": []})
+        if path == "/v1/responses/resp_1":
+            return httpx.Response(200, json={"id": "resp_1", "status": "completed"})
+        return httpx.Response(404)
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test")
+    assert client.create_response("hi", store=True, previous_response_id="resp_0")["id"] == "resp_1"
+    assert client.get_response("resp_1")["status"] == "completed"
+    assert client.response_input_items("resp_1")["object"] == "list"
+    assert client.delete_response("resp_1")["deleted"] is True
