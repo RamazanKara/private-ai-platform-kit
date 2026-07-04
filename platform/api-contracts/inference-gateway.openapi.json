@@ -1655,6 +1655,160 @@
         ]
       }
     },
+    "/v1/responses/{response_id}": {
+      "delete": {
+        "operationId": "deleteResponse",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "response_id",
+            "required": true,
+            "schema": {
+              "title": "Response Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Deleteresponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Delete a stored response",
+        "tags": [
+          "inference"
+        ]
+      },
+      "get": {
+        "operationId": "getResponse",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "response_id",
+            "required": true,
+            "schema": {
+              "title": "Response Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Getresponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Retrieve a stored response (requires the response store)",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
+    "/v1/responses/{response_id}/input_items": {
+      "get": {
+        "operationId": "listResponseInputItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "response_id",
+            "required": true,
+            "schema": {
+              "title": "Response Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Listresponseinputitems",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "List the input items of a stored response",
+        "tags": [
+          "inference"
+        ]
+      }
+    },
     "/v1/sandbox/budget": {
       "get": {
         "operationId": "getSandboxBudget",

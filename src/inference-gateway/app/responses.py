@@ -144,8 +144,13 @@ def _input_to_messages(value: Any) -> list[dict[str, Any]]:
     return [{"role": "user", "content": str(value)}]
 
 
-def responses_to_chat_payload(request: ResponsesRequest) -> dict[str, Any]:
+def responses_to_chat_payload(
+    request: ResponsesRequest, base_messages: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
     """Translate an OpenAI Responses request into an internal OpenAI chat payload.
+
+    ``base_messages`` (the stored conversation of a ``previous_response_id``) is prepended so a
+    chained turn is shown the full prior history; the stateless runtime never has to remember it.
 
     The returned dict is fed to the *same* chat governance path as ``/v1/chat/completions``
     (allowlist, admission — including the ``max_tokens`` cap and prompt-secret modes on the
@@ -162,7 +167,7 @@ def responses_to_chat_payload(request: ResponsesRequest) -> dict[str, Any]:
     forwarded to the runtime here: the handler decides streaming and rejects the stateful
     fields, and ``metadata`` is a Responses-only field.
     """
-    messages: list[dict[str, Any]] = []
+    messages: list[dict[str, Any]] = list(base_messages) if base_messages else []
     if request.instructions:
         messages.append({"role": "system", "content": request.instructions})
     messages.extend(_input_to_messages(request.input))

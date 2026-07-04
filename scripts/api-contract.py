@@ -88,6 +88,9 @@ CONTRACTS = {
             "/v1/batches": RouteContract("post", request_schema="CreateBatchRequest"),
             "/v1/batches/{batch_id}": RouteContract("get"),
             "/v1/batches/{batch_id}/cancel": RouteContract("post"),
+            # Stateful Responses API (ADR 0012): retrieve/input-items/delete on stored responses.
+            "/v1/responses/{response_id}": RouteContract("get"),
+            "/v1/responses/{response_id}/input_items": RouteContract("get"),
         },
         protected_paths=frozenset({
             "/v1/models",
@@ -106,6 +109,8 @@ CONTRACTS = {
             "/v1/batches",
             "/v1/batches/{batch_id}",
             "/v1/batches/{batch_id}/cancel",
+            "/v1/responses/{response_id}",
+            "/v1/responses/{response_id}/input_items",
         }),
         required_schemas={
             "ChatCompletionRequest": {

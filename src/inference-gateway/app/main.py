@@ -39,6 +39,7 @@ from app.messages import (
 from app.objectstore import build_object_store
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
+from app.response_store import StoredResponse, build_response_store
 from app.responses import (
     ResponsesRequest,
     chat_completion_to_responses,
@@ -1198,6 +1199,92 @@ def _effective_settings(request: Request, policy_set: SandboxPolicySet, settings
     return effective
 
 
+def _assistant_reply_message(runtime_response: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Return a minimal stored assistant turn (role/content, tool_calls if any) for chaining."""
+    if not isinstance(runtime_response, dict):
+        return None
+    choices = runtime_response.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        return None
+    message = choices[0].get("message")
+    if not isinstance(message, dict):
+        return None
+    stored: dict[str, Any] = {"role": "assistant", "content": message.get("content") or ""}
+    if message.get("tool_calls"):
+        stored["tool_calls"] = message["tool_calls"]
+    return stored
+
+
+def _persist_response(
+    response_store: Any,
+    request: Request,
+    payload: ResponsesRequest,
+    payload_dict: dict[str, Any],
+    runtime_response: dict[str, Any] | None,
+    responses_body: dict[str, Any],
+) -> dict[str, Any]:
+    """Persist a stored Responses object under a stable id and return the body carrying that id.
+
+    Stores the running conversation (the governed messages sent to the runtime plus the assistant
+    reply) for ``previous_response_id`` chaining and the turn's input items for the input-items
+    endpoint. Content is raw (ADR 0012): tenant-scoped and TTL-bounded by the store.
+    """
+    response_id = f"resp_{uuid4().hex}"
+    responses_body = dict(responses_body)
+    responses_body["id"] = response_id
+    responses_body["previous_response_id"] = payload.previous_response_id
+    if payload.metadata is not None:
+        responses_body["metadata"] = payload.metadata
+    conversation = list(payload_dict.get("messages", []))
+    assistant_message = _assistant_reply_message(runtime_response)
+    if assistant_message is not None:
+        conversation.append(assistant_message)
+    raw_input = payload.input
+    input_items = (
+        raw_input
+        if isinstance(raw_input, list)
+        else [{"type": "message", "role": "user", "content": [{"type": "input_text", "text": str(raw_input)}]}]
+    )
+    response_store.create(
+        StoredResponse(
+            id=response_id,
+            tenant=request.state.sandbox_id,
+            created_at=int(responses_body.get("created_at") or time()),
+            model=str(responses_body.get("model") or ""),
+            body=responses_body,
+            input_items=input_items,
+            messages=conversation,
+            previous_response_id=payload.previous_response_id,
+        )
+    )
+    return responses_body
+
+
+def _responses_disabled() -> HTTPException:
+    return HTTPException(
+        status_code=404,
+        detail={"message": "server-side response state is not enabled", "reason": "stateful_not_supported"},
+    )
+
+
+def _response_not_found(response_id: str) -> HTTPException:
+    return HTTPException(
+        status_code=404,
+        detail={"message": f"no stored response with id '{response_id}'", "reason": "response_not_found"},
+    )
+
+
+def _require_stored_response(request: Request, response_id: str) -> StoredResponse:
+    """Return the tenant-scoped stored response, or raise 404 when disabled/absent."""
+    store = getattr(request.app.state, "response_store", None)
+    if store is None:
+        raise _responses_disabled()
+    record = store.get(request.state.sandbox_id, response_id)
+    if record is None:
+        raise _response_not_found(response_id)
+    return record
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     resolved = settings or Settings.from_env()
     app = FastAPI(
@@ -1239,6 +1326,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.object_store = build_object_store(resolved) if resolved.batch_api_enabled else None
     app.state.batch_store = build_batch_store(resolved) if resolved.batch_api_enabled else None
     register_batch_routes(app, resolved)
+    # Server-side Responses state (ADR 0012): built only when enabled; the /v1/responses handler
+    # rejects store / previous_response_id when it is None (the stateless subset).
+    app.state.response_store = build_response_store(resolved) if resolved.responses_store_enabled else None
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
     app.state.tracer_provider = tracing[1] if tracing else None
@@ -2227,16 +2317,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request_model = payload.model
         request.state.budget_reservation = None
         try:
-            # Stateless subset: reject any request that asks the server to persist or
-            # continue conversation state, rather than silently dropping store /
-            # previous_response_id and returning a response the caller wrongly believes was
-            # remembered. Checked before admission so it is a clear, deterministic 400.
-            if payload.store or payload.previous_response_id is not None:
+            # Server-side response state (ADR 0012) is opt-in. When no store is configured, reject
+            # store / previous_response_id rather than silently dropping them and returning a
+            # response the caller wrongly believes was remembered (the stateless subset).
+            response_store = getattr(request.app.state, "response_store", None)
+            if (payload.store or payload.previous_response_id is not None) and response_store is None:
                 raise AdmissionPolicyError(
                     "stateful_not_supported",
-                    "server-side response state (store / previous_response_id) is not "
-                    "supported on /v1/responses; this is the stateless subset",
+                    "server-side response state is not enabled on this gateway "
+                    "(RESPONSES_STORE_ENABLED); store / previous_response_id are unavailable",
                 )
+            if payload.previous_response_id is not None and response_store is not None:
+                prior = response_store.get(request.state.sandbox_id, payload.previous_response_id)
+                if prior is None:
+                    raise AdmissionPolicyError(
+                        "previous_response_not_found",
+                        f"no stored response with id '{payload.previous_response_id}' for this sandbox",
+                    )
+                # Prepend the prior conversation so the stateless runtime sees the full history.
+                payload_dict = responses_to_chat_payload(payload, base_messages=prior.messages)
             policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
             effective = _effective_settings(request, sandbox_policies, resolved)
@@ -2283,7 +2382,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # Translate the governed OpenAI completion into a Responses object. The finally
             # block reads runtime_response (the OpenAI shape) for token-usage metrics and the
             # audit fingerprint, so it is bound above rather than returned inline.
-            return chat_completion_to_responses(runtime_response, request_model=request_model)
+            responses_body = chat_completion_to_responses(runtime_response, request_model=request_model)
+            # Persist when the caller asked to store it (and the store is enabled), so it can be
+            # retrieved and chained via previous_response_id (ADR 0012).
+            if payload.store and response_store is not None:
+                responses_body = _persist_response(
+                    response_store, request, payload, payload_dict, runtime_response, responses_body
+                )
+            return responses_body
         except AdmissionPolicyError as exc:
             status_code, headers = _admission_status(exc.reason, resolved)
             status = str(status_code)
@@ -2375,6 +2481,38 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 runtime_status_code=runtime_status_code,
                 error=error,
             )
+
+    @app.get(
+        "/v1/responses/{response_id}",
+        tags=["inference"],
+        summary="Retrieve a stored response (requires the response store)",
+        operation_id="getResponse",
+    )
+    async def get_response(request: Request, response_id: str) -> dict[str, Any]:
+        return _require_stored_response(request, response_id).body
+
+    @app.delete(
+        "/v1/responses/{response_id}",
+        tags=["inference"],
+        summary="Delete a stored response",
+        operation_id="deleteResponse",
+    )
+    async def delete_response(request: Request, response_id: str) -> dict[str, Any]:
+        store = getattr(request.app.state, "response_store", None)
+        if store is None:
+            raise _responses_disabled()
+        if not store.delete(request.state.sandbox_id, response_id):
+            raise _response_not_found(response_id)
+        return {"id": response_id, "object": "response.deleted", "deleted": True}
+
+    @app.get(
+        "/v1/responses/{response_id}/input_items",
+        tags=["inference"],
+        summary="List the input items of a stored response",
+        operation_id="listResponseInputItems",
+    )
+    async def response_input_items(request: Request, response_id: str) -> dict[str, Any]:
+        return {"object": "list", "data": _require_stored_response(request, response_id).input_items}
 
     @app.post(
         "/v1/embeddings",
