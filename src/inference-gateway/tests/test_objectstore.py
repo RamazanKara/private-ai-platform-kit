@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import pytest
+from types import SimpleNamespace
+
 from app.objectstore import (
     FilesystemObjectStore,
     MemoryObjectStore,
     ObjectNotFound,
     ObjectStore,
+    build_object_store,
 )
 
 
@@ -75,6 +78,29 @@ def test_filesystem_traversal_escape_rejected(tmp_path):
     store = FilesystemObjectStore(tmp_path / "obj")
     with pytest.raises(ValueError):
         store.put("../escape", b"x")
+
+
+def test_build_object_store_selects_backend(tmp_path):
+    from app.objectstore_s3 import S3ObjectStore
+
+    assert isinstance(build_object_store(SimpleNamespace(batch_object_store_backend="memory")), MemoryObjectStore)
+    fs = build_object_store(
+        SimpleNamespace(batch_object_store_backend="filesystem", batch_object_store_root=str(tmp_path / "o"))
+    )
+    assert isinstance(fs, FilesystemObjectStore)
+    s3 = build_object_store(
+        SimpleNamespace(
+            batch_object_store_backend="s3",
+            batch_s3_endpoint_url="http://minio:9000",
+            batch_s3_bucket="b",
+            batch_s3_region="us-east-1",
+            batch_s3_access_key_id="",
+            batch_s3_secret_access_key="",
+        )
+    )
+    assert isinstance(s3, S3ObjectStore)
+    with pytest.raises(ValueError):
+        build_object_store(SimpleNamespace(batch_object_store_backend="bogus"))
 
 
 def test_filesystem_list_ignores_partial_tmp(tmp_path):
