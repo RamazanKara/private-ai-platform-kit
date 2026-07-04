@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.26.0 - 2026-07-04
+
+### Added
+
+- **Opt-in read-only admin console (ADR 0013).** The gateway can serve a self-contained static
+  console at `/console` (`ADMIN_CONSOLE_ENABLED`, off by default) — vanilla HTML/JS with no build
+  step and no external resources — that renders a sandbox's health, usage/cost, budget, and
+  approved models over the existing read-only endpoints. Served same-origin (no CORS); the page
+  is public while the `/v1` calls it makes carry the operator's API key and stay fully governed.
+
 ## v0.25.0 - 2026-07-04
 
 ### Added

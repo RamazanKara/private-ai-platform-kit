@@ -1,6 +1,6 @@
 # Scope and Non-Goals
 
-This document draws an explicit boundary around what Private AI Platform Kit (v0.25.0) is and is not,
+This document draws an explicit boundary around what Private AI Platform Kit (v0.26.0) is and is not,
 and then maps the controls it ships to the six AWS Well-Architected pillars. Use it to set
 expectations before adoption and to sanity-check that the operator-owned gaps are understood.
 
@@ -82,9 +82,11 @@ backup platform, or incident process. Concretely:
   training or batch inference platform" is a Poor Fit ([decision-guide.md](decision-guide.md)). The
   gateway exposes a synchronous `/v1/batch-inference` API for inference batching, not a
   training/data platform.
-- **No admin/usage console UI.** A standalone admin or usage console is a separate web application.
-  The kit ships the `/v1/usage` data layer, the metrics, and the client SDK such a console would
-  build on (ROADMAP `dx`).
+- **No full standalone admin application.** The gateway ships an **opt-in read-only admin
+  console** at `/console` (`ADMIN_CONSOLE_ENABLED`; ADR 0013) that renders a sandbox's health,
+  usage, budget, and approved models over the existing endpoints. A richer standalone or
+  multi-tenant admin app (write operations, user management, cross-tenant views) is a separate
+  product and remains out of scope.
 - **No single-machine personal assistant.** "A single-machine personal Ollama setup" and "a hosted AI
   gateway with managed identity, billing, and support" are both Poor Fit
   ([decision-guide.md](decision-guide.md)). The kit is a Kubernetes operating model, not a desktop
