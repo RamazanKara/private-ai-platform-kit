@@ -225,7 +225,7 @@ class GatewayClient:
 
     def batch(self, requests: list[dict[str, Any]]) -> dict[str, Any]:
         """Process a batch of chat-completion requests in one call (synchronous fan-out)."""
-        return self._post("/v1/batches", {"requests": requests})
+        return self._post("/v1/batch-inference", {"requests": requests})
 
     def models(self) -> dict[str, Any]:
         """List the approved private models the gateway will route to."""

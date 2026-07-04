@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file. The format is b
 
 ## Unreleased
 
+### Removed
+
+- The deprecated `POST /v1/batches` alias (superseded by `POST /v1/batch-inference`) is
+  removed, along with its `Deprecation`/`Link` sunset headers. The Python SDK's `batch()` now
+  targets `/v1/batch-inference`; update any direct callers of the old path.
+
+### Changed
+
+- Collapsed the two output-guardrail code paths (chat `message.content` and legacy-completion
+  `text`) into one parameterized scanner — identical redact/flag/block behavior, less duplication.
+
 ### Security
 
 - The build/validation scripts verify the image registry and vector-store URL by exact

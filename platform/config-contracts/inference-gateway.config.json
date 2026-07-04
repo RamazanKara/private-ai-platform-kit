@@ -239,7 +239,7 @@
       "app_default": 32,
       "chart_default": 32,
       "chart_value": "concurrency.maxBatchRequests",
-      "description": "Maximum number of chat requests accepted in one /v1/batches call.",
+      "description": "Maximum number of chat requests accepted in one /v1/batch-inference call.",
       "field": "max_batch_requests",
       "name": "MAX_BATCH_REQUESTS",
       "sensitive": false,

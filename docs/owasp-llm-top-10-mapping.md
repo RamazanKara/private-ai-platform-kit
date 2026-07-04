@@ -164,7 +164,7 @@ review to higher-risk models; that review is operator-owned.
   `create_app.request_context` fast-fails excess in-flight requests with a 503 (`_overloaded_response`,
   `inference_gateway_load_shed_total`) rather than queuing them behind the httpx pool.
 - The batch endpoint caps batch size (`MAX_BATCH_REQUESTS`) and bounds per-batch fan-out with a
-  semaphore so one batch cannot saturate the upstream pool (`batches` in `main.py`).
+  semaphore so one batch cannot saturate the upstream pool (`batch_inference` in `main.py`).
 - Cluster-side capacity controls back this: HPA/KEDA scaling, PodDisruptionBudgets, topology spread,
   and required CPU/memory requests-and-limits enforced by the Kyverno `require-requests-and-limits`
   rule (`deploy/policies/kyverno/policies.yaml`).

@@ -288,7 +288,7 @@ def test_invalid_guardrail_and_cache_settings_raise(overrides):
 
 
 def test_output_guardrail_applies_to_batch_items():
-    # The guardrail is endpoint-independent: /v1/batches must not be a bypass around
+    # The guardrail is endpoint-independent: /v1/batch-inference must not be a bypass around
     # the redact policy that /v1/chat/completions enforces (OWASP LLM02/LLM06).
     client, _ = _client(
         _settings(output_guardrail_enabled=True, output_guardrail_mode="redact"),
@@ -296,7 +296,7 @@ def test_output_guardrail_applies_to_batch_items():
     )
 
     resp = client.post(
-        "/v1/batches",
+        "/v1/batch-inference",
         json={"requests": [{"messages": [{"role": "user", "content": "hi"}]}]},
     )
 

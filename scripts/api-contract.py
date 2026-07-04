@@ -74,13 +74,9 @@ CONTRACTS = {
                 "post",
                 request_schema="ModerationRequest",
             ),
-            # /v1/batch-inference is the canonical synchronous-batch route; /v1/batches is
-            # the deprecated alias kept one release (both use the same BatchRequest schema).
+            # /v1/batch-inference is the canonical synchronous-batch route (its own BatchRequest
+            # schema, deliberately named apart from the OpenAI async file-batch API).
             "/v1/batch-inference": RouteContract(
-                "post",
-                request_schema="BatchRequest",
-            ),
-            "/v1/batches": RouteContract(
                 "post",
                 request_schema="BatchRequest",
             ),
@@ -96,7 +92,6 @@ CONTRACTS = {
             "/v1/embeddings",
             "/v1/moderations",
             "/v1/batch-inference",
-            "/v1/batches",
         }),
         required_schemas={
             "ChatCompletionRequest": {

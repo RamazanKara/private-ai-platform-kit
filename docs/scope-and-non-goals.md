@@ -80,8 +80,8 @@ backup platform, or incident process. Concretely:
   sizing the operator is the operator's (ROADMAP `runtime`).
 - **No general-purpose training or batch-inference platform.** "A general-purpose distributed
   training or batch inference platform" is a Poor Fit ([decision-guide.md](decision-guide.md)). The
-  gateway exposes a synchronous `/v1/batch-inference` API (the older `/v1/batches` path is a
-  deprecated alias) for inference batching, not a training/data platform.
+  gateway exposes a synchronous `/v1/batch-inference` API for inference batching, not a
+  training/data platform.
 - **No admin/usage console UI.** A standalone admin or usage console is a separate web application.
   The kit ships the `/v1/usage` data layer, the metrics, and the client SDK such a console would
   build on (ROADMAP `dx`).
@@ -109,10 +109,10 @@ not have to diff the route list, the following are **not** implemented:
   non-streaming this release). Server-side response state is out of scope: a request with
   `store: true` or `previous_response_id` is rejected with `stateful_not_supported` rather
   than silently ignored, and background/streaming response objects are not implemented.
-- **OpenAI asynchronous file-batch API** (the real `/v1/batches` with a batch id, JSONL input
-  files, status polling, result-file retrieval, and cancellation). The gateway's
-  `/v1/batch-inference` is a *synchronous* fan-out with a deliberately different name; the
-  legacy `/v1/batches` alias is that same synchronous handler, not the OpenAI file-batch API.
+- **OpenAI asynchronous file-batch API** (OpenAI's real `/v1/batches` with a batch id, JSONL
+  input files, status polling, result-file retrieval, and cancellation). The gateway's
+  `/v1/batch-inference` is a *synchronous* fan-out named deliberately apart from `/v1/batches`
+  precisely so it is not mistaken for the OpenAI file-batch API.
 - **Files** (`/v1/files`), **Audio** (`/v1/audio/*` transcription/TTS), **Images**
   (`/v1/images/*`), and **fine-tuning** (`/v1/fine_tuning/*`).
 

@@ -945,7 +945,7 @@ def test_batch_processes_multiple_requests():
     client = TestClient(app)
 
     response = client.post(
-        "/v1/batches",
+        "/v1/batch-inference",
         json={
             "requests": [
                 {"messages": [{"role": "user", "content": "one"}]},
@@ -968,7 +968,7 @@ def test_batch_rejects_oversized_batch():
     client = TestClient(app)
 
     response = client.post(
-        "/v1/batches",
+        "/v1/batch-inference",
         json={
             "requests": [
                 {"messages": [{"role": "user", "content": "one"}]},
@@ -987,7 +987,7 @@ def test_batch_reports_per_item_errors_without_failing_batch():
     client = TestClient(app)
 
     response = client.post(
-        "/v1/batches",
+        "/v1/batch-inference",
         json={
             "requests": [
                 {"model": "approved-model", "messages": [{"role": "user", "content": "ok"}]},
@@ -3190,7 +3190,7 @@ def test_batch_receipt_emitted_to_uvicorn_logger(caplog):
     client = TestClient(app)
 
     resp = client.post(
-        "/v1/batches",
+        "/v1/batch-inference",
         json={"requests": [{"messages": [{"role": "user", "content": "hi"}]}]},
     )
 
@@ -3377,7 +3377,7 @@ def test_batch_item_records_prompt_guardrail_action(caplog):
     client = TestClient(app)
 
     resp = client.post(
-        "/v1/batches",
+        "/v1/batch-inference",
         json={
             "requests": [
                 {"messages": [{"role": "user", "content": "token ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"}]},
@@ -3510,32 +3510,29 @@ def test_pydantic_422_left_in_default_shape():
     assert "error" not in response.json()
 
 
-# --- /v1/batch-inference canonical, /v1/batches deprecated (task 3.2) ---
+# --- /v1/batch-inference synchronous fan-out (task 3.2) ---
 
 
-def test_batch_inference_and_deprecated_batches_both_work():
-    body = {
-        "requests": [
-            {"messages": [{"role": "user", "content": "one"}]},
-            {"messages": [{"role": "user", "content": "two"}]},
-        ]
-    }
-    for path in ("/v1/batch-inference", "/v1/batches"):
-        app = create_app(_tool_settings())
-        app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
-        client = TestClient(app)
+def test_batch_inference_works():
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    client = TestClient(app)
 
-        response = client.post(path, json=body)
+    response = client.post(
+        "/v1/batch-inference",
+        json={
+            "requests": [
+                {"messages": [{"role": "user", "content": "one"}]},
+                {"messages": [{"role": "user", "content": "two"}]},
+            ]
+        },
+    )
 
-        assert response.status_code == 200
-        result = response.json()
-        assert result["object"] == "batch"
-        assert result["count"] == 2
-        if path == "/v1/batches":
-            assert response.headers["Deprecation"] == "true"
-            assert "/v1/batch-inference" in response.headers["Link"]
-        else:
-            assert "Deprecation" not in response.headers
+    assert response.status_code == 200
+    result = response.json()
+    assert result["object"] == "batch"
+    assert result["count"] == 2
+    assert "Deprecation" not in response.headers
 
 
 # --- /v1/moderations taxonomy marker (task 3.3) ---

@@ -851,58 +851,6 @@
         ]
       }
     },
-    "/v1/batches": {
-      "post": {
-        "description": "Synchronous, size-bounded (MAX_BATCH_REQUESTS) fan-out that runs every item concurrently and returns per-item results inline. This is NOT the OpenAI asynchronous file-batch API: there is no batch id, status polling, result-file retrieval, or cancellation. Use it for small offline batches that fit within the request timeout and gateway concurrency limit. Deprecated: this path is renamed to /v1/batch-inference to avoid colliding with the name of OpenAI's asynchronous file-batch API; it still works but sends a Deprecation response header and will be removed in a future release. Migrate to POST /v1/batch-inference (Link: </v1/batch-inference>; rel=\"successor-version\").",
-        "operationId": "createBatch",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BatchRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Createbatch",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "summary": "Process a batch of chat completions synchronously (deprecated path)",
-        "tags": [
-          "inference"
-        ]
-      }
-    },
     "/v1/chat/completions": {
       "post": {
         "operationId": "createChatCompletion",

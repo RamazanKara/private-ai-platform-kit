@@ -870,19 +870,43 @@ def _guardrail_choice_text(choice: dict[str, Any]) -> str:
     return extract_text_content(content)
 
 
+def _guardrail_target(choice: dict[str, Any], legacy_completion: bool) -> tuple[str, dict[str, Any], str] | None:
+    """Return ``(text, container, key)`` for a choice's generated text, or None to skip it.
+
+    Chat completions carry the text in ``choice.message.content``; legacy completions put it
+    in ``choice.text``. Returning the writable container plus key lets the single guardrail
+    loop redact/block in place without caring which shape it is scanning.
+    """
+    if legacy_completion:
+        text = choice.get("text")
+        if not isinstance(text, str) or not text:
+            return None
+        return text, choice, "text"
+    text = _guardrail_choice_text(choice)
+    if not text:
+        return None
+    message = choice.get("message")
+    if not isinstance(message, dict):
+        return None
+    return text, message, "content"
+
+
 def _apply_output_guardrail(
     response: dict[str, Any] | None,
     settings: Settings,
     route: str,
     request: Request,
+    *,
+    legacy_completion: bool = False,
 ) -> None:
     """Inspect the runtime completion and flag/redact/block per the output guardrail.
 
-    Runs the configured credential/PII/blocked-term detectors on each choice's assistant
+    Runs the configured credential/PII/blocked-term detectors on each choice's generated
     text (OWASP LLM02 insecure output handling / LLM06 sensitive-information disclosure).
     ``flag`` records only; ``redact`` rewrites matched spans in place; ``block`` withholds
     the content and sets ``finish_reason=content_filter``. Mutates ``response`` in place so
-    the redacted/blocked body is what gets cached, audited, and returned.
+    the redacted/blocked body is what gets cached, audited, and returned. ``legacy_completion``
+    scans/rewrites the completion ``choice.text`` field instead of chat ``message.content``.
     """
     if not settings.output_guardrail_enabled or not isinstance(response, dict):
         return
@@ -893,65 +917,20 @@ def _apply_output_guardrail(
     for choice in choices:
         if not isinstance(choice, dict):
             continue
-        text = _guardrail_choice_text(choice)
-        if not text:
+        target = _guardrail_target(choice, legacy_completion)
+        if target is None:
             continue
-        message = choice.get("message")
-        if not isinstance(message, dict):
-            continue
+        text, container, key = target
         if settings.output_guardrail_mode == "redact":
             redacted, matched = settings.redact_output_text(text)
             if matched:
-                message["content"] = redacted
+                container[key] = redacted
                 action = "redacted"
         else:
             patterns, terms = settings.output_findings(text)
             if patterns or terms:
                 if settings.output_guardrail_mode == "block":
-                    message["content"] = "[response withheld by output policy]"
-                    choice["finish_reason"] = "content_filter"
-                    action = "blocked"
-                else:
-                    action = action or "flagged"
-    if action:
-        OUTPUT_GUARDRAIL.labels(action, route).inc()
-        request.state.output_guardrail_action = action
-
-
-def _apply_completion_output_guardrail(
-    response: dict[str, Any] | None,
-    settings: Settings,
-    route: str,
-    request: Request,
-) -> None:
-    """Flag/redact/block leaked secrets in legacy-completion ``choices[].text`` in place.
-
-    The chat guardrail keys off ``choice.message.content``; legacy completions put the
-    generated text in ``choice.text`` instead, so this mirrors the same redact/flag/block
-    modes over that field using the shared output-scanning primitives (OWASP LLM02/LLM06).
-    """
-    if not settings.output_guardrail_enabled or not isinstance(response, dict):
-        return
-    choices = response.get("choices")
-    if not isinstance(choices, list):
-        return
-    action: str | None = None
-    for choice in choices:
-        if not isinstance(choice, dict):
-            continue
-        text = choice.get("text")
-        if not isinstance(text, str) or not text:
-            continue
-        if settings.output_guardrail_mode == "redact":
-            redacted, matched = settings.redact_output_text(text)
-            if matched:
-                choice["text"] = redacted
-                action = "redacted"
-        else:
-            patterns, terms = settings.output_findings(text)
-            if patterns or terms:
-                if settings.output_guardrail_mode == "block":
-                    choice["text"] = "[response withheld by output policy]"
+                    container[key] = "[response withheld by output policy]"
                     choice["finish_reason"] = "content_filter"
                     action = "blocked"
                 else:
@@ -1945,7 +1924,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 headers=_runtime_headers(request),
                 backend=backend,
             )
-            _apply_completion_output_guardrail(runtime_response, resolved, route, request)
+            _apply_output_guardrail(runtime_response, resolved, route, request, legacy_completion=True)
             # The finally block reads runtime_response for token-usage metrics and the audit
             # log, so it is bound above rather than returned inline.
             return runtime_response
@@ -2754,25 +2733,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def batch_inference(request: Request, payload: BatchRequest) -> dict[str, Any]:
         return await _run_batch(request, payload, "/v1/batch-inference")
-
-    @app.post(
-        "/v1/batches",
-        tags=["inference"],
-        summary="Process a batch of chat completions synchronously (deprecated path)",
-        description=(
-            _BATCH_DESCRIPTION + " Deprecated: this path is renamed to /v1/batch-inference to avoid colliding "
-            "with the name of OpenAI's asynchronous file-batch API; it still works but sends "
-            "a Deprecation response header and will be removed in a future release. Migrate to "
-            'POST /v1/batch-inference (Link: </v1/batch-inference>; rel="successor-version").'
-        ),
-        operation_id="createBatch",
-    )
-    async def batches(request: Request, payload: BatchRequest, response: Response) -> dict[str, Any]:
-        # Signal the rename to clients per RFC 8594 while keeping the old path working for
-        # one release; Link points at the successor so tooling can follow it automatically.
-        response.headers["Deprecation"] = "true"
-        response.headers["Link"] = '</v1/batch-inference>; rel="successor-version"'
-        return await _run_batch(request, payload, "/v1/batches")
 
     _install_openapi_contract(app, resolved)
     return app

@@ -72,7 +72,7 @@ def _emit_stream(caplog):
     for i in range(3):
         client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": f"hi {i}"}]})
     client.post(
-        "/v1/batches",
+        "/v1/batch-inference",
         json={
             "requests": [
                 {"messages": [{"role": "user", "content": "a"}]},
