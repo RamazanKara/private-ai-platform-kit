@@ -1,0 +1,116 @@
+{{- if and .Values.batch.enabled .Values.batch.worker.enabled }}
+{{- /* The batch-processor worker (ADR 0011): the same gateway image run with a different
+       entrypoint (python -m app.batch_worker). Stateless — all state lives in the object store
+       and the batch store — so it scales horizontally. It carries a distinct
+       app.kubernetes.io/name so the gateway Service (which selects name+instance) never routes
+       HTTP traffic to these pods, which expose no port. */}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inference-gateway.fullname" . }}-batch-processor
+  labels:
+    app.kubernetes.io/name: {{ include "inference-gateway.name" . }}-batch-processor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    app.kubernetes.io/component: batch-processor
+    app.kubernetes.io/part-of: private-ai-platform-kit
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.batch.worker.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "inference-gateway.name" . }}-batch-processor
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "inference-gateway.name" . }}-batch-processor
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+        app.kubernetes.io/component: batch-processor
+        app.kubernetes.io/part-of: private-ai-platform-kit
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        platform.ai/cost-center: {{ index .Values.podLabels "platform.ai/cost-center" | quote }}
+        platform.ai/environment: {{ index .Values.podLabels "platform.ai/environment" | quote }}
+        platform.ai/owner: {{ index .Values.podLabels "platform.ai/owner" | quote }}
+        platform.ai/sandbox-id: {{ default .Values.traceability.defaultSandboxId (index .Values.podLabels "platform.ai/sandbox-id") | quote }}
+    spec:
+      serviceAccountName: {{ include "inference-gateway.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: batch-processor
+          image: {{ include "inference-gateway.image" .Values.image | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "app.batch_worker"]
+          env:
+            - name: BATCH_API_ENABLED
+              value: "true"
+            - name: BATCH_OBJECT_STORE_BACKEND
+              value: {{ .Values.batch.objectStore.backend | quote }}
+            - name: BATCH_OBJECT_STORE_ROOT
+              value: {{ .Values.batch.objectStore.root | quote }}
+            - name: BATCH_S3_ENDPOINT_URL
+              value: {{ .Values.batch.objectStore.s3.endpointUrl | quote }}
+            - name: BATCH_S3_BUCKET
+              value: {{ .Values.batch.objectStore.s3.bucket | quote }}
+            - name: BATCH_S3_REGION
+              value: {{ .Values.batch.objectStore.s3.region | quote }}
+            - name: BATCH_S3_ACCESS_KEY_ID
+              value: {{ .Values.batch.objectStore.s3.accessKeyId | quote }}
+            - name: BATCH_S3_SECRET_ACCESS_KEY
+              {{- if .Values.batch.objectStore.s3.existingSecret.name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.batch.objectStore.s3.existingSecret.name | quote }}
+                  key: {{ .Values.batch.objectStore.s3.existingSecret.key | quote }}
+              {{- else }}
+              value: {{ .Values.batch.objectStore.s3.secretAccessKey | quote }}
+              {{- end }}
+            - name: BATCH_STORE_BACKEND
+              value: {{ .Values.batch.store.backend | quote }}
+            - name: BATCH_REDIS_URL
+              value: {{ .Values.batch.store.redisUrl | quote }}
+            - name: BATCH_REDIS_TIMEOUT_SECONDS
+              value: {{ .Values.batch.store.redisTimeoutSeconds | quote }}
+            - name: BATCH_KEY_PREFIX
+              value: {{ .Values.batch.store.keyPrefix | quote }}
+            - name: BATCH_MAX_FILE_BYTES
+              value: {{ .Values.batch.maxFileBytes | quote }}
+            - name: BATCH_MAX_REQUESTS_PER_BATCH
+              value: {{ .Values.batch.maxRequestsPerBatch | quote }}
+            - name: BATCH_COMPLETION_WINDOW
+              value: {{ .Values.batch.completionWindow | quote }}
+            - name: BATCH_RETENTION_SECONDS
+              value: {{ .Values.batch.retentionSeconds | quote }}
+            - name: API_KEY_HEADER
+              value: {{ .Values.auth.apiKeyHeader | quote }}
+            - name: BATCH_WORKER_GATEWAY_URL
+              value: {{ .Values.batch.worker.gatewayUrl | default (printf "http://%s.%s.svc.cluster.local:%v" (include "inference-gateway.fullname" .) (default .Release.Namespace .Values.namespace.name) .Values.service.port) | quote }}
+            - name: BATCH_WORKER_CONCURRENCY
+              value: {{ .Values.batch.worker.concurrency | quote }}
+            - name: BATCH_WORKER_POLL_SECONDS
+              value: {{ .Values.batch.worker.pollSeconds | quote }}
+            - name: BATCH_WORKER_RECLAIM_SECONDS
+              value: {{ .Values.batch.worker.reclaimSeconds | quote }}
+            - name: BATCH_WORKER_REQUEST_TIMEOUT_SECONDS
+              value: {{ .Values.batch.worker.requestTimeoutSeconds | quote }}
+            {{- if .Values.batch.worker.apiKey.existingSecret.name }}
+            - name: BATCH_WORKER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.batch.worker.apiKey.existingSecret.name | quote }}
+                  key: {{ .Values.batch.worker.apiKey.existingSecret.key | quote }}
+            {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            {{- toYaml .Values.batch.worker.resources | nindent 12 }}
+{{- end }}

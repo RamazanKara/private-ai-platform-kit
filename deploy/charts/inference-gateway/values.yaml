@@ -169,6 +169,31 @@ batch:
   maxRequestsPerBatch: 50000
   completionWindow: "24h"
   retentionSeconds: 604800
+  # The batch-processor worker: a second Deployment from this same image, run with
+  # `python -m app.batch_worker`. It drains the queue and replays each item back through the
+  # gateway, so governance stays single-sourced. Only deployed when batch.enabled is true.
+  worker:
+    enabled: true
+    replicaCount: 1
+    concurrency: 4
+    pollSeconds: "2"
+    reclaimSeconds: "300"
+    requestTimeoutSeconds: "120"
+    # Empty defaults to the in-cluster gateway service URL.
+    gatewayUrl: ""
+    # Service API key the worker presents to the gateway when auth is enabled; sourced from a
+    # Secret. Leave name empty when the gateway does not require auth.
+    apiKey:
+      existingSecret:
+        name: ""
+        key: batch-worker-api-key
+    resources:
+      requests:
+        cpu: 50m
+        memory: 96Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
 
 traceability:
   auditLogEnabled: true

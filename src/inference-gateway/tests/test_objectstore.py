@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from types import SimpleNamespace
 
+import pytest
 from app.objectstore import (
     FilesystemObjectStore,
     MemoryObjectStore,
