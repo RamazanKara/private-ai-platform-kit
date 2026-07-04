@@ -34,6 +34,7 @@ All ADRs in this set are `Accepted` and describe the current repository.
 | [0009](0009-adopt-agent-sandbox-workspace-runtime.md) | Adopt kubernetes-sigs/agent-sandbox as the coding-agent workspace runtime | Accepted |
 | [0010](0010-agent-sandbox-standard-runtime.md) | Agent-sandbox is the standard workspace runtime | Accepted |
 | [0011](0011-async-files-and-batch-api.md) | Asynchronous Files and Batch API | Accepted |
+| [0012](0012-stateful-responses-store.md) | Server-side response state for the Responses API | Accepted |
 
 ## Process
 

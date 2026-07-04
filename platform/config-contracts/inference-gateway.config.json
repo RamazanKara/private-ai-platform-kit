@@ -792,6 +792,81 @@
     },
     {
       "aliases": [],
+      "allowed_values": [],
+      "app_default": "private-ai-platform-kit:responses",
+      "chart_default": "private-ai-platform-kit:responses",
+      "chart_value": "responses.store.keyPrefix",
+      "description": "Redis key prefix for stored responses.",
+      "field": "responses_key_prefix",
+      "name": "RESPONSES_KEY_PREFIX",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0.5,
+      "chart_default": "0.5",
+      "chart_value": "responses.store.redisTimeoutSeconds",
+      "description": "Redis response-store operation timeout in seconds.",
+      "field": "responses_redis_timeout_seconds",
+      "name": "RESPONSES_REDIS_TIMEOUT_SECONDS",
+      "sensitive": false,
+      "type": "float"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": "redis://budget-redis.budget.svc.cluster.local:6379/3",
+      "chart_default": "redis://budget-redis.budget.svc.cluster.local:6379/3",
+      "chart_value": "responses.store.redisUrl",
+      "description": "Redis URL for the shared response store when backend is redis.",
+      "field": "responses_redis_url",
+      "name": "RESPONSES_REDIS_URL",
+      "sensitive": false,
+      "type": "url"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 86400,
+      "chart_default": 86400,
+      "chart_value": "responses.store.retentionSeconds",
+      "description": "Retention TTL in seconds for stored responses before they expire.",
+      "field": "responses_retention_seconds",
+      "name": "RESPONSES_RETENTION_SECONDS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [
+        "memory",
+        "redis"
+      ],
+      "app_default": "memory",
+      "chart_default": "memory",
+      "chart_value": "responses.store.backend",
+      "description": "Backend for stored Responses objects.",
+      "field": "responses_store_backend",
+      "name": "RESPONSES_STORE_BACKEND",
+      "sensitive": false,
+      "type": "string"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "responses.store.enabled",
+      "description": "Whether the stateful Responses API surface (store=true, previous_response_id, GET/DELETE/input_items) is served. Off by default; storing responses persists raw conversation content (ADR 0012).",
+      "field": "responses_store_enabled",
+      "name": "RESPONSES_STORE_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
       "allowed_values": [
         "memory",
         "redis"

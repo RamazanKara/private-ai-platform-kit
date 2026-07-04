@@ -234,6 +234,18 @@ spec:
               value: {{ .Values.batch.completionWindow | quote }}
             - name: BATCH_RETENTION_SECONDS
               value: {{ .Values.batch.retentionSeconds | quote }}
+            - name: RESPONSES_STORE_ENABLED
+              value: {{ .Values.responses.store.enabled | quote }}
+            - name: RESPONSES_STORE_BACKEND
+              value: {{ .Values.responses.store.backend | quote }}
+            - name: RESPONSES_REDIS_URL
+              value: {{ .Values.responses.store.redisUrl | quote }}
+            - name: RESPONSES_REDIS_TIMEOUT_SECONDS
+              value: {{ .Values.responses.store.redisTimeoutSeconds | quote }}
+            - name: RESPONSES_KEY_PREFIX
+              value: {{ .Values.responses.store.keyPrefix | quote }}
+            - name: RESPONSES_RETENTION_SECONDS
+              value: {{ .Values.responses.store.retentionSeconds | quote }}
           ports:
             - name: http
               containerPort: 8080

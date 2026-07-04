@@ -128,6 +128,12 @@ GATEWAY_VARS = (
     ConfigVar("BATCH_MAX_REQUESTS_PER_BATCH", "batch_max_requests_per_batch", "integer", 50000, "batch.maxRequestsPerBatch", 50000, "Maximum number of request lines in a batch input file."),
     ConfigVar("BATCH_COMPLETION_WINDOW", "batch_completion_window", "string", "24h", "batch.completionWindow", "24h", "Completion window honored as an expiry bound (e.g. 24h, 30m)."),
     ConfigVar("BATCH_RETENTION_SECONDS", "batch_retention_seconds", "integer", 604800, "batch.retentionSeconds", 604800, "Retention horizon in seconds for completed batches and their files before GC."),
+    ConfigVar("RESPONSES_STORE_ENABLED", "responses_store_enabled", "boolean", False, "responses.store.enabled", False, "Whether the stateful Responses API surface (store=true, previous_response_id, GET/DELETE/input_items) is served. Off by default; storing responses persists raw conversation content (ADR 0012)."),
+    ConfigVar("RESPONSES_STORE_BACKEND", "responses_store_backend", "string", "memory", "responses.store.backend", "memory", "Backend for stored Responses objects.", allowed_values=("memory", "redis")),
+    ConfigVar("RESPONSES_REDIS_URL", "responses_redis_url", "url", "redis://budget-redis.budget.svc.cluster.local:6379/3", "responses.store.redisUrl", "redis://budget-redis.budget.svc.cluster.local:6379/3", "Redis URL for the shared response store when backend is redis."),
+    ConfigVar("RESPONSES_REDIS_TIMEOUT_SECONDS", "responses_redis_timeout_seconds", "float", 0.5, "responses.store.redisTimeoutSeconds", "0.5", "Redis response-store operation timeout in seconds."),
+    ConfigVar("RESPONSES_KEY_PREFIX", "responses_key_prefix", "string", "private-ai-platform-kit:responses", "responses.store.keyPrefix", "private-ai-platform-kit:responses", "Redis key prefix for stored responses."),
+    ConfigVar("RESPONSES_RETENTION_SECONDS", "responses_retention_seconds", "integer", 86400, "responses.store.retentionSeconds", 86400, "Retention TTL in seconds for stored responses before they expire."),
 )
 
 RAG_VARS = (

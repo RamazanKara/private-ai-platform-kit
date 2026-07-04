@@ -195,6 +195,19 @@ batch:
         cpu: 500m
         memory: 256Mi
 
+# Server-side Responses API state (ADR 0012). Off by default. When enabled, `store: true` and
+# `previous_response_id` on POST /v1/responses persist RAW conversation content (opt-in,
+# tenant-scoped, TTL-bounded) and the GET/DELETE/input_items routes are served. Keep it off — or
+# set a short retention — for regulated data. Uses its own Redis logical DB.
+responses:
+  store:
+    enabled: false
+    backend: memory
+    redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/3
+    redisTimeoutSeconds: "0.5"
+    keyPrefix: private-ai-platform-kit:responses
+    retentionSeconds: 86400
+
 traceability:
   auditLogEnabled: true
   defaultSandboxId: local-lab

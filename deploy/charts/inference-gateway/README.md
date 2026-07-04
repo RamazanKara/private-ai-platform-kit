@@ -150,6 +150,12 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `responseCache.redisTimeoutSeconds` | `0.5` |
 | `responseCache.redisUrl` | `redis://budget-redis.budget.svc.cluster.local:6379/1` |
 | `responseCache.ttlSeconds` | `60` |
+| `responses.store.backend` | `memory` |
+| `responses.store.enabled` | `false` |
+| `responses.store.keyPrefix` | `private-ai-platform-kit:responses` |
+| `responses.store.redisTimeoutSeconds` | `0.5` |
+| `responses.store.redisUrl` | `redis://budget-redis.budget.svc.cluster.local:6379/3` |
+| `responses.store.retentionSeconds` | `86400` |
 | `routing.policy.enabled` | `false` |
 | `routing.policy.models` | `[]` |
 | `routing.policyPath` | `""` |

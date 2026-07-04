@@ -387,6 +387,14 @@ class Settings:
     batch_max_requests_per_batch: int = 50000
     batch_completion_window: str = "24h"
     batch_retention_seconds: int = 604800
+    # Server-side Responses API state (ADR 0012). Off by default; storing responses persists raw
+    # conversation content (opt-in, tenant-scoped, TTL-bounded).
+    responses_store_enabled: bool = False
+    responses_store_backend: str = "memory"
+    responses_redis_url: str = "redis://budget-redis.budget.svc.cluster.local:6379/3"
+    responses_redis_timeout_seconds: float = 0.5
+    responses_key_prefix: str = "private-ai-platform-kit:responses"
+    responses_retention_seconds: int = 86400
 
     def __post_init__(self) -> None:
         """Validate budget, auth, JWT, and runtime resilience fields after init."""
@@ -484,6 +492,14 @@ class Settings:
         if self.batch_api_enabled and self.batch_object_store_backend == "s3" and not self.batch_s3_bucket:
             raise ValueError("batch_s3_bucket must be set when the batch object store backend is s3")
         parse_completion_window(self.batch_completion_window)
+        if self.responses_store_backend not in {"memory", "redis"}:
+            raise ValueError("responses_store_backend must be either 'memory' or 'redis'")
+        if self.responses_redis_timeout_seconds <= 0:
+            raise ValueError("responses_redis_timeout_seconds must be greater than zero")
+        if self.responses_retention_seconds <= 0:
+            raise ValueError("responses_retention_seconds must be greater than zero")
+        if not self.responses_key_prefix.strip():
+            raise ValueError("responses_key_prefix must not be empty")
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -623,6 +639,14 @@ class Settings:
             batch_max_requests_per_batch=_positive_int_from_env("BATCH_MAX_REQUESTS_PER_BATCH", 50000),
             batch_completion_window=os.getenv("BATCH_COMPLETION_WINDOW", "24h").strip(),
             batch_retention_seconds=_positive_int_from_env("BATCH_RETENTION_SECONDS", 604800),
+            responses_store_enabled=_bool_from_env("RESPONSES_STORE_ENABLED", False),
+            responses_store_backend=os.getenv("RESPONSES_STORE_BACKEND", "memory").strip().lower(),
+            responses_redis_url=os.getenv(
+                "RESPONSES_REDIS_URL", "redis://budget-redis.budget.svc.cluster.local:6379/3"
+            ),
+            responses_redis_timeout_seconds=_float_from_env("RESPONSES_REDIS_TIMEOUT_SECONDS", 0.5),
+            responses_key_prefix=os.getenv("RESPONSES_KEY_PREFIX", "private-ai-platform-kit:responses"),
+            responses_retention_seconds=_positive_int_from_env("RESPONSES_RETENTION_SECONDS", 86400),
         )
 
     @property
