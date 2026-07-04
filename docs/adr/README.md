@@ -17,7 +17,8 @@ the choices those documents assume.
 - `Proposed` — under discussion, not yet reflected in the default configuration.
 - `Deprecated` — no longer recommended, but not yet removed.
 
-All ADRs in this set are `Accepted` and describe the `v0.23.0` repository.
+All ADRs in this set are `Accepted` and describe the current repository, except
+[0011](0011-async-files-and-batch-api.md), which is `Proposed` and rolling out in phases.
 
 ## Index
 
@@ -33,6 +34,7 @@ All ADRs in this set are `Accepted` and describe the `v0.23.0` repository.
 | [0008](0008-helm-packaging-and-oci.md) | Helm packaging and OCI distribution | Accepted |
 | [0009](0009-adopt-agent-sandbox-workspace-runtime.md) | Adopt kubernetes-sigs/agent-sandbox as the coding-agent workspace runtime | Accepted |
 | [0010](0010-agent-sandbox-standard-runtime.md) | Agent-sandbox is the standard workspace runtime | Accepted |
+| [0011](0011-async-files-and-batch-api.md) | Asynchronous Files and Batch API | Proposed |
 
 ## Process
 
