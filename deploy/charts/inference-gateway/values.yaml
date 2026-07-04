@@ -68,7 +68,7 @@ rateLimit:
 # queued). 0 disables the limit.
 concurrency:
   maxConcurrentRequests: 0
-  # Maximum chat requests accepted in one POST /v1/batches call.
+  # Maximum chat requests accepted in one POST /v1/batch-inference call.
   maxBatchRequests: 32
 
 # Exact-match per-sandbox response cache for non-streaming chat completions.
@@ -140,6 +140,35 @@ budget:
   redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/0
   redisTimeoutSeconds: "0.5"
   keyPrefix: private-ai-platform-kit:sandbox-budget
+
+# Asynchronous OpenAI Files + Batch API (ADR 0011). Off by default: enabling it needs an object
+# store for the JSONL blobs and a Redis-backed store + queue for durable job state, plus the
+# batch-processor worker (deployed separately). Use the s3 object-store backend in-cluster; the
+# filesystem backend is for single-node/local runs and needs a writable volume.
+batch:
+  enabled: false
+  objectStore:
+    backend: filesystem
+    root: /var/lib/inference-gateway/batch
+    s3:
+      endpointUrl: ""
+      bucket: ""
+      region: us-east-1
+      accessKeyId: ""
+      secretAccessKey: ""
+      # In production source the secret key from an existing Secret rather than values.
+      existingSecret:
+        name: ""
+        key: s3-secret-access-key
+  store:
+    backend: memory
+    redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/2
+    redisTimeoutSeconds: "0.5"
+    keyPrefix: private-ai-platform-kit:batch
+  maxFileBytes: 104857600
+  maxRequestsPerBatch: 50000
+  completionWindow: "24h"
+  retentionSeconds: 604800
 
 traceability:
   auditLogEnabled: true

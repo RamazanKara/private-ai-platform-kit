@@ -112,6 +112,22 @@ GATEWAY_VARS = (
     ConfigVar("OTEL_TRACING_ENABLED", "otel_tracing_enabled", "boolean", False, "observability.tracing.enabled", False, "Whether OpenTelemetry span export is enabled."),
     ConfigVar("OTEL_EXPORTER_OTLP_ENDPOINT", "otel_exporter_otlp_endpoint", "url", "", "observability.tracing.otlpEndpoint", "", "OTLP/HTTP endpoint for span export when tracing is enabled."),
     ConfigVar("OTEL_SERVICE_NAME", "otel_service_name", "string", "inference-gateway", "observability.tracing.serviceName", "inference-gateway", "Service name attribute attached to exported spans."),
+    ConfigVar("BATCH_API_ENABLED", "batch_api_enabled", "boolean", False, "batch.enabled", False, "Whether the asynchronous OpenAI Files + Batch API (/v1/files, /v1/batches) is served. Off by default; needs an object store and a Redis-backed store + queue plus the batch-processor worker."),
+    ConfigVar("BATCH_OBJECT_STORE_BACKEND", "batch_object_store_backend", "string", "filesystem", "batch.objectStore.backend", "filesystem", "Object-store backend for batch JSONL blobs.", allowed_values=("filesystem", "memory", "s3")),
+    ConfigVar("BATCH_OBJECT_STORE_ROOT", "batch_object_store_root", "string", "/var/lib/inference-gateway/batch", "batch.objectStore.root", "/var/lib/inference-gateway/batch", "Root directory for the filesystem object-store backend (single-node/local)."),
+    ConfigVar("BATCH_S3_ENDPOINT_URL", "batch_s3_endpoint_url", "url", "", "batch.objectStore.s3.endpointUrl", "", "S3/MinIO endpoint URL for the s3 object-store backend."),
+    ConfigVar("BATCH_S3_BUCKET", "batch_s3_bucket", "string", "", "batch.objectStore.s3.bucket", "", "S3 bucket holding batch blobs when the object-store backend is s3."),
+    ConfigVar("BATCH_S3_REGION", "batch_s3_region", "string", "us-east-1", "batch.objectStore.s3.region", "us-east-1", "S3 region used for request signing."),
+    ConfigVar("BATCH_S3_ACCESS_KEY_ID", "batch_s3_access_key_id", "string", "", "batch.objectStore.s3.accessKeyId", "", "S3 access key id for the s3 object-store backend."),
+    ConfigVar("BATCH_S3_SECRET_ACCESS_KEY", "batch_s3_secret_access_key", "string", "", "batch.objectStore.s3.secretAccessKey", "", "S3 secret access key; source it from batch.objectStore.s3.existingSecret in production.", sensitive=True),
+    ConfigVar("BATCH_STORE_BACKEND", "batch_store_backend", "string", "memory", "batch.store.backend", "memory", "Backend for batch file/job records and the work queue.", allowed_values=("memory", "redis")),
+    ConfigVar("BATCH_REDIS_URL", "batch_redis_url", "url", "redis://budget-redis.budget.svc.cluster.local:6379/2", "batch.store.redisUrl", "redis://budget-redis.budget.svc.cluster.local:6379/2", "Redis URL for the shared batch store + queue when backend is redis."),
+    ConfigVar("BATCH_REDIS_TIMEOUT_SECONDS", "batch_redis_timeout_seconds", "float", 0.5, "batch.store.redisTimeoutSeconds", "0.5", "Redis batch-store operation timeout in seconds."),
+    ConfigVar("BATCH_KEY_PREFIX", "batch_key_prefix", "string", "private-ai-platform-kit:batch", "batch.store.keyPrefix", "private-ai-platform-kit:batch", "Redis key prefix for batch records, indexes, and the work queue."),
+    ConfigVar("BATCH_MAX_FILE_BYTES", "batch_max_file_bytes", "integer", 104857600, "batch.maxFileBytes", 104857600, "Maximum size in bytes of an uploaded batch input file."),
+    ConfigVar("BATCH_MAX_REQUESTS_PER_BATCH", "batch_max_requests_per_batch", "integer", 50000, "batch.maxRequestsPerBatch", 50000, "Maximum number of request lines in a batch input file."),
+    ConfigVar("BATCH_COMPLETION_WINDOW", "batch_completion_window", "string", "24h", "batch.completionWindow", "24h", "Completion window honored as an expiry bound (e.g. 24h, 30m)."),
+    ConfigVar("BATCH_RETENTION_SECONDS", "batch_retention_seconds", "integer", 604800, "batch.retentionSeconds", 604800, "Retention horizon in seconds for completed batches and their files before GC."),
 )
 
 RAG_VARS = (

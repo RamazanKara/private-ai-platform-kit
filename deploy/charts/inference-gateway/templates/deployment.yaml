@@ -195,6 +195,45 @@ spec:
               value: {{ .Values.observability.tracing.otlpEndpoint | quote }}
             - name: OTEL_SERVICE_NAME
               value: {{ .Values.observability.tracing.serviceName | quote }}
+            - name: BATCH_API_ENABLED
+              value: {{ .Values.batch.enabled | quote }}
+            - name: BATCH_OBJECT_STORE_BACKEND
+              value: {{ .Values.batch.objectStore.backend | quote }}
+            - name: BATCH_OBJECT_STORE_ROOT
+              value: {{ .Values.batch.objectStore.root | quote }}
+            - name: BATCH_S3_ENDPOINT_URL
+              value: {{ .Values.batch.objectStore.s3.endpointUrl | quote }}
+            - name: BATCH_S3_BUCKET
+              value: {{ .Values.batch.objectStore.s3.bucket | quote }}
+            - name: BATCH_S3_REGION
+              value: {{ .Values.batch.objectStore.s3.region | quote }}
+            - name: BATCH_S3_ACCESS_KEY_ID
+              value: {{ .Values.batch.objectStore.s3.accessKeyId | quote }}
+            - name: BATCH_S3_SECRET_ACCESS_KEY
+              {{- if .Values.batch.objectStore.s3.existingSecret.name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.batch.objectStore.s3.existingSecret.name | quote }}
+                  key: {{ .Values.batch.objectStore.s3.existingSecret.key | quote }}
+              {{- else }}
+              value: {{ .Values.batch.objectStore.s3.secretAccessKey | quote }}
+              {{- end }}
+            - name: BATCH_STORE_BACKEND
+              value: {{ .Values.batch.store.backend | quote }}
+            - name: BATCH_REDIS_URL
+              value: {{ .Values.batch.store.redisUrl | quote }}
+            - name: BATCH_REDIS_TIMEOUT_SECONDS
+              value: {{ .Values.batch.store.redisTimeoutSeconds | quote }}
+            - name: BATCH_KEY_PREFIX
+              value: {{ .Values.batch.store.keyPrefix | quote }}
+            - name: BATCH_MAX_FILE_BYTES
+              value: {{ .Values.batch.maxFileBytes | quote }}
+            - name: BATCH_MAX_REQUESTS_PER_BATCH
+              value: {{ .Values.batch.maxRequestsPerBatch | quote }}
+            - name: BATCH_COMPLETION_WINDOW
+              value: {{ .Values.batch.completionWindow | quote }}
+            - name: BATCH_RETENTION_SECONDS
+              value: {{ .Values.batch.retentionSeconds | quote }}
           ports:
             - name: http
               containerPort: 8080

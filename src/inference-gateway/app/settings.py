@@ -70,6 +70,10 @@ OUTPUT_DEFAULT_PATTERNS: tuple[str, ...] = (
 )
 OUTPUT_GUARDRAIL_MODES = frozenset({"flag", "redact", "block"})
 
+# Batch endpoints a /v1/batches job may target (ADR 0011); mirrors OpenAI's allowed set,
+# scoped to the inference routes this gateway governs.
+BATCH_ALLOWED_ENDPOINTS = frozenset({"/v1/chat/completions", "/v1/completions", "/v1/embeddings"})
+
 
 def _float_from_env(name: str, default: float) -> float:
     raw = os.getenv(name)
@@ -118,6 +122,22 @@ def _bool_from_env(name: str, default: bool) -> bool:
     if normalized in {"0", "false", "no", "off"}:
         return False
     raise ValueError(f"{name} must be a boolean")
+
+
+def parse_completion_window(value: str) -> int:
+    """Return the batch completion window in seconds, or raise ValueError on a bad format.
+
+    Accepts a positive integer with an ``h`` (hours), ``m`` (minutes), or ``s`` (seconds)
+    suffix, e.g. ``24h``. OpenAI only documents ``24h``; the wider grammar lets local test
+    windows be short without a special case. The window is honored as an expiry bound.
+    """
+    match = re.fullmatch(r"(\d+)([hms])", value.strip())
+    if not match:
+        raise ValueError("batch_completion_window must look like '24h', '30m', or '90s'")
+    amount = int(match.group(1))
+    if amount <= 0:
+        raise ValueError("batch_completion_window must be greater than zero")
+    return amount * {"h": 3600, "m": 60, "s": 1}[match.group(2)]
 
 
 def extract_text_content(content: Any) -> str:
@@ -349,6 +369,24 @@ class Settings:
     otel_tracing_enabled: bool = False
     otel_exporter_otlp_endpoint: str = ""
     otel_service_name: str = "inference-gateway"
+    # Asynchronous Files + Batch API (ADR 0011). Off by default; enabling it requires an object
+    # store for blobs and a Redis-backed store + queue for durable job state.
+    batch_api_enabled: bool = False
+    batch_object_store_backend: str = "filesystem"
+    batch_object_store_root: str = "/var/lib/inference-gateway/batch"
+    batch_s3_endpoint_url: str = ""
+    batch_s3_bucket: str = ""
+    batch_s3_region: str = "us-east-1"
+    batch_s3_access_key_id: str = ""
+    batch_s3_secret_access_key: str = ""
+    batch_store_backend: str = "memory"
+    batch_redis_url: str = "redis://budget-redis.budget.svc.cluster.local:6379/2"
+    batch_redis_timeout_seconds: float = 0.5
+    batch_key_prefix: str = "private-ai-platform-kit:batch"
+    batch_max_file_bytes: int = 104857600
+    batch_max_requests_per_batch: int = 50000
+    batch_completion_window: str = "24h"
+    batch_retention_seconds: int = 604800
 
     def __post_init__(self) -> None:
         """Validate budget, auth, JWT, and runtime resilience fields after init."""
@@ -429,6 +467,23 @@ class Settings:
             raise ValueError(f"prompt_secret_patterns contains unknown patterns: {unknown_patterns}")
         if self.prompt_secret_mode not in PROMPT_SECRET_MODES:
             raise ValueError("prompt_secret_mode must be one of: block, redact, flag")
+        if self.batch_object_store_backend not in {"filesystem", "memory", "s3"}:
+            raise ValueError("batch_object_store_backend must be one of: filesystem, memory, s3")
+        if self.batch_store_backend not in {"memory", "redis"}:
+            raise ValueError("batch_store_backend must be either 'memory' or 'redis'")
+        if self.batch_redis_timeout_seconds <= 0:
+            raise ValueError("batch_redis_timeout_seconds must be greater than zero")
+        if self.batch_max_file_bytes <= 0:
+            raise ValueError("batch_max_file_bytes must be greater than zero")
+        if self.batch_max_requests_per_batch <= 0:
+            raise ValueError("batch_max_requests_per_batch must be greater than zero")
+        if self.batch_retention_seconds <= 0:
+            raise ValueError("batch_retention_seconds must be greater than zero")
+        if not self.batch_key_prefix.strip():
+            raise ValueError("batch_key_prefix must not be empty")
+        if self.batch_api_enabled and self.batch_object_store_backend == "s3" and not self.batch_s3_bucket:
+            raise ValueError("batch_s3_bucket must be set when the batch object store backend is s3")
+        parse_completion_window(self.batch_completion_window)
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -552,6 +607,22 @@ class Settings:
             otel_tracing_enabled=_bool_from_env("OTEL_TRACING_ENABLED", False),
             otel_exporter_otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip(),
             otel_service_name=os.getenv("OTEL_SERVICE_NAME", "inference-gateway").strip(),
+            batch_api_enabled=_bool_from_env("BATCH_API_ENABLED", False),
+            batch_object_store_backend=os.getenv("BATCH_OBJECT_STORE_BACKEND", "filesystem").strip().lower(),
+            batch_object_store_root=os.getenv("BATCH_OBJECT_STORE_ROOT", "/var/lib/inference-gateway/batch"),
+            batch_s3_endpoint_url=os.getenv("BATCH_S3_ENDPOINT_URL", "").rstrip("/"),
+            batch_s3_bucket=os.getenv("BATCH_S3_BUCKET", "").strip(),
+            batch_s3_region=os.getenv("BATCH_S3_REGION", "us-east-1").strip(),
+            batch_s3_access_key_id=os.getenv("BATCH_S3_ACCESS_KEY_ID", ""),
+            batch_s3_secret_access_key=os.getenv("BATCH_S3_SECRET_ACCESS_KEY", ""),
+            batch_store_backend=os.getenv("BATCH_STORE_BACKEND", "memory").strip().lower(),
+            batch_redis_url=os.getenv("BATCH_REDIS_URL", "redis://budget-redis.budget.svc.cluster.local:6379/2"),
+            batch_redis_timeout_seconds=_float_from_env("BATCH_REDIS_TIMEOUT_SECONDS", 0.5),
+            batch_key_prefix=os.getenv("BATCH_KEY_PREFIX", "private-ai-platform-kit:batch"),
+            batch_max_file_bytes=_positive_int_from_env("BATCH_MAX_FILE_BYTES", 104857600),
+            batch_max_requests_per_batch=_positive_int_from_env("BATCH_MAX_REQUESTS_PER_BATCH", 50000),
+            batch_completion_window=os.getenv("BATCH_COMPLETION_WINDOW", "24h").strip(),
+            batch_retention_seconds=_positive_int_from_env("BATCH_RETENTION_SECONDS", 604800),
         )
 
     @property
