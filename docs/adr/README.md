@@ -35,6 +35,7 @@ All ADRs in this set are `Accepted` and describe the current repository.
 | [0010](0010-agent-sandbox-standard-runtime.md) | Agent-sandbox is the standard workspace runtime | Accepted |
 | [0011](0011-async-files-and-batch-api.md) | Asynchronous Files and Batch API | Accepted |
 | [0012](0012-stateful-responses-store.md) | Server-side response state for the Responses API | Accepted |
+| [0013](0013-bundled-admin-console.md) | Opt-in bundled read-only admin console | Accepted |
 
 ## Process
 

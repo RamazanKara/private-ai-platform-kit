@@ -27,6 +27,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 
 | Value | Default |
 | --- | --- |
+| `adminConsole.enabled` | `false` |
 | `admission.allowStreaming` | `true` |
 | `admission.imagePartTokenEstimate` | `768` |
 | `admission.maxCompletionTokens` | `1024` |

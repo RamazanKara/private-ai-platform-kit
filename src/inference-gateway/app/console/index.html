@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Private AI Platform Kit — Admin Console</title>
+    <style>
+      :root {
+        --bg: #0f1420; --panel: #171e2e; --panel2: #1e2740; --line: #2a3550;
+        --text: #e6ebf5; --muted: #94a3c4; --accent: #6ea8fe; --ok: #4ade80;
+        --warn: #fbbf24; --bad: #f87171; --radius: 10px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; background: var(--bg); color: var(--text);
+        font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      header { padding: 20px 24px; border-bottom: 1px solid var(--line); }
+      header h1 { margin: 0; font-size: 19px; }
+      header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+      main { max-width: 1000px; margin: 0 auto; padding: 20px 24px 48px; }
+      .conn {
+        display: grid; grid-template-columns: 2fr 2fr 1fr auto auto; gap: 10px;
+        align-items: end; background: var(--panel); border: 1px solid var(--line);
+        border-radius: var(--radius); padding: 16px; margin-bottom: 8px;
+      }
+      .conn label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+      .conn input {
+        width: 100%; background: var(--panel2); border: 1px solid var(--line);
+        color: var(--text); border-radius: 6px; padding: 8px 10px; font: inherit;
+      }
+      button {
+        background: var(--accent); color: #08101f; border: 0; border-radius: 6px;
+        padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
+      }
+      button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+      .auto { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+      .status { color: var(--muted); font-size: 13px; min-height: 20px; margin: 6px 2px 16px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+      .card h2 { margin: 0 0 12px; font-size: 14px; letter-spacing: .3px; text-transform: uppercase; color: var(--muted); }
+      .kv { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-top: 1px solid var(--line); }
+      .kv:first-of-type { border-top: 0; }
+      .kv .k { color: var(--muted); } .kv .v { font-variant-numeric: tabular-nums; }
+      .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+      .pill.ok { background: rgba(74,222,128,.15); color: var(--ok); }
+      .pill.bad { background: rgba(248,113,113,.15); color: var(--bad); }
+      .bar { height: 7px; background: var(--panel2); border-radius: 999px; overflow: hidden; margin-top: 4px; }
+      .bar > span { display: block; height: 100%; background: var(--accent); }
+      .bar > span.warn { background: var(--warn); } .bar > span.bad { background: var(--bad); }
+      .err { color: var(--bad); font-size: 13px; }
+      ul.models { margin: 0; padding-left: 0; list-style: none; }
+      ul.models li { padding: 5px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+      ul.models li:first-child { border-top: 0; }
+      pre { background: var(--panel2); border-radius: 6px; padding: 10px; overflow-x: auto; font-size: 12px; color: var(--muted); }
+      footer { color: var(--muted); font-size: 12px; margin-top: 28px; }
+      code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Private AI Platform Kit — Admin Console</h1>
+      <p>Read-only view of a sandbox's usage, budget, and approved models. No data leaves your browser but the calls you make to the gateway.</p>
+    </header>
+    <main>
+      <div class="conn">
+        <div><label for="base">Gateway base URL</label><input id="base" placeholder="(same origin)" /></div>
+        <div><label for="key">API key</label><input id="key" type="password" placeholder="X-API-Key / bearer token" /></div>
+        <div><label for="sandbox">Sandbox ID</label><input id="sandbox" value="default" /></div>
+        <button id="connect">Connect</button>
+        <label class="auto"><input id="auto" type="checkbox" /> auto-refresh</label>
+      </div>
+      <div class="status" id="status">Enter your gateway details and connect. Read-only: this console never mutates state.</div>
+      <div class="grid">
+        <section class="card" id="card-health"><h2>Health</h2><div class="body">—</div></section>
+        <section class="card" id="card-usage"><h2>Usage &amp; cost</h2><div class="body">—</div></section>
+        <section class="card" id="card-budget"><h2>Sandbox budget</h2><div class="body">—</div></section>
+        <section class="card" id="card-models"><h2>Approved models</h2><div class="body">—</div></section>
+      </div>
+      <footer>Served by the inference gateway at <code>/console</code> when <code>ADMIN_CONSOLE_ENABLED</code> is set (ADR 0013). The API key is kept only in this browser session.</footer>
+    </main>
+    <script>
+      "use strict";
+      var $ = function (id) { return document.getElementById(id); };
+      var timer = null;
+
+      function body(cardId) { return $(cardId).querySelector(".body"); }
+      function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+      function num(n) { return typeof n === "number" ? n.toLocaleString() : esc(n); }
+      function kv(k, v) { return '<div class="kv"><span class="k">' + esc(k) + '</span><span class="v">' + v + "</span></div>"; }
+      function pill(ok, text) { return '<span class="pill ' + (ok ? "ok" : "bad") + '">' + esc(text) + "</span>"; }
+
+      function settings() {
+        return { base: $("base").value.trim().replace(/\/$/, ""), key: $("key").value, sandbox: $("sandbox").value.trim() || "default" };
+      }
+      function save(s) { try { sessionStorage.setItem("pak-console", JSON.stringify({ base: s.base, sandbox: s.sandbox })); } catch (e) {} }
+      function restore() {
+        try {
+          var s = JSON.parse(sessionStorage.getItem("pak-console") || "{}");
+          if (s.base) $("base").value = s.base;
+          if (s.sandbox) $("sandbox").value = s.sandbox;
+        } catch (e) {}
+      }
+
+      async function api(path, s) {
+        var headers = { "X-Sandbox-ID": s.sandbox };
+        if (s.key) headers["X-API-Key"] = s.key;
+        var res = await fetch(s.base + path, { headers: headers });
+        var text = await res.text();
+        var data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) {}
+        if (!res.ok) throw { status: res.status, data: data };
+        return data;
+      }
+
+      function fail(cardId, err) {
+        var msg = err && err.status === 401 ? "401 — check the API key" : err && err.status ? "HTTP " + err.status : "request failed";
+        body(cardId).innerHTML = '<div class="err">' + esc(msg) + "</div>";
+      }
+
+      function renderHealth(d) {
+        var status = (d && (d.status || d.ready)) || "unknown";
+        var ok = status === "ready" || status === "ok" || d === null;
+        var html = kv("status", pill(ok, String(status)));
+        var checks = d && (d.checks || d.backends || d.dependencies);
+        if (checks && typeof checks === "object") {
+          Object.keys(checks).forEach(function (name) {
+            var c = checks[name];
+            var cok = c === true || c === "ok" || (c && (c.ok === true || c.status === "ok" || c.ready === true));
+            html += kv(name, pill(cok, cok ? "ok" : "down"));
+          });
+        }
+        body("card-health").innerHTML = html;
+      }
+
+      function renderUsage(d) {
+        if (!d) { body("card-usage").innerHTML = '<div class="err">no data</div>'; return; }
+        var u = d.usage || d;
+        var html = "";
+        ["requests", "estimated_tokens", "input_tokens", "output_tokens", "total_tokens", "prompt_chars"].forEach(function (k) {
+          if (u && typeof u[k] === "number") html += kv(k.replace(/_/g, " "), num(u[k]));
+        });
+        var cost = d.cost || (d.estimated_cost != null ? { amount: d.estimated_cost, currency: d.currency } : null);
+        if (cost && cost.amount != null) html += kv("est. cost", num(cost.amount) + " " + esc(cost.currency || ""));
+        if (!html) html = "<pre>" + esc(JSON.stringify(d, null, 2)) + "</pre>";
+        body("card-usage").innerHTML = html;
+      }
+
+      function bar(used, limit) {
+        if (!limit || limit <= 0) return "";
+        var pct = Math.min(100, Math.round((used / limit) * 100));
+        var cls = pct >= 90 ? "bad" : pct >= 70 ? "warn" : "";
+        return '<div class="bar"><span class="' + cls + '" style="width:' + pct + '%"></span></div>';
+      }
+
+      function renderBudget(d) {
+        if (!d) { body("card-budget").innerHTML = '<div class="err">no data</div>'; return; }
+        if (d.enabled === false) { body("card-budget").innerHTML = kv("enforced", pill(false, "disabled")); return; }
+        var usage = d.usage || {}, limits = d.limits || {};
+        var html = kv("backend", esc(d.backend || "—"));
+        [["requests", "requests"], ["prompt_chars", "prompt chars"], ["estimated_tokens", "est. tokens"]].forEach(function (p) {
+          var used = usage[p[0]] || 0, limit = limits[p[0]] || 0;
+          html += kv(p[1], num(used) + (limit ? " / " + num(limit) : "")) + bar(used, limit);
+        });
+        if (d.window_seconds) html += kv("window", num(d.window_seconds) + "s");
+        if (d.window_ttl_seconds != null) html += kv("resets in", num(d.window_ttl_seconds) + "s");
+        body("card-budget").innerHTML = html;
+      }
+
+      function renderModels(d) {
+        var list = (d && (d.data || d.models)) || [];
+        if (!Array.isArray(list) || !list.length) { body("card-models").innerHTML = '<div class="err">none reported</div>'; return; }
+        body("card-models").innerHTML = '<ul class="models">' + list.map(function (m) {
+          return "<li>" + esc(typeof m === "string" ? m : m.id || JSON.stringify(m)) + "</li>";
+        }).join("") + "</ul>";
+      }
+
+      async function refresh() {
+        var s = settings();
+        save(s);
+        $("status").textContent = "Refreshing…";
+        var jobs = [
+          ["/readyz", renderHealth, "card-health"],
+          ["/v1/usage", renderUsage, "card-usage"],
+          ["/v1/sandbox/budget", renderBudget, "card-budget"],
+          ["/v1/models", renderModels, "card-models"],
+        ];
+        var ok = 0;
+        await Promise.all(jobs.map(async function (j) {
+          try { j[1](await api(j[0], s)); ok++; } catch (e) { fail(j[2], e); }
+        }));
+        var now = new Date().toLocaleTimeString();
+        $("status").textContent = "Updated " + now + " — sandbox " + s.sandbox + " — " + ok + "/" + jobs.length + " panels loaded.";
+      }
+
+      function setAuto(on) {
+        if (timer) { clearInterval(timer); timer = null; }
+        if (on) timer = setInterval(refresh, 15000);
+      }
+
+      $("connect").addEventListener("click", refresh);
+      $("auto").addEventListener("change", function (e) { setAuto(e.target.checked); if (e.target.checked) refresh(); });
+      document.addEventListener("keydown", function (e) { if (e.key === "Enter") refresh(); });
+      restore();
+    </script>
+  </body>
+</html>

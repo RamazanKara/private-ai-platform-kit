@@ -16,6 +16,7 @@ from uuid import uuid4
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from pydantic import BaseModel, ConfigDict
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -451,7 +452,9 @@ def _auth_required(path: str) -> bool:
     # /readyz must stay unauthenticated alongside /healthz: it is the Kubernetes
     # readiness probe, and the kubelet cannot present an API key, so requiring
     # auth here makes the pod never become Ready when API-key auth is enabled.
-    return path not in {"/healthz", "/readyz", "/metrics", "/docs", "/openapi.json"}
+    # /console/* is the static admin console (ADR 0013): the page is public HTML/JS; the API
+    # calls it makes to /v1/* carry the operator's key and are governed like any other request.
+    return path not in {"/healthz", "/readyz", "/metrics", "/docs", "/openapi.json"} and not path.startswith("/console")
 
 
 def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
@@ -1329,6 +1332,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Server-side Responses state (ADR 0012): built only when enabled; the /v1/responses handler
     # rejects store / previous_response_id when it is None (the stateless subset).
     app.state.response_store = build_response_store(resolved) if resolved.responses_store_enabled else None
+    # Opt-in read-only admin console (ADR 0013): the gateway serves the bundled static page at
+    # /console, same-origin so its /v1 fetches need no CORS. Off by default.
+    if resolved.admin_console_enabled:
+        app.mount(
+            "/console",
+            StaticFiles(directory=os.path.join(os.path.dirname(__file__), "console"), html=True),
+            name="console",
+        )
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
     app.state.tracer_provider = tracing[1] if tracing else None

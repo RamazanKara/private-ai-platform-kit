@@ -208,6 +208,11 @@ responses:
     keyPrefix: private-ai-platform-kit:responses
     retentionSeconds: 86400
 
+# Opt-in read-only admin console served by the gateway at /console (ADR 0013). Off by default.
+# It reuses the governed read-only endpoints (usage, budget, models, health).
+adminConsole:
+  enabled: false
+
 traceability:
   auditLogEnabled: true
   defaultSandboxId: local-lab

@@ -246,6 +246,8 @@ spec:
               value: {{ .Values.responses.store.keyPrefix | quote }}
             - name: RESPONSES_RETENTION_SECONDS
               value: {{ .Values.responses.store.retentionSeconds | quote }}
+            - name: ADMIN_CONSOLE_ENABLED
+              value: {{ .Values.adminConsole.enabled | quote }}
           ports:
             - name: http
               containerPort: 8080

@@ -4,6 +4,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": false,
+      "chart_default": false,
+      "chart_value": "adminConsole.enabled",
+      "description": "Whether the read-only admin console is served at /console (ADR 0013). Off by default.",
+      "field": "admin_console_enabled",
+      "name": "ADMIN_CONSOLE_ENABLED",
+      "sensitive": false,
+      "type": "boolean"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": [
         "qwen3.5:0.8b"
       ],
