@@ -4,7 +4,22 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## v0.24.0 - 2026-07-04
+
+### Added
+
+- **Asynchronous OpenAI Files + Batch API (ADR 0011).** New `/v1/files` (upload/get/content/
+  delete/list) and `/v1/batches` (create/get/cancel/list) endpoints on the gateway, plus a
+  separate stateless `batch-processor` worker (the gateway image run with `python -m
+  app.batch_worker`) that drains a durable Redis-backed queue and replays every batched item back
+  through the gateway's governed endpoints — so the model allowlist, admission caps, prompt-secret
+  policy, per-tenant budget, output guardrail, tenant isolation, and audit chain apply per item
+  exactly as for live traffic. Blobs live in an object store (S3/MinIO, with filesystem/memory
+  backends for local runs); job state and the reliable work queue live in Redis. Successful items
+  land in the output file, everything else in the error file; cancellation and the
+  completion-window expiry are honored at item boundaries. Off by default (`BATCH_API_ENABLED`).
+  The Python SDK gains `upload_batch_file`/`create_batch`/`get_batch`/`cancel_batch`/`list_batches`
+  and file accessors. See [runbooks/batch-api.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/batch-api.md).
 
 ### Removed
 

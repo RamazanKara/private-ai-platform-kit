@@ -22,7 +22,7 @@ The cut above is scripted from real output ([scripts/demo-live.sh](scripts/demo-
 
 Under the agents sits a complete private-LLM platform: an OpenAI-compatible gateway (auth, admission, per-sandbox budgets, guardrails), vLLM and Ollama serving from the same charts, RAG with per-tenant isolation, GitOps delivery, and evidence packs an auditor can verify offline. It starts local-first on a laptop `kind` cluster and moves to customer-owned clusters with GPU nodes using the same repo layout — the operating model of a production AI platform, without depending on a specific cloud provider.
 
-Current release: `v0.23.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
+Current release: `v0.24.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
 **Who it's for:** platform / SRE teams evaluating a private-AI stack → start with the [Decision guide](docs/decision-guide.md); operators running it → [Runbooks](runbooks/README.md); security & compliance reviewers → [Security overview](docs/security-overview.md), [OWASP LLM Top 10 mapping](docs/owasp-llm-top-10-mapping.md), and the [Threat model](docs/threat-model.md).
 
@@ -46,7 +46,7 @@ See [docs/quickstart.md](docs/quickstart.md) for expected output, timing, disk n
 
 ## What You Get
 
-- **Inference gateway** — OpenAI-compatible chat, completions, embeddings, moderations, and synchronous batch-inference endpoints, plus native **Anthropic Messages** (`/v1/messages`) and **OpenAI Responses** (`/v1/responses`) so Claude- and Responses-based agents point straight at it; API-key and JWT/JWKS auth with per-tenant sandbox binding and per-key records (scopes, expiry, per-key budgets); model allowlists, admission limits, per-sandbox budgets (surfaced as OpenAI-style `x-ratelimit-*` headroom headers) and rate limiting; input prompt-secret detection (block / redact / flag, incl. cloud-provider keys) and a response-path output guardrail, with streamed responses metered and reasoning-redacted like non-streaming; OpenAI-shaped error envelopes; a shared Redis response cache; progressive delivery (canary + shadow) and cross-runtime failover; and a tamper-evident audit chain that never logs raw prompt text, with an operator verifier (`make audit-verify`) and head anchoring.
+- **Inference gateway** — OpenAI-compatible chat, completions, embeddings, moderations, and both synchronous (`/v1/batch-inference`) and asynchronous (OpenAI Files + Batch API — `/v1/files` + `/v1/batches`, drained by a separate batch-processor worker) batch endpoints, plus native **Anthropic Messages** (`/v1/messages`) and **OpenAI Responses** (`/v1/responses`) so Claude- and Responses-based agents point straight at it; API-key and JWT/JWKS auth with per-tenant sandbox binding and per-key records (scopes, expiry, per-key budgets); model allowlists, admission limits, per-sandbox budgets (surfaced as OpenAI-style `x-ratelimit-*` headroom headers) and rate limiting; input prompt-secret detection (block / redact / flag, incl. cloud-provider keys) and a response-path output guardrail, with streamed responses metered and reasoning-redacted like non-streaming; OpenAI-shaped error envelopes; a shared Redis response cache; progressive delivery (canary + shadow) and cross-runtime failover; and a tamper-evident audit chain that never logs raw prompt text, with an operator verifier (`make audit-verify`) and head anchoring.
 - **Model serving** — Ollama for laptop/`kind` and vLLM for NVIDIA or AMD GPUs from the same charts, with first-class prefix caching, FP8/AWQ quantization, guided/speculative decoding, MIG guidance, and HPA/KEDA, PodDisruptionBudgets, and topology spread.
 - **RAG** — hybrid dense + lexical retrieval with an optional cross-encoder reranker and per-tenant retrieval isolation enforced by default on both backends (fail-closed on an unresolved tenant), plus optional RAG-side audience-bound token verification so the tenant comes from a verified claim rather than a trusted header; a local lexical profile or a persistent Qdrant vector store; RAGAS-style faithfulness and context-precision evals.
 - **Coding-agent workspaces** — hardened kubernetes-sigs/agent-sandbox pods as the standard runtime (ADR 0010) inside locked-down namespaces with PVC storage, RBAC, quotas, default-deny networking, catalog-approved egress, and gated RAG access; kernel-isolation runtime-class support, short-lived audience-bound workspace credentials instead of long-lived secrets, and per-action allow/deny receipts on the tamper-evident audit chain — demoed end-to-end with a real coding agent via `make agent-sandbox-demo`.
@@ -96,7 +96,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.23.0 \
+  CUSTOMER_REVISION=v0.24.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 

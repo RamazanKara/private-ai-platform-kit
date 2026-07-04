@@ -27,6 +27,7 @@ Operational procedures, incident playbooks, and governance runbooks for Private 
 | [Budget controls](budget-controls.md) | Redis-backed sandbox spend/abuse budgets |
 | [Evaluation harness](evaluation-harness.md) | Run and interpret eval suites |
 | [End-user chat UI](chat-ui.md) | Put a self-hosted Open WebUI chat frontend in front of the gateway |
+| [Async batch API](batch-api.md) | Operate the async Files + Batch API and the batch-processor worker |
 
 ## Governance & evidence
 

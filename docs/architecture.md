@@ -34,10 +34,14 @@ Every profile deploys the same Argo CD `Application` set (`deploy/clusters/local
 The inference gateway is the single ingress point for model traffic. It exposes an
 OpenAI-compatible API on port `8080`: `POST /v1/chat/completions`, `POST /v1/completions`,
 `POST /v1/embeddings`, `POST /v1/moderations`, `POST /v1/batch-inference`, the native `POST /v1/messages`
-(Anthropic Messages) and `POST /v1/responses` (OpenAI Responses) surfaces, `GET /v1/models`,
-`GET /v1/usage`, and `GET /v1/sandbox/budget`, plus unauthenticated `/healthz`, `/readyz`,
+(Anthropic Messages) and `POST /v1/responses` (OpenAI Responses) surfaces, the asynchronous
+OpenAI Files + Batch API (`/v1/files`, `/v1/batches`), `GET /v1/models`, `GET /v1/usage`, and
+`GET /v1/sandbox/budget`, plus unauthenticated `/healthz`, `/readyz`,
 and `/metrics` (`src/inference-gateway/app/main.py`). Every business endpoint runs the same
-governance path and returns OpenAI-shaped error envelopes. Cross-cutting controls applied to
+governance path and returns OpenAI-shaped error envelopes. The async batch subsystem
+(ADR 0011) adds an object store for the JSONL blobs, a Redis-backed job store + queue, and a
+separate stateless `batch-processor` worker that replays each batched item back through the
+gateway so governance stays single-sourced. Cross-cutting controls applied to
 every request:
 
 - **Authentication.** API-key auth is enabled by default via the `X-API-Key` header; the gateway

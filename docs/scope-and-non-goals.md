@@ -1,6 +1,6 @@
 # Scope and Non-Goals
 
-This document draws an explicit boundary around what Private AI Platform Kit (v0.23.0) is and is not,
+This document draws an explicit boundary around what Private AI Platform Kit (v0.24.0) is and is not,
 and then maps the controls it ships to the six AWS Well-Architected pillars. Use it to set
 expectations before adoption and to sanity-check that the operator-owned gaps are understood.
 
@@ -96,7 +96,9 @@ The gateway implements the **OpenAI chat-completions** protocol and a governed s
 it (`/v1/chat/completions`, `/v1/completions` legacy text completions, the native Anthropic
 `/v1/messages` Messages API, the OpenAI `/v1/responses` Responses API (stateless subset),
 `/v1/embeddings`, `/v1/moderations` against the governance taxonomy, `/v1/models`, a
-synchronous `/v1/batch-inference` fan-out, and the platform's own `/v1/usage` and
+synchronous `/v1/batch-inference` fan-out, the asynchronous OpenAI Files + Batch API
+(`/v1/files`, `/v1/batches`) processed by a separate batch-processor worker that replays each
+item through the same governance path, and the platform's own `/v1/usage` and
 `/v1/sandbox/budget`). The Anthropic `/v1/messages` and OpenAI `/v1/responses` endpoints are
 each translated to and from the internal OpenAI chat shape and run through the **same**
 governance path as chat (allowlist, admission, prompt-secret policy, budget, output guardrail,
@@ -109,12 +111,14 @@ not have to diff the route list, the following are **not** implemented:
   non-streaming this release). Server-side response state is out of scope: a request with
   `store: true` or `previous_response_id` is rejected with `stateful_not_supported` rather
   than silently ignored, and background/streaming response objects are not implemented.
-- **OpenAI asynchronous file-batch API** (OpenAI's real `/v1/batches` with a batch id, JSONL
-  input files, status polling, result-file retrieval, and cancellation). The gateway's
-  `/v1/batch-inference` is a *synchronous* fan-out named deliberately apart from `/v1/batches`
-  precisely so it is not mistaken for the OpenAI file-batch API.
-- **Files** (`/v1/files`), **Audio** (`/v1/audio/*` transcription/TTS), **Images**
-  (`/v1/images/*`), and **fine-tuning** (`/v1/fine_tuning/*`).
+- **The stateful/scheduling surface of the OpenAI Batch API.** `/v1/batches` is implemented
+  (file upload, async processing, status polling, output/error files, cancellation), but the
+  `completion_window` is honored as an *expiry* bound rather than a scheduling SLA, there is no
+  50% batch cost discount (self-hosted compute), the batchable endpoints are chat/completions/
+  embeddings, and streaming batch output is out of scope. The object store (S3/MinIO) is
+  operator-provided.
+- **Audio** (`/v1/audio/*` transcription/TTS), **Images** (`/v1/images/*`), and **fine-tuning**
+  (`/v1/fine_tuning/*`).
 
 Streaming is supported on `/v1/chat/completions`, but not on `/v1/completions`, the native
 `/v1/messages` endpoint, or `/v1/responses` in this release (send `stream: false`, or use

@@ -1,6 +1,6 @@
 # 0011. Asynchronous Files and Batch API
 
-- Status: Proposed (decision committed; phased rollout in progress — flips to Accepted when the subsystem ships)
+- Status: Accepted
 - Date: 2026-07-04
 - Deciders: Platform maintainer
 
@@ -52,16 +52,18 @@ horizontally-safe subsystem. State is externalized so the gateway stays stateles
 - **Object store (S3 / MinIO)** holds the JSONL blobs — input, output, and error files — keyed by
   tenant and file id. Blobs do not belong in Redis.
 - **Redis** holds file metadata, batch job records (status, `request_counts`, file ids,
-  timestamps, `completion_window`, `metadata`), and the **durable work queue** as a Redis Stream
-  with a consumer group. Redis is already a platform dependency (`budget-redis`), speaks atomic
-  state transitions, and Streams give at-least-once delivery with multi-worker fan-out and
-  crashed-consumer recovery (`XAUTOCLAIM`). AOF persistence makes the queue durable.
+  timestamps, `completion_window`, `metadata`), and the **durable work queue** as a reliable
+  Redis list pair — a `pending` list plus a `processing` list with a claim-time hash the reaper
+  reads. Redis is already a platform dependency (`budget-redis`) and this uses only single atomic
+  commands (`RPOPLPUSH`, `LREM`, `LPUSH`, `HSET`/`HDEL`) — no Lua or multi/exec to reason about.
+  AOF persistence makes the queue durable.
 
 **Processing (`batch-processor`, a new stateless Deployment).**
 
-- Consumes the Redis Stream via a consumer group — each batch is claimed by exactly one worker;
-  `XAUTOCLAIM` re-delivers batches whose worker died. All worker state lives in Redis and the
-  object store, so the Deployment scales horizontally and restarts freely.
+- Claims a batch with an atomic `RPOPLPUSH` from the `pending` list to the `processing` list —
+  each batch is owned by exactly one worker; a reaper re-queues batches whose claim has been idle
+  past a threshold (crashed-worker recovery). All worker state lives in Redis and the object
+  store, so the Deployment scales horizontally and restarts freely.
 - For each batch: transition `validating → in_progress`; stream the input file line by line; for
   each line **replay the request against the gateway's own governed HTTP endpoint** (e.g.
   `POST /v1/chat/completions`) carrying the batch's tenant/sandbox identity and a service
@@ -76,7 +78,9 @@ horizontally-safe subsystem. State is externalized so the gateway stays stateles
   partial output and sets `cancelled`. **Expiry**: a batch not finished within its
   `completion_window` is swept to `expired` by a reaper loop, which also reclaims orphaned work.
 - **At-least-once** delivery is made safe by idempotent output writes (deterministic object keys
-  per batch) and `XACK` only after the output/error files are durably written.
+  per batch) and by removing the batch from the `processing` list only after the output/error
+  files are durably written; a redelivered batch is a no-op because processing checks for a
+  terminal state first.
 
 **Object-store access.** A minimal in-tree S3 client (SigV4 request signing over the existing
 `httpx` + `cryptography` HMAC, path-style addressing for MinIO) behind an `ObjectStore`
@@ -113,7 +117,7 @@ coverage` + `make production-check`):
    config/api contracts scaffolding. No externally visible behavior.
 2. **Files API** — `/v1/files` endpoints over the object store + Redis metadata, size/line caps.
 3. **Batches API (state)** — `/v1/batches` create/get/cancel/list, job records, enqueue to the
-   Stream; batches reach `in_progress` but are not yet processed.
+   queue; batches reach `in_progress` but are not yet processed.
 4. **`batch-processor` worker** — the Deployment: consume, replay through the gateway, write
    output/error files, update counts/status, cancellation, expiry/reaper, crash recovery.
 5. **Governance & hardening** — per-item budget/audit correctness, tenant-isolation enforcement in
@@ -143,5 +147,5 @@ coverage` + `make production-check`):
   consistent with how the repo hand-rolls primitives (ADR 0006). If the signing surface grows
   beyond object PUT/GET/DELETE/list, this can be revisited.
 - **Postgres (or another RDBMS) for job state.** Robust and queryable, but adds a new stateful
-  dependency when Redis — already present — covers small job records plus a durable Streams queue.
+  dependency when Redis — already present — covers small job records plus a durable list-based queue.
   Rejected to avoid new infrastructure; revisit if batch metadata grows relational query needs.
