@@ -80,6 +80,14 @@ CONTRACTS = {
                 "post",
                 request_schema="BatchRequest",
             ),
+            # Asynchronous OpenAI Files + Batch API (ADR 0011). Every route is auth-required and
+            # tenant-scoped; multi-method paths contract their primary method here.
+            "/v1/files": RouteContract("post"),
+            "/v1/files/{file_id}": RouteContract("get"),
+            "/v1/files/{file_id}/content": RouteContract("get"),
+            "/v1/batches": RouteContract("post", request_schema="CreateBatchRequest"),
+            "/v1/batches/{batch_id}": RouteContract("get"),
+            "/v1/batches/{batch_id}/cancel": RouteContract("post"),
         },
         protected_paths=frozenset({
             "/v1/models",
@@ -92,6 +100,12 @@ CONTRACTS = {
             "/v1/embeddings",
             "/v1/moderations",
             "/v1/batch-inference",
+            "/v1/files",
+            "/v1/files/{file_id}",
+            "/v1/files/{file_id}/content",
+            "/v1/batches",
+            "/v1/batches/{batch_id}",
+            "/v1/batches/{batch_id}/cancel",
         }),
         required_schemas={
             "ChatCompletionRequest": {

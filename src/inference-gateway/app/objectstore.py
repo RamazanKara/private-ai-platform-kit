@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 class ObjectNotFound(KeyError):
@@ -117,6 +117,24 @@ class FilesystemObjectStore:
                 if rel.startswith(prefix):
                     keys.append(rel)
         return sorted(keys)
+
+
+def build_object_store(settings: Any) -> ObjectStore:
+    """Return the object store for the configured batch backend.
+
+    ``memory`` and ``filesystem`` need no external service; ``s3`` uses the minimal in-tree
+    S3 client (imported lazily so the dependency-free backends carry no import cost).
+    """
+    backend = settings.batch_object_store_backend
+    if backend == "memory":
+        return MemoryObjectStore()
+    if backend == "filesystem":
+        return FilesystemObjectStore(settings.batch_object_store_root)
+    if backend == "s3":
+        from app.objectstore_s3 import S3ObjectStore
+
+        return S3ObjectStore(settings)
+    raise ValueError(f"unknown batch_object_store_backend: {backend}")
 
 
 def _validate_key(key: str) -> None:

@@ -20,6 +20,8 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, ge
 from pydantic import BaseModel, ConfigDict
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.batch_api import register_batch_routes
+from app.batchstore import build_batch_store
 from app.budget import (
     BudgetBackendError,
     BudgetReservation,
@@ -34,6 +36,7 @@ from app.messages import (
     anthropic_to_chat_payload,
     chat_completion_to_anthropic,
 )
+from app.objectstore import build_object_store
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
 from app.responses import (
@@ -1230,6 +1233,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # per-key controls. No records file -> an empty set, preserving flat-hash behavior.
     app.state.key_record_set = KeyRecordSet.from_path(resolved.api_key_records_path)
     app.state.jwt_verifier = JwtVerifier(resolved)
+    # Async batch subsystem (ADR 0011): build the blob object store and the file/batch record
+    # store + queue only when enabled, then register the /v1/files and /v1/batches routes. The
+    # routes are always registered (stable OpenAPI) but 404 unless BATCH_API_ENABLED is set.
+    app.state.object_store = build_object_store(resolved) if resolved.batch_api_enabled else None
+    app.state.batch_store = build_batch_store(resolved) if resolved.batch_api_enabled else None
+    register_batch_routes(app, resolved)
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
     app.state.tracer_provider = tracing[1] if tracing else None
