@@ -227,6 +227,62 @@ class GatewayClient:
         """Process a batch of chat-completion requests in one call (synchronous fan-out)."""
         return self._post("/v1/batch-inference", {"requests": requests})
 
+    # --- Asynchronous Files + Batch API (requires BATCH_API_ENABLED on the gateway) ---
+
+    def upload_batch_file(self, content: bytes, filename: str = "batch.jsonl") -> dict[str, Any]:
+        """Upload a JSONL input file (purpose='batch') and return the file object."""
+        return self._request(
+            "POST", "/v1/files", files={"file": (filename, content, "application/jsonl")}, data={"purpose": "batch"}
+        ).json()
+
+    def get_file(self, file_id: str) -> dict[str, Any]:
+        """Retrieve a file object by id."""
+        return self._request("GET", f"/v1/files/{file_id}").json()
+
+    def get_file_content(self, file_id: str) -> bytes:
+        """Download raw file content (e.g. a batch output or error file)."""
+        return self._request("GET", f"/v1/files/{file_id}/content").content
+
+    def list_files(self) -> dict[str, Any]:
+        """List uploaded files for this sandbox."""
+        return self._request("GET", "/v1/files").json()
+
+    def delete_file(self, file_id: str) -> dict[str, Any]:
+        """Delete a file by id."""
+        return self._request("DELETE", f"/v1/files/{file_id}").json()
+
+    def create_batch(
+        self,
+        input_file_id: str,
+        endpoint: str = "/v1/chat/completions",
+        completion_window: str = "24h",
+        metadata: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Create an asynchronous batch from an uploaded input file; returns the batch object."""
+        body: dict[str, Any] = {
+            "input_file_id": input_file_id,
+            "endpoint": endpoint,
+            "completion_window": completion_window,
+        }
+        if metadata is not None:
+            body["metadata"] = metadata
+        return self._post("/v1/batches", body)
+
+    def get_batch(self, batch_id: str) -> dict[str, Any]:
+        """Retrieve a batch object by id (poll its status)."""
+        return self._request("GET", f"/v1/batches/{batch_id}").json()
+
+    def cancel_batch(self, batch_id: str) -> dict[str, Any]:
+        """Request cancellation of an in-progress batch."""
+        return self._request("POST", f"/v1/batches/{batch_id}/cancel").json()
+
+    def list_batches(self, limit: int = 20, after: str | None = None) -> dict[str, Any]:
+        """List batches for this sandbox, most recent first."""
+        params: dict[str, Any] = {"limit": limit}
+        if after is not None:
+            params["after"] = after
+        return self._request("GET", "/v1/batches", params=params).json()
+
     def models(self) -> dict[str, Any]:
         """List the approved private models the gateway will route to."""
         return self._request("GET", "/v1/models").json()

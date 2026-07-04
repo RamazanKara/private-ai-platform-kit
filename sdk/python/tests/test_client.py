@@ -202,3 +202,46 @@ def test_sandbox_budget_hits_budget_path_with_platform_headers(monkeypatch):
     with GatewayClient("http://gateway.test", api_key="secret", sandbox_id="demo") as client:
         assert client.sandbox_budget() == {"usage": {"estimated_tokens": 7}}
     assert seen == {"path": "/v1/sandbox/budget", "sandbox": "demo", "auth": "Bearer secret"}
+
+
+def test_upload_file_and_create_batch(monkeypatch):
+    seen = {}
+
+    def handler(request):
+        seen[request.url.path] = request.method
+        if request.url.path == "/v1/files":
+            return httpx.Response(200, json={"id": "file-1", "object": "file", "purpose": "batch"})
+        if request.url.path == "/v1/batches":
+            return httpx.Response(200, json={"id": "batch-1", "object": "batch", "status": "validating"})
+        return httpx.Response(404)
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test", sandbox_id="team-a")
+    assert client.upload_batch_file(b'{"custom_id":"a"}\n')["id"] == "file-1"
+    batch = client.create_batch("file-1", metadata={"k": "v"})
+    assert batch["id"] == "batch-1" and batch["status"] == "validating"
+    assert seen == {"/v1/files": "POST", "/v1/batches": "POST"}
+
+
+def test_batch_lifecycle_and_file_accessors(monkeypatch):
+    def handler(request):
+        path = request.url.path
+        if path == "/v1/batches/batch-1":
+            return httpx.Response(200, json={"id": "batch-1", "status": "completed", "output_file_id": "file-out"})
+        if path == "/v1/batches/batch-1/cancel":
+            return httpx.Response(200, json={"id": "batch-1", "status": "cancelling"})
+        if path == "/v1/batches":
+            return httpx.Response(200, json={"object": "list", "data": []})
+        if path == "/v1/files/file-out/content":
+            return httpx.Response(200, content=b'{"custom_id":"a"}\n')
+        if path == "/v1/files/file-out":
+            return httpx.Response(200, json={"id": "file-out", "object": "file", "deleted": True})
+        return httpx.Response(404)
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test")
+    assert client.get_batch("batch-1")["output_file_id"] == "file-out"
+    assert client.cancel_batch("batch-1")["status"] == "cancelling"
+    assert client.list_batches(limit=5)["object"] == "list"
+    assert client.get_file_content("file-out") == b'{"custom_id":"a"}\n'
+    assert client.delete_file("file-out")["deleted"] is True
