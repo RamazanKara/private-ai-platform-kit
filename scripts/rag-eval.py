@@ -49,7 +49,7 @@ def context_precision_at_k(retrieved: list[str], relevant: list[str], k: int) ->
     """Fraction of the top-k retrieved documents that are relevant (precision@k).
 
     Complements recall@k: recall asks "did we find the relevant docs", precision asks
-    "how much of what we returned was on-topic" — a RAGAS-style context-precision proxy.
+    "how much of what we returned was on-topic", a RAGAS-style context-precision proxy.
     """
     top = retrieved[:k]
     if not top:

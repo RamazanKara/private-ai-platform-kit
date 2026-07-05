@@ -1,4 +1,4 @@
-# Self-hosted chat UI in front of the gateway (DOCUMENTED EXAMPLE — not rendered by validate).
+# Self-hosted chat UI in front of the gateway (DOCUMENTED EXAMPLE, not rendered by validate).
 #
 # The kit is API-only. This example puts a self-hosted end-user chat UI (Open WebUI, the common
 # choice) in front of the inference gateway so a human can actually type into a chat box, while
@@ -8,7 +8,7 @@
 #
 # WHY THIS IS AN EXAMPLE, NOT A SHIPPED/RENDERED MANIFEST:
 #   - A human-facing chat UI is a separate product surface. The kit's non-goal list is explicit:
-#     "No admin/usage console UI" — the UI is operator-owned, exactly like the admin-console
+#     "No admin/usage console UI": the UI is operator-owned, exactly like the admin-console
 #     non-goal (see docs/scope-and-non-goals.md). Shipping and supporting a UI would cross the
 #     kit's "manifests, charts, service code, validation tooling, runbooks" boundary.
 #   - The image tag, storage, ingress/TLS, and human SSO wiring are all environment-specific.
@@ -19,7 +19,7 @@
 # ADAPT BEFORE APPLYING:
 #   - Pin `image:` to a digest you have scanned and mirrored (do not float `:main`).
 #   - Create the api-key Secret from a real gateway key hash-listed in auth.apiKeyHashes.
-#   - Decide the X-Sandbox-ID story (see the ConfigMap + runbook note below) — Open WebUI sends
+#   - Decide the X-Sandbox-ID story (see the ConfigMap + runbook note below). Open WebUI sends
 #     one bearer token, so all its traffic lands in ONE sandbox unless you inject per-user headers.
 #   - Add an Ingress + TLS and wire human SSO (Open WebUI OIDC) to the same IdP as Grafana/Argo CD.
 #   - Replace <NAMESPACE> where the UI runs (examples use `chat-ui`).
@@ -35,7 +35,7 @@ metadata:
     pod-security.kubernetes.io/warn: restricted
 ---
 # The gateway API key the UI presents. Create it from a key whose SHA-256 is in the gateway's
-# auth.apiKeyHashes (or a key record). NEVER commit a real key — source it from your secret
+# auth.apiKeyHashes (or a key record). NEVER commit a real key; source it from your secret
 # manager via External Secrets. Placeholder value shown for shape only.
 apiVersion: v1
 kind: Secret
@@ -70,7 +70,7 @@ data:
   #       UI's API key to a sandbox via a key record) so every UI request lands in a known,
   #       budgeted sandbox. Simplest; correct when the UI is one team's shared workspace.
   #   (b) Per-connection header: newer Open WebUI lets you add custom headers per OpenAI
-  #       connection — set `X-Sandbox-ID: <sandbox>` there for a fixed sandbox.
+  #       connection, set `X-Sandbox-ID: <sandbox>` there for a fixed sandbox.
   #   (c) Per-user sandboxes: front the gateway with a small header-stamping proxy that maps the
   #       authenticated Open WebUI user (from its OIDC session) to an X-Sandbox-ID, so each human
   #       is metered separately. This is the only option that gives per-user budgets/attribution.
@@ -156,7 +156,7 @@ spec:
       targetPort: http
 ---
 # Default-deny egress for the UI namespace, then allow ONLY DNS and the gateway. This keeps a
-# compromised UI from reaching the runtimes, Redis, or the internet directly — all model traffic
+# compromised UI from reaching the runtimes, Redis, or the internet directly; all model traffic
 # must go through the gateway's controls. Requires a policy-capable CNI to enforce.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

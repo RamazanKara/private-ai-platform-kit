@@ -17,14 +17,14 @@ repo). Use this runbook to read the findings and decide what to fix.
 
 Score each finding by exploitability, not just the raw number. Work top-down:
 
-1. **Critical / high-risk checks first** — `Dangerous-Workflow`, `Token-Permissions`,
+1. **Critical / high-risk checks first**: `Dangerous-Workflow`, `Token-Permissions`,
    `Branch-Protection`, `Binary-Artifacts`. A failing `Dangerous-Workflow` or broad
    `Token-Permissions` is a real, fixable supply-chain risk and should be handled same-day.
-2. **Build-integrity checks** — `Pinned-Dependencies`, `Signed-Releases`, `Vulnerabilities`,
+2. **Build-integrity checks**: `Pinned-Dependencies`, `Signed-Releases`, `Vulnerabilities`,
    `Dependency-Update-Tool`. This repo already pins GitHub Actions by tag/digest, pins Python with
    hashed lockfiles, signs images with Cosign, and gates on Trivy, so these should stay green;
    investigate any regression as a pinning or lockfile drift.
-3. **Process checks** — `Code-Review`, `Maintained`, `CI-Tests`, `Fuzzing`, `SAST`,
+3. **Process checks**: `Code-Review`, `Maintained`, `CI-Tests`, `Fuzzing`, `SAST`,
    `Security-Policy`. `SAST` is satisfied by the [CodeQL workflow](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/.github/workflows/codeql.yml);
    `Security-Policy` by [SECURITY.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/SECURITY.md).
 

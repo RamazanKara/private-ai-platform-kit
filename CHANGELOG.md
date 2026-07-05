@@ -9,8 +9,8 @@ All notable changes to this project are documented in this file. The format is b
 ### Added
 
 - **Opt-in read-only admin console (ADR 0013).** The gateway can serve a self-contained static
-  console at `/console` (`ADMIN_CONSOLE_ENABLED`, off by default) — vanilla HTML/JS with no build
-  step and no external resources — that renders a sandbox's health, usage/cost, budget, and
+  console at `/console` (`ADMIN_CONSOLE_ENABLED`, off by default). It is vanilla HTML/JS with no build
+  step and no external resources, and renders a sandbox's health, usage/cost, budget, and
   approved models over the existing read-only endpoints. Served same-origin (no CORS); the page
   is public while the `/v1` calls it makes carry the operator's API key and stay fully governed.
 
@@ -24,7 +24,7 @@ All notable changes to this project are documented in this file. The format is b
   stateless runtime is shown the full history), and `GET`/`DELETE /v1/responses/{id}` plus
   `GET /v1/responses/{id}/input_items` retrieve and manage stored responses. Tenant-scoped and
   TTL-bounded, on a Memory or Redis backend. Every stateful request still runs the full chat
-  governance path. **Off by default** — storing responses persists raw conversation content, kept
+  governance path. **Off by default**, because storing responses persists raw conversation content, kept
   distinct from the redacted audit chain; when disabled, `store`/`previous_response_id` are rejected
   with `stateful_not_supported` as before. The Python SDK gains `create_response`, `get_response`,
   `delete_response`, and `response_input_items`.
@@ -37,7 +37,7 @@ All notable changes to this project are documented in this file. The format is b
   delete/list) and `/v1/batches` (create/get/cancel/list) endpoints on the gateway, plus a
   separate stateless `batch-processor` worker (the gateway image run with `python -m
   app.batch_worker`) that drains a durable Redis-backed queue and replays every batched item back
-  through the gateway's governed endpoints — so the model allowlist, admission caps, prompt-secret
+  through the gateway's governed endpoints, so the model allowlist, admission caps, prompt-secret
   policy, per-tenant budget, output guardrail, tenant isolation, and audit chain apply per item
   exactly as for live traffic. Blobs live in an object store (S3/MinIO, with filesystem/memory
   backends for local runs); job state and the reliable work queue live in Redis. Successful items
@@ -55,7 +55,7 @@ All notable changes to this project are documented in this file. The format is b
 ### Changed
 
 - Collapsed the two output-guardrail code paths (chat `message.content` and legacy-completion
-  `text`) into one parameterized scanner — identical redact/flag/block behavior, less duplication.
+  `text`) into one parameterized scanner with identical redact/flag/block behavior and less duplication.
 
 ### Security
 
@@ -69,7 +69,7 @@ All notable changes to this project are documented in this file. The format is b
   (pytest-cov) tooling: both are now installed with `--require-hashes` from pinned locks.
 - Header-validation rejections on the gateway and RAG service are now logged server-side for
   triage. The actionable `400` message returned to the caller (e.g. the sandbox-id charset
-  rule) is unchanged — these are controlled validation strings, not exception internals.
+  rule) is unchanged; these are controlled validation strings, not exception internals.
 
 ## v0.23.0 - 2026-07-03
 
@@ -297,7 +297,7 @@ hardened runtime.
 
 - The gateway reports sandbox budget headroom on inference responses with
   OpenAI-style `x-ratelimit-limit-requests` / `x-ratelimit-remaining-requests` /
-  `x-ratelimit-limit-tokens` / `x-ratelimit-remaining-tokens` headers — the
+  `x-ratelimit-limit-tokens` / `x-ratelimit-remaining-tokens` headers, the
   headers agent frameworks and SDK middleware already parse. Each dimension is
   emitted only when a budget limit is configured, remaining counts floor at
   zero, and cache hits (which reserve nothing) omit them. Documented in the
@@ -313,7 +313,7 @@ hardened runtime.
 
 - The Python SDK fails fast with a typed `GatewayRetryAfterError` (an
   `httpx.HTTPStatusError` subclass carrying `retry_after`) when the gateway
-  advertises a `Retry-After` beyond `retry_after_cap` — retrying sooner cannot
+  advertises a `Retry-After` beyond `retry_after_cap`: retrying sooner cannot
   succeed, so the client no longer burns capped sleeps against an exhausted
   budget window. Delays at or under the cap keep the sleep-and-retry behavior.
 - The gateway's streaming path no longer JSON-parses every SSE delta chunk
@@ -321,8 +321,8 @@ hardened runtime.
   the parse for the hundreds of delta events per completion that cannot carry
   it.
 - The architecture diagrams (all four profiles) and the component table now
-  show the hardened agent-sandbox runtime and its controller — the README's
-  headline control was previously invisible in every diagram — and the
+  show the hardened agent-sandbox runtime and its controller (the README's
+  headline control was previously invisible in every diagram), and the
   local-lab CNI guidance points at the shipped `LOCAL_CNI=calico` path instead
   of hand-rolled kind config.
 
@@ -331,7 +331,7 @@ hardened runtime.
 - The quickstart's "What just happened" recap now matches what
   `make quickstart` actually runs: the agent-sandbox controller install step
   was missing, and `QUICKSTART_DIRECT_APPLY=1` replaces only the Argo
-  bootstrap — sync still runs, as a direct Helm apply. The "Keep exploring"
+  bootstrap; sync still runs, as a direct Helm apply. The "Keep exploring"
   list gains `make agent-sandbox-smoke` and realigned comments.
 - The docs-site landing page now leads with the hardened workspace runtime,
   and the glossary disambiguates the three colliding "sandbox" usages: the
@@ -349,7 +349,7 @@ hygiene guard against stale `make` targets in the docs.
 
 - The hardened agent-sandbox runtime is the standard and only workspace runtime:
   the `sandbox.runtime` toggle is gone, the agent-workspace chart always renders
-  the hardened Sandbox, and the controller is a platform prerequisite — a new
+  the hardened Sandbox, and the controller is a platform prerequisite: a new
   `agent-sandbox-controller` Argo CD Application in both overlays (server-side
   apply, early sync wave) and an install step in quickstart.
 - The short-lived projected workspace credential is enabled by default.
@@ -364,8 +364,8 @@ hygiene guard against stale `make` targets in the docs.
 - `C-ISOLATE` is mandated at every risk tier, and live evidence packs fail when
   the agent-sandbox controller is absent instead of recording an unclaimed
   control.
-- The RAG service reuses one pooled `httpx.AsyncClient` per component — Qdrant
-  retriever, OpenAI-compatible embedding provider, and reranker — instead of
+- The RAG service reuses one pooled `httpx.AsyncClient` per component (Qdrant
+  retriever, OpenAI-compatible embedding provider, and reranker) instead of
   opening a fresh TCP connection per request (the pattern the gateway's
   `RuntimeClient` already uses), closes the pools on shutdown, and no longer
   tokenizes over-fetched Qdrant candidates whose token counts were never read.
@@ -399,7 +399,7 @@ hygiene guard against stale `make` targets in the docs.
   Hub). A long-lived lab never exposed any of this.
 - `make agent-sandbox-install` server-side-applies with `--force-conflicts` so
   it stays idempotent next to the Argo-managed controller Application, and the
-  demo pins the aider image tag — the platform's own `block-latest-tags`
+  demo pins the aider image tag, because the platform's own `block-latest-tags`
   policy (correctly) denies tag-less images at admission.
 - The traceability runbook and the recorded quickstart output no longer
   instruct the removed `make sandbox-smoke`, and `make help` now lists
@@ -439,7 +439,7 @@ kubernetes-sigs/agent-sandbox (ADR 0009).
   evidence pack gained static agent-sandbox asset checks and a live controller check;
   threat model documents the agent-workspace isolation boundary.
 - Agent-action receipts: gateway audit events now carry `action_type`, `decision`
-  (`allowed`/`denied` — covering admission rejects, budget exhaustion, and guardrail
+  (`allowed`/`denied`, covering admission rejects, budget exhaustion, and guardrail
   blocks, with the reason in `error`), and `guardrail_action`, turning the
   tamper-evident chain into a per-action receipt stream for sandbox workloads.
 - Short-lived workspace credential (`workspace.credentials.projectedToken`): an
@@ -626,7 +626,7 @@ gateway, RAG, deployment, and governance surfaces.
 
 ## v0.10.0 - 2026-06-29
 
-A documentation and repository-structure release. No runtime, chart, or API behavior changes — the deployed artifacts are functionally identical to `v0.9.0`; only the documentation, the repository layout, and the version string changed. Adopters who reference repository paths directly (rather than through the pinned Argo CD applications) must update them — see the migration note below.
+A documentation and repository-structure release. No runtime, chart, or API behavior changes: the deployed artifacts are functionally identical to `v0.9.0`; only the documentation, the repository layout, and the version string changed. Adopters who reference repository paths directly (rather than through the pinned Argo CD applications) must update them (see the migration note below).
 
 ### Added
 
@@ -645,7 +645,7 @@ A documentation and repository-structure release. No runtime, chart, or API beha
 
 ### Migration
 
-- Repository paths changed: `charts/<x>` → `deploy/charts/<x>`, `clusters/` → `deploy/clusters/`, `gitops/` → `deploy/gitops/`, `policies/` → `deploy/policies/`, `services/` → `src/`, and the governance/contract inputs → `platform/`. Customers deploying through the pinned Argo CD applications (`make customer-overlay`, `CUSTOMER_REVISION=v0.10.0`) need no manual change — the application `source.path`s already point at the new locations. Forks or automation that reference the old paths directly must update them.
+- Repository paths changed: `charts/<x>` → `deploy/charts/<x>`, `clusters/` → `deploy/clusters/`, `gitops/` → `deploy/gitops/`, `policies/` → `deploy/policies/`, `services/` → `src/`, and the governance/contract inputs → `platform/`. Customers deploying through the pinned Argo CD applications (`make customer-overlay`, `CUSTOMER_REVISION=v0.10.0`) need no manual change; the application `source.path`s already point at the new locations. Forks or automation that reference the old paths directly must update them.
 
 ## v0.9.0 - 2026-06-29
 

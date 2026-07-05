@@ -11,8 +11,8 @@ workspace runtime behind a `sandbox.runtime` toggle, defaulting to the older
 namespace-only path. That caution is inconsistent with the rest of the kit,
 which is deliberately opinionated: Kyverno policies ship in `Enforce`,
 namespaces are PSA-`restricted`, egress is default-deny, and images must be
-signed. The one workload that executes model-generated code — the very reason
-this platform has a threat model — defaulted to the weakest isolation offered,
+signed. The one workload that executes model-generated code, the very reason
+this platform has a threat model, defaulted to the weakest isolation offered,
 and every optional path doubled the test matrix, the documentation, and the
 adopter's decision burden.
 
@@ -41,7 +41,7 @@ Two adjacent duplications had accumulated around the same feature:
    the only environment-dependent option. This amends decision points 1 and 6
    of ADR 0009; everything else in ADR 0009 stands.
 2. **The short-lived projected workspace credential is on by default**
-   (`workspace.credentials.projectedToken.enabled: true`) — consistent with
+   (`workspace.credentials.projectedToken.enabled: true`), consistent with
    the kit's no-long-lived-secrets stance; it costs nothing where unused.
 3. **The controller is a platform prerequisite**, installed as an
    `agent-sandbox-controller` Argo CD Application (server-side apply, early
@@ -76,7 +76,7 @@ Two adjacent duplications had accumulated around the same feature:
 
 - **Deprecation window (flip default, keep fallback one release).** The
   operationally mature choice for a project with users; rejected here as
-  process theater — there are no users, and the fallback would still cost a
+  process theater: there are no users, and the fallback would still cost a
   doubled test matrix for a release cycle.
 - **Keep the toggle indefinitely.** Rejected: permanent two-path tax and a
   default that contradicts the kit's security posture.

@@ -1,4 +1,4 @@
-# Runtime (behavioral) threat detection — OPT-IN, not synced by the default GitOps root.
+# Runtime (behavioral) threat detection. OPT-IN, not synced by the default GitOps root.
 #
 # Admission control (Kyverno) and NetworkPolicies gate what is admitted and where pods may
 # connect; they do not observe post-admission behavior. Falco adds the detective layer the threat

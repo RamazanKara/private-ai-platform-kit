@@ -9,10 +9,10 @@ what its limits are without reading three YAML files.
 The cards do not introduce new facts. Every field is copied from, and must stay consistent with,
 the governed sources of truth:
 
-- catalog entry — `platform/model-catalog/models.yaml`
-- artifact provenance — `platform/governance/model-provenance.yaml`
-- promotion request — `platform/model-catalog/promotion-requests/<name>.yaml`
-- gateway allowlist — `deploy/clusters/{local,customer}/values/inference-gateway.yaml`
+- catalog entry: `platform/model-catalog/models.yaml`
+- artifact provenance: `platform/governance/model-provenance.yaml`
+- promotion request: `platform/model-catalog/promotion-requests/<name>.yaml`
+- gateway allowlist: `deploy/clusters/{local,customer}/values/inference-gateway.yaml`
 
 If a card disagrees with those files, the YAML wins and the card is wrong. The promotion and
 provenance workflows that keep these sources in sync are in
@@ -77,7 +77,7 @@ governed YAML; do not leave placeholders or invent values.
 - Source: <source> (<sourceUri>)
 - Immutable reference: <immutableRef>
 - Digest: <algorithm>:<value> (scope: <scope>)
-- Verification: <verificationMode> — `<verificationCommand>`
+- Verification: <verificationMode> via `<verificationCommand>`
 - License: <license>
 
 ## Data classification and risk

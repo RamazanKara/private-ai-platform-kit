@@ -43,13 +43,13 @@ Container images are published multi-arch (`linux/amd64` and `linux/arm64`), so 
 
 ## Agent Workspace Isolation
 
-Coding-agent workspaces run on the hardened kubernetes-sigs/agent-sandbox runtime — this is the
+Coding-agent workspaces run on the hardened kubernetes-sigs/agent-sandbox runtime, which is the
 standard and only runtime (ADR 0010). The controller is a platform prerequisite (installed by the
 `agent-sandbox-controller` Application or `make agent-sandbox-install`); workspaces get a
 controller-managed sandbox pod with no ambient credentials and a short-lived, audience-bound
 platform token instead of long-lived secrets. The one environment-dependent choice left is the
 kernel-isolation runtime class: set `sandbox.runtimeClassName` (e.g. gVisor) where the cluster
-provides one — expected at the `high` risk tier (`C-ISOLATE`). NetworkPolicy enforcement requires
+provides one, which is expected at the `high` risk tier (`C-ISOLATE`). NetworkPolicy enforcement requires
 a policy-capable CNI; `make agent-sandbox-smoke` verifies fail-closed egress and detects
 non-enforcing CNIs (locally, `LOCAL_CNI=calico make quickstart` builds an enforcing lab). See [agent-sandbox-integration.md](agent-sandbox-integration.md), ADR 0009,
 and ADR 0010.

@@ -1006,7 +1006,7 @@ def test_openai_compatible_reranker_reuses_one_shared_client():
 #
 # With RAG_JWT_ENABLED the service verifies the caller's own bearer token and DERIVES the
 # tenant from the verified claim, so tenant isolation scopes retrieval to the tenant the
-# *claim* names — never the client-supplied X-Sandbox-ID header. These exercise that wiring
+# *claim* names, never the client-supplied X-Sandbox-ID header. These exercise that wiring
 # end-to-end (a monkeypatched JWKS cache stands in for the IdP), including the fail-closed
 # 401/403/503 boundaries and the JWT-off backward-compatibility path.
 
@@ -1088,7 +1088,7 @@ def test_rag_jwt_derives_tenant_from_verified_claim_and_scopes_retrieval(tmp_pat
     assert response.status_code == 200
     body = response.json()
     # Tenant is taken from the verified claim, echoed on the response, and isolation scopes
-    # retrieval to that tenant only — team-b's document is never returned.
+    # retrieval to that tenant only; team-b's document is never returned.
     assert body["sandbox_id"] == "team-a"
     assert response.headers["X-Sandbox-ID"] == "team-a"
     ids = {result["id"] for result in body["results"]}

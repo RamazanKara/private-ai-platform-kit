@@ -1362,7 +1362,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request.state.key_budget_updates = {}
         except ValueError as exc:
             # A request header failed validation. The message is a controlled, developer-authored
-            # validation string describing the malformed header (e.g. the sandbox-id charset rule) —
+            # validation string describing the malformed header (e.g. the sandbox-id charset rule);
             # it carries no stack trace or server internals, so returning it as an actionable 400 is
             # correct API behavior, not information disclosure. Also logged for server-side triage.
             reason = str(exc)

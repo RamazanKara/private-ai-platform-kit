@@ -54,7 +54,7 @@ changing callers.
 
 ## Output Guardrail (Response Path)
 
-Input moderation cannot catch a credential or PII value that the *model* emits — a successful
+Input moderation cannot catch a credential or PII value that the *model* emits: a successful
 prompt injection or a hallucinated secret leaves the gateway in the completion. The output
 guardrail inspects the model response before it is returned or cached, closing OWASP LLM02
 (insecure output handling) and LLM06 (sensitive information disclosure).
@@ -80,11 +80,11 @@ The chart passes this as `OUTPUT_GUARDRAIL_ENABLED`, `OUTPUT_GUARDRAIL_MODE`, an
 
 Modes:
 
-- `flag` — record the finding only (metric + `X-Output-Guardrail: flagged` header); content
+- `flag`: record the finding only (metric + `X-Output-Guardrail: flagged` header); content
   is returned unchanged. Use to measure exposure before enforcing.
-- `redact` — replace each matched span with `[REDACTED:<pattern>]` (default). The redacted
+- `redact`: replace each matched span with `[REDACTED:<pattern>]` (default). The redacted
   body is what gets returned, cached, and audited, so a leaked secret is never persisted.
-- `block` — withhold the content (`[response withheld by output policy]`) and set the choice
+- `block`: withhold the content (`[response withheld by output policy]`) and set the choice
   `finish_reason` to `content_filter`.
 
 Each action increments `inference_gateway_output_guardrail_total{action,route}` and sets the

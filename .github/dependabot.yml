@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # GitHub Actions — keeps SHA-pinned `uses:` refs current via the trailing
+  # GitHub Actions: keeps SHA-pinned `uses:` refs current via the trailing
   # version comment on each pin.
   - package-ecosystem: github-actions
     directory: "/"
@@ -13,7 +13,7 @@ updates:
           - minor
           - patch
 
-  # pip — one entry per directory that holds a pip-compiled lockfile.
+  # pip: one entry per directory that holds a pip-compiled lockfile.
   - package-ecosystem: pip
     directory: "/"
     schedule:
@@ -47,7 +47,7 @@ updates:
           - minor
           - patch
 
-  # docker — base-image digests for the two service Dockerfiles.
+  # docker: base-image digests for the two service Dockerfiles.
   - package-ecosystem: docker
     directory: "/src/inference-gateway"
     schedule:

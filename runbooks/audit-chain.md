@@ -9,7 +9,7 @@ independent retention.
 Every sandbox-bound gateway request emits one redacted audit event (`event: inference_request`;
 batch calls emit `event: batch_request`). These events are the **tamper-evident receipts**: each
 is linked into a per-process SHA-256 hash chain (see
-[ADR 0006](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/adr/0006-tamper-evident-audit-hash-chain.md)) —
+[ADR 0006](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/adr/0006-tamper-evident-audit-hash-chain.md)):
 
 - `h_0 = SHA-256("genesis")`
 - `record_hash = SHA-256(prev_hash || canonical(record))`, where `canonical` is
@@ -17,13 +17,13 @@ is linked into a per-process SHA-256 hash chain (see
   `prev_hash`/`record_hash` fields are stamped on.
 
 Each event carries a `chain_id` (`HOSTNAME:process_start`, hash-covered) identifying its
-per-replica chain, and a chain-covered `ts`. Events are logged twice per request — once to the
-audit logger `ai_platform_ops_lab.audit` and once to `uvicorn.error` — so a pod-log stream (and
+per-replica chain, and a chain-covered `ts`. Events are logged twice per request (once to the
+audit logger `ai_platform_ops_lab.audit` and once to `uvicorn.error`), so a pod-log stream (and
 Loki) carries two byte-identical copies of every record. The verifier deduplicates them.
 
 Any edit, insertion, deletion, or reordering of emitted records breaks the chain and is detected
 by recomputation. A *wholesale* re-chain (every record rewritten from genesis so the embedded
-hashes stay self-consistent) is only detectable against an externally committed head — that is
+hashes stay self-consistent) is only detectable against an externally committed head, which is
 what anchoring provides.
 
 ## Verify a log
@@ -40,7 +40,7 @@ The verifier deduplicates the double-logged copies, groups records by `chain_id`
 without it are split at genesis-restart boundaries), and reports per chain: the record count and
 `OK`, or the first broken position and reason (`record_hash_mismatch`, `broken_link_or_reordered`,
 `prev_hash_not_genesis`). It exits non-zero on any break. A per-process chain per gateway replica
-and a fresh chain after each restart are expected — verification is per chain.
+and a fresh chain after each restart are expected; verification is per chain.
 
 Self-test (also wired into `make validate`):
 
@@ -76,7 +76,7 @@ mounted works.
 ## Forward the audit stream to a SIEM
 
 The audit receipts should not live only in Loki (which is single-tenant and retention-bounded by
-default — see [data retention](data-retention.md)). Ship them onward to a SIEM for independent,
+default; see [data retention](data-retention.md)). Ship them onward to a SIEM for independent,
 long-term, ideally write-once retention. Two supported shapes:
 
 1. **Add a second Promtail/Grafana Alloy sink.** Point an additional `clients[]` entry (Promtail)
@@ -94,8 +94,8 @@ is what proves the events were not wholesale-rewritten. Without the externally h
 re-chain is undetectable.
 
 If Loki `auth_enabled` is turned on for multi-tenant isolation, add the `X-Scope-OrgID` tenant
-header on **every** path — the Promtail push (`clients[].tenant_id`), the Grafana datasource, and
-any anchor/export query — or pushes and reads will 401. The bundled reference keeps
+header on **every** path: the Promtail push (`clients[].tenant_id`), the Grafana datasource, and
+any anchor/export query. Otherwise pushes and reads will 401. The bundled reference keeps
 `auth_enabled: false` (single-tenant); see the comment in
 [`deploy/observability/applications.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/observability/applications.yaml).
 
@@ -112,6 +112,6 @@ sample (`results/sample-gateway-audit.log`) as a smoke reference.
 
 ## Related
 
-- [Data retention](data-retention.md) — retention/redaction policy for the audit logs.
-- [Traceability sandbox](traceability-sandbox.md) — request correlation and the sandbox trace contract.
-- [Evidence pack](evidence-pack.md) — customer-facing evidence generation.
+- [Data retention](data-retention.md): retention/redaction policy for the audit logs.
+- [Traceability sandbox](traceability-sandbox.md): request correlation and the sandbox trace contract.
+- [Evidence pack](evidence-pack.md): customer-facing evidence generation.

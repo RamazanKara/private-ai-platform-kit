@@ -1,7 +1,7 @@
 {{- if and .Values.batch.enabled .Values.batch.worker.enabled }}
 {{- /* The batch-processor worker (ADR 0011): the same gateway image run with a different
-       entrypoint (python -m app.batch_worker). Stateless — all state lives in the object store
-       and the batch store — so it scales horizontally. It carries a distinct
+       entrypoint (python -m app.batch_worker). Stateless (all state lives in the object store
+       and the batch store), so it scales horizontally. It carries a distinct
        app.kubernetes.io/name so the gateway Service (which selects name+instance) never routes
        HTTP traffic to these pods, which expose no port. */}}
 apiVersion: apps/v1

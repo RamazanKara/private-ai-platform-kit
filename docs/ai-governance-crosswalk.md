@@ -16,15 +16,15 @@ document is the human-readable explanation.
 The kit ships mechanisms, not certifications. Each row below points at a control that exists in the
 repo and the framework obligation it contributes evidence toward. A framework citation means "this
 control helps you meet that obligation," not "this deployment is conformant." Conformity is a
-property of your deployment, your use case, and your evidence — not of the kit alone. In particular,
+property of your deployment, your use case, and your evidence, not of the kit alone. In particular,
 whether your deployment is an EU AI Act high-risk system depends on your use case (Annex III), which
 the kit cannot determine for you. See [docs/threat-model.md](threat-model.md) for the residual risks
 that none of these controls remove and [docs/production-readiness.md](production-readiness.md) for the
 control matrix and validation commands.
 
 The kit also delegates several obligations to the operator. Where a framework expects something the
-kit does not implement — fundamental-rights impact assessment, conformity assessment, registration,
-post-market incident reporting to authorities — that work is yours. Those gaps are called out in the
+kit does not implement (fundamental-rights impact assessment, conformity assessment, registration,
+post-market incident reporting to authorities), that work is yours. Those gaps are called out in the
 [Operator responsibilities](#operator-responsibilities) section.
 
 ## Risk-tier semantics
@@ -37,7 +37,7 @@ post-market incident reporting to authorities — that work is yours. Those gaps
 [`scripts/model-provenance.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-provenance.py). Until now the field was validated but
 not defined. This section gives it meaning: what each tier represents and which controls it mandates.
 
-`riskTier` is the model artifact's inherent risk — its capability, autonomy, and blast radius if it
+`riskTier` is the model artifact's inherent risk: its capability, autonomy, and blast radius if it
 misbehaves. It is distinct from two neighbouring concepts:
 
 - `dataClassification` (`public | internal | confidential | restricted`) is the sensitivity of the
@@ -77,7 +77,7 @@ pinned model-store digest before production, and the coding-agent eval suite
 
 ### high
 
-Models the operator designates as decision-supporting, customer-facing, or otherwise consequential —
+Models the operator designates as decision-supporting, customer-facing, or otherwise consequential,
 where an error, bias, or injection can affect a person or a regulated decision. No model in the
 shipped catalog is rated high; this tier is reserved for the operator to apply when a deployment's use
 case warrants it. It is the tier most likely to make the deployment EU AI Act high-risk.

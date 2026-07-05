@@ -16,7 +16,7 @@ Source:
 | `v0.5.0/extensions.yaml` | `a6dd82905f3f3a44d30d02e283b6eb10d22c5fc1455604cf905d0e76091686d1` |
 
 Contents: namespace `agent-sandbox-system`, controller Deployment
-`agent-sandbox-controller`, webhook Service, RBAC, and four CRDs —
+`agent-sandbox-controller`, webhook Service, RBAC, and four CRDs:
 `sandboxes.agents.x-k8s.io` (core, `v1beta1` storage) plus
 `sandboxclaims`/`sandboxtemplates`/`sandboxwarmpools.extensions.agents.x-k8s.io`.
 
@@ -28,6 +28,6 @@ Contents: namespace `agent-sandbox-system`, controller Deployment
    `docs/version-matrix.md`.
 3. Re-verify the CRD spec fields the kit depends on (see the
    [integration design](../../../docs/agent-sandbox-integration.md),
-   "Upstream summary") — the API is `v1beta1` and may still change.
+   "Upstream summary"); the API is `v1beta1` and may still change.
 4. Follow `runbooks/release-verification.md` before promoting to customer
    profiles.

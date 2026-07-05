@@ -69,7 +69,7 @@ list (LLM01..LLM10). Coverage is stated per item; where a control is described a
   default** (`retrieval_tenant_isolation_enabled`, `RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED`) and enforced
   on **both** backends: `QdrantRetriever._query_filter` appends a tenant-owner match, and
   `LexicalRetriever` applies the same owner scoping to its (default-sandbox-stamped) corpus
-  (`src/rag-service/app/retriever.py`). It **fails closed** — the ingest-stamped `owner` field must equal
+  (`src/rag-service/app/retriever.py`). It **fails closed**: the ingest-stamped `owner` field must equal
   the request's `X-Sandbox-ID`, a request that does not explicitly assert `X-Sandbox-ID` is not treated
   as a tenant, and a missing-tenant query never runs unfiltered. The bundled single-tenant local lexical
   profile is the only shipped config that disables it. A `classification` allowlist match is added when
@@ -236,7 +236,7 @@ setting retention is customer-owned.
   list. This stops a caller from smuggling an oversized payload past the prompt-character limit via the
   `tools`/`functions` fields. Tool call counts are recorded in the audit fingerprint (`tool_count`,
   `tool_call_count` in `_payload_fingerprint`).
-- The execution environment for tools — the coding-agent workspace — is locked down by RBAC. The
+- The execution environment for tools (the coding-agent workspace) is locked down by RBAC. The
   workspace `Role` (`deploy/charts/agent-workspace/templates/rbac.yaml`) grants only read verbs
   (`get`, `list`, `watch`) on pods, logs, events, configmaps, and PVCs; Job management is opt-in
   (`allowJobManagement`) and bound to the workspace ServiceAccount only, never the human viewer group.
@@ -244,7 +244,7 @@ setting retention is customer-owned.
   (`deploy/charts/agent-workspace/templates/networkpolicy.yaml`).
 
 **Residual risk (accepted).** The gateway bounds the *size and count* of tool definitions and audits
-tool calls; it does not validate tool *semantics* or sandbox tool *execution* — tools run wherever the
+tool calls; it does not validate tool *semantics* or sandbox tool *execution*: tools run wherever the
 caller runs them, and their authorization model is the caller's responsibility. Design tools with least
 privilege and validate their inputs/outputs in the calling application.
 
@@ -281,7 +281,7 @@ an embedding, chunking, or prompt change that stops surfacing the supporting pas
 misnamed retrieval-only "grounding rate" is now `retrieval_hit_rate`).
 
 **Residual risk (accepted).** The faithfulness scorer is a deterministic **lexical** groundedness proxy
-(fraction of answer tokens supported by the retrieved context), not an LLM-judge or NLI model — it
+(fraction of answer tokens supported by the retrieved context), not an LLM-judge or NLI model. It
 catches gross drift, not subtle unsupported claims. The scorer is isolated so an LLM-judge can replace
 it without changing the suite schema. Overreliance is still mitigated for consumers by source
 attribution and human review; a consuming application must not treat model output as authoritative.

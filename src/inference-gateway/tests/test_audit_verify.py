@@ -2,7 +2,7 @@
 
 These exercise the verifier against a real gateway-emitted, double-logged audit stream:
 that the double-logged copies are deduplicated, a clean chain verifies, a tampered record is
-detected, and — critically — that the verifier's replicated canonicalization agrees byte for
+detected, and, critically, that the verifier's replicated canonicalization agrees byte for
 byte with the gateway's live ``_chain_audit_event`` output. Keeping the two in lockstep is
 the maintenance obligation ADR 0006 calls out; this test fails the quality gate if they drift.
 """

@@ -87,7 +87,7 @@ def _translate_content_blocks(content: Any) -> tuple[Any, list[dict[str, Any]], 
       Anthropic content was a string or a single text block, else an OpenAI content-part
       array (``{"type": "text", "text": ...}`` parts; unrecognized blocks are preserved).
     - ``tool_calls`` are OpenAI assistant ``tool_calls`` translated from Anthropic
-      ``tool_use`` blocks (best-effort — the model/id/name/arguments are mapped).
+      ``tool_use`` blocks (best-effort: the model/id/name/arguments are mapped).
     - ``tool_results`` are OpenAI ``tool`` messages translated from Anthropic ``tool_result``
       blocks; the caller emits them as separate ``role: "tool"`` messages.
     """
@@ -226,8 +226,8 @@ def anthropic_to_chat_payload(request: MessagesRequest) -> dict[str, Any]:
     """Translate an Anthropic Messages request into an internal OpenAI chat payload.
 
     The returned dict is fed to the *same* chat governance path as ``/v1/chat/completions``
-    (allowlist, admission — including the ``max_tokens`` cap and prompt-secret modes on the
-    translated messages — budget reserve, runtime call, output guardrail, audit). Mapping:
+    (allowlist, admission (including the ``max_tokens`` cap and prompt-secret modes on the
+    translated messages), budget reserve, runtime call, output guardrail, audit). Mapping:
 
     - ``system`` is prepended as a ``role: "system"`` message (string or flattened blocks).
     - each Anthropic message's content is translated (text blocks -> text; ``tool_use`` ->
@@ -259,7 +259,7 @@ def anthropic_to_chat_payload(request: MessagesRequest) -> dict[str, Any]:
                 assistant["tool_calls"] = tool_calls
             messages.append(assistant)
         else:
-            # ``user`` (or any non-assistant role) — tool_result blocks become their own
+            # ``user`` (or any non-assistant role): tool_result blocks become their own
             # ``role: "tool"`` messages, appended after any user text content.
             if openai_content != "" or not tool_results:
                 messages.append({"role": "user", "content": openai_content})
@@ -289,7 +289,7 @@ def chat_completion_to_anthropic(response: dict[str, Any], *, request_model: str
 
     Produces ``{id, type:"message", role:"assistant", model, content:[...], stop_reason,
     stop_sequence, usage}``. The assistant text becomes a ``text`` content block; any
-    assistant ``tool_calls`` become ``tool_use`` blocks (best-effort — the id/name are
+    assistant ``tool_calls`` become ``tool_use`` blocks (best-effort: the id/name are
     preserved and the JSON ``arguments`` string is parsed back into an ``input`` object).
     ``finish_reason`` is mapped to an Anthropic ``stop_reason`` and the runtime ``usage`` is
     surfaced as ``input_tokens``/``output_tokens``.

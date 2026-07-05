@@ -7,7 +7,7 @@ model allowlist, admission, budget, and audit controls.
 ## Scope and non-goal
 
 The kit is **API-only** by design. A human-facing chat UI is an **operator-owned example, not a
-shipped or supported component** — consistent with the explicit
+shipped or supported component**, consistent with the explicit
 [admin/usage console non-goal](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope-and-non-goals.md).
 [Open WebUI](https://github.com/open-webui/open-webui) is the common choice and is used here, but
 any OpenAI-compatible chat frontend works. The kit ships a copy-adapt manifest at
@@ -29,12 +29,12 @@ compromised UI cannot reach the runtimes, Redis, or the internet directly.
 
 Open WebUI authenticates to the gateway with a single **gateway API key** sent as
 `Authorization: Bearer <key>` (the gateway accepts a bearer token equivalently to the `X-API-Key`
-header — see [API access](api-access.md)).
+header; see [API access](api-access.md)).
 
 1. Mint a gateway key and add its SHA-256 to the gateway's `auth.apiKeyHashes` (or issue a key
-   **record** with scopes/expiry/sandbox binding — see [API access](api-access.md)).
+   **record** with scopes/expiry/sandbox binding; see [API access](api-access.md)).
 2. Put the **plaintext** key in the `open-webui-gateway-key` Secret, sourced from your secret
-   manager via External Secrets — never commit it.
+   manager via External Secrets. Never commit it.
 3. Set `OPENAI_API_BASE_URL` to
    `http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080/v1` (the bundled
    chart's in-cluster Service DNS) and `OPENAI_API_KEY` from the Secret. Both are wired in the
@@ -51,7 +51,7 @@ a single sandbox**. Choose deliberately:
 | Option | What you get | How |
 | --- | --- | --- |
 | (a) One shared sandbox | The whole UI is one budgeted/audited sandbox. Simplest; correct when the UI is one team's shared workspace. | Bind the UI's API key to a sandbox with a **key record** (`record.sandbox`), or set the gateway `DEFAULT_SANDBOX_ID`. The gateway then forces every UI request into that sandbox. |
-| (b) Fixed per-connection sandbox | A fixed non-default sandbox for the UI. | Newer Open WebUI supports custom headers per OpenAI connection — add `X-Sandbox-ID: <sandbox>`. |
+| (b) Fixed per-connection sandbox | A fixed non-default sandbox for the UI. | Newer Open WebUI supports custom headers per OpenAI connection: add `X-Sandbox-ID: <sandbox>`. |
 | (c) Per-user sandboxes | Each human is metered and audited separately. | Front the gateway with a small header-stamping proxy that maps the authenticated Open WebUI user (from its OIDC session) to an `X-Sandbox-ID`. This is the only option giving per-user budgets/attribution. |
 
 Option (a) via a **sandbox-bound key record** is recommended for most deployments: it is
@@ -60,7 +60,7 @@ it to the record's sandbox) and needs no extra proxy.
 
 ## 3. Human auth: SSO into the UI
 
-The UI itself must sit behind HTTPS and human SSO — the gateway's API key authenticates the *UI
+The UI itself must sit behind HTTPS and human SSO: the gateway's API key authenticates the *UI
 process*, not the *person* using it. The kit does not run an IdP; wire Open WebUI's OIDC to the
 **same IdP** you already use for the platform dashboards.
 
@@ -74,7 +74,7 @@ process*, not the *person* using it. The kit does not run an IdP; wire Open WebU
   ([Security overview](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/security-overview.md)).
 
 If you also enable gateway JWT auth with a tenant claim, option (c) above can forward the user's
-verified token straight through and let the gateway derive the sandbox from the JWT tenant claim —
+verified token straight through and let the gateway derive the sandbox from the JWT tenant claim,
 the strongest per-user attribution, with no header trust.
 
 ## 4. Apply and validate
@@ -103,6 +103,6 @@ audit stream that the request is attributed to the expected sandbox and that the
 
 ## Related runbooks
 
-- [API access](api-access.md) — gateway key model, rotation, and the Grafana/Argo CD SSO templates.
-- [Budget controls](budget-controls.md) — sizing the sandbox the UI runs in.
-- [External / managed stores](external-managed-stores.md) — HA backing stores for a production UI deployment.
+- [API access](api-access.md): gateway key model, rotation, and the Grafana/Argo CD SSO templates.
+- [Budget controls](budget-controls.md): sizing the sandbox the UI runs in.
+- [External / managed stores](external-managed-stores.md): HA backing stores for a production UI deployment.

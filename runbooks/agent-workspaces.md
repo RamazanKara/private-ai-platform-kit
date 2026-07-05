@@ -36,8 +36,8 @@ Sync the workspace (or install it on a bare cluster):
       --namespace ai-agents --create-namespace \
       --values deploy/clusters/local/values/agent-workspace.yaml
 
-Validate the runtime contract — hardening, short-lived projected credential, DNS
-positive control, and fail-closed non-catalog egress — then the platform path:
+Validate the runtime contract (hardening, short-lived projected credential, DNS
+positive control, and fail-closed non-catalog egress), then the platform path:
 
     make agent-sandbox-smoke
     make agent-smoke
@@ -47,7 +47,7 @@ Inspect the contract:
     kubectl -n ai-agents get configmap agent-platform-contract -o yaml
 
 Set `sandbox.runtimeClassName` (for example `gvisor`) where the cluster provides a
-kernel-isolation runtime class — expected at the `high` risk tier. The Kyverno
+kernel-isolation runtime class, expected at the `high` risk tier. The Kyverno
 `ai-platform-hardened-sandboxes` policy enforces the hardened pod template at
 admission.
 
@@ -62,7 +62,7 @@ Operational notes:
   appear in the `agent-platform-contract` ConfigMap, and the gateway verifies it
   via its JWT/JWKS settings.
 - The workspace PVC is ReadWriteOnce and is held by the sandbox pod; the
-  `agent-smoke` Job shares it on the same node (fine on single-node labs — on
+  `agent-smoke` Job shares it on the same node (fine on single-node labs; on
   multi-node clusters co-schedule them or use RWX storage).
 - NetworkPolicy enforcement requires a policy-capable CNI; on kindnet the smoke
   reports non-enforcement instead of passing vacuously (see the threat model).

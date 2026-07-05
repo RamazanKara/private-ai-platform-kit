@@ -121,7 +121,7 @@ class GatewayClient:
 
         Exponential backoff (``retry_backoff * 2**attempt``), raised to the server's
         ``Retry-After`` when present. Headers beyond ``retry_after_cap`` never reach
-        this method — :meth:`_request` fails fast with :class:`GatewayRetryAfterError`.
+        this method; :meth:`_request` fails fast with :class:`GatewayRetryAfterError`.
         """
         delay = self.retry_backoff * (2**attempt)
         retry_after = _parse_retry_after(response.headers.get("Retry-After")) if response is not None else None

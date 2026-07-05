@@ -3,7 +3,7 @@
 Admission control ([Kyverno](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/policies/kyverno/policies.yaml)) and default-deny
 NetworkPolicies decide *what is admitted* and *where pods may connect*. Neither observes what a pod
 *does* after it starts. The threat model centers on indirect/RAG prompt injection and a hijacked
-coding agent — post-exploitation behavior that preventive controls cannot see. This runbook covers
+coding agent, post-exploitation behavior that preventive controls cannot see. This runbook covers
 the optional detective layer that closes that gap.
 
 ## What It Detects

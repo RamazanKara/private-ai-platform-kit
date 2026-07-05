@@ -6,7 +6,7 @@
 
 ## Context
 
-The platform's workloads — gateway, runtimes, RAG, vector store, budget Redis, agent workspaces —
+The platform's workloads (gateway, runtimes, RAG, vector store, budget Redis, agent workspaces)
 need a packaging format that is parameterizable per environment (local versus customer, Ollama versus
 vLLM, NVIDIA versus AMD), reconcilable by Argo CD, and distributable as verifiable, versioned
 artifacts a customer can pull and check before installing into a production cluster. The artifacts
@@ -18,8 +18,8 @@ a separate chart-hosting service.
 Package every first-party workload as a Helm chart and distribute the charts as Cosign-signed OCI
 artifacts in the same registry as the images.
 
-- Each workload is a Helm chart under [`deploy/charts/`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts) — inference-gateway,
-  ollama, vllm, rag-service, qdrant-vector-store, budget-redis, agent-workspace — all `apiVersion:
+- Each workload is a Helm chart under [`deploy/charts/`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts): inference-gateway,
+  ollama, vllm, rag-service, qdrant-vector-store, budget-redis, and agent-workspace, all `apiVersion:
   v2`, `version: 0.13.0`, with `kubeVersion: ">=1.25.0"`.
 - Environment differences are value files, not chart forks: Argo CD applications reference per-cluster
   values such as `../../clusters/local/values/inference-gateway.yaml`

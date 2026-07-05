@@ -37,8 +37,8 @@ and an immutable manifest-list digest in `values.yaml`.
 | vLLM runtime | `0.22.0` | `vllm/vllm-openai` | `v0.22.0` | GPU/production-style OpenAI-compatible runtime; digest-pinned. |
 | Qdrant vector store | `1.18.1` | `qdrant/qdrant` | `v1.18.1` | Optional vector-RAG profile; single-instance; digest-pinned. |
 | Budget Redis | `8.0` | `redis` | `8.0-alpine` | Shared sandbox budget accounting store; digest-pinned. |
-| Agent workspace | `0.26.0` | (namespace/RBAC template — no image) | — | Tenant namespace scaffold; no workload image of its own. |
-| Platform (umbrella) | `0.26.0` | (aggregates the charts above) | — | Single-command dev/demo bring-up; GitOps remains recommended for multi-namespace installs. |
+| Agent workspace | `0.26.0` | (namespace/RBAC template, no image) | n/a | Tenant namespace scaffold; no workload image of its own. |
+| Platform (umbrella) | `0.26.0` | (aggregates the charts above) | n/a | Single-command dev/demo bring-up; GitOps remains recommended for multi-namespace installs. |
 
 The first-party service container images are built on `python:3.14-alpine`
 (`src/inference-gateway/Dockerfile`, `src/rag-service/Dockerfile`), digest-pinned in the Dockerfiles.
@@ -73,7 +73,7 @@ Notes:
 - Velero-based backup (`backup-velero`) and the restore-drill workload are shipped from in-repo
   manifests rather than a pinned third-party chart.
 - The agent-sandbox workspace runtime is installed from vendored, checksummed release manifests
-  (`deploy/vendor/agent-sandbox/`) via `make agent-sandbox-install` rather than a chart — there is
+  (`deploy/vendor/agent-sandbox/`) via `make agent-sandbox-install` rather than a chart; there is
   no upstream Helm chart. See ADR 0009 and the row below.
 
 ## Runtime, Kubernetes, and toolchain
@@ -87,7 +87,7 @@ Notes:
 | Python (SDK) | `>=3.11` | [sdk/python/pyproject.toml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/sdk/python/pyproject.toml) | `requires-python` for the client SDK package. |
 | Helm | v3 | [validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml); `azure/setup-helm` in CI | CI uses the action default; the toolchain requires Helm 3. |
 | Go | `1.26` | `.github/workflows/ci.yml`; toolchain install hint | Builds Go-based validation utilities (kubeconform, Kyverno CLI, restore-drill). |
-| agent-sandbox controller | `v0.5.0` | `deploy/vendor/agent-sandbox/` (SHA-256 in the vendor README) | Standard coding-agent workspace runtime (ADR 0010, platform prerequisite); CRDs `agents.x-k8s.io/v1beta1` + `extensions.agents.x-k8s.io/v1beta1`. `v1beta1` API — re-verify spec fields on upgrade. |
+| agent-sandbox controller | `v0.5.0` | `deploy/vendor/agent-sandbox/` (SHA-256 in the vendor README) | Standard coding-agent workspace runtime (ADR 0010, platform prerequisite); CRDs `agents.x-k8s.io/v1beta1` + `extensions.agents.x-k8s.io/v1beta1`. `v1beta1` API; re-verify spec fields on upgrade. |
 | Calico (optional local CNI) | `v3.29.1` | `CALICO_VERSION` in `scripts/local-up.sh` | Opt-in NetworkPolicy-enforcing CNI for the local lab (`LOCAL_CNI=calico`); default remains kindnet (non-enforcing). |
 
 ## Validation toolchain (pinned tool versions)

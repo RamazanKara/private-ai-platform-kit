@@ -261,7 +261,7 @@ async def _apply_jwt_identity(request: Request, settings: Settings, verifier: Jw
 
     - A verified token derives the tenant from ``jwt_tenant_claim``; the request's
       ``sandbox_id`` is set to that verified value and marked as an explicit assertion, so
-      the tenant-isolation filter scopes retrieval to the tenant the *claim* names — never
+      the tenant-isolation filter scopes retrieval to the tenant the *claim* names, never
       the client-supplied header. A missing/empty claim -> 403.
     - A verified token whose tenant contradicts an explicit ``X-Sandbox-ID`` header -> 403
       (the header cannot override the verified identity).
@@ -453,7 +453,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request.state.traceparent = _traceparent_from_header(request)
         except ValueError as exc:
             # A request header failed validation. The message is a controlled, developer-authored
-            # validation string describing the malformed header (e.g. the sandbox-id charset rule) —
+            # validation string describing the malformed header (e.g. the sandbox-id charset rule);
             # it carries no stack trace or server internals, so returning it as an actionable 400 is
             # correct API behavior, not information disclosure. Also logged for server-side triage.
             reason = str(exc)

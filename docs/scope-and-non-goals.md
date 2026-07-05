@@ -109,7 +109,7 @@ re-implementation of every OpenAI or Anthropic surface. Stated explicitly so an 
 not have to diff the route list, the following are **not** implemented:
 
 - **Background and streaming Responses objects.** `/v1/responses` supports the synchronous
-  surface, including **opt-in server-side state** — `store: true`, `previous_response_id`, and
+  surface, including **opt-in server-side state**: `store: true`, `previous_response_id`, and
   the `GET`/`DELETE`/`input_items` routes, enabled with `RESPONSES_STORE_ENABLED` (ADR 0012; off
   by default because storing responses persists raw conversation content). Background responses
   (`background: true`) and streaming response objects are not implemented; when the store is
@@ -148,7 +148,7 @@ flip per environment (ROADMAP `security`):
 
 ### Remaining and deferred engineering work
 
-A few items are neither shipped nor purely operator-owned — they are tracked, remaining, or
+A few items are neither shipped nor purely operator-owned: they are tracked, remaining, or
 deliberately deferred engineering work. They are listed in full in the ROADMAP; the load-bearing
 ones for an evaluator are:
 
@@ -164,7 +164,7 @@ ones for an evaluator are:
   streaming (see the API-surfaces list above and [client examples](client-examples.md)).
 - **OpenAI `/v1/responses` (stateless subset).** Implemented (translated to/from the OpenAI
   chat shape through the same governance path; non-streaming this release). Only the stateless
-  subset is covered — `store` / `previous_response_id` (server-side state) are out of scope and
+  subset is covered: `store` / `previous_response_id` (server-side state) are out of scope and
   rejected (see the API-surfaces list above and [client examples](client-examples.md)).
 - **Semantic (embedding-similarity) response caching.** The response cache is exact-match only by
   design; the reasoning for deferring semantic caching is recorded in the ROADMAP
@@ -185,11 +185,11 @@ self-assessment against the framework's structure, not an AWS review or certific
 | **Reliability** | Multi-replica gateway and runtimes with HPA, KEDA ScaledObjects, PodDisruptionBudgets, and topology spread ([production-readiness.md](production-readiness.md) Runtime high availability); runtime failover and circuit breaking in the gateway; shared Redis-backed sandbox budgets for multi-replica correctness (`test_redis_budget_tracker_shares_usage_across_tracker_instances`); restore drills (Redis AOF + Qdrant data-restore, `make restore-drill`) and Velero examples (`deploy/backup`); SLOs and burn-rate alerts (`platform/slo/objectives.yaml`, `make slo-check`). | Sizing min/max replicas and GPU inventory to SLOs; running scheduled production restore drills and validating recoverability of real data. |
 | **Performance Efficiency** | Accelerator portability via vLLM profiles for CPU-off local, NVIDIA, and AMD ROCm (`deploy/clusters/customer/values/vllm-*.yaml`); multi-arch images (`linux/amd64`, `linux/arm64`, [decision-guide.md](decision-guide.md) Architecture Support); KEDA queue-depth autoscaling for gateway and vLLM (`deploy/charts/*/templates/scaledobject.yaml`); admission limits capping prompt size, message count, completion tokens (`test_admission_policy_rejects_unsafe_or_expensive_requests`); k6 load tests and latency SLOs (`make loadtest`, `inference-latency` objective); canary/shadow progressive delivery in the gateway. | Tuning replica counts, context length, tensor parallelism, GPU requests, and autoscaling thresholds to the customer cluster. |
 | **Cost Optimization** | OpenCost app (`deploy/observability/applications.yaml`, `deploy/clusters/local/apps.yaml`); required owner/cost/environment/sandbox labels enforced by Kyverno ([production-readiness.md](production-readiness.md) Cost controls); per-sandbox budgets and quota/chargeback plans (`platform/governance/quota-plans.yaml`, `make quota-check`); the `/v1/usage` usage+cost API in the gateway; KEDA scale-down (and optional scale-to-zero for the vLLM GPU runtime, `deploy/charts/vllm/values.yaml` `minReplicaCount: 0`). | Mapping cost labels to a chargeback/showback taxonomy; setting tenant quota plans and GPU budget ceilings. |
-| **Sustainability** | Pinned Alpine Python runtime images that exclude test-only dependencies (README Evidence Commands), reducing image footprint; multi-arch images enabling efficient arm64 (Graviton/Ampere) nodes ([decision-guide.md](decision-guide.md)); KEDA queue-depth autoscaling and optional GPU scale-to-zero to avoid idle accelerator draw (`deploy/charts/vllm/values.yaml`); small default local model (`qwen2.5:0.5b`) to keep laptop demos light (README). | Right-sizing GPU node pools, choosing low-carbon regions, and selecting model sizes proportional to the task — all per-cluster operator decisions. |
+| **Sustainability** | Pinned Alpine Python runtime images that exclude test-only dependencies (README Evidence Commands), reducing image footprint; multi-arch images enabling efficient arm64 (Graviton/Ampere) nodes ([decision-guide.md](decision-guide.md)); KEDA queue-depth autoscaling and optional GPU scale-to-zero to avoid idle accelerator draw (`deploy/charts/vllm/values.yaml`); small default local model (`qwen2.5:0.5b`) to keep laptop demos light (README). | Right-sizing GPU node pools, choosing low-carbon regions, and selecting model sizes proportional to the task. All per-cluster operator decisions. |
 
 ## Related Reading
 
-- [Decision guide](decision-guide.md) — best-fit / poor-fit and a comparison against adjacent tools.
-- [Production readiness matrix](production-readiness.md) — the control-by-control source of truth.
-- [Threat model](threat-model.md) — assets, trust boundaries, and required customer hardening.
-- [Roadmap](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/ROADMAP.md) — the operator-owned work that remains external to the kit.
+- [Decision guide](decision-guide.md): best-fit / poor-fit and a comparison against adjacent tools.
+- [Production readiness matrix](production-readiness.md): the control-by-control source of truth.
+- [Threat model](threat-model.md): assets, trust boundaries, and required customer hardening.
+- [Roadmap](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/ROADMAP.md): the operator-owned work that remains external to the kit.

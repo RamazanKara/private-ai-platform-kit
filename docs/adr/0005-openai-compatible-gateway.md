@@ -8,7 +8,7 @@
 
 Every request to the platform must pass through a single control point that enforces authentication,
 a model allowlist, sandbox budgets, redacted and tamper-evident auditing, Prometheus metrics, and
-runtime routing — while presenting the OpenAI HTTP API so existing clients work unchanged. The kit
+runtime routing, all while presenting the OpenAI HTTP API so existing clients work unchanged. The kit
 also wants progressive delivery (canary and shadow) and runtime failover across resolved routes, all
 expressed against the platform's own governance objects (the model catalog, sandbox budgets in
 Redis, the audit chain). The question is whether to adopt an existing AI gateway or build a thin one.
@@ -47,7 +47,7 @@ AI gateway.
 - The kit owns the maintenance of this code: provider/model routing breadth, polished per-key spend
   dashboards, and rate-limit UX are not what this gateway optimizes for. The decision-guide is
   explicit that LiteLLM does far broader provider routing and richer per-key spend tracking, and that
-  the kit's gateway is "not a full Kubernetes operating model" substitute for those proxies — it is
+  the kit's gateway is "not a full Kubernetes operating model" substitute for those proxies; it is
   the control point inside one.
 - Because it is self-built, it is exactly as featureful as the repo shows; there is no upstream to
   inherit new provider integrations from.
@@ -65,5 +65,5 @@ AI gateway.
   and would still require building the model-catalog allowlist, sandbox budgets, canary/shadow, and
   the audit hash chain on top; the kit chose to write those directly.
 - **No gateway (clients call runtimes directly).** Rejected outright: it removes the single control
-  point and makes auth, allowlists, budgets, and auditing impossible to enforce uniformly — the exact
+  point and makes auth, allowlists, budgets, and auditing impossible to enforce uniformly, the exact
   controls the platform exists to provide.

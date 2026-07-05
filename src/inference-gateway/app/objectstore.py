@@ -8,7 +8,7 @@ than in Redis or on the gateway's (deliberately stateless) local disk.
 Unlike the response cache, an object store is a **source of truth**, not an optimization: a
 read that cannot find its object raises ``ObjectNotFound`` and a backend error propagates,
 rather than being swallowed. This module defines the ``ObjectStore`` protocol plus two
-backends that need no external service — ``MemoryObjectStore`` (tests) and
+backends that need no external service: ``MemoryObjectStore`` (tests) and
 ``FilesystemObjectStore`` (single-node/local runs). The S3/MinIO backend used in cluster
 deployments is added separately (it speaks the same protocol).
 """

@@ -1,4 +1,4 @@
-# Private AI Platform Kit: Coding Agents on Your Kubernetes — With Receipts
+# Private AI Platform Kit: Coding Agents on Your Kubernetes, With Receipts
 
 [![CI](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/RamazanKara/private-ai-platform-kit)](https://github.com/RamazanKara/private-ai-platform-kit/releases)
@@ -10,21 +10,21 @@
 
 Your team wants coding agents. Your security review asks three questions: **where does the generated code execute, what can it reach, and can you prove what it did?** This kit answers all three as running code, on your own cluster, with no cloud dependency:
 
-- **Kernel-isolatable sandboxes as the standard runtime** — every workspace is a hardened [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) pod: non-root, read-only rootfs, no ambient credentials, and a short-lived audience-bound token instead of long-lived secrets.
-- **Fail-closed egress** — default-deny networking where every exception is a reviewed, expiring catalog entry. Exfiltration attempts don't get logged and forgiven; they don't connect.
-- **Receipts, not just logs** — every governed model call lands on a tamper-evident hash chain as an allowed/denied receipt, crosswalked to the EU AI Act, NIST AI RMF, and ISO/IEC 42001 for the auditors you'll meet anyway.
+- **Kernel-isolatable sandboxes as the standard runtime.** Every workspace is a hardened [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) pod: non-root, read-only rootfs, no ambient credentials, and a short-lived audience-bound token instead of long-lived secrets.
+- **Fail-closed egress.** Default-deny networking where every exception is a reviewed, expiring catalog entry. Exfiltration attempts don't get logged and forgiven; they don't connect.
+- **Receipts, not just logs.** Every governed model call lands on a tamper-evident hash chain as an allowed/denied receipt, crosswalked to the EU AI Act, NIST AI RMF, and ISO/IEC 42001 for the auditors you'll meet anyway.
 
 <p align="center">
   <img src="docs/assets/private-ai-platform-kit-demo.gif" alt="Terminal demo: hardened agent sandbox, blocked exfiltration, allow/deny receipts, green evidence pack" width="100%">
 </p>
 
-The cut above is scripted from real output ([scripts/demo-live.sh](scripts/demo-live.sh), recorded via [scripts/demo.tape](scripts/demo.tape)). An **[unscripted real run](docs/assets/private-ai-platform-kit-demo-real.gif)** (3× speed, ~443 KB) shows the live cluster doing the same: the hardened sandbox, a blocked exfiltration attempt — including litellm's own telemetry callout dying against default-deny — the real coding agent through the governed gateway, and the receipts on the chain ([scripts/demo-real.sh](scripts/demo-real.sh) + [scripts/demo-real.tape](scripts/demo-real.tape)). Run it yourself with `make agent-sandbox-demo`.
+The cut above is scripted from real output ([scripts/demo-live.sh](scripts/demo-live.sh), recorded via [scripts/demo.tape](scripts/demo.tape)). An **[unscripted real run](docs/assets/private-ai-platform-kit-demo-real.gif)** (3× speed, ~443 KB) shows the live cluster doing the same: the hardened sandbox, a blocked exfiltration attempt (including litellm's own telemetry callout dying against default-deny), the real coding agent through the governed gateway, and the receipts on the chain ([scripts/demo-real.sh](scripts/demo-real.sh) + [scripts/demo-real.tape](scripts/demo-real.tape)). Run it yourself with `make agent-sandbox-demo`.
 
-Under the agents sits a complete private-LLM platform: an OpenAI-compatible gateway (auth, admission, per-sandbox budgets, guardrails), vLLM and Ollama serving from the same charts, RAG with per-tenant isolation, GitOps delivery, and evidence packs an auditor can verify offline. It starts local-first on a laptop `kind` cluster and moves to customer-owned clusters with GPU nodes using the same repo layout — the operating model of a production AI platform, without depending on a specific cloud provider.
+Under the agents sits a complete private-LLM platform: an OpenAI-compatible gateway (auth, admission, per-sandbox budgets, guardrails), vLLM and Ollama serving from the same charts, RAG with per-tenant isolation, GitOps delivery, and evidence packs an auditor can verify offline. It starts local-first on a laptop `kind` cluster and moves to customer-owned clusters with GPU nodes using the same repo layout: the operating model of a production AI platform, without depending on a specific cloud provider.
 
 Current release: `v0.26.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
-**Who it's for:** platform / SRE teams evaluating a private-AI stack → start with the [Decision guide](docs/decision-guide.md); operators running it → [Runbooks](runbooks/README.md); security & compliance reviewers → [Security overview](docs/security-overview.md), [OWASP LLM Top 10 mapping](docs/owasp-llm-top-10-mapping.md), and the [Threat model](docs/threat-model.md).
+**Who it's for:** platform / SRE teams evaluating a private-AI stack → start with the [Decision guide](docs/decision-guide.md); operators running it → [Runbooks](runbooks/README.md); security and compliance reviewers → [Security overview](docs/security-overview.md), [OWASP LLM Top 10 mapping](docs/owasp-llm-top-10-mapping.md), and the [Threat model](docs/threat-model.md).
 
 [Docs site](https://ramazankara.github.io/private-ai-platform-kit/) · [Quickstart](docs/quickstart.md) · [Architecture](docs/architecture.md) · [Decision guide](docs/decision-guide.md) · [Production readiness](docs/production-readiness.md) · [Docs map](docs/README.md)
 
@@ -46,18 +46,18 @@ See [docs/quickstart.md](docs/quickstart.md) for expected output, timing, disk n
 
 ## What You Get
 
-- **Inference gateway** — OpenAI-compatible chat, completions, embeddings, moderations, and both synchronous (`/v1/batch-inference`) and asynchronous (OpenAI Files + Batch API — `/v1/files` + `/v1/batches`, drained by a separate batch-processor worker) batch endpoints, plus native **Anthropic Messages** (`/v1/messages`) and **OpenAI Responses** (`/v1/responses`) so Claude- and Responses-based agents point straight at it; API-key and JWT/JWKS auth with per-tenant sandbox binding and per-key records (scopes, expiry, per-key budgets); model allowlists, admission limits, per-sandbox budgets (surfaced as OpenAI-style `x-ratelimit-*` headroom headers) and rate limiting; input prompt-secret detection (block / redact / flag, incl. cloud-provider keys) and a response-path output guardrail, with streamed responses metered and reasoning-redacted like non-streaming; OpenAI-shaped error envelopes; a shared Redis response cache; an opt-in read-only admin console at `/console`; progressive delivery (canary + shadow) and cross-runtime failover; and a tamper-evident audit chain that never logs raw prompt text, with an operator verifier (`make audit-verify`) and head anchoring.
-- **Model serving** — Ollama for laptop/`kind` and vLLM for NVIDIA or AMD GPUs from the same charts, with first-class prefix caching, FP8/AWQ quantization, guided/speculative decoding, MIG guidance, and HPA/KEDA, PodDisruptionBudgets, and topology spread.
-- **RAG** — hybrid dense + lexical retrieval with an optional cross-encoder reranker and per-tenant retrieval isolation enforced by default on both backends (fail-closed on an unresolved tenant), plus optional RAG-side audience-bound token verification so the tenant comes from a verified claim rather than a trusted header; a local lexical profile or a persistent Qdrant vector store; RAGAS-style faithfulness and context-precision evals.
-- **Coding-agent workspaces** — hardened kubernetes-sigs/agent-sandbox pods as the standard runtime (ADR 0010) inside locked-down namespaces with PVC storage, RBAC, quotas, default-deny networking, catalog-approved egress, and gated RAG access; kernel-isolation runtime-class support, short-lived audience-bound workspace credentials instead of long-lived secrets, and per-action allow/deny receipts on the tamper-evident audit chain — demoed end-to-end with a real coding agent via `make agent-sandbox-demo`.
-- **Governance & compliance** — approved-only model catalog with promotion requests, provenance, and per-model model cards; a safety / jailbreak release gate; production drift monitoring; an OWASP LLM Top 10 mapping and a NIST AI RMF / EU AI Act / ISO 42001 crosswalk.
-- **Operations & evidence** — SLOs and release gates, quota/chargeback, data retention, egress governance; Prometheus + Grafana, Tempo tracing, Loki logs, and cost/OpenCost dashboards; Pod Security Admission, an opt-in encryption-in-transit overlay, and optional Falco runtime detection; restore and chaos drills plus a disaster-recovery runbook; SBOMs, Trivy scans, Cosign-signed images, provenance attestations, OpenSSF Scorecard, and evidence packs.
+- **Inference gateway.** OpenAI-compatible chat, completions, embeddings, moderations, and both synchronous (`/v1/batch-inference`) and asynchronous (OpenAI Files + Batch API, `/v1/files` + `/v1/batches`, drained by a separate batch-processor worker) batch endpoints, plus native **Anthropic Messages** (`/v1/messages`) and **OpenAI Responses** (`/v1/responses`) so Claude- and Responses-based agents point straight at it; API-key and JWT/JWKS auth with per-tenant sandbox binding and per-key records (scopes, expiry, per-key budgets); model allowlists, admission limits, per-sandbox budgets (surfaced as OpenAI-style `x-ratelimit-*` headroom headers) and rate limiting; input prompt-secret detection (block / redact / flag, incl. cloud-provider keys) and a response-path output guardrail, with streamed responses metered and reasoning-redacted like non-streaming; OpenAI-shaped error envelopes; a shared Redis response cache; an opt-in read-only admin console at `/console`; progressive delivery (canary + shadow) and cross-runtime failover; and a tamper-evident audit chain that never logs raw prompt text, with an operator verifier (`make audit-verify`) and head anchoring.
+- **Model serving.** Ollama for laptop/`kind` and vLLM for NVIDIA or AMD GPUs from the same charts, with first-class prefix caching, FP8/AWQ quantization, guided/speculative decoding, MIG guidance, and HPA/KEDA, PodDisruptionBudgets, and topology spread.
+- **RAG.** Hybrid dense + lexical retrieval with an optional cross-encoder reranker and per-tenant retrieval isolation enforced by default on both backends (fail-closed on an unresolved tenant), plus optional RAG-side audience-bound token verification so the tenant comes from a verified claim rather than a trusted header; a local lexical profile or a persistent Qdrant vector store; RAGAS-style faithfulness and context-precision evals.
+- **Coding-agent workspaces.** Hardened kubernetes-sigs/agent-sandbox pods as the standard runtime (ADR 0010) inside locked-down namespaces with PVC storage, RBAC, quotas, default-deny networking, catalog-approved egress, and gated RAG access; kernel-isolation runtime-class support, short-lived audience-bound workspace credentials instead of long-lived secrets, and per-action allow/deny receipts on the tamper-evident audit chain, demoed end-to-end with a real coding agent via `make agent-sandbox-demo`.
+- **Governance & compliance.** Approved-only model catalog with promotion requests, provenance, and per-model model cards; a safety / jailbreak release gate; production drift monitoring; an OWASP LLM Top 10 mapping and a NIST AI RMF / EU AI Act / ISO 42001 crosswalk.
+- **Operations & evidence.** SLOs and release gates, quota/chargeback, data retention, egress governance; Prometheus + Grafana, Tempo tracing, Loki logs, and cost/OpenCost dashboards; Pod Security Admission, an opt-in encryption-in-transit overlay, and optional Falco runtime detection; restore and chaos drills plus a disaster-recovery runbook; SBOMs, Trivy scans, Cosign-signed images, provenance attestations, OpenSSF Scorecard, and evidence packs.
 
 ## How It Works
 
 ![Private AI Platform Kit architecture](docs/assets/architecture.svg)
 
-Requests enter the inference gateway at `POST /v1/chat/completions` — or the sibling `/v1/completions`, `/v1/embeddings`, `/v1/messages`, and `/v1/responses` surfaces, which all run the same governance path. The gateway authenticates the caller, enforces model allowlists and admission limits, applies input and output guardrails, routes to Ollama or vLLM (with failover), records Prometheus metrics, and emits redacted audit events — returning OpenAI-shaped errors and per-sandbox budget-headroom headers. Callers can pass `X-Request-ID`, `X-Sandbox-ID`, and W3C `traceparent`; the gateway returns and forwards those headers without logging raw prompt text.
+Requests enter the inference gateway at `POST /v1/chat/completions` (or the sibling `/v1/completions`, `/v1/embeddings`, `/v1/messages`, and `/v1/responses` surfaces, which all run the same governance path). The gateway authenticates the caller, enforces model allowlists and admission limits, applies input and output guardrails, routes to Ollama or vLLM (with failover), records Prometheus metrics, and emits redacted audit events, returning OpenAI-shaped errors and per-sandbox budget-headroom headers. Callers can pass `X-Request-ID`, `X-Sandbox-ID`, and W3C `traceparent`; the gateway returns and forwards those headers without logging raw prompt text.
 
 The local lab runs fully on `kind`. Customer clusters keep the same repo structure and replace only the platform services they already operate: ingress, storage classes, secret backends, logging, observability, and GPU node pools. Per-profile diagrams (local, customer GPU, and regulated-offline) and an end-to-end request-flow walkthrough live in [docs/architecture.md](docs/architecture.md).
 
@@ -83,7 +83,7 @@ make smoke RUNTIME_BACKEND=ollama
 
 The default local model is `qwen2.5:0.5b`, a fast non-reasoning model that keeps the laptop CPU smoke quick; the larger `qwen3.5:0.8b` reasoning model is the customer Ollama profile default. A real model pull can take time and disk space on the first run.
 
-For the full local path — sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates — follow [docs/getting-started.md](docs/getting-started.md).
+For the full local path (sandbox tracing, RAG, coding-agent workspaces, restore drills, evals, load tests, and release gates), follow [docs/getting-started.md](docs/getting-started.md).
 
 ## Support Boundaries
 
@@ -104,7 +104,7 @@ NVIDIA clusters should expose `nvidia.com/gpu`; AMD clusters should expose `amd.
 
 ## Docs
 
-Popular starting points — see the [full documentation map](docs/README.md) for everything:
+Popular starting points (see the [full documentation map](docs/README.md) for everything):
 
 | Need | Start here |
 | --- | --- |

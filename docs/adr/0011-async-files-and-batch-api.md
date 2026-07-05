@@ -25,7 +25,7 @@ Constraints that shape the design:
   batch state today (no PVC, no StatefulSet); that property must survive.
 - **Governance must be enforced exactly once, identically to live traffic.** Every batched item
   has to pass the model allowlist, admission caps, prompt-secret policy, per-tenant budget, the
-  output guardrail, tenant isolation, and the tamper-evident audit chain (ADR 0006) — with no
+  output guardrail, tenant isolation, and the tamper-evident audit chain (ADR 0006), with no
   second, drifting copy of that policy.
 - **Durable, cancellable, horizontally safe.** A submitted batch must survive a worker restart,
   be cancellable mid-run, honor its completion window, and be safe to process with N workers.
@@ -49,18 +49,18 @@ horizontally-safe subsystem. State is externalized so the gateway stays stateles
 
 **Storage.**
 
-- **Object store (S3 / MinIO)** holds the JSONL blobs — input, output, and error files — keyed by
+- **Object store (S3 / MinIO)** holds the JSONL blobs (input, output, and error files), keyed by
   tenant and file id. Blobs do not belong in Redis.
 - **Redis** holds file metadata, batch job records (status, `request_counts`, file ids,
   timestamps, `completion_window`, `metadata`), and the **durable work queue** as a reliable
-  Redis list pair — a `pending` list plus a `processing` list with a claim-time hash the reaper
+  Redis list pair: a `pending` list plus a `processing` list with a claim-time hash the reaper
   reads. Redis is already a platform dependency (`budget-redis`) and this uses only single atomic
-  commands (`RPOPLPUSH`, `LREM`, `LPUSH`, `HSET`/`HDEL`) — no Lua or multi/exec to reason about.
+  commands (`RPOPLPUSH`, `LREM`, `LPUSH`, `HSET`/`HDEL`), with no Lua or multi/exec to reason about.
   AOF persistence makes the queue durable.
 
 **Processing (`batch-processor`, a new stateless Deployment).**
 
-- Claims a batch with an atomic `RPOPLPUSH` from the `pending` list to the `processing` list —
+- Claims a batch with an atomic `RPOPLPUSH` from the `pending` list to the `processing` list, so
   each batch is owned by exactly one worker; a reaper re-queues batches whose claim has been idle
   past a threshold (crashed-worker recovery). All worker state lives in Redis and the object
   store, so the Deployment scales horizontally and restarts freely.
@@ -71,7 +71,7 @@ horizontally-safe subsystem. State is externalized so the gateway stays stateles
   error JSONL; update `request_counts` in Redis; on completion upload the output/error files, set
   `output_file_id`/`error_file_id`, and transition to `completed` (or `failed`).
 - **Replaying through the gateway is the core decision**: governance stays single-sourced. The
-  worker holds no policy — allowlist, admission, prompt-secret handling, budget, guardrail, tenant
+  worker holds no policy. Allowlist, admission, prompt-secret handling, budget, guardrail, tenant
   isolation, and audit all execute in the gateway per item, identically to live traffic, so batch
   items produce the same audit receipts (extending the ADR 0006 chain) and obey the same budgets.
 - **Cancellation** is a per-batch flag in Redis, checked between items; the worker finalizes
@@ -93,7 +93,7 @@ cannot cross tenants.
 
 ## Consequences
 
-- New backing state is introduced — an object store and a durable Redis queue — plus one new
+- New backing state is introduced (an object store and a durable Redis queue) plus one new
   worker Deployment. The **gateway itself stays stateless**; all batch state is external. Operators
   who do not enable the feature pay nothing (the endpoints and worker are gated off by default).
 - Governance is single-sourced: because items are replayed through the gateway, per-item audit
@@ -113,16 +113,16 @@ cannot cross tenants.
 **Phased rollout** (each phase independently shippable and gated by `make validate` + `make
 coverage` + `make production-check`):
 
-1. **Foundations** — settings, the `ObjectStore` abstraction + fake, Redis file/batch stores,
+1. **Foundations**: settings, the `ObjectStore` abstraction + fake, Redis file/batch stores,
    config/api contracts scaffolding. No externally visible behavior.
-2. **Files API** — `/v1/files` endpoints over the object store + Redis metadata, size/line caps.
-3. **Batches API (state)** — `/v1/batches` create/get/cancel/list, job records, enqueue to the
+2. **Files API**: `/v1/files` endpoints over the object store + Redis metadata, size/line caps.
+3. **Batches API (state)**: `/v1/batches` create/get/cancel/list, job records, enqueue to the
    queue; batches reach `in_progress` but are not yet processed.
-4. **`batch-processor` worker** — the Deployment: consume, replay through the gateway, write
-   output/error files, update counts/status, cancellation, expiry/reaper, crash recovery.
-5. **Governance & hardening** — per-item budget/audit correctness, tenant-isolation enforcement in
+4. **`batch-processor` worker**: the Deployment consumes, replays through the gateway, writes
+   output/error files, updates counts/status, cancellation, expiry/reaper, crash recovery.
+5. **Governance & hardening**: per-item budget/audit correctness, tenant-isolation enforcement in
    replay, backpressure, at-least-once idempotency, error taxonomy, adversarial review.
-6. **Deploy, SDK, docs, evidence** — MinIO chart (local) + customer S3 overlay, worker chart with
+6. **Deploy, SDK, docs, evidence**: MinIO chart (local) + customer S3 overlay, worker chart with
    HPA/PDB/NetworkPolicy, umbrella wiring, SDK methods, scope/architecture/README/runbook updates,
    release-gate and evidence-pack integration.
 
@@ -135,7 +135,7 @@ coverage` + `make production-check`):
   tier that was explicitly not chosen.
 - **Import the governance code into the worker (no HTTP replay).** Runs items in-process in the
   worker against the policy modules directly. Rejected: it duplicates the gateway's app wiring and
-  risks the batch path and the live path drifting apart — the exact failure the single-sourced
+  risks the batch path and the live path drifting apart, the exact failure the single-sourced
   design prevents. Replaying through the gateway keeps one enforcement point.
 - **PVC filesystem for blobs instead of an object store.** Simpler locally, but `ReadWriteOnce`
   ties files to one node and `ReadWriteMany` is storage-class-dependent and awkward across the
@@ -147,5 +147,5 @@ coverage` + `make production-check`):
   consistent with how the repo hand-rolls primitives (ADR 0006). If the signing surface grows
   beyond object PUT/GET/DELETE/list, this can be revisited.
 - **Postgres (or another RDBMS) for job state.** Robust and queryable, but adds a new stateful
-  dependency when Redis — already present — covers small job records plus a durable list-based queue.
+  dependency when Redis, already present, covers small job records plus a durable list-based queue.
   Rejected to avoid new infrastructure; revisit if batch metadata grows relational query needs.

@@ -107,7 +107,7 @@ admits, budgets, routes to Ollama, and (when invoked) calls the RAG service for 
 CD reconciles all namespaces from this repo; Prometheus scrapes `/metrics` and Promtail ships the
 redacted audit JSON to Loki.
 
-**Known limitation — NetworkPolicies are not enforced on kind.** kind's default `kindnet` CNI
+**Known limitation: NetworkPolicies are not enforced on kind.** kind's default `kindnet` CNI
 does not implement NetworkPolicy, so the default-deny sandbox/tenant isolation and the runtime
 ingress restrictions render but do not block traffic on this profile. They are validated
 structurally (chart render + kubeconform + policy tests); enforcement is exercised on the

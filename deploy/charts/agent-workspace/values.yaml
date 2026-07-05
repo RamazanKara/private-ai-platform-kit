@@ -73,7 +73,7 @@ workspace:
   shutdownTime: ""
   shutdownPolicy: Retain
   # Short-lived platform credential: a projected, audience-bound
-  # ServiceAccount token the kubelet rotates automatically. On by default —
+  # ServiceAccount token the kubelet rotates automatically. On by default:
   # no long-lived secret enters the workspace; the gateway verifies it via
   # its JWT/JWKS auth (jwt_auth_enabled + the cluster's service-account
   # issuer).

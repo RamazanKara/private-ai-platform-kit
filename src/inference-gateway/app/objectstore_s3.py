@@ -1,7 +1,7 @@
 """Minimal S3/MinIO object-store backend for the batch subsystem (ADR 0011).
 
 A small in-tree S3 client speaking AWS Signature Version 4 over the already-present ``httpx``
-and stdlib ``hashlib``/``hmac`` — no heavyweight cloud SDK. It implements the ``ObjectStore``
+and stdlib ``hashlib``/``hmac``, with no heavyweight cloud SDK. It implements the ``ObjectStore``
 protocol (put/get/delete/exists/list_keys) with path-style addressing so it works against
 MinIO and S3 alike. The synchronous client is deliberate: callers make only a handful of
 object calls per batch (read the input file, write the output/error files), so blocking is

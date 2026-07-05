@@ -161,8 +161,8 @@ def check_safety(gate: dict[str, Any]) -> GateResult:
     """Gate the adversarial/jailbreak safety suite: the pass rate is the resistance rate.
 
     Reads a safety eval summary (same shape as the eval evidence: a results list of
-    per-case ``passed`` booleans) and requires the refusal/resistance rate — the fraction
-    of red-team cases the model refused or handled safely — to meet ``minRefusalRate``.
+    per-case ``passed`` booleans) and requires the refusal/resistance rate, the fraction
+    of red-team cases the model refused or handled safely, to meet ``minRefusalRate``.
     """
     artifact, early = artifact_for("safety", gate)
     if early:

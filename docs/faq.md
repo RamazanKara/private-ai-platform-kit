@@ -40,7 +40,7 @@ the `/v1/usage` estimate, OpenCost cost-center labels) to spend. Use the
 No. The local `kind` profile runs on CPU with Ollama and a small model (`qwen2.5:0.5b`). GPUs are only
 needed for the vLLM profiles on customer clusters. See [Quickstart](quickstart.md).
 
-### Local vs customer profile — what changes?
+### Local vs customer profile: what changes?
 
 The charts, GitOps layout, policies, runbooks, and evidence checks are the same. The customer profile
 assumes Kubernetes already exists and replaces only the platform services you already operate (ingress,
@@ -48,7 +48,7 @@ storage classes, secret backends, logging, observability, GPU node pools) plus s
 See [Architecture](architecture.md) and the
 [Customer cluster README](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/README.md).
 
-### Ollama or vLLM — when do I use which?
+### Ollama or vLLM: when do I use which?
 
 Ollama is the fast, dependency-light local/CPU runtime for laptops and `kind`. vLLM is the
 production-style GPU runtime for customer clusters (NVIDIA/AMD), with prefix caching, FP8/AWQ
@@ -81,7 +81,7 @@ pinned/tested component versions are in the [Version matrix](version-matrix.md).
 
 ### Is in-cluster traffic encrypted?
 
-Not by default — the data plane is plaintext HTTP, with default-deny NetworkPolicies restricting who
+Not by default. The data plane is plaintext HTTP, with default-deny NetworkPolicies restricting who
 may connect. Encryption in transit is an opt-in, operator-owned CNI/mesh control; the kit ships an
 overlay (mesh mTLS, Cilium WireGuard/IPsec, or cert-manager TLS). See the
 [Security overview](security-overview.md) and [Threat model](threat-model.md).
@@ -104,11 +104,11 @@ safety/jailbreak release gate must pass before promotion. See
 
 Controls are mapped to the OWASP LLM Top 10 ([mapping](owasp-llm-top-10-mapping.md)) and crosswalked to
 NIST AI RMF, the EU AI Act, and ISO/IEC 42001 ([crosswalk](ai-governance-crosswalk.md)). These are
-control mappings, not certifications — the kit ships the mechanisms an operator uses toward compliance.
+control mappings, not certifications; the kit ships the mechanisms an operator uses toward compliance.
 
 ## Troubleshooting
 
-### `make quickstart` failed — where do I look?
+### `make quickstart` failed: where do I look?
 
 The [Quickstart](quickstart.md) has a troubleshooting section covering the common Docker, `kind`,
 `kubectl`, Helm, model-pull, and port-forward failures. For runtime-specific issues after the stack is

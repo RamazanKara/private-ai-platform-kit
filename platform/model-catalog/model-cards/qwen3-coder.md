@@ -57,7 +57,7 @@ the attested provenance commit via `model.revision` before production
   `huggingface://Qwen/Qwen3-Coder-Next@sha256:71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06`
 - Digest: `sha256:71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06`
   (scope: source-reference)
-- Verification: `customer-model-store` — `huggingface-cli scan-cache --dir /models`
+- Verification: `customer-model-store` via `huggingface-cli scan-cache --dir /models`
 - License: apache-2.0
 
 The bundled digest is a source-reference pointer, not a model-artifact checksum. Replace it with
@@ -83,7 +83,7 @@ the customer's pinned model-store artifact revision and checksum before producti
 ## Evaluation evidence
 
 - Eval suite: `platform/evals/coding-agent-suite.yaml`
-- Eval model proxy: `qwen3.5:0.8b` — `Qwen3-Coder-Next` requires multi-GPU serving and cannot be
+- Eval model proxy: `qwen3.5:0.8b`. `Qwen3-Coder-Next` requires multi-GPU serving and cannot be
   run in CI; `qwen3.5:0.8b` is the CPU-runnable proxy exercised by the coding-agent eval suite.
   Re-run the suite against the real model on the customer GPU profile before production sign-off.
 - Eval summary: `results/evals/sample-summary.md`

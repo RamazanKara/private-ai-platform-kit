@@ -1,11 +1,11 @@
 """File and batch metadata stores plus the durable work queue for the async batch API (ADR 0011).
 
 The object store (``objectstore``) holds the JSONL *blobs*; this module holds the small,
-structured *records* — one per uploaded file and one per batch job — and the queue the
+structured *records* (one per uploaded file and one per batch job) and the queue the
 ``batch-processor`` drains. Two backends implement the same ``BatchStore`` protocol:
 
-- ``MemoryBatchStore`` — process-local, for tests and single-replica local runs.
-- ``RedisBatchStore`` — shared, durable state for cluster deployments. It uses only single
+- ``MemoryBatchStore``: process-local, for tests and single-replica local runs.
+- ``RedisBatchStore``: shared, durable state for cluster deployments. It uses only single
   Redis commands (JSON blobs for immutable metadata, a hash for mutable batch state, lists for
   indexes and the reliable work queue), so there is no Lua or multi/exec to reason about, and
   the concurrency contract is simple: exactly one worker owns a claimed batch at a time.

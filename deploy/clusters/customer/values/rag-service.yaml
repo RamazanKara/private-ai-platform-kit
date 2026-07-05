@@ -51,7 +51,7 @@ auth:
   # filter above scopes retrieval to that verified tenant: a token whose claim contradicts the
   # X-Sandbox-ID header is rejected (403), closing the last gap where a direct caller under the
   # shared API key could assert another tenant's id. Point `tenantClaim` at whatever claim your
-  # IdP emits to uniquely identify the tenant (commonly `sandbox_id`, else `azp`/`sub`) — it must
+  # IdP emits to uniquely identify the tenant (commonly `sandbox_id`, else `azp`/`sub`); it must
   # match the `owner` value documents are ingested with. `required: true` is MANDATORY for
   # this multi-tenant profile: with `required: false`, a caller could simply omit the token
   # and fall back to the (spoofable) X-Sandbox-ID header, reopening the cross-tenant gap this

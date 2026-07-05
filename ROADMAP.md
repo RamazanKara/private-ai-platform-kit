@@ -17,7 +17,7 @@ This roadmap is ordered by what most improves open-source evaluation quality.
   `--selftest` wired into `make validate`) and head anchoring (`make audit-anchor`,
   `audit-verify --anchor`) with a hash-covered per-replica `chain_id`. This closes the
   head-anchoring gap ADR 0006 flagged. **Remaining (operator-owned):** committing/exporting the
-  anchor and forwarding the audit receipts to a SIEM for long-term hold — the CronJob example and
+  anchor and forwarding the audit receipts to a SIEM for long-term hold. The CronJob example and
   the procedure ship in `runbooks/audit-chain.md`.
 
 ## 3. Platform Hardening
@@ -34,8 +34,8 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 
 - Per-tenant retrieval isolation is enforced by default (`retrieval.tenantIsolation` on both the
   Qdrant and lexical backends, fail-closed on a missing/unasserted tenant), and the RAG service now
-  derives per-caller identity from its **own** audience-bound token verification (`auth.jwt`, `RAG_JWT_*`
-  — JWKS/issuer/audience/exp/nbf with an alg allowlist, mirroring the gateway's `jwt_auth`): the tenant
+  derives per-caller identity from its **own** audience-bound token verification (`auth.jwt`, `RAG_JWT_*`,
+  covering JWKS/issuer/audience/exp/nbf with an alg allowlist, mirroring the gateway's `jwt_auth`): the tenant
   comes from a verified claim on the RAG service itself (a contradicting `X-Sandbox-ID` header is rejected
   403, a missing token fails closed 401 when required), with header-trust as the fallback when JWT is off.
 - Replace demo hashed-vector behavior with a pluggable embedding provider interface.
@@ -63,8 +63,8 @@ decision reads as intentional and can be revisited with evidence.
 
 - **Semantic (embedding-similarity) response caching.** The gateway response cache
   (`responseCache`, `src/inference-gateway/app/cache.py`) is **exact-match only**: a hit requires
-  the same sandbox and a byte-identical request payload. Semantic caching — embedding the prompt
-  and serving a cached completion for a *similar* (not identical) prompt — was considered and
+  the same sandbox and a byte-identical request payload. Semantic caching (embedding the prompt
+  and serving a cached completion for a *similar*, not identical, prompt) was considered and
   deferred. The reasoning: for the agent and tool-use traffic this gateway is built around, a
   near-miss is a correctness/staleness hazard, not a convenience. Two prompts a similarity
   threshold treats as equivalent routinely demand different answers (a changed file path, an
@@ -74,7 +74,7 @@ decision reads as intentional and can be revisited with evidence.
   lookup on the hot path, weakens the audit story (what was served vs. what was requested), and
   interacts badly with the output guardrail (a cached hit skips re-inspection). Exact-match
   caching keeps the semantics obvious and safe. Revisit only behind an explicit opt-in with a
-  conservative threshold, per-sandbox scoping, TTL, and cache-hit audit — and only for workloads
+  conservative threshold, per-sandbox scoping, TTL, and cache-hit audit, and only for workloads
   (e.g. FAQ-style retrieval) where a near-duplicate answer is acceptable.
 
 ## Seed Issue List
@@ -101,10 +101,10 @@ SDK, and embedding-model governance all ship. What remains is inherently externa
 "manifests, charts, service code, validation tooling, and runbooks" boundary:
 
 - `runtime`: Multi-node distributed serving requires the LeaderWorkerSet (or Ray) operator and
-  a per-cluster GPU topology — the kit ships the working LWS example and the pipeline-parallel
-  flags (runbooks/gpu-capacity.md); the operator installs and sizes it.
+  a per-cluster GPU topology; the kit ships the working LWS example and the pipeline-parallel
+  flags (runbooks/gpu-capacity.md), and the operator installs and sizes it.
 - `runtime`: LoRA/adapter *artifacts* and the embedding/serving model *weights* are the
-  customer's to host and pin — the kit ships the serving flags, catalog governance, and a
+  customer's to host and pin; the kit ships the serving flags, catalog governance, and a
   source-reference provenance digest the customer replaces with their pinned model-store checksum.
 - `dx`: A standalone admin/usage *console UI* is a separate web application; the kit ships the
   `/v1/usage` data layer, the metrics, and the client SDK it would build on.

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Private AI Platform Kit — Admin Console</title>
+    <title>Private AI Platform Kit: Admin Console</title>
     <style>
       :root {
         --bg: #0f1420; --panel: #171e2e; --panel2: #1e2740; --line: #2a3550;
@@ -59,7 +59,7 @@
   </head>
   <body>
     <header>
-      <h1>Private AI Platform Kit — Admin Console</h1>
+      <h1>Private AI Platform Kit: Admin Console</h1>
       <p>Read-only view of a sandbox's usage, budget, and approved models. No data leaves your browser but the calls you make to the gateway.</p>
     </header>
     <main>
@@ -72,10 +72,10 @@
       </div>
       <div class="status" id="status">Enter your gateway details and connect. Read-only: this console never mutates state.</div>
       <div class="grid">
-        <section class="card" id="card-health"><h2>Health</h2><div class="body">—</div></section>
-        <section class="card" id="card-usage"><h2>Usage &amp; cost</h2><div class="body">—</div></section>
-        <section class="card" id="card-budget"><h2>Sandbox budget</h2><div class="body">—</div></section>
-        <section class="card" id="card-models"><h2>Approved models</h2><div class="body">—</div></section>
+        <section class="card" id="card-health"><h2>Health</h2><div class="body">…</div></section>
+        <section class="card" id="card-usage"><h2>Usage &amp; cost</h2><div class="body">…</div></section>
+        <section class="card" id="card-budget"><h2>Sandbox budget</h2><div class="body">…</div></section>
+        <section class="card" id="card-models"><h2>Approved models</h2><div class="body">…</div></section>
       </div>
       <footer>Served by the inference gateway at <code>/console</code> when <code>ADMIN_CONSOLE_ENABLED</code> is set (ADR 0013). The API key is kept only in this browser session.</footer>
     </main>
@@ -114,7 +114,7 @@
       }
 
       function fail(cardId, err) {
-        var msg = err && err.status === 401 ? "401 — check the API key" : err && err.status ? "HTTP " + err.status : "request failed";
+        var msg = err && err.status === 401 ? "401: check the API key" : err && err.status ? "HTTP " + err.status : "request failed";
         body(cardId).innerHTML = '<div class="err">' + esc(msg) + "</div>";
       }
 
@@ -157,7 +157,7 @@
         if (!d) { body("card-budget").innerHTML = '<div class="err">no data</div>'; return; }
         if (d.enabled === false) { body("card-budget").innerHTML = kv("enforced", pill(false, "disabled")); return; }
         var usage = d.usage || {}, limits = d.limits || {};
-        var html = kv("backend", esc(d.backend || "—"));
+        var html = kv("backend", esc(d.backend || "n/a"));
         [["requests", "requests"], ["prompt_chars", "prompt chars"], ["estimated_tokens", "est. tokens"]].forEach(function (p) {
           var used = usage[p[0]] || 0, limit = limits[p[0]] || 0;
           html += kv(p[1], num(used) + (limit ? " / " + num(limit) : "")) + bar(used, limit);
@@ -190,7 +190,7 @@
           try { j[1](await api(j[0], s)); ok++; } catch (e) { fail(j[2], e); }
         }));
         var now = new Date().toLocaleTimeString();
-        $("status").textContent = "Updated " + now + " — sandbox " + s.sandbox + " — " + ok + "/" + jobs.length + " panels loaded.";
+        $("status").textContent = "Updated " + now + ", sandbox " + s.sandbox + ", " + ok + "/" + jobs.length + " panels loaded.";
       }
 
       function setAuto(on) {

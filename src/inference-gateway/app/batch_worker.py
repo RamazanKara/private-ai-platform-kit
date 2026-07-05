@@ -1,7 +1,7 @@
 """Batch-processor worker: drain the queue and replay each item through the gateway (ADR 0011).
 
-Runs as the gateway image with ``python -m app.batch_worker``. It is stateless — all state
-lives in the object store and the batch store — so the Deployment scales horizontally and
+Runs as the gateway image with ``python -m app.batch_worker``. It is stateless (all state
+lives in the object store and the batch store), so the Deployment scales horizontally and
 restarts freely. For each claimed batch it replays every input line against the gateway's own
 governed endpoint, so the model allowlist, admission caps, prompt-secret policy, budget, output
 guardrail, tenant isolation, and audit chain all apply per item exactly as for live traffic.
