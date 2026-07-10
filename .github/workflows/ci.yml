@@ -465,7 +465,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$GITHUB_REF_NAME" sdk-dist/* sdk-checksums.txt --repo "$GITHUB_REPOSITORY" --clobber
       - name: Publish SDK with PyPI Trusted Publishing and attestations
-        uses: pypa/gh-action-pypi-publish@6733eb7d741f0b11ec6a39b58540dab7590f9b7d  # v1.14.0
+        # Pin the peeled v1.14.0 commit, not its annotated tag-object SHA: the
+        # action's runtime container is published under the commit SHA only.
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
         with:
           packages-dir: sdk-dist
 
