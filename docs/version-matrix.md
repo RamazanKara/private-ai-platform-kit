@@ -110,7 +110,8 @@ Each is overridable via the listed environment variable.
 
 Release-only distribution tooling is pinned separately: ORAS `v1.3.1` publishes Artifact Hub
 OCI metadata, `mike==2.2.0` retains versioned documentation, and
-`pypa/gh-action-pypi-publish` is commit-pinned at its `v1.14.0` release. Their exact pins live in
+`pypa/gh-action-pypi-publish` is pinned to the peeled commit for its `v1.14.0` release, matching
+the tag used by its runtime container. The exact action pins live in
 `.github/workflows/ci.yml`, `.github/workflows/docs.yml`, and `requirements-docs.txt`.
 
 ## What the kit does not pin

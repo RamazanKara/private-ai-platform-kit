@@ -1321,7 +1321,7 @@ def check_release_packaging(errors: list[str]) -> None:
             "sdk-compatibility",
             "sdk-build",
             "sdk-publish",
-            "pypa/gh-action-pypi-publish@",
+            "pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b",
             "packages-dir: sdk-dist",
         ):
             require(
