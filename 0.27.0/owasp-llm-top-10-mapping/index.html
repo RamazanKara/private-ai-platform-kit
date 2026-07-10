@@ -1,0 +1,1959 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A runnable, vendor-neutral Kubernetes platform for private LLMs, RAG, and coding-agent workspaces.">
+      
+      
+      
+        <link rel="canonical" href="https://ramazankara.github.io/private-ai-platform-kit/0.27.0/owasp-llm-top-10-mapping/">
+      
+      
+        <link rel="prev" href="../threat-model/">
+      
+      
+        <link rel="next" href="../ai-governance-crosswalk/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>OWASP LLM Top 10 mapping - Private AI Platform Kit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#owasp-llm-top-10-control-mapping" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Private AI Platform Kit" class="md-header__button md-logo" aria-label="Private AI Platform Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Private AI Platform Kit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              OWASP LLM Top 10 mapping
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/RamazanKara/private-ai-platform-kit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    RamazanKara/private-ai-platform-kit
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/" class="md-tabs__link">
+          
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
+          
+  
+    
+  
+  How-to guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../feature-inventory/" class="md-tabs__link">
+          
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../decision-guide/" class="md-tabs__link">
+          
+  
+    
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Private AI Platform Kit" class="md-nav__button md-logo" aria-label="Private AI Platform Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Private AI Platform Kit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/RamazanKara/private-ai-platform-kit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    RamazanKara/private-ai-platform-kit
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../tutorials/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    First private AI platform
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../runbooks/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    How-to guides
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-to guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Local lab and operations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client API examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../customer-handoff-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customer cluster handoff
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../regulated-offline-tenant-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Regulated offline tenant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gpu-coding-agent-tenant-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GPU coding-agent tenant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-inventory/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Feature inventory
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../production-readiness/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Production readiness matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks-and-evals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Benchmarks and evals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../capacity-sizing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Capacity and sizing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cost-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cost model and TCO
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../version-matrix/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Version and compatibility matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-verification/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Release verification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Distribution and discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Glossary
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../references/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upstream references
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../adr/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Explanation
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Explanation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decision-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Is this for you (decision guide)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture profiles
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../threat-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture and threat model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    OWASP LLM Top 10 mapping
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    OWASP LLM Top 10 mapping
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conventions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      Summary table
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm01-prompt-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM01 Prompt Injection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm02-insecure-output-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM02 Insecure Output Handling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm03-training-data-and-model-poisoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM03 Training Data and Model Poisoning
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm04-model-denial-of-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM04 Model Denial of Service
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm05-supply-chain-vulnerabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM05 Supply Chain Vulnerabilities
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm06-sensitive-information-disclosure" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM06 Sensitive Information Disclosure
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm07-insecure-plugin-and-tool-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM07 Insecure Plugin and Tool Design
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm08-excessive-agency" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM08 Excessive Agency
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm09-overreliance" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM09 Overreliance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm10-model-theft" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM10 Model Theft
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mitre-atlas-pointer" class="md-nav__link">
+    <span class="md-ellipsis">
+      MITRE ATLAS pointer
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-governance-crosswalk/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AI governance crosswalk
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scope-and-non-goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Scope and non-goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-sandbox-integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Agent-sandbox integration design
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../proof/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Proof and strict evidence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conventions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      Summary table
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm01-prompt-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM01 Prompt Injection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm02-insecure-output-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM02 Insecure Output Handling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm03-training-data-and-model-poisoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM03 Training Data and Model Poisoning
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm04-model-denial-of-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM04 Model Denial of Service
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm05-supply-chain-vulnerabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM05 Supply Chain Vulnerabilities
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm06-sensitive-information-disclosure" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM06 Sensitive Information Disclosure
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm07-insecure-plugin-and-tool-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM07 Insecure Plugin and Tool Design
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm08-excessive-agency" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM08 Excessive Agency
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm09-overreliance" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM09 Overreliance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm10-model-theft" class="md-nav__link">
+    <span class="md-ellipsis">
+      LLM10 Model Theft
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mitre-atlas-pointer" class="md-nav__link">
+    <span class="md-ellipsis">
+      MITRE ATLAS pointer
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+    <a href="https://github.com/RamazanKara/private-ai-platform-kit/edit/main/docs/owasp-llm-top-10-mapping.md" title="Edit this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="owasp-llm-top-10-control-mapping">OWASP LLM Top 10 Control Mapping<a class="headerlink" href="#owasp-llm-top-10-control-mapping" title="Permanent link">&para;</a></h1>
+<p>This document maps each item in the OWASP Top 10 for LLM Applications to the concrete control that
+already exists in this repository, or to an explicit accepted-residual-risk statement where the kit
+delegates the control to the operator or does not implement it yet.</p>
+<p>It is scoped to the same boundary as the rest of the kit: gateway and RAG service code, Helm charts,
+Kubernetes policy, GitOps wiring, validation tooling, and runbooks. It does not cover controls that
+live entirely in the customer's identity provider, secret manager, cluster CNI, or model store; those
+are called out as customer-owned where relevant. Read it alongside <a href="../threat-model/">Threat model</a>,
+which goes deeper on the AI-specific threats, and the <a href="../production-readiness/">Production readiness matrix</a>,
+which lists the validation command behind each control.</p>
+<p>The OWASP item numbering follows the published "OWASP Top 10 for Large Language Model Applications"
+list (LLM01..LLM10). Coverage is stated per item; where a control is described as "operator-owned" or
+"out of scope", treat the residual risk as accepted for the kit's boundary.</p>
+<h2 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h2>
+<ul>
+<li>"Control" means a mechanism that exists in this repo at a cited file. None of these make the
+  underlying threat disappear; treat them as defense in depth, the same framing as the threat model.</li>
+<li>"Residual risk" means the part of the threat the listed controls do not address. Where the kit
+  hands the control to the operator, that is stated explicitly.</li>
+<li>File paths are repo-relative. Environment variables map to gateway settings in
+  <code>src/inference-gateway/app/settings.py</code> and RAG settings in <code>src/rag-service/app/settings.py</code>.</li>
+</ul>
+<h2 id="summary-table">Summary table<a class="headerlink" href="#summary-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>OWASP item</th>
+<th>Primary in-repo control</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLM01 Prompt Injection</td>
+<td>Default-deny egress, read-only RAG, per-tenant + per-classification RAG filters, prompt secret detection, admission caps, output guardrail, adversarial safety release gate</td>
+<td>Partial; model influence by injected content is residual</td>
+</tr>
+<tr>
+<td>LLM02 Insecure Output Handling</td>
+<td>Response-path output guardrail (flag / redact / block) scanning completions; output treated as untrusted downstream</td>
+<td>Partial; downstream consumers must still sanitize</td>
+</tr>
+<tr>
+<td>LLM03 Training Data / Model Poisoning</td>
+<td>Model catalog allowlist, promotion requests, provenance with digests</td>
+<td>Partial; upstream training integrity is out of scope</td>
+</tr>
+<tr>
+<td>LLM04 Model Denial of Service</td>
+<td>Admission limits, sandbox budgets, rate limiting, concurrency load-shed, batch caps</td>
+<td>Strong at the gateway boundary</td>
+</tr>
+<tr>
+<td>LLM05 Supply Chain</td>
+<td>Pinned images, hashed locks, SBOM, Trivy gating, Cosign signing, Scorecard, Dependabot</td>
+<td>Strong for kit-built artifacts</td>
+</tr>
+<tr>
+<td>LLM06 Sensitive Information Disclosure</td>
+<td>Hash-only audit redaction, prompt secret/PII detection, output guardrail redaction, moderations endpoint</td>
+<td>Partial; residual model-side leakage on streaming</td>
+</tr>
+<tr>
+<td>LLM07 Insecure Plugin / Tool Design</td>
+<td>Tool count/size caps, agent-workspace RBAC, default-deny egress</td>
+<td>Partial; tool semantics are caller-owned</td>
+</tr>
+<tr>
+<td>LLM08 Excessive Agency</td>
+<td>Workspace RBAC, default-deny + catalog egress, quotas, budgets</td>
+<td>Partial; agent autonomy is residual</td>
+</tr>
+<tr>
+<td>LLM09 Overreliance</td>
+<td>Grounded RAG with provenance excerpts; RAGAS-style faithfulness / context-precision eval gate</td>
+<td>Partial; lexical faithfulness proxy, not an LLM judge</td>
+</tr>
+<tr>
+<td>LLM10 Model Theft</td>
+<td>Signed images, RBAC, default-deny network, PVC encryption attestation</td>
+<td>Partial; weight-exfil via inference is residual</td>
+</tr>
+</tbody>
+</table>
+<h2 id="llm01-prompt-injection">LLM01 Prompt Injection<a class="headerlink" href="#llm01-prompt-injection" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong></p>
+<ul>
+<li>Direct (caller) prompt content is size- and shape-bounded by gateway admission in
+  <code>Settings.validate_admission</code> (<code>src/inference-gateway/app/settings.py</code>): message count
+  (<code>MAX_MESSAGES</code>), total prompt characters (<code>MAX_PROMPT_CHARS</code>), completion-token ceiling, temperature
+  range, and a streaming on/off gate. Tool/function schemas are bounded separately by
+  <code>_validate_tools</code> (count <code>MAX_TOOLS</code>, serialized size <code>MAX_TOOL_CHARS</code>) because they are
+  attacker-influenced free-form JSON forwarded to the runtime.</li>
+<li>Prompt secret detection is on by default (<code>prompt_secret_detection_enabled=True</code>) and rejects inputs
+  matching the built-in credential detectors in <code>BUILT_IN_SECRET_PATTERNS</code>
+  (<code>src/inference-gateway/app/settings.py</code>) before any runtime forwarding, raising
+  <code>prompt_secret_detected</code>. This applies to both chat (<code>validate_admission</code>) and embeddings
+  (<code>validate_embedding_admission</code>).</li>
+<li>Indirect / RAG injection blast radius is constrained at the network and data layers. Coding-agent
+  and tenant namespaces run a default-deny <code>NetworkPolicy</code> plus an explicit approved-egress policy
+  (<code>deploy/charts/agent-workspace/templates/networkpolicy.yaml</code>); the only default egress is DNS,
+  the gateway namespace, and the RAG namespace. Any external CIDR must cite a <code>catalogRef</code> reviewed in
+  <code>platform/network/egress-catalog.yaml</code> (enforced at Helm render time by the <code>required</code> guard in that
+  template, and at admission by the Kyverno <code>ai-platform-restrict-egress-cidrs</code> policy in
+  <code>deploy/policies/kyverno/policies.yaml</code>, which denies <code>0.0.0.0/0</code>, <code>::/0</code>, and broad RFC1918
+  supernets).</li>
+<li>The RAG corpus is mounted read-only and is loaded from <code>RAG_DOCUMENT_DIR</code>
+  (<code>src/rag-service/app/retriever.py</code> <code>load_documents</code>); the service has no write path back into the
+  knowledge set at request time.</li>
+<li>Per-tenant and per-classification retrieval scoping ship. Per-tenant isolation is <strong>enabled by
+  default</strong> (<code>retrieval_tenant_isolation_enabled</code>, <code>RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED</code>) and enforced
+  on <strong>both</strong> backends: <code>QdrantRetriever._query_filter</code> appends a tenant-owner match, and
+  <code>LexicalRetriever</code> applies the same owner scoping to its (default-sandbox-stamped) corpus
+  (<code>src/rag-service/app/retriever.py</code>). It <strong>fails closed</strong>: the ingest-stamped <code>owner</code> field must equal
+  the request's <code>X-Sandbox-ID</code>, a request that does not explicitly assert <code>X-Sandbox-ID</code> is not treated
+  as a tenant, and a missing-tenant query never runs unfiltered. The bundled single-tenant local lexical
+  profile is the only shipped config that disables it. A <code>classification</code> allowlist match is added when
+  <code>retrieval_allowed_classifications</code> is set (<code>RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS</code>,
+  <code>src/rag-service/app/settings.py</code>). Customer values require RAG-side JWT verification and derive
+  the tenant from a verified claim; a contradictory <code>X-Sandbox-ID</code> is rejected. Header trust remains
+  available only for explicit single-tenant or gateway-stamped deployments.</li>
+<li>A response-path output guardrail inspects completions for injected exfiltration/credential material
+  before they return to the caller (see LLM02).</li>
+<li>Adversarial coverage is exercised by evals: <code>platform/evals/coding-agent-suite.yaml</code> has a
+  <code>prompt-injection-boundary</code> case, and the dedicated <code>platform/evals/safety-suite.yaml</code> red-team
+  battery (jailbreak, indirect-injection-via-retrieved-doc, secret-exfiltration, bias) is gated by the
+  <code>safety</code> release gate (<code>minRefusalRate</code>) in <code>platform/slo/release-gates.yaml</code>, so a promoted model
+  must meet a measured injection/jailbreak-resistance bar.</li>
+</ul>
+<p><strong>Residual risk (accepted).</strong> None of the above guarantees the model is not <em>influenced</em> by injected
+instructions carried in retrieved documents or workspace files; the controls reduce what an influenced
+model can <em>reach</em> and <em>exfiltrate</em>, and the output guardrail (LLM02) catches leaked secrets/PII on the
+response path but not every semantic injection. The mitigation stays operational: review which
+documents enter the corpus, enable per-tenant isolation, keep agent egress narrow, and treat model
+output as untrusted. This matches the "Indirect / RAG prompt injection" section of
+<a href="../threat-model/">Threat model</a>.</p>
+<h2 id="llm02-insecure-output-handling">LLM02 Insecure Output Handling<a class="headerlink" href="#llm02-insecure-output-handling" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong> A response-path output guardrail inspects the model completion before it is
+returned or cached. <code>_apply_output_guardrail</code> (<code>src/inference-gateway/app/main.py</code>) runs the configured
+credential/PII detectors and blocked-term denylist (<code>Settings.output_findings</code> /
+<code>redact_output_text</code>, <code>src/inference-gateway/app/settings.py</code>) over each choice's assistant text and,
+per <code>OUTPUT_GUARDRAIL_MODE</code>, either flags, redacts the matched spans, or blocks the content (setting
+<code>finish_reason=content_filter</code>). It is applied before the response cache so a leaked secret is never
+persisted, emits <code>inference_gateway_output_guardrail_total{action,route}</code>, and sets an
+<code>X-Output-Guardrail</code> response header. It is configured via <code>guardrails.outputGuardrail</code> in the gateway
+chart (<code>OUTPUT_GUARDRAIL_ENABLED</code> / <code>OUTPUT_GUARDRAIL_MODE</code> / <code>OUTPUT_GUARDRAIL_PATTERNS</code>) and covered
+by <code>src/inference-gateway/tests/test_output_guardrail.py</code>. The <code>/v1/moderations</code> endpoint
+(<code>moderate_text</code>) remains available as an explicit pre/post classifier. See the Output Guardrail
+section of <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/guardrails.md">Guardrails runbook</a>.</p>
+<p><strong>Residual risk (accepted).</strong> The detectors are pattern-based, so the guardrail catches known
+credential/PII/blocked-term shapes, not arbitrary sensitive content or a semantically malicious-but-
+clean-looking payload. Streaming responses are detected-and-flagged only (bytes are already on the
+wire); hard redact/block enforcement requires non-streaming. Consumers must still treat output as
+untrusted: a coding agent executing returned commands, a UI rendering returned HTML/markdown, or a
+service parsing returned JSON must do its own validation, encoding, and sandboxing (insecure output
+handling downstream is caller-owned).</p>
+<h2 id="llm03-training-data-and-model-poisoning">LLM03 Training Data and Model Poisoning<a class="headerlink" href="#llm03-training-data-and-model-poisoning" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong></p>
+<ul>
+<li>Only catalog-approved model IDs pass the gateway. <code>Settings.validate_model</code> and the
+  <code>ModelRoutingPolicy</code> (<code>src/inference-gateway/app/policy.py</code>) reject any model not in
+  <code>ALLOWED_MODELS</code> / the routing policy, cross-checked against
+  <code>platform/model-catalog/models.yaml</code>.</li>
+<li>Adding a model is a reviewed change: approved entries require a promotion request under
+  <code>platform/model-catalog/promotion-requests/</code> and a governed provenance record in
+  <code>platform/governance/model-provenance.yaml</code>, which requires <code>sourceUri</code>, <code>immutableRef</code>, <code>digest</code>,
+  <code>license</code>, <code>dataClassification</code>, <code>riskTier</code>, <code>promotionRequest</code>, and <code>servingProfiles</code> (see its
+  <code>spec.requiredEvidence</code>). <code>scripts/model-provenance.py</code> validates this in the strict release gate
+  (<code>make model-provenance-check</code>).</li>
+<li>Each provenance record pins a digest and a <code>verificationMode</code> / <code>verificationCommand</code>. Ollama-library
+  models pin the registry model-weights layer (reproducible via the embedded <code>curl | jq</code> command);
+  Hugging Face source models carry a <code>source-reference</code> digest that the customer replaces with their own
+  pinned model-store checksum before production (<code>notes</code> field on each artifact).</li>
+<li>Container images (not weights) are signed with keyless Cosign and verified at admission by the
+  Kyverno <code>ai-platform-verify-project-images</code> policy (<code>deploy/policies/kyverno/policies.yaml</code>); see
+  LLM05.</li>
+</ul>
+<p><strong>Residual risk (accepted).</strong> Digest verification proves <em>what artifact was pulled</em>, not that the
+upstream training pipeline that produced those weights was clean. Weight-level backdoors and
+training-data poisoning in the upstream model are out of scope for this kit and cannot be detected by
+provenance. The <code>riskTier</code> and <code>dataClassification</code> fields exist so an operator can apply additional
+review to higher-risk models; that review is operator-owned.</p>
+<h2 id="llm04-model-denial-of-service">LLM04 Model Denial of Service<a class="headerlink" href="#llm04-model-denial-of-service" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong> Multiple independent ceilings at the gateway boundary
+(<code>src/inference-gateway/app/main.py</code> and <code>settings.py</code>):</p>
+<ul>
+<li>Admission caps reject expensive single requests before any runtime call: message count, prompt
+  characters, completion tokens, temperature, and tool count/size (<code>validate_admission</code>,
+  <code>_validate_tools</code>).</li>
+<li>Per-sandbox cumulative budgets (<code>SANDBOX_BUDGET_ENABLED</code> and the <code>SANDBOX_*_BUDGET</code> ceilings)
+  enforce request, prompt-character, and estimated-token limits per <code>X-Sandbox-ID</code> over a rolling
+  window, backed by in-memory or shared Redis counters (<code>src/inference-gateway/app/budget.py</code>,
+  <code>build_sandbox_budget_tracker</code>). Exhaustion returns 429 with <code>Retry-After</code>, not a generic client
+  error (<code>_admission_status</code>).</li>
+<li>A short-window per-sandbox rate limiter (<code>RATE_LIMIT_ENABLED</code>, <code>src/inference-gateway/app/ratelimit.py</code>)
+  bounds burst abuse and is checked after sandbox binding so it applies to the authenticated tenant,
+  not the spoofable header.</li>
+<li>Concurrency load-shedding: when <code>MAX_CONCURRENT_REQUESTS &gt; 0</code>, the middleware in
+  <code>create_app.request_context</code> fast-fails excess in-flight requests with a 503 (<code>_overloaded_response</code>,
+  <code>inference_gateway_load_shed_total</code>) rather than queuing them behind the httpx pool.</li>
+<li>The batch endpoint caps batch size (<code>MAX_BATCH_REQUESTS</code>) and bounds per-batch fan-out with a
+  semaphore so one batch cannot saturate the upstream pool (<code>batch_inference</code> in <code>main.py</code>).</li>
+<li>Cluster-side capacity controls back this: HPA/KEDA scaling, PodDisruptionBudgets, topology spread,
+  and required CPU/memory requests-and-limits enforced by the Kyverno <code>require-requests-and-limits</code>
+  rule (<code>deploy/policies/kyverno/policies.yaml</code>).</li>
+</ul>
+<p><strong>Residual risk (accepted).</strong> These bound abuse at the gateway; they do not size the runtime. The
+operator must tune limits, budgets, and replica counts to actual GPU/CPU capacity and SLOs (see the
+Sandbox budgets and Autoscaling rows of <a href="../production-readiness/">Production readiness matrix</a>).</p>
+<h2 id="llm05-supply-chain-vulnerabilities">LLM05 Supply Chain Vulnerabilities<a class="headerlink" href="#llm05-supply-chain-vulnerabilities" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong> The CI pipeline (<code>.github/workflows/ci.yml</code>) and supporting tooling:</p>
+<ul>
+<li>Runtime images use a pinned Alpine Python base and runtime-only dependencies; Python dependencies use
+  hashed lockfiles (<code>make dependency-lock-check</code>).</li>
+<li>Trivy scans images and the repo and fail the build on HIGH/CRITICAL findings; results upload as SARIF.
+  Local equivalents: <code>make image-scan</code>, <code>make repo-security-scan</code>, <code>make supply-chain-check</code>, which
+  emit SBOM, SARIF, checksum, and summary evidence under <code>results/supply-chain/</code>.</li>
+<li>Images and Helm charts are signed with keyless Cosign over OIDC, and the signature is verified at
+  admission by the Kyverno <code>ai-platform-verify-project-images</code> policy
+  (<code>deploy/policies/kyverno/policies.yaml</code>), with the keyless <code>subject</code> restricted to this repo's CI
+  workflow on <code>refs/heads/main</code> and <code>issuer</code> set to <code>token.actions.githubusercontent.com</code>. Provenance
+  and SBOM attestations are published with releases.</li>
+<li>OpenSSF Scorecard runs in <code>.github/workflows/scorecard.yml</code>; triage guidance is in
+  <code>runbooks/scorecard-triage.md</code>.</li>
+<li>All GitHub Actions are pinned to a full commit SHA (not a floating tag) per the threat model, and
+  Dependabot is configured for dependency updates.</li>
+</ul>
+<p><strong>Residual risk (accepted).</strong> This covers artifacts the kit builds. Customer-supplied base images,
+third-party charts, and model weights are outside the signing/scanning boundary; forks that republish
+images must update <code>imageReferences</code> and the keyless subject/issuer to their own identity or admission
+denies their images (see "Build / release pipeline trust boundary" in <a href="../threat-model/">Threat model</a>).</p>
+<h2 id="llm06-sensitive-information-disclosure">LLM06 Sensitive Information Disclosure<a class="headerlink" href="#llm06-sensitive-information-disclosure" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong></p>
+<ul>
+<li>The audit log never records raw prompt or completion text. <code>_payload_fingerprint</code> and
+  <code>_write_audit_log</code> (<code>src/inference-gateway/app/main.py</code>) store message count, roles, prompt character
+  length, and a SHA-256 fingerprint of the canonical message structure only. The audit chain is
+  tamper-evident: each record links <code>prev_hash</code>/<code>record_hash</code> over canonical JSON (<code>_chain_audit_event</code>),
+  verifiable by the same auditor tooling. Redaction is asserted by the <code>test_audit_log_redacts_prompt_content</code>
+  test (Prompt privacy row of <a href="../production-readiness/">Production readiness matrix</a>).</li>
+<li>Prompt secret detection (LLM01) and the opt-in PII detectors (<code>email</code>, <code>us_ssn</code>, <code>credit_card</code> in
+  <code>BUILT_IN_SECRET_PATTERNS</code>, enabled via <code>PROMPT_SECRET_PATTERNS</code>) reject credential/PII material on
+  the inbound path before it reaches the runtime or the logs.</li>
+<li><code>/v1/moderations</code> (<code>moderate_text</code>, <code>src/inference-gateway/app/settings.py</code>) classifies text against
+  every credential and PII detector plus configured blocked terms, returning an OpenAI-shaped result a
+  caller can use as a pre-submit check.</li>
+<li>On the outbound path, the output guardrail (LLM02) scans completions for credential/PII material and
+  can redact or block them before they reach the caller or the response cache, so a model that emits a
+  recognizable secret does not leak it downstream.</li>
+<li>Data residency follows the cluster: audit records are redacted-only and all data-bearing stores
+  (Qdrant, agent PVCs) are pinned to the customer cluster (see "Data Residency And PII" in
+  <a href="../threat-model/">Threat model</a>). Retention is governed by <code>platform/governance/data-retention.yaml</code>
+  (<code>make retention-check</code>).</li>
+</ul>
+<p><strong>Residual risk (accepted).</strong> Inbound detection is pattern-based and is not a guarantee against all PII
+forms, and there is no outbound scan of completions, so a model can still emit sensitive content it was
+trained on or retrieved (this is the LLM02 output-handling gap). Classifying ingested content and
+setting retention is customer-owned.</p>
+<h2 id="llm07-insecure-plugin-and-tool-design">LLM07 Insecure Plugin and Tool Design<a class="headerlink" href="#llm07-insecure-plugin-and-tool-design" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong></p>
+<ul>
+<li>Tool/function definitions are forwarded to the runtime as free-form JSON but are bounded by
+  <code>_validate_tools</code> (<code>src/inference-gateway/app/settings.py</code>): a cap on the number of tools
+  (<code>MAX_TOOLS</code>) and on the serialized size (<code>MAX_TOOL_CHARS</code>), with type validation that each is a
+  list. This stops a caller from smuggling an oversized payload past the prompt-character limit via the
+  <code>tools</code>/<code>functions</code> fields. Tool call counts are recorded in the audit fingerprint (<code>tool_count</code>,
+  <code>tool_call_count</code> in <code>_payload_fingerprint</code>).</li>
+<li>The execution environment for tools (the coding-agent workspace) is locked down by RBAC. The
+  workspace <code>Role</code> (<code>deploy/charts/agent-workspace/templates/rbac.yaml</code>) grants only read verbs
+  (<code>get</code>, <code>list</code>, <code>watch</code>) on pods, logs, events, configmaps, and PVCs; Job management is opt-in
+  (<code>allowJobManagement</code>) and bound to the workspace ServiceAccount only, never the human viewer group.</li>
+<li>Tool-initiated network access is constrained by the same default-deny + catalog egress as LLM01
+  (<code>deploy/charts/agent-workspace/templates/networkpolicy.yaml</code>).</li>
+</ul>
+<p><strong>Residual risk (accepted).</strong> The gateway bounds the <em>size and count</em> of tool definitions and audits
+tool calls; it does not validate tool <em>semantics</em> or sandbox tool <em>execution</em>: tools run wherever the
+caller runs them, and their authorization model is the caller's responsibility. Design tools with least
+privilege and validate their inputs/outputs in the calling application.</p>
+<h2 id="llm08-excessive-agency">LLM08 Excessive Agency<a class="headerlink" href="#llm08-excessive-agency" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong> The coding-agent workspace chart (<code>deploy/charts/agent-workspace/</code>) is the
+agency-limiting boundary:</p>
+<ul>
+<li>Namespace isolation with a default-deny <code>NetworkPolicy</code> and an approved-egress policy whose only
+  defaults are DNS, the gateway, and RAG; every external destination must cite a reviewed <code>catalogRef</code>
+  in <code>platform/network/egress-catalog.yaml</code> (<code>networkpolicy.yaml</code>).</li>
+<li>Least-privilege RBAC (read-only by default, opt-in Job management scoped to the ServiceAccount;
+  <code>rbac.yaml</code>).</li>
+<li>Resource quotas and limit ranges (<code>resourcequota.yaml</code>, <code>limitrange.yaml</code>) and per-sandbox gateway
+  budgets/rate limits (LLM04) cap how much an agent loop can consume.</li>
+<li>Quota-to-chargeback wiring in <code>platform/governance/quota-plans.yaml</code> (<code>make quota-check</code>).</li>
+</ul>
+<p><strong>Residual risk (accepted, and called out in the threat model).</strong> These reduce what an agent <em>can do</em>
+once influenced; they do not decide whether the agent <em>should</em> take an action. There is no
+human-in-the-loop approval gate on agent actions in the kit. Keep egress narrow, keep RBAC read-only
+where possible, and add approval gates in the calling agent framework. The egress catalog entries are
+examples with expiry dates the operator must review and replace.</p>
+<h2 id="llm09-overreliance">LLM09 Overreliance<a class="headerlink" href="#llm09-overreliance" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong> RAG responses are grounded: the RAG service returns retrieval excerpts with
+document id, title, and source attribution (<code>build_context</code> in <code>src/rag-service/app/retriever.py</code>) so a
+consumer can trace a grounded answer back to its source documents, and approved models carry an
+<code>evalSummary</code> evidence reference in <code>platform/governance/model-provenance.yaml</code>. Beyond structural
+prompt checks, <code>scripts/rag-eval.py</code> scores RAGAS-style <strong>context precision</strong> and answer
+<strong>faithfulness</strong> (<code>context_precision_at_k</code>, <code>answer_support</code>) against ground-truth answers in
+<code>platform/evals/rag-retrieval-suite.yaml</code>, with <code>minContextPrecision</code> / <code>minFaithfulness</code> thresholds so
+an embedding, chunking, or prompt change that stops surfacing the supporting passages is caught (the
+misnamed retrieval-only "grounding rate" is now <code>retrieval_hit_rate</code>).</p>
+<p><strong>Residual risk (accepted).</strong> The faithfulness scorer is a deterministic <strong>lexical</strong> groundedness proxy
+(fraction of answer tokens supported by the retrieved context), not an LLM-judge or NLI model. It
+catches gross drift, not subtle unsupported claims. The scorer is isolated so an LLM-judge can replace
+it without changing the suite schema. Overreliance is still mitigated for consumers by source
+attribution and human review; a consuming application must not treat model output as authoritative.</p>
+<h2 id="llm10-model-theft">LLM10 Model Theft<a class="headerlink" href="#llm10-model-theft" title="Permanent link">&para;</a></h2>
+<p><strong>Controls in this repo.</strong></p>
+<ul>
+<li>Container images are signed and verified at admission (LLM05), so an unsigned or wrong-identity image
+  cannot run in AI namespaces (Kyverno <code>ai-platform-verify-project-images</code>).</li>
+<li>Network access to runtimes is default-deny: agent/tenant namespaces can reach only the gateway and
+  RAG (<code>deploy/charts/agent-workspace/templates/networkpolicy.yaml</code>), and external egress is
+  catalog-gated, so a compromised tenant cannot freely pull weights out of the cluster.</li>
+<li>RBAC restricts in-namespace access to read-only verbs by default (<code>rbac.yaml</code>).</li>
+<li>Model weights live on PVCs whose encryption-at-rest is attested via the
+  <code>platform.ai/encryption-at-rest=true</code> label, checked by the Kyverno
+  <code>ai-platform-pvc-encryption-at-rest</code> policy (<code>deploy/policies/kyverno/policies.yaml</code>; currently
+  <code>Audit</code> mode, intended to flip to <code>Enforce</code> once every storage class encrypts at rest).</li>
+<li>API access to inference is authenticated (API-key SHA-256 digests or JWT/JWKS;
+  <code>src/inference-gateway/app/main.py</code>, <code>jwt_auth.py</code>) and per-sandbox attributable in the audit chain.</li>
+</ul>
+<p><strong>Residual risk (accepted).</strong> These protect the weight <em>artifact</em> and restrict <em>network</em> exfiltration;
+they do not stop model extraction via high-volume inference (distillation/extraction attacks against the
+serving endpoint). Rate limiting and budgets (LLM04) raise the cost of such attacks but do not prevent
+them. Encryption-at-rest enforcement and storage-class selection are customer-owned, as is the secret
+backend behind the API-key hashes.</p>
+<h2 id="mitre-atlas-pointer">MITRE ATLAS pointer<a class="headerlink" href="#mitre-atlas-pointer" title="Permanent link">&para;</a></h2>
+<p>The OWASP LLM Top 10 is application-risk oriented. For adversary tactics and techniques against
+ML/AI systems, cross-reference <a href="https://atlas.mitre.org/">MITRE ATLAS</a> (Adversarial Threat Landscape
+for Artificial-Intelligence Systems). The mappings above align with ATLAS tactics as follows:</p>
+<ul>
+<li>LLM01/LLM02/LLM07/LLM08 relate to ATLAS <em>ML Attack Staging</em> and <em>Execution</em> (prompt injection,
+  tool abuse, agent actions).</li>
+<li>LLM03/LLM05 relate to ATLAS <em>Initial Access</em> and <em>ML Supply Chain Compromise</em> (poisoned models and
+  dependencies).</li>
+<li>LLM06 relates to ATLAS <em>Exfiltration</em> and <em>Collection</em> (sensitive information disclosure).</li>
+<li>LLM10 relates to ATLAS <em>Exfiltration via ML Inference API</em> and <em>ML Model Theft</em>.</li>
+</ul>
+<p>Use ATLAS to drive red-team scenarios and the kit's existing chaos and eval drills
+(<code>make chaos-drill</code>, <code>make eval</code>) to exercise the controls listed here. ATLAS technique-level mapping
+is not maintained in-tree; treat this as a starting pointer, not an exhaustive crosswalk.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Maintained by fluentorbit as project steward. Licensed under Apache-2.0.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>

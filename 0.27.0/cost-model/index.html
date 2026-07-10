@@ -1,0 +1,1992 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A runnable, vendor-neutral Kubernetes platform for private LLMs, RAG, and coding-agent workspaces.">
+      
+      
+      
+        <link rel="canonical" href="https://ramazankara.github.io/private-ai-platform-kit/0.27.0/cost-model/">
+      
+      
+        <link rel="prev" href="../capacity-sizing/">
+      
+      
+        <link rel="next" href="../version-matrix/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Cost model and TCO - Private AI Platform Kit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cost-model-and-tco-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Private AI Platform Kit" class="md-header__button md-logo" aria-label="Private AI Platform Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Private AI Platform Kit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Cost model and TCO
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/RamazanKara/private-ai-platform-kit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    RamazanKara/private-ai-platform-kit
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/" class="md-tabs__link">
+          
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
+          
+  
+    
+  
+  How-to guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../feature-inventory/" class="md-tabs__link">
+          
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../decision-guide/" class="md-tabs__link">
+          
+  
+    
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Private AI Platform Kit" class="md-nav__button md-logo" aria-label="Private AI Platform Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Private AI Platform Kit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/RamazanKara/private-ai-platform-kit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    RamazanKara/private-ai-platform-kit
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../tutorials/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    First private AI platform
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../runbooks/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    How-to guides
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-to guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Local lab and operations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client API examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../customer-handoff-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customer cluster handoff
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../regulated-offline-tenant-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Regulated offline tenant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gpu-coding-agent-tenant-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GPU coding-agent tenant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-inventory/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Feature inventory
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../production-readiness/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Production readiness matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks-and-evals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Benchmarks and evals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../capacity-sizing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Capacity and sizing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Cost model and TCO
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Cost model and TCO
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-drives-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      What Drives Cost
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tco-breakdown-by-reference-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      TCO Breakdown By Reference Size
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TCO Breakdown By Reference Size">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#size-1-local-workstation-lab-cpu-only-ollama" class="md-nav__link">
+    <span class="md-ellipsis">
+      Size 1: Local workstation lab (CPU only, Ollama)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#size-2-single-tenant-gpu-customer-cluster-vllm" class="md-nav__link">
+    <span class="md-ellipsis">
+      Size 2: Single-tenant GPU customer cluster (vLLM)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#size-3-multi-tenant-coding-agent-platform" class="md-nav__link">
+    <span class="md-ellipsis">
+      Size 3: Multi-tenant coding-agent platform
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-the-kits-cost-controls-map-to-spend" class="md-nav__link">
+    <span class="md-ellipsis">
+      How The Kit's Cost Controls Map To Spend
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How The Kit's Cost Controls Map To Spend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-sandbox-token-budgets-cap-the-gpu-draw" class="md-nav__link">
+    <span class="md-ellipsis">
+      Per-sandbox token budgets cap the GPU draw
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v1usage-turns-token-usage-into-an-estimated-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      /v1/usage turns token usage into an estimated cost
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opencost-cost-center-labels-attribute-infrastructure-spend" class="md-nav__link">
+    <span class="md-ellipsis">
+      OpenCost cost-center labels attribute infrastructure spend
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storage-and-observability-cost-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Storage and observability cost notes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-versus-buy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build Versus Buy
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-build-your-own-estimate" class="md-nav__link">
+    <span class="md-ellipsis">
+      How To Build Your Own Estimate
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../version-matrix/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Version and compatibility matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-verification/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Release verification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Distribution and discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Glossary
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../references/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upstream references
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../adr/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Explanation
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Explanation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decision-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Is this for you (decision guide)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture profiles
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../threat-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture and threat model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../owasp-llm-top-10-mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    OWASP LLM Top 10 mapping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-governance-crosswalk/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AI governance crosswalk
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scope-and-non-goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Scope and non-goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-sandbox-integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Agent-sandbox integration design
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../proof/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Proof and strict evidence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-drives-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      What Drives Cost
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tco-breakdown-by-reference-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      TCO Breakdown By Reference Size
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TCO Breakdown By Reference Size">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#size-1-local-workstation-lab-cpu-only-ollama" class="md-nav__link">
+    <span class="md-ellipsis">
+      Size 1: Local workstation lab (CPU only, Ollama)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#size-2-single-tenant-gpu-customer-cluster-vllm" class="md-nav__link">
+    <span class="md-ellipsis">
+      Size 2: Single-tenant GPU customer cluster (vLLM)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#size-3-multi-tenant-coding-agent-platform" class="md-nav__link">
+    <span class="md-ellipsis">
+      Size 3: Multi-tenant coding-agent platform
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-the-kits-cost-controls-map-to-spend" class="md-nav__link">
+    <span class="md-ellipsis">
+      How The Kit's Cost Controls Map To Spend
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How The Kit's Cost Controls Map To Spend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-sandbox-token-budgets-cap-the-gpu-draw" class="md-nav__link">
+    <span class="md-ellipsis">
+      Per-sandbox token budgets cap the GPU draw
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v1usage-turns-token-usage-into-an-estimated-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      /v1/usage turns token usage into an estimated cost
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opencost-cost-center-labels-attribute-infrastructure-spend" class="md-nav__link">
+    <span class="md-ellipsis">
+      OpenCost cost-center labels attribute infrastructure spend
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storage-and-observability-cost-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Storage and observability cost notes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-versus-buy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build Versus Buy
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-build-your-own-estimate" class="md-nav__link">
+    <span class="md-ellipsis">
+      How To Build Your Own Estimate
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+    <a href="https://github.com/RamazanKara/private-ai-platform-kit/edit/main/docs/cost-model.md" title="Edit this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="cost-model-and-tco-reference">Cost Model And TCO Reference<a class="headerlink" href="#cost-model-and-tco-reference" title="Permanent link">&para;</a></h1>
+<p>This document is a planning reference for the total cost of ownership of a Private AI Platform Kit
+deployment, plus a consolidated set of capacity and scaling reference numbers pulled from the
+charts, governance plans, and the GPU capacity runbook. Use it to build an internal budget and a
+build-versus-buy case before adoption.</p>
+<div class="admonition warning">
+<p class="admonition-title">These are planning estimates, not quotes</p>
+<p>Every dollar figure and node count below is a planning estimate to anchor a budget
+conversation, not a quote, a benchmark, or a guarantee. The kit ships no pricing data and makes
+no infrastructure purchases on your behalf. GPU, CPU, storage, and egress prices vary by
+provider, region, commitment term, and negotiated discount; operator effort varies by team
+maturity. Validate the chosen GPU class, parallelism, and replica count with a real load test
+(<code>make loadtest-local</code> against the customer profile) before committing capital, and confirm
+every unit price against a current quote from your own provider or hardware vendor. The kit
+provisions no cloud infrastructure, operates no cluster, and hosts no model (see the Support
+Boundaries section of the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md">README</a>).</p>
+</div>
+<h2 id="what-drives-cost">What Drives Cost<a class="headerlink" href="#what-drives-cost" title="Permanent link">&para;</a></h2>
+<p>A Private AI Platform Kit deployment has four cost buckets. Roughly in descending order of spend
+for a GPU deployment:</p>
+<ol>
+<li><strong>GPU compute</strong> for the model runtime (vLLM). Dominant for any real inference workload, and the
+   single number worth modeling carefully. The kit runs CPU-only on <code>kind</code> with Ollama for labs, so
+   GPU cost is zero until you enable a vLLM profile.</li>
+<li><strong>CPU compute</strong> for the platform services: the inference gateway, RAG service, Qdrant, budget
+   Redis, agent workspaces, and the observability and GitOps control plane (Argo CD, Kyverno, KEDA,
+   external-secrets, kube-prometheus-stack, Loki, Promtail, pushgateway, OpenCost).</li>
+<li><strong>Storage</strong> for model weights, vector data, agent workspaces, logs, and backups.</li>
+<li><strong>Operator effort</strong> to own the cluster, secrets, identity, backups, and incident response. The
+   kit explicitly delegates these to the operator and does not replace them.</li>
+</ol>
+<p>The kit's own cost controls (token budgets, the <code>/v1/usage</code> estimated cost, OpenCost cost-center
+labels) attribute and cap the first three buckets but do not change the underlying provider price.</p>
+<h2 id="tco-breakdown-by-reference-size">TCO Breakdown By Reference Size<a class="headerlink" href="#tco-breakdown-by-reference-size" title="Permanent link">&para;</a></h2>
+<p>The three reference sizes below mirror the kit's own profiles: the local lab on <code>kind</code>, a
+single-tenant GPU customer cluster, and a multi-tenant coding-agent platform. Quantities are
+grounded in the shipped charts and <code>platform/governance/quota-plans.yaml</code>; unit prices are
+placeholders you must replace.</p>
+<h3 id="size-1-local-workstation-lab-cpu-only-ollama">Size 1: Local workstation lab (CPU only, Ollama)<a class="headerlink" href="#size-1-local-workstation-lab-cpu-only-ollama" title="Permanent link">&para;</a></h3>
+<p>This is what <code>make quickstart</code> and <code>make local-up</code> run. It is the <code>local-lab</code> plan in
+<code>platform/governance/quota-plans.yaml</code> and uses the local cluster values under
+<code>deploy/clusters/local</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Quantity (grounded)</th>
+<th>Cost driver</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Compute</td>
+<td>One developer workstation or a small CPU node</td>
+<td>Existing hardware; effectively $0 incremental</td>
+</tr>
+<tr>
+<td>Model runtime</td>
+<td>Ollama, <code>qwen2.5:0.5b</code> default smoke model</td>
+<td>CPU only, no GPU</td>
+</tr>
+<tr>
+<td>Ollama weights PVC</td>
+<td><code>20Gi</code> (<code>deploy/charts/ollama/values.yaml</code>)</td>
+<td>Local-path storage</td>
+</tr>
+<tr>
+<td>Qdrant PVC</td>
+<td><code>20Gi</code> (<code>deploy/charts/qdrant-vector-store/values.yaml</code>)</td>
+<td>Local-path storage</td>
+</tr>
+<tr>
+<td>Agent workspace PVC</td>
+<td><code>10Gi</code> per workspace (<code>deploy/charts/agent-workspace/values.yaml</code>)</td>
+<td>Local-path storage</td>
+</tr>
+<tr>
+<td>Gateway sandbox budget</td>
+<td>250 req / 500k prompt chars / 150k est tokens per day (<code>local-lab</code> plan)</td>
+<td>Caps lab spend</td>
+</tr>
+<tr>
+<td>Operator effort</td>
+<td>One engineer, part-time</td>
+<td>Setup and validation only</td>
+</tr>
+</tbody>
+</table>
+<p>Planning estimate: effectively zero incremental cash cost on existing hardware. The dominant cost is
+the engineer's time to run the validation flow in <a href="../getting-started/">getting-started.md</a>. The
+reference serving benchmark in <a href="../benchmarks-and-evals/">benchmarks-and-evals.md</a> was produced on a
+single consumer CPU (AMD Ryzen 7 5800X3D) at ~55 tokens/s for the 0.5B model, which is the realistic
+ceiling for this tier.</p>
+<h3 id="size-2-single-tenant-gpu-customer-cluster-vllm">Size 2: Single-tenant GPU customer cluster (vLLM)<a class="headerlink" href="#size-2-single-tenant-gpu-customer-cluster-vllm" title="Permanent link">&para;</a></h3>
+<p>This is the <code>customer-shared-runtime</code> plan: one inference namespace, a GPU-backed vLLM runtime, the
+gateway, RAG, and the full control plane. Use the NVIDIA or AMD profile under
+<code>deploy/clusters/customer/values</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Quantity (grounded)</th>
+<th>Cost driver</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPU runtime</td>
+<td>vLLM, <code>replicaCount: 2</code>, <code>accelerator.count: 4</code> GPUs per replica (<code>vllm-nvidia.yaml</code>)</td>
+<td>GPU node amortization (largest line)</td>
+</tr>
+<tr>
+<td>GPU autoscaling</td>
+<td>KEDA <code>minReplicaCount: 2</code>, <code>maxReplicaCount: 8</code> on queue depth (<code>vllm-nvidia.yaml</code>)</td>
+<td>Peak GPU spend scales 2x to 4x at burst</td>
+</tr>
+<tr>
+<td>Model weight cache</td>
+<td><code>400Gi</code> ReadWriteMany shared PVC (<code>vllm-nvidia.yaml</code>)</td>
+<td>High-throughput shared/file storage</td>
+</tr>
+<tr>
+<td>Platform CPU</td>
+<td>Gateway + RAG + Qdrant + Redis + control plane; <code>requestsCpu: 16</code>, <code>requestsMemory: 64Gi</code> quota (<code>customer-shared-runtime</code>)</td>
+<td>CPU node-hours</td>
+</tr>
+<tr>
+<td>Qdrant PVC</td>
+<td><code>20Gi</code> default, size to corpus</td>
+<td>Block storage</td>
+</tr>
+<tr>
+<td>Observability storage</td>
+<td>Prometheus TSDB + Loki log volume (retention-driven)</td>
+<td>Grows with traffic and retention window</td>
+</tr>
+<tr>
+<td>Backups</td>
+<td>Velero schedule + restore-drill (<code>deploy/backup</code>)</td>
+<td>Object storage + drill compute</td>
+</tr>
+<tr>
+<td>Operator effort</td>
+<td>Cluster, secrets, identity, backups, on-call</td>
+<td>Recurring staff cost</td>
+</tr>
+</tbody>
+</table>
+<p>GPU node amortization is the number to model first. The default coding profile requests 4 GPUs per
+replica at <code>minReplicaCount: 2</code>, so the steady-state floor is 8 GPUs and the KEDA ceiling
+(<code>maxReplicaCount: 8</code>) is 32 GPUs at full burst. Amortize the GPU node cost (purchase price over the
+hardware's useful life, or the cloud GPU-hour rate times utilization) across the tokens you actually
+serve. Pin both <code>keda.maxReplicaCount</code> and the gateway sandbox budget to the spend ceiling you can
+afford so a traffic spike cannot silently scale to the GPU maximum.</p>
+<p>The GPU class itself depends on the model. From <code>runbooks/gpu-capacity.md</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Model class</th>
+<th>Approx weight VRAM</th>
+<th>Recommended GPU class</th>
+<th>Rough concurrency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7-8B dense</td>
+<td>~16-20 GB FP16 / ~6-8 GB 4-bit</td>
+<td>1x 24 GB (L4 / RTX 4090 / A10)</td>
+<td>~8-16 req per replica</td>
+</tr>
+<tr>
+<td>30-35B MoE (~3B active)</td>
+<td>~70-80 GB FP16 / ~20-24 GB 4-bit</td>
+<td>1-2x 80 GB (A100/H100) or 2x 48 GB</td>
+<td>~4-8 req per replica</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3-Coder-Next</code> (long context)</td>
+<td>~140-180 GB across GPUs at FP16</td>
+<td>4x 48-80 GB with tensor parallelism</td>
+<td>~2-6 coding sessions per replica</td>
+</tr>
+</tbody>
+</table>
+<p>KV-cache, not weights, usually dominates at long context: the default coding profile sets
+<code>model.maxModelLen: "262144"</code>, so size memory headroom for the context length you actually enable.
+These concurrency figures are rough simultaneous in-flight requests at a usable interactive latency,
+not a throughput ceiling; re-derive them per model with a load test.</p>
+<h3 id="size-3-multi-tenant-coding-agent-platform">Size 3: Multi-tenant coding-agent platform<a class="headerlink" href="#size-3-multi-tenant-coding-agent-platform" title="Permanent link">&para;</a></h3>
+<p>This adds the <code>coding-agents-lab</code> plan on top of Size 2: many isolated agent workspaces sharing the
+GPU runtime, each with its own PVC, quota, and sandbox budget.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Quantity (grounded)</th>
+<th>Cost driver</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shared GPU runtime</td>
+<td>Same vLLM tier as Size 2, sized to aggregate concurrency</td>
+<td>GPU amortization, shared across tenants</td>
+</tr>
+<tr>
+<td>Agent workspaces</td>
+<td><code>maxConcurrentAgents: 20</code>, <code>pvcSize: 50Gi</code> per tenant (<code>coding-agents-lab</code>)</td>
+<td>Per-tenant block storage (up to 1 TB at 20 x 50Gi)</td>
+</tr>
+<tr>
+<td>Tenant CPU quota</td>
+<td><code>requestsCpu: 8</code>, <code>requestsMemory: 16Gi</code>, <code>pods: 40</code> per tenant</td>
+<td>CPU node-hours per tenant</td>
+</tr>
+<tr>
+<td>Per-tenant budget</td>
+<td>5000 req / 25M prompt chars / 7.5M est tokens per day (<code>coding-agents-lab</code>)</td>
+<td>Caps each tenant's GPU draw</td>
+</tr>
+<tr>
+<td>Chargeback</td>
+<td>OpenCost cost-center labels per tenant (see below)</td>
+<td>Attribution, not new spend</td>
+</tr>
+</tbody>
+</table>
+<p>The economic advantage here is sharing one GPU tier across tenants while still capping and
+attributing each tenant's draw. Per-tenant cost is the tenant's share of the shared GPU runtime
+(proportional to its token usage) plus its dedicated workspace storage and CPU quota. The chargeback
+labels make that split auditable rather than estimated.</p>
+<h2 id="how-the-kits-cost-controls-map-to-spend">How The Kit's Cost Controls Map To Spend<a class="headerlink" href="#how-the-kits-cost-controls-map-to-spend" title="Permanent link">&para;</a></h2>
+<p>The kit does not buy capacity, but it does cap, estimate, and attribute it. Three mechanisms matter
+for cost.</p>
+<h3 id="per-sandbox-token-budgets-cap-the-gpu-draw">Per-sandbox token budgets cap the GPU draw<a class="headerlink" href="#per-sandbox-token-budgets-cap-the-gpu-draw" title="Permanent link">&para;</a></h3>
+<p>The gateway enforces three ceilings per <code>X-Sandbox-ID</code> (accepted request count, cumulative prompt
+characters, and cumulative estimated tokens) over a rolling window (<code>windowSeconds</code>, default
+<code>86400</code>). Because GPU spend is driven by tokens served, the estimated-token budget is the direct
+spend cap: a sandbox that hits <code>estimatedTokenLimit</code> is rejected with HTTP 400 and stops drawing GPU
+time. Estimated tokens are computed as
+<code>ceil(prompt_chars / estimatedCharsPerToken) + requested max_tokens</code>, so the cap is conservative
+(it counts requested completion tokens up front). Budgets default to a Redis backend so they hold
+across gateway replicas. See <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/budget-controls.md">budget-controls.md</a> for configuration
+and the per-plan ceilings in <code>platform/governance/quota-plans.yaml</code>.</p>
+<p>To translate a token budget into a dollar ceiling, multiply the estimated-token limit by your
+per-1k-token cost (derived from GPU node-hours divided by tokens served at your measured
+throughput). The kit exposes exactly that conversion through <code>/v1/usage</code>.</p>
+<h3 id="v1usage-turns-token-usage-into-an-estimated-cost"><code>/v1/usage</code> turns token usage into an estimated cost<a class="headerlink" href="#v1usage-turns-token-usage-into-an-estimated-cost" title="Permanent link">&para;</a></h3>
+<p>The gateway's <code>/v1/usage</code> endpoint (<code>src/inference-gateway/app/main.py</code>) returns per-sandbox usage
+plus an estimated monetary cost. The cost formula is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>estimated_cost = round((estimated_tokens / 1000.0) * usd_per_1k_tokens, 6)
+</code></pre></div>
+<p>The rate is operator-supplied via <code>USD_PER_1K_TOKENS</code> (env) / <code>usd_per_1k_tokens</code> (settings) and
+<strong>defaults to <code>0.0</code></strong>, which leaves the cost model off (estimated cost is always <code>0</code>) until you set
+a rate. The currency string defaults to <code>USD</code> (<code>COST_CURRENCY</code> / <code>cost_currency</code>). The response
+shape is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;sandbox_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local-lab&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;usage&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;requests&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;prompt_chars&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1200</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;estimated_tokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">800</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;limits&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;requests&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;prompt_chars&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">500000</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;estimated_tokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150000</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">&quot;estimated_cost&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0016</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;currency&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;USD&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">&quot;usd_per_1k_tokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">}</span>
+</code></pre></div>
+<p>This is a self-reported planning estimate from the gateway's own token accounting, not a billing
+system. Set <code>usd_per_1k_tokens</code> to your modeled blended cost per 1k tokens (GPU amortization plus a
+share of platform overhead) so the endpoint reflects your real internal cost. It is the data layer
+an admin or usage console renders; it does not meter your provider or issue invoices.</p>
+<h3 id="opencost-cost-center-labels-attribute-infrastructure-spend">OpenCost cost-center labels attribute infrastructure spend<a class="headerlink" href="#opencost-cost-center-labels-attribute-infrastructure-spend" title="Permanent link">&para;</a></h3>
+<p>For the infrastructure side (node-hours, PVCs, not tokens), the kit ships OpenCost as the
+<code>cost-controls</code> Argo CD application (<code>deploy/clusters/local/apps.yaml</code>, OpenCost Helm chart
+<code>1.41.0</code>, cluster id <code>private-ai-platform-kit-local</code>). Attribution depends on stable labels, and the
+kit makes those labels mandatory rather than optional: the <code>ai-platform-required-labels</code> Kyverno
+<code>ClusterPolicy</code> in <code>deploy/policies/kyverno/policies.yaml</code> runs with <code>validationFailureAction:
+Enforce</code> and rejects any Pod (outside infra namespaces) that is missing the standard ownership and
+cost labels, including <code>platform.ai/cost-center</code>, <code>platform.ai/owner</code>, <code>platform.ai/environment</code>,
+and <code>platform.ai/sandbox-id</code>.</p>
+<p>Because the policy is enforcing, every workload that runs carries a cost center, so OpenCost,
+Prometheus, logs, and evidence packs all attribute spend to the same keys. The chargeback contract
+in <code>platform/governance/quota-plans.yaml</code> (allocation unit <code>sandbox-day</code>, reporting currency USD)
+uses these same required labels, so showback or chargeback per tenant is auditable, not estimated.
+Keep the labels stable across upgrades so cost history stays comparable
+(<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/quota-chargeback.md">quota-chargeback.md</a>).</p>
+<h3 id="storage-and-observability-cost-notes">Storage and observability cost notes<a class="headerlink" href="#storage-and-observability-cost-notes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Model weights</strong> are the largest storage line on a GPU cluster. The customer vLLM profile uses a
+  <code>400Gi</code> ReadWriteMany cache so 100+ GB weights are not re-downloaded on every pod restart or KEDA
+  scale-up. RWX/file storage is typically priced higher than block; if only ReadWriteOnce is
+  available the profile notes you should pin <code>replicaCount: 1</code> or pre-bake weights into the image.</li>
+<li><strong>Vector data</strong> scales with corpus size and embedding dimensionality; the Qdrant PVC default is
+  <code>20Gi</code>. Size it to your corpus and re-measure after ingestion.</li>
+<li><strong>Agent workspaces</strong> are <code>10Gi</code> per workspace by default (<code>agent-workspace</code> chart), <code>50Gi</code> per
+  tenant in the <code>coding-agents-lab</code> plan, multiplied by <code>maxConcurrentAgents</code>.</li>
+<li><strong>Loki + Prometheus</strong> storage grows with traffic and retention. Loki ships in <code>SingleBinary</code> mode
+  with <code>replication_factor: 1</code> (<code>deploy/observability/applications.yaml</code>); set retention to bound
+  log storage cost. The redacted audit JSON flows through Promtail into Loki, so audit retention is
+  a deliberate cost/compliance tradeoff.</li>
+<li><strong>Backups</strong> add object storage plus restore-drill compute (<code>deploy/backup</code>).</li>
+</ul>
+<h2 id="build-versus-buy">Build Versus Buy<a class="headerlink" href="#build-versus-buy" title="Permanent link">&para;</a></h2>
+<p>A like-for-like comparison against a hosted API has to account for what each side actually includes.</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>This kit (build, self-host)</th>
+<th>Hosted AI API / gateway (buy)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pricing model</td>
+<td>Capacity you provision (GPU/CPU node-hours, storage), largely fixed, plus operator effort</td>
+<td>Per-token, usage-metered, fully variable</td>
+</tr>
+<tr>
+<td>Marginal cost of a token</td>
+<td>Near zero once the GPU tier is provisioned (you pay for the node, not the token)</td>
+<td>Charged per token, every token, forever</td>
+</tr>
+<tr>
+<td>Data boundary</td>
+<td>Data, control plane, and model-routing policy stay inside the customer boundary</td>
+<td>Data and routing policy usually leave the customer boundary</td>
+</tr>
+<tr>
+<td>Identity / billing / support</td>
+<td>You own them (delegated by the kit)</td>
+<td>Managed by the provider</td>
+</tr>
+<tr>
+<td>Idle cost</td>
+<td>You pay for provisioned capacity even when idle (mitigate with KEDA scale-down)</td>
+<td>Zero when idle</td>
+</tr>
+<tr>
+<td>Best when</td>
+<td>Steady, predictable, privacy-sensitive volume; data must not leave</td>
+<td>Spiky or low volume; fast start; no platform team</td>
+</tr>
+</tbody>
+</table>
+<p>The crossover is utilization. A self-hosted GPU tier has a high fixed cost and a near-zero marginal
+cost per token, so it wins when utilization is high and steady: the provisioned GPUs are kept busy.
+A hosted API has zero fixed cost and a fixed marginal cost per token, so it wins at low or spiky
+volume where dedicated GPUs would sit idle. To find your crossover, divide your modeled monthly
+fixed cost (GPU amortization plus platform overhead) by the hosted per-token price to get the
+break-even token volume; above it, build; below it, buy. The kit's <code>decision-guide.md</code> lists
+non-cost reasons (data residency, governance, tenant isolation) that can override a pure-cost
+verdict, and notes that a hosted gateway is the right call when low operational burden matters more
+than keeping the boundary.</p>
+<p>The kit lowers the build-side floor in two ways worth crediting in the model: KEDA scale-down on
+the GPU runtime (<code>minReplicaCount</code>/<code>maxReplicaCount</code> on queue depth) reduces idle GPU spend, and the
+shared runtime in the multi-tenant size spreads one GPU tier's fixed cost across many tenants.</p>
+<h2 id="how-to-build-your-own-estimate">How To Build Your Own Estimate<a class="headerlink" href="#how-to-build-your-own-estimate" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Pick the reference size that matches your deployment and confirm the grounded quantities against
+   the cited charts and <code>platform/governance/quota-plans.yaml</code>.</li>
+<li>Choose a GPU class from the <code>runbooks/gpu-capacity.md</code> table for your model, then validate
+   real concurrency and throughput with a load test (<code>make loadtest-local</code>, then a live load test
+   against the customer profile); do not trust the rough concurrency figures for capital planning.</li>
+<li>Get current unit prices (GPU node-hour or purchase price, CPU node-hour, RWX/block/object storage
+   per GB-month, egress per GB) from your own provider or hardware quote.</li>
+<li>Derive a blended cost per 1k tokens from GPU amortization at your measured throughput, set
+   <code>USD_PER_1K_TOKENS</code> to it, and read estimated cost back from <code>/v1/usage</code>.</li>
+<li>Set per-sandbox token budgets and <code>keda.maxReplicaCount</code> to the spend ceiling you can afford.</li>
+<li>Compare the build total against your hosted per-token quote at your real projected volume to find
+   the crossover.</li>
+</ol>
+<p>For capacity sizing detail see <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md">GPU capacity runbook</a>; for the
+budget, quota, and chargeback controls see <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/budget-controls.md">budget-controls.md</a> and
+<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/quota-chargeback.md">quota-chargeback.md</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Maintained by fluentorbit as project steward. Licensed under Apache-2.0.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>

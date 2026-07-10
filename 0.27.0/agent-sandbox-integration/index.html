@@ -1,0 +1,2031 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A runnable, vendor-neutral Kubernetes platform for private LLMs, RAG, and coding-agent workspaces.">
+      
+      
+      
+        <link rel="canonical" href="https://ramazankara.github.io/private-ai-platform-kit/0.27.0/agent-sandbox-integration/">
+      
+      
+        <link rel="prev" href="../scope-and-non-goals/">
+      
+      
+        <link rel="next" href="../adr/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Agent-sandbox integration design - Private AI Platform Kit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#agent-sandbox-integration-design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Private AI Platform Kit" class="md-header__button md-logo" aria-label="Private AI Platform Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Private AI Platform Kit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Agent-sandbox integration design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/RamazanKara/private-ai-platform-kit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    RamazanKara/private-ai-platform-kit
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/" class="md-tabs__link">
+          
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
+          
+  
+    
+  
+  How-to guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../feature-inventory/" class="md-tabs__link">
+          
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../decision-guide/" class="md-tabs__link">
+          
+  
+    
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Private AI Platform Kit" class="md-nav__button md-logo" aria-label="Private AI Platform Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Private AI Platform Kit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/RamazanKara/private-ai-platform-kit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    RamazanKara/private-ai-platform-kit
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../tutorials/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    First private AI platform
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../runbooks/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    How-to guides
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-to guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Local lab and operations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client API examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../customer-handoff-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customer cluster handoff
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../regulated-offline-tenant-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Regulated offline tenant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gpu-coding-agent-tenant-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GPU coding-agent tenant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-inventory/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Feature inventory
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../production-readiness/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Production readiness matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks-and-evals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Benchmarks and evals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../capacity-sizing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Capacity and sizing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cost-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cost model and TCO
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../version-matrix/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Version and compatibility matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-verification/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Release verification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Distribution and discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Glossary
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../references/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upstream references
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../adr/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Explanation
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Explanation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decision-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Is this for you (decision guide)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture profiles
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../threat-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture and threat model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../owasp-llm-top-10-mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    OWASP LLM Top 10 mapping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-governance-crosswalk/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AI governance crosswalk
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scope-and-non-goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Scope and non-goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Agent-sandbox integration design
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Agent-sandbox integration design
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      Goals
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      Non-goals
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upstream-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upstream summary
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concept-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Concept mapping
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Component changes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Component changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-deploychartsagent-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. deploy/charts/agent-workspace
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-controller-installation-gitops" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Controller installation (GitOps)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-egress-governance-platformnetwork-kyverno" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Egress governance (platform/network, Kyverno)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-gateway-binding-srcinference-gateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Gateway binding (src/inference-gateway)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-evidence-packs-make-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Evidence packs (make evidence)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-governance-crosswalk-platformgovernance-docsai-governance-crosswalkmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Governance crosswalk (platform/governance, docs/ai-governance-crosswalk.md)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Docs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#threat-model-delta" class="md-nav__link">
+    <span class="md-ellipsis">
+      Threat-model delta
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      Delivery plan
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Open questions
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../proof/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Proof and strict evidence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      Goals
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      Non-goals
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upstream-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upstream summary
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concept-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Concept mapping
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Component changes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Component changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-deploychartsagent-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. deploy/charts/agent-workspace
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-controller-installation-gitops" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Controller installation (GitOps)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-egress-governance-platformnetwork-kyverno" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Egress governance (platform/network, Kyverno)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-gateway-binding-srcinference-gateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Gateway binding (src/inference-gateway)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-evidence-packs-make-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Evidence packs (make evidence)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-governance-crosswalk-platformgovernance-docsai-governance-crosswalkmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Governance crosswalk (platform/governance, docs/ai-governance-crosswalk.md)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Docs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#threat-model-delta" class="md-nav__link">
+    <span class="md-ellipsis">
+      Threat-model delta
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      Delivery plan
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Open questions
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+    <a href="https://github.com/RamazanKara/private-ai-platform-kit/edit/main/docs/agent-sandbox-integration.md" title="Edit this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="agent-sandbox-integration-design">Agent-Sandbox Integration Design<a class="headerlink" href="#agent-sandbox-integration-design" title="Permanent link">&para;</a></h1>
+<p>Status: Implemented (<a href="../adr/0009-adopt-agent-sandbox-workspace-runtime/">ADR 0009</a>, Accepted).
+Since <a href="../adr/0010-agent-sandbox-standard-runtime/">ADR 0010</a> the agent-sandbox
+runtime is the <strong>standard and only</strong> workspace runtime: the <code>sandbox.runtime</code>
+toggle described in the design below was removed, the projected workspace
+credential is on by default, and the controller is a platform prerequisite.
+Sections referring to the toggle or the namespace fallback are historical
+design record.
+Date: 2026-07-01 (amended 2026-07-02)</p>
+<p>This document describes how the kit adopts
+<a href="https://github.com/kubernetes-sigs/agent-sandbox">kubernetes-sigs/agent-sandbox</a>
+as an optional runtime for coding-agent workspaces, component by component, and
+the delivery plan to ship it.</p>
+<h2 id="goals">Goals<a class="headerlink" href="#goals" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Offer kernel-level isolation (gVisor/Kata via runtime class) for agent
+  workspaces at the <code>medium</code>/<code>high</code> governance risk tiers.</li>
+<li>Keep the kit's governance envelope (approved-egress catalog, per-sandbox
+  budgets, audit chain, evidence packs) authoritative and unchanged in
+  authority.</li>
+<li>Bind the platform's logical sandbox (<code>X-Sandbox-ID</code>) 1:1 to the runtime
+  <code>Sandbox</code> resource so evidence correlates with the workload.</li>
+<li>Keep the local <code>kind</code> lab fully functional with no new prerequisites.</li>
+</ul>
+<h2 id="non-goals">Non-goals<a class="headerlink" href="#non-goals" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Replacing namespace isolation: the <code>agent-workspace</code> chart's namespace,
+  RBAC, quota, and NetworkPolicy envelope stays for both runtimes.</li>
+<li>Wrapping or re-exposing the agent-sandbox API: consumers use upstream CRDs
+  and SDKs directly inside the envelope the kit provisions.</li>
+<li>Multi-cluster sandbox scheduling, GPU-in-sandbox, or snapshot/restore
+  workflows (revisit after upstream GA).</li>
+</ul>
+<h2 id="upstream-summary">Upstream summary<a class="headerlink" href="#upstream-summary" title="Permanent link">&para;</a></h2>
+<p>Verified against the vendored v0.5.0 CRD schemas and a live kind install on
+2026-07-01 (M0).</p>
+<ul>
+<li>Core API group <code>agents.x-k8s.io/v1beta1</code> (storage version; <code>v1alpha1</code> still
+  served): <code>Sandbox</code> only. Spec fields: <code>podTemplate</code> (<code>metadata</code> + <code>spec</code>,
+  standard pod schema), <code>operatingMode</code> (<code>Running</code>|<code>Suspended</code>, default
+  <code>Running</code>), <code>shutdownPolicy</code> (<code>Delete</code>|<code>Retain</code>, default <code>Retain</code>),
+  <code>shutdownTime</code> (RFC 3339), <code>service</code> (bool; no Service is created by
+  default), <code>volumeClaimTemplates</code>.</li>
+<li>Extensions API group <code>extensions.agents.x-k8s.io/v1beta1</code>:</li>
+<li><code>SandboxTemplate</code>: <code>podTemplate</code>, <code>networkPolicy</code> (<code>egress</code>/<code>ingress</code>
+    rule arrays), <code>networkPolicyManagement</code>, <code>envVarsInjectionPolicy</code>,
+    <code>service</code>, <code>volumeClaimTemplates</code> (+ <code>volumeClaimTemplatesPolicy</code>).</li>
+<li><code>SandboxClaim</code>: <code>warmPoolRef.name</code> (pool allocation only in <code>v1beta1</code>;
+    the direct <code>sandboxTemplateRef</code> exists only in <code>v1alpha1</code>), <code>lifecycle</code>
+    (<code>ttlSecondsAfterFinished</code>, <code>shutdownPolicy</code> incl. <code>DeleteForeground</code>,
+    <code>shutdownTime</code>), <code>env</code>, <code>additionalPodMetadata</code>.</li>
+<li><code>SandboxWarmPool</code>: <code>replicas</code>, <code>sandboxTemplateRef.name</code>,
+    <code>updateStrategy</code>.</li>
+<li>Consequence: on the <strong>direct path</strong> (create a <code>Sandbox</code> with an inline pod
+  template) there is no template, and (verified live) <strong>no upstream
+  NetworkPolicy is created</strong>. Upstream's secure-by-default networking is
+  template-scoped. TTL cleanup is claim-scoped; a bare <code>Sandbox</code> is bounded
+  with <code>shutdownTime</code>/<code>shutdownPolicy</code>.</li>
+<li>Controller: namespace <code>agent-sandbox-system</code>, Deployment
+  <code>agent-sandbox-controller</code>, webhook Service. Install from versioned release
+  manifests (no Helm chart), server-side apply required (CRD size). Vendored
+  under <code>deploy/vendor/agent-sandbox/</code> with checksums; installed by
+  <code>make agent-sandbox-install</code>.</li>
+<li>Live behaviour (kind, k8s v1.31.4): the sandbox pod is named exactly after
+  the <code>Sandbox</code>, <code>podTemplate</code> labels propagate to the pod, the controller
+  adds an <code>agents.x-k8s.io/sandbox-name-hash</code> selector label, and status
+  reports <code>Ready</code> with <code>podIPs</code> and <code>nodeName</code>.</li>
+<li>Upgrade caveat (verified live): the controller does <strong>not</strong> roll the
+  singleton pod when <code>spec.podTemplate</code> changes: the <code>Sandbox</code> object
+  updates but the running pod keeps the old spec. Workspace template changes
+  require deleting the pod (the controller recreates it from the current
+  spec); <code>make agent-sandbox-smoke</code> does this automatically when it detects
+  drift.</li>
+</ul>
+<h2 id="concept-mapping">Concept mapping<a class="headerlink" href="#concept-mapping" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Kit concept (today)</th>
+<th>Upstream resource / mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Workspace namespace (<code>ai-agents</code>)</td>
+<td>Unchanged; <code>Sandbox</code> objects live inside it</td>
+</tr>
+<tr>
+<td><code>sandbox.id</code> chart value / <code>X-Sandbox-ID</code> header</td>
+<td><code>Sandbox</code> <code>metadata.name</code> (pod inherits the name) + <code>platform.ai/sandbox-id</code> label</td>
+</tr>
+<tr>
+<td>Workspace pod (implicit, user-launched)</td>
+<td><code>Sandbox</code> pod managed by the controller</td>
+</tr>
+<tr>
+<td>Chart hardening values</td>
+<td>Hardened inline <code>podTemplate</code> on the rendered <code>Sandbox</code> (direct path)</td>
+</tr>
+<tr>
+<td>PVC template in chart</td>
+<td><code>volumeClaimTemplates</code> on the sandbox</td>
+</tr>
+<tr>
+<td>Manual teardown</td>
+<td><code>shutdownTime</code>/<code>shutdownPolicy</code> on <code>Sandbox</code>; <code>lifecycle.ttlSecondsAfterFinished</code> only on the pooled <code>SandboxClaim</code> path</td>
+</tr>
+<tr>
+<td>(none)</td>
+<td><code>SandboxTemplate</code> + <code>SandboxWarmPool</code>/<code>SandboxClaim</code>: deferred pooled path</td>
+</tr>
+</tbody>
+</table>
+<h2 id="component-changes">Component changes<a class="headerlink" href="#component-changes" title="Permanent link">&para;</a></h2>
+<h3 id="1-deploychartsagent-workspace">1. <code>deploy/charts/agent-workspace</code><a class="headerlink" href="#1-deploychartsagent-workspace" title="Permanent link">&para;</a></h3>
+<ul>
+<li>New value <code>sandbox.runtime: namespace | agent-sandbox</code> (default
+  <code>namespace</code>). Update <code>values.schema.json</code> and run
+  <code>make config-contract-update</code>.</li>
+<li>When <code>agent-sandbox</code>: render a <code>Sandbox</code> named <code>&lt;sandbox.id&gt;</code> (the pod
+  inherits that name, so the gateway's <code>X-Sandbox-ID</code> binding becomes
+  physical) with a hardened inline pod template:</li>
+<li><code>runtimeClassName</code> from a new <code>sandbox.runtimeClassName</code> value
+    (empty by default, <code>gvisor</code> in customer profiles; same pattern as
+    <code>accelerator.runtimeClassName</code> in the vLLM chart);</li>
+<li><code>automountServiceAccountToken: false</code>;</li>
+<li><code>securityContext</code> compatible with PSA <code>restricted</code> (non-root, no
+    privilege escalation, all capabilities dropped, read-only root
+    filesystem, seccomp <code>RuntimeDefault</code>);</li>
+<li>workspace labels: <code>platform.ai/sandbox-id</code>,
+    <code>platform.ai/traceable-sandbox: "true"</code> on the pod template (verified to
+    propagate to the pod);</li>
+<li>resources within the existing LimitRange defaults;</li>
+<li>the chart PVC becomes <code>volumeClaimTemplates</code> on the sandbox;</li>
+<li>a <code>shutdownTime</code>/<code>shutdownPolicy</code> option for bounded workspace lifetime
+    (TTL-after-finished only exists on the pooled claim path).</li>
+<li>Opt-in short-lived platform credential
+  (<code>workspace.credentials.projectedToken</code>, implemented 2026-07-01): a
+  projected, audience-bound ServiceAccount token (min 600 s TTL,
+  kubelet-rotated) mounted read-only at <code>/var/run/platform/token</code>, with the
+  path and audience published in the <code>agent-platform-contract</code> ConfigMap. No
+  Secret object and no long-lived credential enters the workspace, and the
+  ambient SA token stays unmounted (Kyverno-enforced). The gateway verifies
+  it with its existing JWT/JWKS auth: set <code>JWT_AUTH_ENABLED</code>,
+  <code>JWT_JWKS_URL</code> (the cluster's service-account issuer JWKS, e.g.
+  <code>https://kubernetes.default.svc.cluster.local/openid/v1/jwks</code>; grant the
+  gateway issuer-discovery access where anonymous discovery is disabled),
+  and <code>JWT_AUDIENCE=inference-gateway</code>. The local lab keeps API-key mode;
+  JWT mode is the customer-profile path. Verified live by
+  <code>make agent-sandbox-smoke</code> (JWT shape, audience, no ambient token).</li>
+<li><code>SandboxTemplate</code> is <strong>not</strong> rendered on this path; it becomes relevant
+  with warm pools (<code>SandboxWarmPool.spec.sandboxTemplateRef</code>), since
+  <code>v1beta1</code> claims allocate exclusively from pools.</li>
+<li>The <code>agent-platform-contract</code> ConfigMap is unchanged: sandbox pods consume
+  the same gateway/RAG URLs and required headers.</li>
+</ul>
+<p>The following manifest was applied successfully on the M0 spike cluster
+(busybox stand-in for the workspace image; pod ran, exec as uid 65532
+worked, Sandbox reported <code>Ready</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agents.x-k8s.io/v1beta1</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Sandbox</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">metadata</span><span class="p">:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agent-lab</span><span class="w">                          </span><span class="c1"># == sandbox.id == X-Sandbox-ID</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ai-agents</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">platform.ai/sandbox-id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agent-lab</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">platform.ai/traceable-sandbox</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nt">spec</span><span class="p">:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="nt">podTemplate</span><span class="p">:</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">      </span><span class="nt">labels</span><span class="p">:</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="nt">platform.ai/sandbox-id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agent-lab</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">      </span><span class="nt">runtimeClassName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gvisor</span><span class="w">            </span><span class="c1"># customer profile only</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">      </span><span class="nt">automountServiceAccountToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workspace</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;agent</span><span class="nv"> </span><span class="s">runner</span><span class="nv"> </span><span class="s">image&gt;&quot;</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">          </span><span class="nt">securityContext</span><span class="p">:</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">            </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">            </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">65532</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">            </span><span class="nt">runAsGroup</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">65532</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">            </span><span class="nt">allowPrivilegeEscalation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">            </span><span class="nt">readOnlyRootFilesystem</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">            </span><span class="nt">capabilities</span><span class="p">:</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">              </span><span class="nt">drop</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;ALL&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">            </span><span class="nt">seccompProfile</span><span class="p">:</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">              </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RuntimeDefault</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">            </span><span class="nt">requests</span><span class="p">:</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">              </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50m</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">              </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64Mi</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="w">            </span><span class="nt">limits</span><span class="p">:</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="w">              </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">200m</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">              </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128Mi</span>
+</code></pre></div>
+<h3 id="2-controller-installation-gitops">2. Controller installation (GitOps)<a class="headerlink" href="#2-controller-installation-gitops" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Vendor the upstream release manifests under
+  <code>deploy/vendor/agent-sandbox/&lt;version&gt;/</code> and pin the version in
+  <code>docs/version-matrix.md</code>.</li>
+<li>New Argo CD Application (customer profile) pointing at the vendored path;
+  local lab installs via a new <code>make agent-sandbox-install</code> target.</li>
+<li>Upgrades follow <code>runbooks/release-verification.md</code>.</li>
+</ul>
+<h3 id="3-egress-governance-platformnetwork-kyverno">3. Egress governance (<code>platform/network</code>, Kyverno)<a class="headerlink" href="#3-egress-governance-platformnetwork-kyverno" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Verified on the M0 spike: on the direct-<code>Sandbox</code> path upstream creates
+  <strong>no NetworkPolicy at all</strong>. Its secure-by-default networking is
+  template-scoped (<code>SandboxTemplate.spec.networkPolicy</code> +
+  <code>networkPolicyManagement</code>). The kit's default-deny + catalog-allow
+  policies are therefore the <em>only</em> network control on this path, not a
+  second layer. They must select sandbox pods (label selector on
+  <code>platform.ai/sandbox-id</code>), and the Kyverno check below is load-bearing.
+  When the pooled path lands, set <code>networkPolicyManagement</code> so template
+  policies cannot silently widen what the catalog allows.</li>
+<li><code>scripts/egress-governance.py</code> / <code>make egress-check</code>: extend coverage to
+  namespaces containing <code>Sandbox</code> resources; fail if a sandbox pod is not
+  selected by the default-deny policy.</li>
+<li>New Kyverno policies + tests (<code>deploy/policies/kyverno/tests/</code>):</li>
+<li>require <code>automountServiceAccountToken: false</code> in any <code>SandboxTemplate</code>;</li>
+<li>require the hardened <code>securityContext</code>;</li>
+<li>at <code>high</code> risk tier, require a non-empty <code>runtimeClassName</code>.</li>
+</ul>
+<h3 id="4-gateway-binding-srcinference-gateway">4. Gateway binding (<code>src/inference-gateway</code>)<a class="headerlink" href="#4-gateway-binding-srcinference-gateway" title="Permanent link">&para;</a></h3>
+<ul>
+<li>No change was needed for the binding itself: <code>X-Sandbox-ID</code> validation,
+  budgets, and audit events already key on the sandbox id; the binding
+  becomes physical by naming the <code>Sandbox</code> resource with the same id.</li>
+<li><strong>Receipts (implemented 2026-07-01).</strong> Rather than a parallel
+  <code>agent_action</code> event class (which would double-record every action), the
+  existing chained audit events carry receipt semantics: <code>action_type</code>
+  (<code>model_call</code> for <code>inference_request</code>/<code>batch_request</code>), <code>decision</code>
+  (<code>allowed</code>, or <code>denied</code> with the reason in <code>error</code>, covering admission
+  rejects, budget exhaustion, and guardrail blocks), and <code>guardrail_action</code>
+  (the output-guardrail outcome when it fired). One action, one chained
+  receipt; same hash chain, same redaction rules (fingerprints and counts,
+  never raw content). Contract: <code>deploy/sandbox/base/trace-contract.yaml</code>;
+  test: <code>test_audit_events_carry_agent_action_receipts</code>.</li>
+<li>Future action types (<code>tool_invocation</code>, <code>egress_attempt</code>,
+  <code>workspace_exec</code>) require an emitter outside the sandbox trust boundary
+  (open question 4) and are the implementation core of the
+  auditable-agent-execution paper.</li>
+</ul>
+<h3 id="5-evidence-packs-make-evidence">5. Evidence packs (<code>make evidence</code>)<a class="headerlink" href="#5-evidence-packs-make-evidence" title="Permanent link">&para;</a></h3>
+<ul>
+<li>New check <code>agent-sandbox-readiness</code> (LIVE mode): controller Deployment
+  ready, CRDs present at expected version, <code>SandboxTemplate</code> renders, runtime
+  class present when the profile requires it, sandbox pods selected by
+  default-deny policy.</li>
+<li>Evidence pack section: pinned upstream version (from the version matrix)
+  and the isolation posture per workspace (runtime, runtimeClassName).</li>
+</ul>
+<h3 id="6-governance-crosswalk-platformgovernance-docsai-governance-crosswalkmd">6. Governance crosswalk (<code>platform/governance</code>, <code>docs/ai-governance-crosswalk.md</code>)<a class="headerlink" href="#6-governance-crosswalk-platformgovernance-docsai-governance-crosswalkmd" title="Permanent link">&para;</a></h3>
+<ul>
+<li>New control <code>C-ISOLATE</code>, "Agent workloads execute under kernel-level
+  isolation with no ambient credentials":</li>
+<li>NIST AI RMF: Manage;</li>
+<li>EU AI Act: Art. 15 (accuracy, robustness and cybersecurity); the
+    <code>agent_action</code> audit events extend the existing C-AUDIT mapping to
+    Art. 12 (record-keeping) for agent execution;</li>
+<li>ISO/IEC 42001: operational controls clause.</li>
+<li>Risk tiers: <code>medium</code>, recommended; <code>high</code>, mandated (enforced by the
+  Kyverno tier policy above).</li>
+</ul>
+<h3 id="7-docs">7. Docs<a class="headerlink" href="#7-docs" title="Permanent link">&para;</a></h3>
+<ul>
+<li>This document under Explanation in <code>mkdocs.yml</code> nav; ADR 0009 row in
+  <code>docs/adr/README.md</code> index (both files carry unrelated uncommitted edits as
+  of writing; wire in when committing).</li>
+<li><code>docs/decision-guide.md</code>: new row for when to enable the hardened runtime.</li>
+<li><code>docs/version-matrix.md</code>: agent-sandbox version pin.</li>
+<li><code>README.md</code> workspaces bullet: mention isolation via the upstream SIG
+  primitive once the ADR is Accepted.</li>
+</ul>
+<h2 id="threat-model-delta">Threat-model delta<a class="headerlink" href="#threat-model-delta" title="Permanent link">&para;</a></h2>
+<p>Gains: syscall-level isolation between agent code and the node kernel
+(gVisor/Kata); no ambient service-account token; metadata endpoints blocked by
+two independent layers (upstream default + kit policy); TTL bounds the
+lifetime of a compromised workspace.</p>
+<p>Explicitly unchanged: prompt injection and tool-abuse remain application-layer
+risks (mitigated by the gateway's guardrails, budgets, and the egress
+catalog, not by the sandbox); data exfiltration through <em>approved</em> egress
+destinations remains a governance decision recorded in the catalog; the audit
+chain's wholesale-rewrite limitation still requires external head anchoring
+(<code>runbooks/evidence-pack.md</code>).</p>
+<p>Update <code>docs/threat-model.md</code> accordingly in M3.</p>
+<h2 id="delivery-plan">Delivery plan<a class="headerlink" href="#delivery-plan" title="Permanent link">&para;</a></h2>
+<p>Weekend-scoped milestones, target release v0.14.0:</p>
+<ul>
+<li><strong>M0: Spike. Done 2026-07-01.</strong> Vendored v0.5.0 manifests with checksums
+  (<code>deploy/vendor/agent-sandbox/</code>), added <code>make agent-sandbox-install</code> +
+  <code>scripts/agent-sandbox-install.sh</code>, verified all four CRD schemas, and ran
+  a hardened <code>Sandbox</code> end-to-end on a <code>kind</code> spike cluster
+  (<code>agent-sandbox-spike</code>, node image v1.31.4 for cgroup-v1 hosts; same
+  fallback as <code>local-up.sh</code>): pod <code>Running</code>, exec as uid 65532, status
+  <code>Ready</code>. Corrections fed back into this document: extensions API group,
+  claims are pool-only in <code>v1beta1</code>, no upstream NetworkPolicy on the
+  direct path, TTL is claim-scoped.</li>
+<li><strong>M1: Chart runtime option. Done 2026-07-01.</strong> <code>sandbox.runtime</code> +
+  <code>sandbox.runtimeClassName</code> values render a hardened <code>Sandbox</code>
+  (<code>deploy/charts/agent-workspace/templates/sandbox.yaml</code>); schema updated
+  (no config-contract impact; contracts cover only the two services);
+  Kyverno <code>ai-platform-hardened-sandboxes</code> policy with good/bad test
+  resources (kyverno test: 11/11). Verified live: chart-managed sandbox
+  Ready in ~9 s, uid 10001, read-only rootfs, no SA token, writable
+  workspace PVC and /tmp scratch.</li>
+<li><strong>M2: Egress fail-closed. Done 2026-07-01.</strong> Default-deny + approved
+  egress select sandbox pods by construction (<code>podSelector: {}</code>), and
+  <code>scripts/egress-governance.py</code> already scans the agent-workspace cluster
+  values. <code>make agent-sandbox-smoke</code> proves the hardening contract, a DNS
+  positive control, and a blocked probe to the otherwise reachable Kubernetes
+  API, verified fail-closed on the default Calico <code>kind</code> cluster. The script
+  rejects kindnet because it cannot produce valid NetworkPolicy evidence.</li>
+<li><strong>M3: Evidence &amp; governance. Done 2026-07-01 (events deferred).</strong>
+  <code>C-ISOLATE</code> added to the control-framework map (recommended at <code>medium</code>,
+  mandated at <code>high</code>) and the governance crosswalk; evidence pack gained a
+  static asset check and a live controller check (verified against the
+  spike cluster); threat model gained the isolation-boundary section.
+  Deferred: the <code>agent_action</code> audit-event vocabulary (section 4) ships
+  with the auditable-agent-execution paper work, where the untrusted-emitter
+  question (open question 4) is resolved.</li>
+<li><strong>Addendum: standard runtime (ADR 0010). Done 2026-07-02.</strong> The
+  <code>sandbox.runtime</code> toggle was removed (the chart always renders the
+  hardened Sandbox), the projected credential became default-on, the
+  controller became a platform prerequisite (<code>agent-sandbox-controller</code>
+  Application in both overlays + quickstart install), the <code>agent-lab-up</code>
+  target was removed in favour of the GitOps-owned instance, the smokes
+  became validation-only, and the <code>sandbox-smoke</code> target was renamed
+  <code>trace-smoke</code>.</li>
+<li><strong>Addendum: receipts, credential broker, real-agent demo. Done
+  2026-07-01.</strong> The three deliberately-deferred pieces were implemented the
+  same day: (1) agent-action receipt semantics on the gateway audit chain
+  (section 4); (2) the projected-token workspace credential (section 1);
+  (3) <code>make agent-sandbox-demo</code> runs aider inside the hardened sandbox on
+  the full lab: allowed, denied, and real-agent receipts verified on the
+  chain, with sandbox-id attribution via aider model settings
+  (<code>extra_headers</code>). Verified operational caveats now handled by the
+  scripts: singleton pods do not roll on template changes (drift detection</li>
+<li>refresh), GitOps-managed namespaces are adopted rather than owned, and
+  the local <code>qwen2.5:0.5b</code> CPU model is too small for aider's edit format.
+  The demo reports this honestly; customer-profile models complete the
+  task.</li>
+<li><strong>M4: Demo &amp; docs. Done 2026-07-01 (release pending).</strong>
+  <code>make agent-sandbox-demo</code> composes controller install → hardened workspace
+  → fail-closed exfiltration probe → evidence pack, and exercises the
+  governed model path from inside the sandbox when the inference gateway is
+  deployed (skips with guidance on a sandbox-only cluster). Decision guide,
+  version matrix, chart README (generated), and CHANGELOG updated; full
+  <code>make validate</code> green. Remaining for release: run the demo against the
+  full lab (<code>make quickstart</code> first), update the top-level README workspaces
+  bullet, cut v0.14.0, and flip ADR 0009 to Accepted.</li>
+</ul>
+<h2 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">&para;</a></h2>
+<ol>
+<li>~~Exact v0.5.0 CRD schema for pod templates and label propagation.~~
+   Resolved in M0. See "Upstream summary".</li>
+<li>~~Whether upstream's NetworkPolicy and the kit's default-deny compose.~~
+   Narrowed in M0: no upstream policy exists on the direct path, so the
+   question only applies to the pooled/template path
+   (<code>networkPolicyManagement</code> semantics; verify enum values when that
+   phase starts).</li>
+<li>Warm pools: worth the resource cost on customer clusters, or defer until
+   a real latency requirement appears? (Deferred by default.)</li>
+<li>Where <code>agent_action</code> events for <em>in-workspace</em> activity (not gateway
+   traffic) get emitted from without trusting the agent itself. Candidate:
+   a sidecar-free node-level observer; out of scope for v0.14.0, relevant
+   for the auditable-agent-execution paper.</li>
+<li>Resolved: the local lab defaults to Calico and the blocked-exfiltration
+   probe targets the reachable Kubernetes API; kindnet is rejected by the smoke.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Maintained by fluentorbit as project steward. Licensed under Apache-2.0.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,17 @@
+NAME                           SYNC STATUS   HEALTH STATUS   REVISION   PROJECT
+agent-workspace                                                         default
+backup-velero                                                           default
+budget-redis                                                            default
+cost-controls                                                           default
+inference-gateway                                                       default
+model-catalog                                                           default
+observability                                                           default
+platform-operators                                                      default
+private-ai-platform-kit-root   Unknown       Healthy         HEAD       default
+qdrant-vector-store                                                     default
+rag-service                                                             default
+restore-drill                                                           default
+runtime-ollama                                                          default
+runtime-vllm                                                            default
+security-policies                                                       default
+traceable-sandbox                                                       default

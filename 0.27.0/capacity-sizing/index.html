@@ -1,0 +1,1942 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A runnable, vendor-neutral Kubernetes platform for private LLMs, RAG, and coding-agent workspaces.">
+      
+      
+      
+        <link rel="canonical" href="https://ramazankara.github.io/private-ai-platform-kit/0.27.0/capacity-sizing/">
+      
+      
+        <link rel="prev" href="../benchmarks-and-evals/">
+      
+      
+        <link rel="next" href="../cost-model/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Capacity and sizing - Private AI Platform Kit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#capacity-and-sizing-worksheet" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Private AI Platform Kit" class="md-header__button md-logo" aria-label="Private AI Platform Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Private AI Platform Kit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Capacity and sizing
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/RamazanKara/private-ai-platform-kit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    RamazanKara/private-ai-platform-kit
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/" class="md-tabs__link">
+          
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
+          
+  
+    
+  
+  How-to guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../feature-inventory/" class="md-tabs__link">
+          
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../decision-guide/" class="md-tabs__link">
+          
+  
+    
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Private AI Platform Kit" class="md-nav__button md-logo" aria-label="Private AI Platform Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Private AI Platform Kit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/RamazanKara/private-ai-platform-kit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    RamazanKara/private-ai-platform-kit
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../tutorials/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    First private AI platform
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../runbooks/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    How-to guides
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-to guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Local lab and operations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Client API examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../customer-handoff-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Customer cluster handoff
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../regulated-offline-tenant-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Regulated offline tenant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gpu-coding-agent-tenant-example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GPU coding-agent tenant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-inventory/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Feature inventory
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../production-readiness/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Production readiness matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks-and-evals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Benchmarks and evals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Capacity and sizing
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Capacity and sizing
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-use-this-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to use this page
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inputs-to-gather-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs to gather first
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-1-gateway-replicas" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet 1 -- Gateway replicas
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worksheet 1 -- Gateway replicas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1a-replica-count-from-rps-keda-request-rate-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      1a. Replica count from RPS (KEDA request-rate trigger)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1b-per-replica-concurrency-cap" class="md-nav__link">
+    <span class="md-ellipsis">
+      1b. Per-replica concurrency cap
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-2-vllm-gpu-sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet 2 -- vLLM GPU sizing
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worksheet 2 -- vLLM GPU sizing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2a-gpus-per-replica-and-tensor-parallel-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      2a. GPUs per replica and tensor-parallel size
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2b-kv-cache-memory-and-context-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      2b. KV-cache memory and context length
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2c-replica-count-from-throughput-keda-queue-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      2c. Replica count from throughput (KEDA queue trigger)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-3-qdrant-vector-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet 3 -- Qdrant vector storage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-4-budget-redis-sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet 4 -- Budget Redis sizing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worked-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worked examples
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#after-sizing-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      After sizing: validate
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related" class="md-nav__link">
+    <span class="md-ellipsis">
+      Related
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cost-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cost model and TCO
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../version-matrix/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Version and compatibility matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-verification/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Release verification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Distribution and discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Glossary
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../references/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upstream references
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../adr/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Explanation
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Explanation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decision-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Is this for you (decision guide)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture profiles
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../threat-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture and threat model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../owasp-llm-top-10-mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    OWASP LLM Top 10 mapping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-governance-crosswalk/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AI governance crosswalk
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scope-and-non-goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Scope and non-goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-sandbox-integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Agent-sandbox integration design
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../proof/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Proof and strict evidence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-use-this-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to use this page
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inputs-to-gather-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs to gather first
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-1-gateway-replicas" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet 1 -- Gateway replicas
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worksheet 1 -- Gateway replicas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1a-replica-count-from-rps-keda-request-rate-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      1a. Replica count from RPS (KEDA request-rate trigger)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1b-per-replica-concurrency-cap" class="md-nav__link">
+    <span class="md-ellipsis">
+      1b. Per-replica concurrency cap
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-2-vllm-gpu-sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet 2 -- vLLM GPU sizing
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worksheet 2 -- vLLM GPU sizing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2a-gpus-per-replica-and-tensor-parallel-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      2a. GPUs per replica and tensor-parallel size
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2b-kv-cache-memory-and-context-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      2b. KV-cache memory and context length
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2c-replica-count-from-throughput-keda-queue-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      2c. Replica count from throughput (KEDA queue trigger)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-3-qdrant-vector-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet 3 -- Qdrant vector storage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-4-budget-redis-sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet 4 -- Budget Redis sizing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worked-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worked examples
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#after-sizing-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      After sizing: validate
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related" class="md-nav__link">
+    <span class="md-ellipsis">
+      Related
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+    <a href="https://github.com/RamazanKara/private-ai-platform-kit/edit/main/docs/capacity-sizing.md" title="Edit this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="capacity-and-sizing-worksheet">Capacity and Sizing Worksheet<a class="headerlink" href="#capacity-and-sizing-worksheet" title="Permanent link">&para;</a></h1>
+<p>This is the concrete companion to the prose in <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md"><code>runbooks/gpu-capacity.md</code></a>.
+That runbook explains <em>why</em> GPU pods fail to schedule and gives rough VRAM/concurrency estimates;
+this page turns those estimates into a repeatable worksheet you fill in from your own targets, plus a
+few reference deployments with the exact values files they map to.</p>
+<p>The numbers here are planning estimates, not guarantees. Every figure that touches GPU memory,
+tokens/sec, or concurrency depends on the model, the weight precision, the KV-cache size at your
+context length and batch, and the serving runtime. Treat the worksheet output as a <em>starting point</em>
+and validate it with a real load test (<code>make loadtest-local</code> against the customer profile) before you
+commit capacity. See the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md#sizing-estimates">Sizing Estimates</a> table in the
+runbook for the underlying per-model VRAM and concurrency ranges this worksheet draws on.</p>
+<p>All Helm defaults cited below come from <code>deploy/charts/*/values.yaml</code>; the reference deployments cite
+the overlay values under <code>deploy/clusters/{local,customer}</code>.</p>
+<h2 id="how-to-use-this-page">How to use this page<a class="headerlink" href="#how-to-use-this-page" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Write down your inputs (target RPS, peak concurrency, model, context length, vector count, budget).</li>
+<li>Work top to bottom through the four worksheets: gateway, vLLM GPU, Qdrant storage, Redis.</li>
+<li>Cross-check against the closest reference deployment in the worked-example table.</li>
+<li>Load-test, then revise. The autoscalers (KEDA) absorb error in the <em>up</em> direction; the floors
+   (<code>minReplicaCount</code>, GPU <code>count</code>) are what you must get right by hand.</li>
+</ol>
+<h2 id="inputs-to-gather-first">Inputs to gather first<a class="headerlink" href="#inputs-to-gather-first" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Symbol</th>
+<th>Where it comes from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target sustained request rate</td>
+<td><code>RPS</code></td>
+<td>Expected chat completions per second at peak</td>
+</tr>
+<tr>
+<td>Peak simultaneous in-flight requests</td>
+<td><code>C</code></td>
+<td>Concurrent agent sessions x requests each</td>
+</tr>
+<tr>
+<td>Served model</td>
+<td>--</td>
+<td>A model in the gateway <code>allowedModels</code> / routing policy</td>
+</tr>
+<tr>
+<td>Context length actually enabled</td>
+<td><code>L</code></td>
+<td>vLLM <code>model.maxModelLen</code> (not the model maximum)</td>
+</tr>
+<tr>
+<td>Per-replica decode throughput</td>
+<td><code>T_tok</code></td>
+<td>Measured tokens/sec for the model on the chosen GPU class</td>
+</tr>
+<tr>
+<td>RAG vector count and dimension</td>
+<td><code>N</code>, <code>d</code></td>
+<td>Docs x chunks; <code>d</code> = <code>vectorStore.dimensions</code></td>
+</tr>
+<tr>
+<td>Per-sandbox 24h budget</td>
+<td>--</td>
+<td>Requests / prompt chars / estimated tokens per window</td>
+</tr>
+</tbody>
+</table>
+<p>You will not know <code>T_tok</code> until you measure it; the worked examples below give order-of-magnitude
+anchors, but a load test is the source of truth.</p>
+<h2 id="worksheet-1-gateway-replicas">Worksheet 1 -- Gateway replicas<a class="headerlink" href="#worksheet-1-gateway-replicas" title="Permanent link">&para;</a></h2>
+<p>The inference gateway is CPU/IO-bound (it proxies to the runtime), so it scales horizontally on
+<strong>request rate</strong>, not GPU. Two independent controls set capacity: KEDA picks the replica <em>count</em>, and
+<code>concurrency.maxConcurrentRequests</code> caps in-flight work <em>per replica</em>.</p>
+<h3 id="1a-replica-count-from-rps-keda-request-rate-trigger">1a. Replica count from RPS (KEDA request-rate trigger)<a class="headerlink" href="#1a-replica-count-from-rps-keda-request-rate-trigger" title="Permanent link">&para;</a></h3>
+<p>The gateway ScaledObject (<code>deploy/charts/inference-gateway/templates/scaledobject.yaml</code>) scales on this
+Prometheus query, with the per-replica target set by <code>keda.threshold</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>metricName: inference_gateway_requests_per_second
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>query:      sum(rate(inference_gateway_requests_total{route=&quot;/v1/chat/completions&quot;,status=&quot;200&quot;}[2m]))
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>threshold:  keda.threshold        # successful chat req/s each replica should carry
+</code></pre></div>
+<p>KEDA divides the cluster-wide rate by <code>threshold</code> to get the desired replica count, then clamps it to
+<code>[keda.minReplicaCount, keda.maxReplicaCount]</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>desired_replicas = clamp( ceil( RPS / keda.threshold ),
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>                          keda.minReplicaCount,
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>                          keda.maxReplicaCount )
+</code></pre></div>
+<ul>
+<li>Chart default <code>keda.threshold</code> is <code>"10"</code> req/s per replica, with <code>min/max = 1/5</code>
+  (<code>deploy/charts/inference-gateway/values.yaml</code>).</li>
+<li>The customer overlay raises this to <code>threshold: "25"</code>, <code>min/max = 2/20</code>
+  (<code>deploy/clusters/customer/values/inference-gateway.yaml</code>).</li>
+</ul>
+<p>Set <code>keda.minReplicaCount</code> to cover your <em>baseline</em> RPS without waiting for a scale-up, and
+<code>keda.maxReplicaCount</code> to your <em>peak</em> divided by <code>threshold</code>, rounded up. The threshold is the knob
+that trades replica count against per-replica load; lower it if p99 latency degrades before CPU
+saturates.</p>
+<blockquote>
+<p>The query counts only <code>status="200"</code> on <code>/v1/chat/completions</code>. Load-shed 503s and embeddings
+traffic are deliberately excluded, so the autoscaler tracks <em>served</em> chat demand, not rejected or
+non-chat calls. Size embeddings-heavy RAG ingestion separately.</p>
+</blockquote>
+<h3 id="1b-per-replica-concurrency-cap">1b. Per-replica concurrency cap<a class="headerlink" href="#1b-per-replica-concurrency-cap" title="Permanent link">&para;</a></h3>
+<p><code>concurrency.maxConcurrentRequests</code> bounds in-flight requests on a single gateway pod; requests beyond
+it are <strong>shed with 503, not queued</strong> (<code>app/main.py</code>: when <code>inflight &gt;= max_concurrent_requests</code> the
+request is rejected). The default is <code>0</code> (unlimited) -- the gateway leans on the runtime and the
+budget store for back-pressure.</p>
+<p>Set it to protect the runtime from overload while still serving your peak:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>maxConcurrentRequests  &gt;=  ceil( C / desired_replicas )      # so peak concurrency does not 503
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>maxConcurrentRequests  &lt;=  what one vLLM/Ollama replica can serve at acceptable latency
+</code></pre></div>
+<p>If those two bounds conflict, you need more gateway replicas (raise <code>keda.maxReplicaCount</code>) or more
+runtime capacity (Worksheet 2) -- not a higher cap. Related per-call admission limits live under
+<code>admission.*</code> (<code>maxMessages</code>, <code>maxPromptChars</code>, <code>maxCompletionTokens</code>) and the batch ceiling is
+<code>concurrency.maxBatchRequests</code> (default <code>32</code>).</p>
+<p>The gateway resource defaults are modest (<code>requests 100m / 128Mi</code>, <code>limits 500m / 512Mi</code>); they rarely
+need raising because you scale out rather than up.</p>
+<h2 id="worksheet-2-vllm-gpu-sizing">Worksheet 2 -- vLLM GPU sizing<a class="headerlink" href="#worksheet-2-vllm-gpu-sizing" title="Permanent link">&para;</a></h2>
+<p>vLLM is GPU-bound, so CPU% is the wrong autoscaling signal (the chart's CPU HPA is a disabled
+placeholder for exactly this reason). The hand-sized inputs are: <strong>GPUs per replica</strong>, <strong>tensor-parallel
+size</strong>, and <strong>context length</strong>; KEDA then scales <em>replicas</em> on queue depth.</p>
+<h3 id="2a-gpus-per-replica-and-tensor-parallel-size">2a. GPUs per replica and tensor-parallel size<a class="headerlink" href="#2a-gpus-per-replica-and-tensor-parallel-size" title="Permanent link">&para;</a></h3>
+<p>Pick the GPU class and per-replica GPU count from the model's weight + KV-cache footprint. Use the
+<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md#sizing-estimates">runbook's per-model table</a> as the anchor, then set:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>accelerator.count          = GPUs per replica  (must fit on one node for tensor parallelism)
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>extraArgs: --tensor-parallel-size  = accelerator.count   (single-node TP; keep them equal)
+</code></pre></div>
+<p>The default profile serves <code>Qwen/Qwen3-Coder-Next</code> with <code>accelerator.count: 4</code> and
+<code>--tensor-parallel-size 4</code> (<code>deploy/charts/vllm/values.yaml</code>, <code>extraArgs</code>). Tensor parallelism shards
+one model across the GPUs of a single node; if the model is too large for any one node, you need
+<strong>pipeline parallelism across nodes</strong> via the LeaderWorkerSet topology -- see
+<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md#multi-node-serving-models-larger-than-one-node">Multi-Node Serving</a>. To fit
+a smaller cluster, reduce <code>accelerator.count</code>, <code>--tensor-parallel-size</code>, <code>model.maxModelLen</code>, or the
+model itself.</p>
+<h3 id="2b-kv-cache-memory-and-context-length">2b. KV-cache memory and context length<a class="headerlink" href="#2b-kv-cache-memory-and-context-length" title="Permanent link">&para;</a></h3>
+<p>At long context, <strong>KV-cache, not weights, dominates GPU memory</strong>. Per-token KV-cache grows with the
+context length you actually enable, so size headroom for <code>model.maxModelLen</code>, not the model maximum:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>GPU_mem_per_replica  &gt;=  weight_VRAM (precision-dependent)
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                      +  KV_cache(model.maxModelLen, peak_batch)
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                      +  runtime/activation overhead
+</code></pre></div>
+<p>The default profile sets <code>model.maxModelLen: "262144"</code> (262k tokens). That is a large window -- if your
+agents do not need it, lowering it is the single most effective way to cut GPU memory and raise
+concurrency. The runbook notes 4-bit quantization roughly halves-to-quarters weight VRAM but can hurt
+quality; validate evals before relying on it for coding agents.</p>
+<p>Container memory requests (host RAM, not VRAM) default to <code>requests 32Gi / limits 64Gi</code> and rarely
+need tuning relative to GPU memory.</p>
+<h3 id="2c-replica-count-from-throughput-keda-queue-trigger">2c. Replica count from throughput (KEDA queue trigger)<a class="headerlink" href="#2c-replica-count-from-throughput-keda-queue-trigger" title="Permanent link">&para;</a></h3>
+<p>vLLM replicas scale on request-queue depth, not RPS. The vLLM ScaledObject query and threshold are:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>query:      avg(vllm:num_requests_waiting)     # average backlog across replicas
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>threshold:  keda.threshold                     # queued requests per replica before scaling up
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>desired_vllm_replicas = clamp( ceil( avg_queue_depth / keda.threshold ),
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>                               keda.minReplicaCount, keda.maxReplicaCount )
+</code></pre></div>
+<p>vLLM <code>keda</code> is disabled by default in the chart (it is environment-specific). The customer NVIDIA
+profile enables it with <code>threshold: "5"</code>, <code>min/max = 2/8</code>
+(<code>deploy/clusters/customer/values/vllm-nvidia.yaml</code>). To translate your throughput target into replica
+count, estimate sustained capacity per replica as roughly <code>T_tok / avg_tokens_per_request</code> requests/sec,
+then provision enough replicas that the queue stays below <code>threshold</code> at peak. A persistent backlog
+above <code>threshold</code> means add replicas (or GPUs); an always-empty queue means you over-provisioned.</p>
+<blockquote>
+<p>Cold starts are expensive: a 100+ GB model load can take minutes (the startup probe grace window is
+<code>60 x 10s = 10 min</code>). Pair scale-to-zero (<code>minReplicaCount: 0</code>) with the persistent weight cache
+(<code>cache.persistence</code>) and the generous <code>cooldownPeriod: 300</code> so replicas are not churned. For
+multi-replica weight sharing you need a ReadWriteMany storage class (the customer profile sets
+<code>cache.persistence</code> <code>size: 400Gi</code>, <code>accessMode: ReadWriteMany</code>); with ReadWriteOnce keep
+<code>replicaCount: 1</code> or pre-bake weights into the image.</p>
+</blockquote>
+<h2 id="worksheet-3-qdrant-vector-storage">Worksheet 3 -- Qdrant vector storage<a class="headerlink" href="#worksheet-3-qdrant-vector-storage" title="Permanent link">&para;</a></h2>
+<p>Qdrant is the dense half of the hybrid RAG backend. It is <strong>single-instance only</strong> (enforced by
+<code>values.schema.json</code>; raising <code>replicaCount</code> is unsafe on the shared RWO PVC), so sizing here is about
+the PVC, not replicas.</p>
+<p>Estimate raw vector bytes, then add generous overhead for the HNSW index, payloads, and segment
+write-amplification:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>raw_vectors   =  N (vectors) x d (dimensions) x 4 bytes   # float32
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>provisioned   ~=  raw_vectors x 3-5  + payload + headroom  # HNSW graph, payloads, segments, growth
+</code></pre></div>
+<ul>
+<li><code>d</code> defaults to <code>384</code> (<code>rag-service</code> <code>retrieval.vectorStore.dimensions</code>), matching small
+  bge-class / hash embeddings. A <code>bge-small</code> profile keeps <code>d=384</code>; larger embedding models raise <code>d</code>
+  and therefore storage linearly.</li>
+<li>Worked: 1M vectors x 384 x 4 bytes is ~1.5 GB raw; with index + payload + headroom the chart's
+  default <code>persistence.size: 20Gi</code> (<code>deploy/charts/qdrant-vector-store/values.yaml</code>) comfortably
+  covers low-millions of 384-dim vectors. The customer overlay provisions <code>100Gi</code>
+  (<code>deploy/clusters/customer/values/qdrant-vector-store.yaml</code>) for larger corpora.</li>
+</ul>
+<p>Resource defaults are <code>requests 250m / 512Mi</code>, <code>limits 2 CPU / 4Gi</code>; the customer overlay raises limits
+to <code>4 CPU / 16Gi</code>. HNSW search is memory-sensitive, so raise the memory limit before the CPU limit as
+the collection grows. Retrieval over-fetches <code>candidateMultiplier x topK</code> (default <code>4 x</code>) dense
+candidates before reranking, so search cost scales with <code>topK</code> and the multiplier, not just <code>N</code>.</p>
+<h2 id="worksheet-4-budget-redis-sizing">Worksheet 4 -- Budget Redis sizing<a class="headerlink" href="#worksheet-4-budget-redis-sizing" title="Permanent link">&para;</a></h2>
+<p><code>budget-redis</code> is the shared store for per-sandbox cumulative budgets and the short-window rate-limit
+counters (gateway <code>budget.backend: redis</code>). It holds small counter keys per sandbox per window, so it
+is tiny -- the chart defaults to <code>requests 50m / 64Mi</code>, <code>limits 250m / 256Mi</code>
+(<code>deploy/charts/budget-redis/values.yaml</code>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>keys  ~=  (sandboxes) x (a handful of counters each) x (active windows)
+</code></pre></div>
+<p>With <code>windowSeconds: 86400</code> (24h) and counters that are a few hundred bytes each, even thousands of
+sandboxes stay well under the default <code>256Mi</code> limit. Raise the memory limit only if you run many
+thousands of concurrent sandboxes or shorten the window dramatically. The budget <em>limits themselves</em>
+(<code>requestLimit</code>, <code>promptCharLimit</code>, <code>estimatedTokenLimit</code>) are policy knobs that gate traffic, not
+Redis sizing inputs -- but a high token budget paired with high <code>keda.maxReplicaCount</code> is what lets a
+busy tenant actually reach the throughput you sized in Worksheets 1-2.</p>
+<blockquote>
+<p>The in-memory budget backend (<code>backend: memory</code>, the chart default) is per-pod and does not
+aggregate across gateway replicas. Once <code>keda.minReplicaCount &gt; 1</code>, switch to <code>backend: redis</code> (as
+the local and customer overlays do) or budgets are enforced per-pod, not per-sandbox.</p>
+</blockquote>
+<h2 id="worked-examples">Worked examples<a class="headerlink" href="#worked-examples" title="Permanent link">&para;</a></h2>
+<p>Three reference points, mapped to the values files they correspond to. The throughput and concurrency
+columns are planning anchors; measure before committing.</p>
+<table>
+<thead>
+<tr>
+<th>Profile</th>
+<th>Gateway (<code>keda</code> min/max, threshold)</th>
+<th>Runtime (replicas, GPUs/replica, TP)</th>
+<th>Context</th>
+<th>Qdrant PVC</th>
+<th>Redis</th>
+<th>Values files</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Laptop / local (kind)</td>
+<td>min 1 / max 3 (chart default threshold 10/s)</td>
+<td>Ollama 1 replica, <strong>no GPU</strong> (<code>vLLM replicaCount: 0</code>)</td>
+<td>n/a (small Ollama model)</td>
+<td>20Gi default (often skipped locally)</td>
+<td>64-256Mi default</td>
+<td><code>deploy/clusters/local/values/{inference-gateway,vllm,ollama}.yaml</code></td>
+</tr>
+<tr>
+<td>Small customer (CPU/light GPU)</td>
+<td>min 2 / max 20, threshold <strong>25</strong>/s</td>
+<td>vLLM 2 replicas KEDA min, GPUs per the model class</td>
+<td><code>maxModelLen</code> per need</td>
+<td>100Gi</td>
+<td>default</td>
+<td><code>deploy/clusters/customer/values/inference-gateway.yaml</code>, <code>qdrant-vector-store.yaml</code></td>
+</tr>
+<tr>
+<td>GPU coding-agent (Qwen3-Coder-Next)</td>
+<td>min 2 / max 20, threshold 25/s</td>
+<td>vLLM 2-8 replicas (KEDA queue, threshold 5), <strong>4 GPUs/replica, TP 4</strong></td>
+<td>262144 (<code>maxModelLen</code>)</td>
+<td>100Gi</td>
+<td>redis backend</td>
+<td><code>deploy/clusters/customer/values/{inference-gateway,vllm-nvidia,qdrant-vector-store}.yaml</code></td>
+</tr>
+</tbody>
+</table>
+<p>Notes on the examples:</p>
+<ul>
+<li><strong>Laptop / local</strong> keeps <code>vLLM replicaCount: 0</code> and <code>accelerator.enabled: false</code>
+  (<code>deploy/clusters/local/values/vllm.yaml</code>); inference is served by Ollama on CPU with a small model
+  (<code>qwen2.5:0.5b</code> in the gateway overlay). Keep vLLM at zero unless the workstation has a supported
+  GPU setup exposed to Kubernetes (see the runbook's Mitigation section).</li>
+<li><strong>Small customer</strong> is the gateway/RAG control plane scaled for real traffic; attach whatever GPU
+  runtime the model needs. The gateway already uses <code>budget.backend: redis</code> because it runs
+  <code>minReplicaCount: 2</code>.</li>
+<li><strong>GPU coding-agent</strong> is the full default profile: 4 GPUs per replica with tensor parallelism 4, a
+  262k context window, shared 400Gi RWX weight cache, and queue-based vLLM autoscaling 2-8. This is the
+  configuration the GPU-capacity runbook's third sizing row describes.</li>
+</ul>
+<h2 id="after-sizing-validate">After sizing: validate<a class="headerlink" href="#after-sizing-validate" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Run <code>make loadtest-local</code> against the customer profile and watch
+  <code>inference_gateway_request_duration_seconds</code> (p50/p99 by route) and
+  <code>inference_gateway_requests_total{status="200"}</code> versus 503 load-shed counts.</li>
+<li>Watch <code>vllm:num_requests_waiting</code> -- a persistent backlog above <code>keda.threshold</code> means add vLLM
+  replicas or GPUs; a queue that is always empty means you over-provisioned.</li>
+<li>Confirm gateway replicas track demand (the KEDA request-rate metric) and that
+  <code>maxConcurrentRequests</code> is not silently shedding at peak.</li>
+<li>Re-derive the worksheet with measured <code>T_tok</code> and observed concurrency, then adjust the floors
+  (<code>minReplicaCount</code>, <code>accelerator.count</code>) by hand and let KEDA handle the headroom.</li>
+</ul>
+<h2 id="related">Related<a class="headerlink" href="#related" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md">GPU capacity runbook</a> -- scheduling failures, per-model VRAM/concurrency
+  estimates, multi-node serving.</li>
+<li><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/slo-error-budget.md">SLO and error budget</a> -- the latency/availability targets your
+  sizing must satisfy.</li>
+<li><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/quota-chargeback.md">Quota and chargeback</a> -- how the per-sandbox budgets sized in
+  Worksheet 4 map to tenants.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Maintained by fluentorbit as project steward. Licensed under Apache-2.0.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>
