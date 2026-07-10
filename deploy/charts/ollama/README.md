@@ -20,9 +20,11 @@ Local-first private LLM runtime.
 | `model.pullOnStart` | `false` |
 | `namespace.create` | `true` |
 | `namespace.name` | `""` |
-| `networkPolicy.allowModelPullEgress` | `true` |
+| `networkPolicy.allowModelPullEgress` | `false` |
 | `networkPolicy.allowedIngressNamespaces` | `["inference"]` |
 | `networkPolicy.enabled` | `true` |
+| `networkPolicy.localDevelopmentException` | `false` |
+| `networkPolicy.modelPullEgressCidrs` | `[]` |
 | `persistence.enabled` | `true` |
 | `persistence.size` | `20Gi` |
 | `podDisruptionBudget.enabled` | `true` |

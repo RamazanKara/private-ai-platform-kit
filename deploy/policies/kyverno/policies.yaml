@@ -312,6 +312,57 @@ spec:
   validationFailureAction: Enforce
   background: true
   rules:
+    - name: deny-unscoped-egress-rules
+      match:
+        any:
+          - resources:
+              kinds:
+                - NetworkPolicy
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - argocd
+                - platform-operators
+                - monitoring
+                - opencost
+                - velero
+                - kyverno
+                - local-path-storage
+      validate:
+        message: >-
+          Every egress rule must declare at least one destination in `to`; an omitted
+          destination grants the listed ports to every IP address.
+        foreach:
+          - list: request.object.spec.egress
+            deny:
+              conditions:
+                all:
+                  - key: "{{ element.to || `[]` | length(@) }}"
+                    operator: Equals
+                    value: 0
+    - name: restrict-local-model-pull-exception
+      match:
+        any:
+          - resources:
+              kinds:
+                - NetworkPolicy
+      validate:
+        message: >-
+          The local model-pull egress exception is development-only and requires
+          platform.ai/environment=local on the NetworkPolicy.
+        deny:
+          conditions:
+            all:
+              - key: "{{ request.object.metadata.annotations.\"platform.ai/local-model-pull-egress\" || '' }}"
+                operator: Equals
+                value: "true"
+              - key: "{{ request.object.metadata.labels.\"platform.ai/environment\" || '' }}"
+                operator: NotEquals
+                value: local
     - name: deny-broad-egress-cidrs
       match:
         any:
@@ -332,6 +383,11 @@ spec:
                 - velero
                 - kyverno
                 - local-path-storage
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.annotations.\"platform.ai/local-model-pull-egress\" || '' }}"
+            operator: NotEquals
+            value: "true"
       validate:
         message: >-
           Egress NetworkPolicy must not allow 0.0.0.0/0, ::/0, or a broad RFC1918

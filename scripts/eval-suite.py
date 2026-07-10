@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
+import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -107,7 +110,9 @@ def evaluate_case(
     case_id = str(case["id"])
     sandbox_id = str(case.get("sandboxId") or defaults.get("sandboxId") or "eval-lab")
     max_tokens = int(case.get("maxTokens") or defaults.get("maxTokens") or 128)
-    temperature = float(case.get("temperature") if case.get("temperature") is not None else defaults.get("temperature", 0))
+    temperature = float(
+        case.get("temperature") if case.get("temperature") is not None else defaults.get("temperature", 0)
+    )
     max_latency_ms = float(case.get("maxLatencyMs") or defaults.get("maxLatencyMs") or 30000)
     checks = case.get("checks") or {}
     request_id = f"eval-{suite_name}-{case_id}"
@@ -214,6 +219,7 @@ def main() -> int:
     parser.add_argument("--output-json")
     parser.add_argument("--output-md")
     parser.add_argument("--api-key")
+    parser.add_argument("--evidence-class", choices=("conformance", "model_quality"), default="model_quality")
     parser.add_argument("--check-config", action="store_true")
     args = parser.parse_args()
 
@@ -235,8 +241,18 @@ def main() -> int:
             for case in spec["cases"]
         ]
 
+    try:
+        source_revision = (
+            os.environ.get("GITHUB_SHA") or subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        )
+    except (OSError, subprocess.CalledProcessError):
+        source_revision = "unknown"
     payload = {
         "suite": suite_name,
+        "suite_sha256": hashlib.sha256(suite_path.read_bytes()).hexdigest(),
+        "model": spec["model"],
+        "evidence_class": args.evidence_class,
+        "source_revision": source_revision,
         "gateway_url": args.gateway_url,
         "generated_at": datetime.now(UTC).isoformat(),
         "results": [

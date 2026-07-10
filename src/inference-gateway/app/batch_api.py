@@ -12,6 +12,8 @@ neither read nor delete another tenant's files or batches.
 
 from __future__ import annotations
 
+import asyncio
+import codecs
 import secrets
 from time import time
 from typing import Any
@@ -57,13 +59,35 @@ def _require_enabled(request: Request) -> Settings:
     return settings
 
 
-def _decode_jsonl(data: bytes) -> list[str]:
-    """Return the non-empty lines of a UTF-8 JSONL blob, or raise a 400 on bad encoding."""
+async def _inspect_jsonl_upload(upload: UploadFile, max_bytes: int) -> tuple[int, int]:
+    """Validate and count a JSONL upload incrementally, then rewind it.
+
+    ``UploadFile`` is already backed by Starlette's spooled file. Reading bounded
+    chunks avoids materializing a second full-size bytes object before the object
+    store persists it.
+    """
+    decoder = codecs.getincrementaldecoder("utf-8")()
+    pending = ""
+    byte_count = 0
+    line_count = 0
     try:
-        text = data.decode("utf-8")
+        while chunk := await upload.read(1024 * 1024):
+            byte_count += len(chunk)
+            if byte_count > max_bytes:
+                raise _error(413, "file_too_large", f"file exceeds the {max_bytes}-byte limit")
+            pending += decoder.decode(chunk)
+            while "\n" in pending:
+                line, pending = pending.split("\n", 1)
+                if line.strip():
+                    line_count += 1
+        pending += decoder.decode(b"", final=True)
     except UnicodeDecodeError as exc:
         raise _error(400, "invalid_encoding", "input file must be UTF-8 encoded") from exc
-    return [line for line in text.splitlines() if line.strip()]
+    finally:
+        await upload.seek(0)
+    if pending.strip():
+        line_count += 1
+    return byte_count, line_count
 
 
 def register_batch_routes(app: FastAPI, settings: Settings) -> None:
@@ -81,45 +105,46 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
             raise _error(400, "missing_file", "a multipart 'file' field is required")
         if not isinstance(purpose, str) or purpose not in _FILE_PURPOSES:
             raise _error(400, "invalid_purpose", "purpose must be 'batch'")
-        data = await upload.read()
-        if len(data) > resolved.batch_max_file_bytes:
-            raise _error(413, "file_too_large", f"file exceeds the {resolved.batch_max_file_bytes}-byte limit")
-        lines = _decode_jsonl(data)
-        if not lines:
+        byte_count, line_count = await _inspect_jsonl_upload(upload, resolved.batch_max_file_bytes)
+        if not line_count:
             raise _error(400, "empty_file", "input file has no request lines")
-        if len(lines) > resolved.batch_max_requests_per_batch:
+        if line_count > resolved.batch_max_requests_per_batch:
             raise _error(
                 400,
                 "too_many_requests",
-                f"file has {len(lines)} lines; limit is {resolved.batch_max_requests_per_batch}",
+                f"file has {line_count} lines; limit is {resolved.batch_max_requests_per_batch}",
             )
         tenant = _tenant(request)
         file_id = _new_id("file")
         object_key = f"{tenant}/{file_id}"
-        request.app.state.object_store.put(object_key, data)
+        await asyncio.to_thread(request.app.state.object_store.put_stream, object_key, upload.file, byte_count)
         record = FileRecord(
             id=file_id,
             tenant=tenant,
-            bytes=len(data),
+            bytes=byte_count,
             created_at=int(time()),
             filename=upload.filename or "input.jsonl",
             purpose=purpose,
             object_key=object_key,
-            line_count=len(lines),
+            line_count=line_count,
         )
-        request.app.state.batch_store.create_file(record)
+        try:
+            await asyncio.to_thread(request.app.state.batch_store.create_file, record)
+        except Exception:
+            await asyncio.to_thread(request.app.state.object_store.delete, object_key)
+            raise
         return JSONResponse(status_code=200, content=record.to_public())
 
     @app.get("/v1/files", tags=["files"], summary="List uploaded files", operation_id="listFiles")
     async def list_files(request: Request) -> dict[str, Any]:
         _require_enabled(request)
-        records = request.app.state.batch_store.list_files(_tenant(request))
+        records = await asyncio.to_thread(request.app.state.batch_store.list_files, _tenant(request))
         return {"object": "list", "data": [r.to_public() for r in records]}
 
     @app.get("/v1/files/{file_id}", tags=["files"], summary="Retrieve a file object", operation_id="getFile")
     async def get_file(request: Request, file_id: str) -> dict[str, Any]:
         _require_enabled(request)
-        record = request.app.state.batch_store.get_file(_tenant(request), file_id)
+        record = await asyncio.to_thread(request.app.state.batch_store.get_file, _tenant(request), file_id)
         if record is None:
             raise _error(404, "file_not_found", f"no file with id '{file_id}'")
         return record.to_public()
@@ -129,11 +154,11 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
     )
     async def get_file_content(request: Request, file_id: str) -> Response:
         _require_enabled(request)
-        record = request.app.state.batch_store.get_file(_tenant(request), file_id)
+        record = await asyncio.to_thread(request.app.state.batch_store.get_file, _tenant(request), file_id)
         if record is None:
             raise _error(404, "file_not_found", f"no file with id '{file_id}'")
         try:
-            data = request.app.state.object_store.get(record.object_key)
+            data = await asyncio.to_thread(request.app.state.object_store.get, record.object_key)
         except ObjectNotFound as exc:
             raise _error(404, "file_content_missing", "file content is no longer available") from exc
         return Response(content=data, media_type="application/jsonl")
@@ -142,11 +167,11 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
     async def delete_file(request: Request, file_id: str) -> dict[str, Any]:
         _require_enabled(request)
         tenant = _tenant(request)
-        record = request.app.state.batch_store.get_file(tenant, file_id)
+        record = await asyncio.to_thread(request.app.state.batch_store.get_file, tenant, file_id)
         if record is None:
             raise _error(404, "file_not_found", f"no file with id '{file_id}'")
-        request.app.state.object_store.delete(record.object_key)
-        request.app.state.batch_store.delete_file(tenant, file_id)
+        await asyncio.to_thread(request.app.state.object_store.delete, record.object_key)
+        await asyncio.to_thread(request.app.state.batch_store.delete_file, tenant, file_id)
         return {"id": file_id, "object": "file", "deleted": True}
 
     @app.post("/v1/batches", tags=["batches"], summary="Create an asynchronous batch", operation_id="createBatch")
@@ -166,7 +191,7 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
         if len(metadata) > _MAX_METADATA_PAIRS:
             raise _error(400, "invalid_metadata", f"metadata has more than {_MAX_METADATA_PAIRS} keys")
         tenant = _tenant(request)
-        file_record = request.app.state.batch_store.get_file(tenant, payload.input_file_id)
+        file_record = await asyncio.to_thread(request.app.state.batch_store.get_file, tenant, payload.input_file_id)
         if file_record is None:
             raise _error(404, "input_file_not_found", f"no file with id '{payload.input_file_id}'")
         if file_record.purpose != "batch":
@@ -184,15 +209,16 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
             metadata=metadata,
             total=file_record.line_count,
         )
-        request.app.state.batch_store.create_batch(record)
-        request.app.state.batch_store.enqueue(tenant, batch_id)
+        await asyncio.to_thread(request.app.state.batch_store.create_and_enqueue, record)
         return JSONResponse(status_code=200, content=record.to_public())
 
     @app.get("/v1/batches", tags=["batches"], summary="List batches", operation_id="listBatches")
     async def list_batches(request: Request, limit: int = 20, after: str | None = None) -> dict[str, Any]:
         _require_enabled(request)
         limit = max(1, min(limit, 100))
-        records = request.app.state.batch_store.list_batches(_tenant(request), limit=limit, after=after)
+        records = await asyncio.to_thread(
+            request.app.state.batch_store.list_batches, _tenant(request), limit=limit, after=after
+        )
         data = [r.to_public() for r in records]
         return {
             "object": "list",
@@ -205,7 +231,7 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
     @app.get("/v1/batches/{batch_id}", tags=["batches"], summary="Retrieve a batch", operation_id="getBatch")
     async def get_batch(request: Request, batch_id: str) -> dict[str, Any]:
         _require_enabled(request)
-        record = request.app.state.batch_store.get_batch(_tenant(request), batch_id)
+        record = await asyncio.to_thread(request.app.state.batch_store.get_batch, _tenant(request), batch_id)
         if record is None:
             raise _error(404, "batch_not_found", f"no batch with id '{batch_id}'")
         return record.to_public()
@@ -213,7 +239,7 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
     @app.post("/v1/batches/{batch_id}/cancel", tags=["batches"], summary="Cancel a batch", operation_id="cancelBatch")
     async def cancel_batch(request: Request, batch_id: str) -> dict[str, Any]:
         _require_enabled(request)
-        record = request.app.state.batch_store.cancel_batch(_tenant(request), batch_id)
+        record = await asyncio.to_thread(request.app.state.batch_store.cancel_batch, _tenant(request), batch_id)
         if record is None:
             raise _error(404, "batch_not_found", f"no batch with id '{batch_id}'")
         return record.to_public()

@@ -48,6 +48,8 @@ spec:
               value: {{ .Values.traceability.auditLogEnabled | quote }}
             - name: MAX_QUERY_CHARS
               value: {{ .Values.retrieval.maxQueryChars | quote }}
+            - name: MAX_REQUEST_BODY_BYTES
+              value: {{ .Values.retrieval.maxRequestBodyBytes | int64 | quote }}
             - name: DEFAULT_TOP_K
               value: {{ .Values.retrieval.defaultTopK | quote }}
             - name: MAX_TOP_K

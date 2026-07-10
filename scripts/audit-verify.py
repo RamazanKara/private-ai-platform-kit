@@ -245,6 +245,10 @@ def selftest() -> int:
     byte-for-byte, so drift is caught by the quality gate rather than silently.
     """
 
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            raise RuntimeError(message)
+
     def build(records: list[dict[str, Any]], chain_id: str) -> list[dict[str, Any]]:
         prev = GENESIS
         emitted: list[dict[str, Any]] = []
@@ -269,10 +273,10 @@ def selftest() -> int:
     doubled = [line for event in events for line in (event, dict(event))]
     lines = [json.dumps(event, sort_keys=True) for event in doubled]
     chains = group_into_chains(deduplicate(extract_audit_events(lines)))
-    assert len(chains) == 1, f"expected 1 chain, got {len(chains)}"
+    require(len(chains) == 1, f"expected 1 chain, got {len(chains)}")
     result = verify_chain(chains[0])
-    assert result.ok, f"valid chain failed verification: {result.reason} at {result.position}"
-    assert result.count == 3, f"dedup should leave 3 records, got {result.count}"
+    require(result.ok, f"valid chain failed verification: {result.reason} at {result.position}")
+    require(result.count == 3, f"dedup should leave 3 records, got {result.count}")
 
     # Mutate one record's covered field, leaving its stored hash: must be detected.
     tampered = [dict(event) for event in events]
@@ -280,16 +284,16 @@ def selftest() -> int:
     tampered_lines = [json.dumps(event, sort_keys=True) for event in tampered]
     tampered_chains = group_into_chains(deduplicate(extract_audit_events(tampered_lines)))
     tampered_result = verify_chain(tampered_chains[0])
-    assert not tampered_result.ok, "tamper on a covered field was not detected"
-    assert tampered_result.reason == "record_hash_mismatch", tampered_result.reason
-    assert tampered_result.position == 1, tampered_result.position
+    require(not tampered_result.ok, "tamper on a covered field was not detected")
+    require(tampered_result.reason == "record_hash_mismatch", tampered_result.reason)
+    require(tampered_result.position == 1, str(tampered_result.position))
 
     # Reordering two records breaks the prev_hash linkage: must be detected.
     reordered = [events[0], events[2], events[1]]
     reordered_lines = [json.dumps(event, sort_keys=True) for event in reordered]
     reordered_chains = group_into_chains(deduplicate(extract_audit_events(reordered_lines)))
     reordered_result = verify_chain(reordered_chains[0])
-    assert not reordered_result.ok, "reordering was not detected"
+    require(not reordered_result.ok, "reordering was not detected")
 
     # Legacy grouping: records without chain_id split at genesis restarts.
     legacy = [dict(event) for event in events]
@@ -304,8 +308,8 @@ def selftest() -> int:
         legacy_prev = event["record_hash"]
     legacy_lines = [json.dumps(event, sort_keys=True) for event in legacy]
     legacy_chains = group_into_chains(deduplicate(extract_audit_events(legacy_lines)))
-    assert len(legacy_chains) == 1, f"legacy segment grouping wrong: {len(legacy_chains)}"
-    assert verify_chain(legacy_chains[0]).ok, "legacy chain failed verification"
+    require(len(legacy_chains) == 1, f"legacy segment grouping wrong: {len(legacy_chains)}")
+    require(verify_chain(legacy_chains[0]).ok, "legacy chain failed verification")
 
     # Anchor: a shrunk chain and a re-chained head are both flagged.
     heads = observed_heads([verify_chain(chains[0])])
@@ -313,14 +317,14 @@ def selftest() -> int:
         {"selftest-chain:1": {"count": 1, "head": events[0]["record_hash"]}},
         {"selftest-chain:1": {"count": 3, "head": events[-1]["record_hash"]}},
     )
-    assert shrunk and "shrank" in shrunk[0], shrunk
+    require(bool(shrunk and "shrank" in shrunk[0]), str(shrunk))
     rechained_head = compute_record_hash(GENESIS, {"event": "inference_request", "x": 1})
     rechain = compare_anchor(
         {"selftest-chain:1": {"count": 3, "head": rechained_head}},
         {"selftest-chain:1": {"count": 3, "head": events[-1]["record_hash"]}},
     )
-    assert rechain and "rewritten" in rechain[0], rechain
-    assert not compare_anchor(heads, heads), "identical heads must not flag"
+    require(bool(rechain and "rewritten" in rechain[0]), str(rechain))
+    require(not compare_anchor(heads, heads), "identical heads must not flag")
 
     print("audit-verify selftest OK")
     return 0

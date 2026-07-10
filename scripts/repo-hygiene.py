@@ -23,6 +23,7 @@ REQUIRED_FILES = (
     ".github/ISSUE_TEMPLATE/question.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/workflows/ci.yml",
+    ".github/workflows/fuzz.yml",
     ".github/workflows/scorecard.yml",
     ".gitignore",
     "ADOPTERS.md",
@@ -47,6 +48,8 @@ REQUIRED_FILES = (
     "docs/benchmarks-and-evals.md",
     "docs/customer-handoff-example.md",
     "docs/decision-guide.md",
+    "docs/distribution.md",
+    "docs/feature-inventory.md",
     "docs/getting-started.md",
     "docs/proof.md",
     "docs/production-readiness.md",
@@ -61,6 +64,9 @@ REQUIRED_FILES = (
     "scripts/production-check.py",
     "scripts/quickstart.sh",
     "scripts/validate.sh",
+    "requirements-docs.txt",
+    "requirements-sdk-build.lock",
+    "requirements-sdk-test.lock",
 )
 
 # The canonical top-level directory inventory lives in scripts/paths.py (the single
@@ -283,6 +289,20 @@ def check_runtime_dependencies(errors: list[str]) -> None:
             f"ruff pin mismatch: requirements-quality.txt has {quality_ruff.group(1)} "
             f"but .pre-commit-config.yaml rev is v{precommit_ruff.group(1)}",
         )
+
+    for source_name, lock_name in (
+        ("requirements-quality.txt", "requirements-quality.lock"),
+        ("requirements-docs.in", "requirements-docs.txt"),
+        ("requirements-sdk-build.in", "requirements-sdk-build.lock"),
+        ("requirements-sdk-test.in", "requirements-sdk-test.lock"),
+    ):
+        source = ROOT / source_name
+        lock = ROOT / lock_name
+        require(errors, source.exists(), f"{source_name} missing")
+        require(errors, lock.exists(), f"{lock_name} missing")
+        if source.exists() and lock.exists():
+            require(errors, "--hash=sha256:" in lock.read_text(), f"{lock_name} must be generated with hashes")
+            require_lock_contains_pins(errors, source, lock, requirement_pins(source))
 
 
 def markdown_files() -> list[Path]:

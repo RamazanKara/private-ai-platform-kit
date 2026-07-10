@@ -8,7 +8,7 @@
 #
 # WHY THIS IS AN EXAMPLE, NOT A SHIPPED/RENDERED MANIFEST:
 #   - A human-facing chat UI is a separate product surface. The kit's non-goal list is explicit:
-#     "No admin/usage console UI": the UI is operator-owned, exactly like the admin-console
+#     "No bundled end-user chat UI": this UI is operator-owned; the kit's read-only operator console
 #     non-goal (see docs/scope-and-non-goals.md). Shipping and supporting a UI would cross the
 #     kit's "manifests, charts, service code, validation tooling, runbooks" boundary.
 #   - The image tag, storage, ingress/TLS, and human SSO wiring are all environment-specific.

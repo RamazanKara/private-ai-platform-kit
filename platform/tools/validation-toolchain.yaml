@@ -30,9 +30,9 @@ spec:
         - kind
         - kubectl
         - helm
+      optional:
         - go
         - syft
-      optional:
         - kubeconform
         - kyverno
         - restore-drill
@@ -64,7 +64,7 @@ spec:
       versionCommand: ["python3", "--version"]
       category: runtime
       purpose: Runs service tests, YAML checks, readiness gates, report generators, and local automation.
-      installHint: Install Python 3.14 or newer.
+      installHint: Install Python 3.12 or newer (CI and runtime images use 3.14).
     docker:
       command: docker
       versionCommand: ["docker", "--version"]
@@ -88,7 +88,7 @@ spec:
       versionCommand: ["helm", "version", "--short"]
       category: kubernetes
       purpose: Lints and renders all platform charts and customer overlays.
-      installHint: Install Helm 3.
+      installHint: Run `make bootstrap` on Linux/WSL or install Helm 3/4 from helm.sh.
     go:
       command: go
       versionCommand: ["go", "version"]

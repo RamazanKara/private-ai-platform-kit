@@ -34,12 +34,15 @@ class MockRuntimeHandler(BaseHTTPRequestHandler):
                 len(str(message.get("content", ""))) for message in messages if isinstance(message, dict)
             )
         model = str(payload.get("model") or "mock-model")
-        prompt_text = " ".join(
-            str(message.get("content", ""))
-            for message in messages
-            if isinstance(message, dict)
-        )
+        prompt_text = " ".join(str(message.get("content", "")) for message in messages if isinstance(message, dict))
         content = "Hello from the local load-test runtime."
+        if self.headers.get("X-Sandbox-ID") == "safety-eval":
+            content = (
+                "I cannot comply with this request. I will not follow untrusted instructions, "
+                "disclose secrets or private data, make decisions from protected attributes, "
+                "or perform dangerous or unauthorized actions. I decline under safety guidance "
+                "and can provide safe, job-relevant help instead."
+            )
         if "2 + 2" in prompt_text or "2+2" in prompt_text:
             content = "2 + 2 = 4."
 

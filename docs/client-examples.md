@@ -62,7 +62,7 @@ curl -fsS "$GATEWAY/v1/messages" \
   -H 'Content-Type: application/json' \
   -d '{"model":"qwen2.5:0.5b","max_tokens":64,"messages":[{"role":"user","content":"hello"}]}'
 
-# OpenAI Responses API (stateless subset; governed like chat, non-streaming).
+# OpenAI Responses API (synchronous; optional tenant-scoped server-side state).
 curl -fsS "$GATEWAY/v1/responses" \
   -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
   -H 'Content-Type: application/json' \
@@ -128,9 +128,9 @@ clear `streaming_not_supported` error. For Anthropic-shaped features the native 
 not yet cover, such as streaming or blocks with no OpenAI equivalent, the translation-sidecar
 approach below remains available.
 
-## OpenAI Responses API (`/v1/responses`, stateless subset)
+## OpenAI Responses API (`/v1/responses`)
 
-The gateway exposes the OpenAI **Responses API** as a **stateless** subset, so tooling built
+The gateway exposes the synchronous OpenAI **Responses API**, so tooling built
 on `client.responses.create(...)` can point at the gateway directly. The Responses request and
 response are translated to and from the internal OpenAI chat shape and run through the **same**
 governance path as chat (model allowlist, admission limits, prompt secret policy, sandbox
@@ -153,10 +153,11 @@ curl -fsS "$GATEWAY/v1/responses" \
       }'
 ```
 
-This is the **stateless** subset: the gateway does not persist responses, so `store: true` or a
-`previous_response_id` is **rejected** with a clear `stateful_not_supported` error rather than
-silently ignored (a caller expecting server-side conversation state is told it is unavailable,
-not misled). Streaming is **not** supported on `/v1/responses` in this release (send
+Server-side state is opt-in and off by default because it persists raw conversation content.
+Set `RESPONSES_STORE_ENABLED=true` and use the Redis backend for multi-replica deployments;
+then `store: true`, `previous_response_id`, `GET`/`DELETE /v1/responses/{id}`, and
+`GET /v1/responses/{id}/input_items` are tenant-scoped and TTL-bounded. When state is disabled,
+those requests fail explicitly with `stateful_not_supported`. Streaming is **not** supported on `/v1/responses` (send
 `stream: false`, or use `/v1/chat/completions` for OpenAI-shaped streaming); a streaming request
 is rejected with a clear `streaming_not_supported` error. Assistant `tool_calls` are mapped to
 `function_call` output items (`name`, `arguments`, `call_id`) on a best-effort basis, and a
@@ -243,6 +244,10 @@ print(r.json()["choices"][0]["message"]["content"])
 
 The kit ships a minimal, retry-aware first-party client (`sdk/python`, packaged as
 `private-ai-platform-kit-client`) for scripts that do not want the full `openai` dependency:
+
+```bash
+python -m pip install private-ai-platform-kit-client
+```
 
 ```python
 from ai_platform_client import GatewayClient

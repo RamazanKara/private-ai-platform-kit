@@ -6,9 +6,9 @@ structured *records* (one per uploaded file and one per batch job) and the queue
 
 - ``MemoryBatchStore``: process-local, for tests and single-replica local runs.
 - ``RedisBatchStore``: shared, durable state for cluster deployments. It uses only single
-  Redis commands (JSON blobs for immutable metadata, a hash for mutable batch state, lists for
-  indexes and the reliable work queue), so there is no Lua or multi/exec to reason about, and
-  the concurrency contract is simple: exactly one worker owns a claimed batch at a time.
+  Redis structures (JSON blobs for immutable metadata, a hash for mutable batch state, lists for
+  indexes and the reliable work queue). Lua transactions couple state/queue transitions so a
+  crash cannot strand a claimed job or publish a batch record without its queue message.
 
 Batch cancellation is best-effort: the API flips ``status`` to ``cancelling`` and the worker
 finalizes to ``cancelled`` at its next item boundary.
@@ -163,6 +163,8 @@ class BatchStore(Protocol):
 
     def create_batch(self, record: BatchRecord) -> None: ...
 
+    def create_and_enqueue(self, record: BatchRecord) -> None: ...
+
     def get_batch(self, tenant: str, batch_id: str) -> BatchRecord | None: ...
 
     def update_batch(self, tenant: str, batch_id: str, updates: dict[str, Any]) -> BatchRecord | None: ...
@@ -223,6 +225,11 @@ class MemoryBatchStore:
     def create_batch(self, record: BatchRecord) -> None:
         with self._lock:
             self._batches[self._fkey(record.tenant, record.id)] = record
+
+    def create_and_enqueue(self, record: BatchRecord) -> None:
+        with self._lock:
+            self._batches[self._fkey(record.tenant, record.id)] = record
+            self._pending.append((record.tenant, record.id))
 
     def get_batch(self, tenant: str, batch_id: str) -> BatchRecord | None:
         with self._lock:
@@ -296,10 +303,78 @@ def _paginate(records: list[Any], limit: int, after: str | None) -> list[Any]:
     return records[start : start + max(1, limit)]
 
 
+REDIS_CREATE_BATCH_SCRIPT = """
+-- batch-create-v1
+redis.call('SET', KEYS[1], ARGV[1])
+redis.call('HSET', KEYS[2], unpack(ARGV, 3))
+redis.call('LPUSH', KEYS[3], ARGV[2])
+return 1
+"""
+
+REDIS_CREATE_AND_ENQUEUE_SCRIPT = """
+-- batch-create-enqueue-v1
+redis.call('SET', KEYS[1], ARGV[1])
+redis.call('HSET', KEYS[2], unpack(ARGV, 4))
+redis.call('LPUSH', KEYS[3], ARGV[2])
+redis.call('LPUSH', KEYS[4], ARGV[3])
+return 1
+"""
+
+REDIS_UPDATE_BATCH_SCRIPT = """
+-- batch-update-v1
+if redis.call('EXISTS', KEYS[1]) == 0 then return 0 end
+if #ARGV > 0 then redis.call('HSET', KEYS[1], unpack(ARGV)) end
+return 1
+"""
+
+REDIS_CANCEL_BATCH_SCRIPT = """
+-- batch-cancel-v1
+if redis.call('EXISTS', KEYS[1]) == 0 then return 0 end
+local status = redis.call('HGET', KEYS[1], 'status')
+if status == 'validating' or status == 'in_progress' or status == 'finalizing' then
+  redis.call('HSET', KEYS[1], 'status', 'cancelling', 'cancelling_at', ARGV[1])
+end
+return 1
+"""
+
+REDIS_CLAIM_SCRIPT = """
+-- batch-claim-v1
+local message = redis.call('RPOPLPUSH', KEYS[1], KEYS[2])
+if not message then return nil end
+redis.call('HSET', KEYS[3], message, ARGV[1])
+return message
+"""
+
+REDIS_ACK_SCRIPT = """
+-- batch-ack-v1
+redis.call('LREM', KEYS[1], 0, ARGV[1])
+redis.call('HDEL', KEYS[2], ARGV[1])
+return 1
+"""
+
+REDIS_RECLAIM_SCRIPT = """
+-- batch-reclaim-v1
+local claimed = redis.call('HGET', KEYS[2], ARGV[1])
+if claimed and tonumber(claimed) > tonumber(ARGV[2]) then return 0 end
+local removed = redis.call('LREM', KEYS[1], 1, ARGV[1])
+redis.call('HDEL', KEYS[2], ARGV[1])
+if removed > 0 then
+  redis.call('LPUSH', KEYS[3], ARGV[1])
+  return 1
+end
+return 0
+"""
+
+
+def _flatten_mapping(mapping: dict[str, str]) -> list[str]:
+    """Flatten a mapping into Redis HSET field/value arguments."""
+    return [item for pair in mapping.items() for item in pair]
+
+
 class RedisBatchStore:
     """Shared, durable file/batch store and reliable work queue backed by Redis.
 
-    Layout (all single-command ops): a JSON blob per immutable file/batch record, a hash per
+    Layout: a JSON blob per immutable file/batch record, a hash per
     batch for mutable lifecycle state and counts, per-tenant index lists, and a reliable queue
     (a ``pending`` list, a ``processing`` list, and a claim-time hash the reaper reads).
     """
@@ -387,10 +462,38 @@ class RedisBatchStore:
 
     # --- batches ---
     def create_batch(self, record: BatchRecord) -> None:
+        state = _batch_state_map(record)
+        flattened = _flatten_mapping(state)
         try:
-            self.client.set(self._batch_meta(record.tenant, record.id), json.dumps(_batch_meta_dict(record)))
-            self.client.hset(self._batch_state(record.tenant, record.id), mapping=_batch_state_map(record))
-            self.client.lpush(self._batch_index(record.tenant), record.id)
+            self.client.eval(
+                REDIS_CREATE_BATCH_SCRIPT,
+                3,
+                self._batch_meta(record.tenant, record.id),
+                self._batch_state(record.tenant, record.id),
+                self._batch_index(record.tenant),
+                json.dumps(_batch_meta_dict(record)),
+                record.id,
+                *flattened,
+            )
+        except _BATCH_BACKEND_ERRORS as exc:
+            raise BatchStoreError("batch metadata backend is unavailable") from exc
+
+    def create_and_enqueue(self, record: BatchRecord) -> None:
+        state = _batch_state_map(record)
+        flattened = _flatten_mapping(state)
+        try:
+            self.client.eval(
+                REDIS_CREATE_AND_ENQUEUE_SCRIPT,
+                4,
+                self._batch_meta(record.tenant, record.id),
+                self._batch_state(record.tenant, record.id),
+                self._batch_index(record.tenant),
+                self._pending_key(),
+                json.dumps(_batch_meta_dict(record)),
+                record.id,
+                self._message(record.tenant, record.id),
+                *flattened,
+            )
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
 
@@ -408,22 +511,21 @@ class RedisBatchStore:
         _validated_updates(updates)
         state_key = self._batch_state(tenant, batch_id)
         try:
-            if not self.client.exists(state_key):
-                return None
             mapping = {k: _encode_state(v) for k, v in updates.items()}
-            if mapping:
-                self.client.hset(state_key, mapping=mapping)
+            updated = self.client.eval(REDIS_UPDATE_BATCH_SCRIPT, 1, state_key, *_flatten_mapping(mapping))
+            if not updated:
+                return None
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
         return self.get_batch(tenant, batch_id)
 
     def cancel_batch(self, tenant: str, batch_id: str) -> BatchRecord | None:
-        record = self.get_batch(tenant, batch_id)
-        if record is None:
-            return None
-        if record.status in _CANCELLABLE:
-            return self.update_batch(tenant, batch_id, {"status": BATCH_CANCELLING, "cancelling_at": int(time())})
-        return record
+        state_key = self._batch_state(tenant, batch_id)
+        try:
+            exists = self.client.eval(REDIS_CANCEL_BATCH_SCRIPT, 1, state_key, str(int(time())))
+        except _BATCH_BACKEND_ERRORS as exc:
+            raise BatchStoreError("batch metadata backend is unavailable") from exc
+        return self.get_batch(tenant, batch_id) if exists else None
 
     def list_batches(self, tenant: str, limit: int = 20, after: str | None = None) -> list[BatchRecord]:
         try:
@@ -443,10 +545,16 @@ class RedisBatchStore:
 
     def claim(self) -> tuple[str, str] | None:
         try:
-            message = self.client.rpoplpush(self._pending_key(), self._processing_key())
+            message = self.client.eval(
+                REDIS_CLAIM_SCRIPT,
+                3,
+                self._pending_key(),
+                self._processing_key(),
+                self._claims_key(),
+                str(time()),
+            )
             if message is None:
                 return None
-            self.client.hset(self._claims_key(), message, str(time()))
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
         return self._split(message)
@@ -454,8 +562,7 @@ class RedisBatchStore:
     def ack(self, tenant: str, batch_id: str) -> None:
         message = self._message(tenant, batch_id)
         try:
-            self.client.lrem(self._processing_key(), 0, message)
-            self.client.hdel(self._claims_key(), message)
+            self.client.eval(REDIS_ACK_SCRIPT, 2, self._processing_key(), self._claims_key(), message)
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
 
@@ -464,13 +571,17 @@ class RedisBatchStore:
         requeued = 0
         try:
             for message in self.client.lrange(self._processing_key(), 0, -1) or []:
-                claimed_raw = self.client.hget(self._claims_key(), message)
-                if claimed_raw is not None and float(claimed_raw) > cutoff:
-                    continue
-                self.client.lrem(self._processing_key(), 0, message)
-                self.client.hdel(self._claims_key(), message)
-                self.client.lpush(self._pending_key(), message)
-                requeued += 1
+                requeued += int(
+                    self.client.eval(
+                        REDIS_RECLAIM_SCRIPT,
+                        3,
+                        self._processing_key(),
+                        self._claims_key(),
+                        self._pending_key(),
+                        message,
+                        str(cutoff),
+                    )
+                )
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
         return requeued

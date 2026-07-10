@@ -46,7 +46,11 @@ def require(errors: list[str], condition: bool, message: str) -> None:
 
 
 def validate_policy(policy: dict[str, Any], errors: list[str]) -> list[str]:
-    require(errors, policy.get("apiVersion") == "platform.ai/v1alpha1", "retention policy apiVersion must be platform.ai/v1alpha1")
+    require(
+        errors,
+        policy.get("apiVersion") == "platform.ai/v1alpha1",
+        "retention policy apiVersion must be platform.ai/v1alpha1",
+    )
     require(errors, policy.get("kind") == "DataRetentionPolicy", "retention policy kind must be DataRetentionPolicy")
     classes = nested(policy, "spec", "classes", default={})
     require(errors, isinstance(classes, dict) and bool(classes), "retention policy must define spec.classes")
@@ -57,26 +61,53 @@ def validate_policy(policy: dict[str, Any], errors: list[str]) -> list[str]:
             errors.append(f"class {name} must be a mapping")
             continue
         retention_days = item.get("retentionDays")
-        require(errors, isinstance(retention_days, int) and retention_days > 0, f"class {name} retentionDays must be a positive integer")
-        require(errors, item.get("classification") in VALID_CLASSES, f"class {name} classification must be one of {sorted(VALID_CLASSES)}")
+        require(
+            errors,
+            isinstance(retention_days, int) and retention_days > 0,
+            f"class {name} retentionDays must be a positive integer",
+        )
+        require(
+            errors,
+            item.get("classification") in VALID_CLASSES,
+            f"class {name} classification must be one of {sorted(VALID_CLASSES)}",
+        )
     return checked
 
 
 def check_audit_redaction(policy: dict[str, Any], errors: list[str]) -> None:
     audit = nested(policy, "spec", "classes", "auditLogs", default={})
     require(errors, audit.get("storesRawPrompt") is False, "audit retention policy must disallow raw prompt storage")
-    require(errors, audit.get("storesRawCompletion") is False, "audit retention policy must disallow raw completion storage")
+    require(
+        errors, audit.get("storesRawCompletion") is False, "audit retention policy must disallow raw completion storage"
+    )
     require(errors, audit.get("storesRawQuery") is False, "audit retention policy must disallow raw query storage")
     gateway = (ROOT / "src/inference-gateway/app/main.py").read_text()
+    gateway_audit = (ROOT / "src/inference-gateway/app/audit.py").read_text()
     rag = (ROOT / "src/rag-service/app/main.py").read_text()
-    require(errors, "prompt_sha256" in gateway and "prompt_chars" in gateway, "gateway audit logs must keep prompt hashes and lengths")
-    require(errors, "canonical_messages" in gateway and "_payload_fingerprint" in gateway, "gateway audit logs must derive prompt fingerprints from canonical messages")
+    require(
+        errors,
+        "prompt_sha256" in gateway_audit and "prompt_chars" in gateway_audit,
+        "gateway audit logs must keep prompt hashes and lengths",
+    )
+    require(
+        errors,
+        "canonical_messages" in gateway_audit and "payload_fingerprint" in gateway_audit,
+        "gateway audit logs must derive prompt fingerprints from canonical messages",
+    )
     require(errors, "query_sha256" in rag and "query_chars" in rag, "RAG audit logs must keep query hashes and lengths")
     gateway_event = gateway.split("event = {", 1)[1].split("event.update", 1)[0] if "event = {" in gateway else ""
-    rag_event = rag.split("event: dict[str, Any] = {", 1)[1].split("if query is not None:", 1)[0] if "event: dict[str, Any] = {" in rag else ""
+    rag_event = (
+        rag.split("event: dict[str, Any] = {", 1)[1].split("if query is not None:", 1)[0]
+        if "event: dict[str, Any] = {" in rag
+        else ""
+    )
     require(errors, bool(gateway_event), "gateway audit event block must be discoverable")
     require(errors, bool(rag_event), "RAG audit event block must be discoverable")
-    require(errors, '"content"' not in gateway_event and '"messages"' not in gateway_event, "gateway audit event must not store raw message content")
+    require(
+        errors,
+        '"content"' not in gateway_event and '"messages"' not in gateway_event,
+        "gateway audit event must not store raw message content",
+    )
     require(errors, '"query"' not in rag_event, "RAG audit event must not store raw query text")
 
 
@@ -100,7 +131,11 @@ def check_generated_evidence(policy: dict[str, Any], errors: list[str]) -> None:
             f".gitignore must ignore generated artifacts under {path}",
         )
     sample_pattern = evidence.get("sampleFilePattern")
-    require(errors, sample_pattern == "results/**/sample-*", "generatedEvidence.sampleFilePattern must be results/**/sample-*")
+    require(
+        errors,
+        sample_pattern == "results/**/sample-*",
+        "generatedEvidence.sampleFilePattern must be results/**/sample-*",
+    )
     require(errors, "!results/**/sample-*" in gitignore, ".gitignore must retain sample result artifacts by convention")
 
 
@@ -152,7 +187,9 @@ def write_markdown(path: Path, report: RetentionReport) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate Private AI Platform Kit data-retention and privacy governance.")
+    parser = argparse.ArgumentParser(
+        description="Validate Private AI Platform Kit data-retention and privacy governance."
+    )
     parser.add_argument("--policy", default=str(DEFAULT_POLICY))
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--report", action="store_true")

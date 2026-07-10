@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/RamazanKara/private-ai-platform-kit/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/RamazanKara/private-ai-platform-kit)](https://github.com/RamazanKara/private-ai-platform-kit/releases)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/RamazanKara/private-ai-platform-kit/badge)](https://scorecard.dev/viewer/?uri=github.com/RamazanKara/private-ai-platform-kit)
 [![License](https://img.shields.io/github/license/RamazanKara/private-ai-platform-kit)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21039342.svg)](https://doi.org/10.5281/zenodo.21039342)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-GitOps-326CE5)
@@ -22,15 +23,21 @@ The cut above is scripted from real output ([scripts/demo-live.sh](scripts/demo-
 
 Under the agents sits a complete private-LLM platform: an OpenAI-compatible gateway (auth, admission, per-sandbox budgets, guardrails), vLLM and Ollama serving from the same charts, RAG with per-tenant isolation, GitOps delivery, and evidence packs an auditor can verify offline. It starts local-first on a laptop `kind` cluster and moves to customer-owned clusters with GPU nodes using the same repo layout: the operating model of a production AI platform, without depending on a specific cloud provider.
 
-Current release: `v0.26.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
+Current release: `v0.27.0`. Maturity: reference implementation and customer lab; production handoff requires current strict evidence, customer identity/secrets integration, capacity sizing, and backup validation.
 
 **Who it's for:** platform / SRE teams evaluating a private-AI stack → start with the [Decision guide](docs/decision-guide.md); operators running it → [Runbooks](runbooks/README.md); security and compliance reviewers → [Security overview](docs/security-overview.md), [OWASP LLM Top 10 mapping](docs/owasp-llm-top-10-mapping.md), and the [Threat model](docs/threat-model.md).
 
-[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) · [Quickstart](docs/quickstart.md) · [Architecture](docs/architecture.md) · [Decision guide](docs/decision-guide.md) · [Production readiness](docs/production-readiness.md) · [Docs map](docs/README.md)
+[Docs site](https://ramazankara.github.io/private-ai-platform-kit/) · [Quickstart](docs/quickstart.md) · [Feature inventory](docs/feature-inventory.md) · [Distribution](docs/distribution.md) · [Architecture](docs/architecture.md) · [Decision guide](docs/decision-guide.md) · [Production readiness](docs/production-readiness.md) · [Docs map](docs/README.md)
 
 ## Quickstart
 
-Docker is the only prerequisite. One guided command creates a local `kind` cluster, installs the agent-sandbox controller, bootstraps Argo CD, syncs the stack, and runs an Ollama-backed smoke test:
+On Linux/WSL, Docker, Python 3.12+, Bash, and curl are the bootstrap prerequisites. This command installs pinned `kind`, `kubectl`, Helm, and validation CLIs into `.tools/bin`, then runs the complete lab:
+
+```bash
+make bootstrap
+```
+
+If the Kubernetes CLIs are already installed, run the guided path directly:
 
 ```bash
 make quickstart
@@ -96,7 +103,7 @@ The customer profile assumes Kubernetes already exists. Install Argo CD, configu
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.26.0 \
+  CUSTOMER_REVISION=v0.27.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
@@ -113,6 +120,8 @@ Popular starting points (see the [full documentation map](docs/README.md) for ev
 | How the pieces fit | [Architecture](docs/architecture.md) |
 | Is this for you | [Decision guide](docs/decision-guide.md) |
 | Production controls | [Production readiness matrix](docs/production-readiness.md) |
+| Shipped vs optional vs out of scope | [Feature inventory](docs/feature-inventory.md) |
+| Helm, SDK, and versioned docs | [Distribution and discovery](docs/distribution.md) |
 | Security & compliance | [Security overview](docs/security-overview.md) · [OWASP LLM Top 10](docs/owasp-llm-top-10-mapping.md) · [Threat model](docs/threat-model.md) |
 | Operations | [Runbooks](runbooks/README.md) |
 | Design decisions | [Architecture decision records](docs/adr/README.md) |
@@ -151,7 +160,7 @@ Every governed model call also lands on a tamper-evident hash chain, and the sam
 
 Point `make audit-verify AUDIT_LOG=<exported-pod-log>` (optionally `--anchor` a committed head) at real logs offline; see the [audit-chain runbook](runbooks/audit-chain.md) for verification, head anchoring, and SIEM forwarding.
 
-Runtime images use a pinned Alpine Python base and exclude test-only dependencies. CI builds and pushes gateway and RAG images, packages Helm charts as OCI artifacts, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews.
+Runtime images use a pinned Alpine Python base and exclude test-only dependencies. CI builds and pushes gateway and RAG images, packages digest-bound Helm charts as signed OCI artifacts, publishes Artifact Hub metadata, generates SBOMs, fails on high/critical Trivy findings, uploads SARIF, signs immutable image digests with Cosign, and publishes downloadable supply-chain evidence for release reviews. The same tag publishes the first-party Python client through PyPI Trusted Publishing and retains an exact version of the documentation.
 
 ## Trademark Notice
 

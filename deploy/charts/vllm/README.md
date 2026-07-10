@@ -49,11 +49,14 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `model.maxModelLen` | `262144` |
 | `model.name` | `Qwen/Qwen3-Coder-Next` |
 | `model.revision` | `""` |
+| `model.task` | `generate` |
 | `namespace.create` | `true` |
 | `namespace.name` | `""` |
-| `networkPolicy.allowModelPullEgress` | `true` |
+| `networkPolicy.allowModelPullEgress` | `false` |
 | `networkPolicy.allowedIngressNamespaces` | `["inference", "monitoring"]` |
 | `networkPolicy.enabled` | `true` |
+| `networkPolicy.localDevelopmentException` | `false` |
+| `networkPolicy.modelPullEgressCidrs` | `[]` |
 | `podDisruptionBudget.enabled` | `true` |
 | `podDisruptionBudget.minAvailable` | `1` |
 | `podLabels.platform.ai/cost-center` | `platform` |

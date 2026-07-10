@@ -15,6 +15,7 @@
       "properties": {
         "maxMessages": { "type": "integer", "minimum": 1 },
         "maxPromptChars": { "type": "integer", "minimum": 1 },
+        "maxRequestBodyBytes": { "type": "integer", "minimum": 1 },
         "maxCompletionTokens": { "type": "integer", "minimum": 1 }
       }
     }

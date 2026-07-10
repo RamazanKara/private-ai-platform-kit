@@ -24,6 +24,8 @@ class EmbeddingProvider(Protocol):
 
     async def embed_async(self, value: str) -> list[float]: ...
 
+    async def ready(self) -> bool: ...
+
 
 def tokenize(value: str) -> list[str]:
     """Lowercase the text and return its alphanumeric token sequence."""
@@ -63,6 +65,10 @@ class HashEmbeddingProvider:
     async def embed_async(self, value: str) -> list[float]:
         """Async wrapper around :meth:`embed`; hashing is CPU-bound and non-blocking."""
         return self.embed(value)
+
+    async def ready(self) -> bool:
+        """The in-process deterministic provider has no external dependency."""
+        return True
 
 
 class OpenAICompatibleEmbeddingProvider:
@@ -123,6 +129,15 @@ class OpenAICompatibleEmbeddingProvider:
         )
         response.raise_for_status()
         return self._parse(response.json())
+
+    async def ready(self) -> bool:
+        """Probe the provider's standard runtime health endpoint without running inference."""
+        try:
+            response = await self._client().get(f"{self.base_url}/health")
+            response.raise_for_status()
+        except httpx.HTTPError:
+            return False
+        return True
 
 
 def build_embedding_provider(

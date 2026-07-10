@@ -74,9 +74,9 @@ list (LLM01..LLM10). Coverage is stated per item; where a control is described a
   as a tenant, and a missing-tenant query never runs unfiltered. The bundled single-tenant local lexical
   profile is the only shipped config that disables it. A `classification` allowlist match is added when
   `retrieval_allowed_classifications` is set (`RAG_RETRIEVAL_ALLOWED_CLASSIFICATIONS`,
-  `src/rag-service/app/settings.py`). Residual: the tenant id is the client-asserted header, trustworthy
-  only from a gateway/proxy path that sets it from a verified identity (RAG-side token verification is
-  roadmap work).
+  `src/rag-service/app/settings.py`). Customer values require RAG-side JWT verification and derive
+  the tenant from a verified claim; a contradictory `X-Sandbox-ID` is rejected. Header trust remains
+  available only for explicit single-tenant or gateway-stamped deployments.
 - A response-path output guardrail inspects completions for injected exfiltration/credential material
   before they return to the caller (see LLM02).
 - Adversarial coverage is exercised by evals: `platform/evals/coding-agent-suite.yaml` has a

@@ -13,6 +13,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Trivy invokes Helm for chart misconfiguration scanning. Vendor the umbrella
+# chart's locked file:// dependencies first so a clean checkout is actually
+# rendered and scanned instead of being skipped after "dependency not found".
+command -v helm >/dev/null 2>&1 || {
+  echo "helm is required to render the umbrella chart for repository scanning" >&2
+  exit 1
+}
+helm dependency build deploy/charts/platform >/dev/null
+
 exec trivy fs \
   --scanners secret,misconfig \
   --severity HIGH,CRITICAL \

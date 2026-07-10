@@ -12,8 +12,8 @@ from app.settings import (
     AdmissionPolicyError,
     Settings,
     count_image_parts,
-    extract_text_content,
     max_requested_completion_tokens,
+    message_prompt_chars,
     requested_completion_count,
 )
 
@@ -101,7 +101,7 @@ def budget_delta(settings: Settings, payload: dict[str, Any]) -> BudgetDelta:
     of one.
     """
     messages = payload.get("messages", [])
-    prompt_chars = sum(len(extract_text_content(message.get("content"))) for message in messages)
+    prompt_chars = message_prompt_chars(messages)
     # Charge the larger of the two completion-cap fields (both are forwarded to the
     # runtime); a missing/invalid pair falls back to the cap, while an explicit 0 (the
     # embeddings path) is honored as zero completion cost.
@@ -212,6 +212,7 @@ local add_estimated_tokens = tonumber(ARGV[4])
 local limit_requests = tonumber(ARGV[5])
 local limit_prompt_chars = tonumber(ARGV[6])
 local limit_estimated_tokens = tonumber(ARGV[7])
+local existing_ttl = redis.call('TTL', key)
 
 local current_requests = tonumber(redis.call('HGET', key, 'requests') or '0')
 local current_prompt_chars = tonumber(redis.call('HGET', key, 'prompt_chars') or '0')
@@ -234,7 +235,10 @@ end
 redis.call('HINCRBY', key, 'requests', add_requests)
 redis.call('HINCRBY', key, 'prompt_chars', add_prompt_chars)
 redis.call('HINCRBY', key, 'estimated_tokens', add_estimated_tokens)
-if ttl > 0 then
+-- Fixed window: arm expiry only for a new key or a key that somehow lost it.
+-- Never refresh an existing positive TTL on each request (that would become a
+-- sliding inactivity window and diverge from the in-memory implementation).
+if ttl > 0 and existing_ttl < 0 then
   redis.call('EXPIRE', key, ttl)
 end
 return {1, proposed_requests, proposed_prompt_chars, proposed_estimated_tokens}

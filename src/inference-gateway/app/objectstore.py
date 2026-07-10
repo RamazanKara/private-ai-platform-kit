@@ -16,8 +16,9 @@ deployments is added separately (it speaks the same protocol).
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, BinaryIO, Protocol, runtime_checkable
 
 
 class ObjectNotFound(KeyError):
@@ -34,6 +35,8 @@ class ObjectStore(Protocol):
     """
 
     def put(self, key: str, data: bytes) -> None: ...
+
+    def put_stream(self, key: str, stream: BinaryIO, size: int) -> None: ...
 
     def get(self, key: str) -> bytes: ...
 
@@ -53,6 +56,14 @@ class MemoryObjectStore:
     def put(self, key: str, data: bytes) -> None:
         _validate_key(key)
         self._store[key] = bytes(data)
+
+    def put_stream(self, key: str, stream: BinaryIO, size: int) -> None:
+        _validate_key(key)
+        stream.seek(0)
+        data = stream.read(size + 1)
+        if len(data) != size:
+            raise OSError("object stream size changed during upload")
+        self._store[key] = data
 
     def get(self, key: str) -> bytes:
         try:
@@ -96,6 +107,20 @@ class FilesystemObjectStore:
         tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
         tmp.write_bytes(data)
         os.replace(tmp, path)
+
+    def put_stream(self, key: str, stream: BinaryIO, size: int) -> None:
+        path = self._path(key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        stream.seek(0)
+        try:
+            with tmp.open("wb") as destination:
+                shutil.copyfileobj(stream, destination, length=1024 * 1024)
+            if tmp.stat().st_size != size:
+                raise OSError("object stream size changed during upload")
+            os.replace(tmp, path)
+        finally:
+            tmp.unlink(missing_ok=True)
 
     def get(self, key: str) -> bytes:
         try:

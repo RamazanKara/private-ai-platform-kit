@@ -78,7 +78,8 @@ log "starting guided local lab quickstart"
 log "estimated time: 15-30 minutes after container images and the default model are cached"
 
 if [[ "$INSTALL_TOOLS" == "1" ]]; then
-  run_step "installing optional validation CLIs into .tools/bin" make toolchain-install
+  run_step "installing pinned workstation and validation CLIs into .tools/bin" \
+    env INSTALL_TOOLS="kind kubectl helm kubeconform kyverno k6 syft argocd cosign trivy" make toolchain-install
 fi
 
 run_step "checking local toolchain profile" make toolchain-doctor TOOLCHAIN_PROFILE=local

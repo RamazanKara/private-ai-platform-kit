@@ -1,0 +1,79 @@
+fullnameOverride: vllm-embeddings
+replicaCount: 2
+
+model:
+  name: BAAI/bge-small-en-v1.5
+  task: embed
+  maxModelLen: "512"
+
+server:
+  enablePrefixCaching: false
+  gpuMemoryUtilization: "0.80"
+  kvCacheDtype: auto
+  quantization: ""
+  guidedDecodingBackend: ""
+  speculative:
+    enabled: false
+    config: ""
+
+accelerator:
+  enabled: true
+  vendor: nvidia
+  resourceName: nvidia.com/gpu
+  count: 1
+  nodeSelector:
+    platform.ai/node-pool: gpu
+    platform.ai/gpu-vendor: nvidia
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+
+cache:
+  persistence:
+    enabled: true
+    size: 50Gi
+    accessMode: ReadWriteMany
+    storageClassName: ""
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 8Gi
+  limits:
+    cpu: "2"
+    memory: 16Gi
+
+networkPolicy:
+  allowedIngressNamespaces:
+    - rag
+    - monitoring
+  # Customer weights must be pre-seeded or pulled only through catalog-approved
+  # CIDRs supplied by an operator overlay.
+  allowModelPullEgress: false
+
+namespace:
+  # The primary vLLM release owns the shared vllm Namespace.
+  create: false
+
+externalSecrets:
+  enabled: true
+  huggingFaceTokenSecretName: hf-token
+  huggingFaceTokenKey: token
+
+extraArgs: []
+
+keda:
+  enabled: true
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  threshold: "10"
+  prometheusServerAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
+  query: 'avg(vllm:num_requests_waiting)'
+  cooldownPeriod: 300
+
+podLabels:
+  platform.ai/cost-center: platform
+  platform.ai/environment: customer
+  platform.ai/owner: platform-team
+  platform.ai/sandbox-id: customer-lab

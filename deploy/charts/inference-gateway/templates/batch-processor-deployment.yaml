@@ -79,7 +79,7 @@ spec:
             - name: BATCH_KEY_PREFIX
               value: {{ .Values.batch.store.keyPrefix | quote }}
             - name: BATCH_MAX_FILE_BYTES
-              value: {{ .Values.batch.maxFileBytes | quote }}
+              value: {{ .Values.batch.maxFileBytes | int64 | quote }}
             - name: BATCH_MAX_REQUESTS_PER_BATCH
               value: {{ .Values.batch.maxRequestsPerBatch | quote }}
             - name: BATCH_COMPLETION_WINDOW

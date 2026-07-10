@@ -35,6 +35,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `admission.maxImageBytes` | `0` |
 | `admission.maxMessages` | `16` |
 | `admission.maxPromptChars` | `8192` |
+| `admission.maxRequestBodyBytes` | `1048576` |
 | `admission.maxToolChars` | `32768` |
 | `admission.maxTools` | `64` |
 | `auth.apiKeyHashes` | `[]` |
@@ -107,7 +108,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `guardrails.promptSecretDetection.patterns` | `["private_key", "github_token", "slack_token", "aws_access_key_id", "google_api_key", "bearer_token", "generic_api_ke...` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` |
-| `image.tag` | `v0.26.0` |
+| `image.tag` | `v0.27.0` |
 | `ingress.annotations` | `{}` |
 | `ingress.className` | `""` |
 | `ingress.enabled` | `false` |
@@ -115,8 +116,11 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `ingress.tls.enabled` | `false` |
 | `ingress.tls.secretName` | `""` |
 | `keda.enabled` | `true` |
+| `keda.inflightThreshold` | `20` |
+| `keda.loadShedRateThreshold` | `0.1` |
 | `keda.maxReplicaCount` | `5` |
 | `keda.minReplicaCount` | `1` |
+| `keda.p95LatencyThresholdSeconds` | `5` |
 | `keda.prometheusServerAddress` | `http://kube-prometheus-stack-prometheus.monitoring:9090` |
 | `keda.threshold` | `10` |
 | `namespace.create` | `true` |

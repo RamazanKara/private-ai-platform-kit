@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/ramazankara/private-ai-platform-kit/rag-service
   # First-party image: release CI pins the published digest (set image.digest) after build.
-  tag: "v0.26.0"
+  tag: "v0.27.0"
   pullPolicy: IfNotPresent
 
 service:
@@ -47,6 +47,7 @@ auth:
 retrieval:
   backend: lexical
   maxQueryChars: 2048
+  maxRequestBodyBytes: 1048576
   defaultTopK: 3
   maxTopK: 8
   maxContextChars: 6000

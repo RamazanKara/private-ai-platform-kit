@@ -131,6 +131,7 @@ def check_gateway_render(name: str, docs: list[dict[str, Any]], errors: list[str
         "ALLOWED_MODELS",
         "MAX_MESSAGES",
         "MAX_PROMPT_CHARS",
+        "MAX_REQUEST_BODY_BYTES",
         "MAX_COMPLETION_TOKENS",
         "ALLOW_STREAMING",
         "PROMPT_SECRET_DETECTION_ENABLED",
@@ -155,6 +156,7 @@ def check_gateway_render(name: str, docs: list[dict[str, Any]], errors: list[str
         "OTEL_SERVICE_NAME",
     }
     missing_env = required_env - env_names(deployment)
+    env = {item.get("name"): item.get("value") for item in gateway.get("env", [])}
 
     require(
         errors,
@@ -170,6 +172,16 @@ def check_gateway_render(name: str, docs: list[dict[str, Any]], errors: list[str
         f"{name}: gateway should render topology spread constraints for multi-replica placement",
     )
     require(errors, not missing_env, f"{name}: gateway Deployment is missing env vars: {sorted(missing_env)}")
+    require(
+        errors,
+        env.get("MAX_REQUEST_BODY_BYTES") == "1048576",
+        f"{name}: MAX_REQUEST_BODY_BYTES must render as a base-10 integer",
+    )
+    require(
+        errors,
+        env.get("BATCH_MAX_FILE_BYTES") == "104857600",
+        f"{name}: BATCH_MAX_FILE_BYTES must render as a base-10 integer",
+    )
     require(
         errors,
         gateway_security.get("allowPrivilegeEscalation") is False,
@@ -199,6 +211,19 @@ def check_gateway_render(name: str, docs: list[dict[str, Any]], errors: list[str
     require(
         errors, bool(find_kind(docs, "PodDisruptionBudget")), f"{name}: gateway chart must render a PodDisruptionBudget"
     )
+    scaled_objects = find_kind(docs, "ScaledObject")
+    if scaled_objects:
+        queries = "\n".join(
+            nested(trigger, "metadata", "query", default="")
+            for trigger in nested(scaled_objects[0], "spec", "triggers", default=[])
+        )
+        for signal in (
+            'route=~"/v1/.*"',
+            "inference_gateway_inflight_requests",
+            "inference_gateway_load_shed_total",
+            "inference_gateway_request_duration_seconds_bucket",
+        ):
+            require(errors, signal in queries, f"{name}: KEDA scaling must include signal {signal}")
 
 
 def check_budget_redis_render(docs: list[dict[str, Any]], errors: list[str]) -> None:
@@ -246,6 +271,42 @@ def check_budget_redis_render(docs: list[dict[str, Any]], errors: list[str]) -> 
     )
 
 
+def check_runtime_egress(
+    name: str,
+    docs: list[dict[str, Any]],
+    errors: list[str],
+    *,
+    allow_local_exception: bool = False,
+) -> None:
+    """Require every runtime egress rule to name a destination.
+
+    The only broad CIDR is the labeled local Ollama bootstrap exception; customer
+    and default renders stay closed or use explicit non-broad CIDRs.
+    """
+    broad_cidrs = {"0.0.0.0/0", "::/0"}
+    for policy in find_kind(docs, "NetworkPolicy"):
+        metadata = policy.get("metadata", {})
+        annotations = metadata.get("annotations", {})
+        labels = metadata.get("labels", {})
+        for rule in policy.get("spec", {}).get("egress") or []:
+            destinations = rule.get("to")
+            require(errors, bool(destinations), f"{name}: every runtime egress rule must declare `to`")
+            for destination in destinations or []:
+                cidr = nested(destination, "ipBlock", "cidr")
+                if cidr not in broad_cidrs:
+                    continue
+                exception_is_valid = (
+                    allow_local_exception
+                    and annotations.get("platform.ai/local-model-pull-egress") == "true"
+                    and labels.get("platform.ai/environment") == "local"
+                )
+                require(
+                    errors,
+                    exception_is_valid,
+                    f"{name}: broad model-pull egress is allowed only for the labeled local bootstrap exception",
+                )
+
+
 def check_ollama_render(name: str, docs: list[dict[str, Any]], errors: list[str]) -> None:
     statefulsets = find_kind(docs, "StatefulSet")
     require(errors, len(statefulsets) == 1, f"{name}: expected one Ollama StatefulSet")
@@ -257,6 +318,7 @@ def check_ollama_render(name: str, docs: list[dict[str, Any]], errors: list[str]
     security = ollama.get("securityContext", {})
     mounts = {mount.get("name"): mount for mount in ollama.get("volumeMounts", [])}
     volumes = {volume.get("name") for volume in pod_spec.get("volumes", [])}
+    check_runtime_egress(name, docs, errors, allow_local_exception=name == "local-ollama")
 
     require(
         errors,
@@ -410,6 +472,7 @@ def check_rag_render(name: str, docs: list[dict[str, Any]], expect_hpa: bool, er
             "DEFAULT_SANDBOX_ID",
             "AUDIT_LOG_ENABLED",
             "MAX_QUERY_CHARS",
+            "MAX_REQUEST_BODY_BYTES",
             "DEFAULT_TOP_K",
             "MAX_TOP_K",
             "MAX_CONTEXT_CHARS",
@@ -426,6 +489,7 @@ def check_rag_render(name: str, docs: list[dict[str, Any]], expect_hpa: bool, er
             "OTEL_SERVICE_NAME",
         }
         missing_env = required_env - env_names(deployment)
+        env = {item.get("name"): item.get("value") for item in rag.get("env", [])}
         require(errors, ":latest" not in image, f"{name}: RAG image tag must be pinned")
         require(
             errors,
@@ -439,6 +503,11 @@ def check_rag_render(name: str, docs: list[dict[str, Any]], expect_hpa: bool, er
             errors, "topologySpreadConstraints" in pod_spec, f"{name}: RAG should render topology spread constraints"
         )
         require(errors, not missing_env, f"{name}: RAG Deployment is missing env vars: {sorted(missing_env)}")
+        require(
+            errors,
+            env.get("MAX_REQUEST_BODY_BYTES") == "1048576",
+            f"{name}: MAX_REQUEST_BODY_BYTES must render as a base-10 integer",
+        )
         require(
             errors, security.get("allowPrivilegeEscalation") is False, f"{name}: RAG must block privilege escalation"
         )
@@ -571,6 +640,16 @@ def check_vllm_render(name: str, docs: list[dict[str, Any]], resource_name: str,
     resources = vllm.get("resources", {})
     requests = resources.get("requests", {})
     limits = resources.get("limits", {})
+    check_runtime_egress(name, docs, errors)
+    args = vllm.get("args", [])
+    require(errors, "--task" in args, f"{name}: vLLM must declare its serving task explicitly")
+    if "embeddings" in name and "--task" in args:
+        task_index = args.index("--task")
+        require(
+            errors,
+            task_index + 1 < len(args) and args[task_index + 1] == "embed",
+            f"{name}: embedding runtime must use --task embed",
+        )
 
     require(
         errors,
@@ -1105,9 +1184,38 @@ def check_static_workload_security(errors: list[str]) -> None:
         "require-read-only-root-filesystem" in policies,
         "Kyverno restricted policy must require read-only root filesystems",
     )
+    require(
+        errors,
+        "deny-unscoped-egress-rules" in policies,
+        "Kyverno egress policy must reject rules that omit destinations",
+    )
     kyverno_tests = (ROOT / "deploy/policies/kyverno/tests/kyverno-test.yaml").read_text()
     require(
         errors, "writable-root-pod" in kyverno_tests, "Kyverno tests must cover read-only root filesystem enforcement"
+    )
+    require(
+        errors,
+        "unscoped-egress" in kyverno_tests and "customer-model-pull-exception" in kyverno_tests,
+        "Kyverno tests must cover unscoped egress and customer misuse of the local exception",
+    )
+
+
+def check_gitops_revisions(errors: list[str]) -> None:
+    """Require reproducible GitOps refs and the customer embedding dependency."""
+    paths = (
+        ROOT / "deploy/gitops/argocd/root-app.yaml",
+        ROOT / "deploy/gitops/argocd/root-app-customer.yaml",
+        ROOT / "deploy/clusters/local/apps.yaml",
+        ROOT / "deploy/clusters/customer/apps.yaml",
+    )
+    for path in paths:
+        source = path.read_text()
+        require(errors, "targetRevision: HEAD" not in source, f"{path.relative_to(ROOT)} must not track HEAD")
+    customer_apps = (ROOT / "deploy/clusters/customer/apps.yaml").read_text()
+    require(
+        errors,
+        "name: runtime-vllm-embeddings" in customer_apps and "values/vllm-embeddings.yaml" in customer_apps,
+        "customer GitOps must deploy the embedding runtime referenced by RAG values",
     )
 
 
@@ -1205,6 +1313,16 @@ def check_release_packaging(errors: list[str]) -> None:
             "severity: HIGH,CRITICAL",
             'exit-code: "1"',
             "actions/upload-artifact",
+            "docker buildx imagetools create",
+            "scripts/package-release-charts.py",
+            "chart-release-manifest.json",
+            "oras push",
+            "artifacthub.io",
+            "sdk-compatibility",
+            "sdk-build",
+            "sdk-publish",
+            "pypa/gh-action-pypi-publish@",
+            "packages-dir: sdk-dist",
         ):
             require(
                 errors,
@@ -1224,6 +1342,25 @@ def check_release_packaging(errors: list[str]) -> None:
                 kind_match.group(1) == scan_match.group(1),
                 "scripts/repo-security-scan.sh --helm-kube-version must match the CI kindest/node version",
             )
+    release_script = ROOT / "scripts/package-release-charts.py"
+    require(errors, release_script.exists(), "digest-bound Helm chart packaging script must exist")
+    require(errors, os.access(release_script, os.X_OK), "digest-bound Helm chart packaging script must be executable")
+    for path in (
+        ROOT / "artifacthub-repo.yml",
+        ROOT / "requirements-sdk-build.lock",
+        ROOT / "requirements-sdk-test.lock",
+        ROOT / "docs/distribution.md",
+    ):
+        require(errors, path.exists(), f"release distribution contract missing {path.relative_to(ROOT)}")
+    platform_chart = yaml.safe_load((ROOT / "deploy/charts/platform/Chart.yaml").read_text()) or {}
+    require(
+        errors,
+        nested(platform_chart, "annotations", "artifacthub.io/category") == "ai-machine-learning",
+        "platform chart must declare its Artifact Hub category",
+    )
+    docs_workflow = (ROOT / ".github/workflows/docs.yml").read_text()
+    for token in ("mike deploy", "gh-pages", 'tags: ["v*"]', "versioned-site"):
+        require(errors, token in docs_workflow, f"versioned docs workflow missing {token}")
     scorecard_path = ROOT / ".github/workflows/scorecard.yml"
     require(errors, scorecard_path.exists(), "OpenSSF Scorecard workflow must exist")
     if scorecard_path.exists():
@@ -1231,13 +1368,12 @@ def check_release_packaging(errors: list[str]) -> None:
         for token in (
             "ossf/scorecard-action@",
             "results_format: sarif",
-            "publish_results: false",
+            "publish_results: true",
             "github/codeql-action/upload-sarif",
             "security-events: write",
             "id-token: write",
         ):
             require(errors, token in scorecard, f"OpenSSF Scorecard workflow missing {token}")
-
     gateway_values = yaml.safe_load((ROOT / "deploy/charts/inference-gateway/values.yaml").read_text()) or {}
     rag_values = yaml.safe_load((ROOT / "deploy/charts/rag-service/values.yaml").read_text()) or {}
     gateway_chart = yaml.safe_load((ROOT / "deploy/charts/inference-gateway/Chart.yaml").read_text()) or {}
@@ -1292,6 +1428,41 @@ def check_release_packaging(errors: list[str]) -> None:
                 str(metadata.get("appVersion")) == release_version,
                 f"{chart} appVersion must match latest CHANGELOG version",
             )
+
+    platform_dependencies = platform_chart.get("dependencies", [])
+    require(errors, isinstance(platform_dependencies, list), "platform chart dependencies must be a list")
+    if isinstance(platform_dependencies, list):
+        for dependency in platform_dependencies:
+            if not isinstance(dependency, dict):
+                errors.append("platform chart dependencies must be mappings")
+                continue
+            require(
+                errors,
+                str(dependency.get("version")) == release_version,
+                f"platform dependency {dependency.get('name', '<unnamed>')} must pin release {release_version}",
+            )
+
+    platform_lock_path = ROOT / "deploy/charts/platform/Chart.lock"
+    require(errors, platform_lock_path.exists(), "platform dependency lock must be committed")
+    if platform_lock_path.exists():
+        platform_lock = yaml.safe_load(platform_lock_path.read_text()) or {}
+        locked_dependencies = platform_lock.get("dependencies", [])
+        require(errors, isinstance(locked_dependencies, list), "platform dependency lock must list dependencies")
+        if isinstance(locked_dependencies, list):
+            require(
+                errors,
+                len(locked_dependencies) == len(platform_dependencies),
+                "platform dependency lock must cover every declared dependency",
+            )
+            for dependency in locked_dependencies:
+                if not isinstance(dependency, dict):
+                    errors.append("platform dependency lock entries must be mappings")
+                    continue
+                require(
+                    errors,
+                    str(dependency.get("version")) == release_version,
+                    f"locked platform dependency {dependency.get('name', '<unnamed>')} must pin release {release_version}",
+                )
 
     for path in ("README.md", "docs/getting-started.md", "deploy/clusters/customer/README.md"):
         text = (ROOT / path).read_text()
@@ -1459,6 +1630,42 @@ def check_release_packaging(errors: list[str]) -> None:
     customer_readme = (ROOT / "deploy/clusters/customer/README.md").read_text()
     require(errors, "make customer-overlay" in customer_readme, "customer README must document overlay configuration")
     require(errors, "Handoff Checklist" in customer_readme, "customer README must include a handoff checklist")
+
+
+def check_oss_governance(errors: list[str]) -> None:
+    """Require the in-tree community and repository-host governance contracts."""
+    for path in (
+        ROOT / "GOVERNANCE.md",
+        ROOT / "MAINTAINERS.md",
+        ROOT / "ADOPTERS.md",
+        ROOT / "CODE_OF_CONDUCT.md",
+        ROOT / "CONTRIBUTING.md",
+        ROOT / "SECURITY.md",
+        ROOT / ".github/repository-settings.json",
+        ROOT / "scripts/github-settings.py",
+        ROOT / "runbooks/repository-settings.md",
+        ROOT / ".github/workflows/fuzz.yml",
+        ROOT / "scripts/fuzz-security.py",
+    ):
+        require(errors, path.exists(), f"OSS governance contract missing {path.relative_to(ROOT)}")
+    require(
+        errors, os.access(ROOT / "scripts/github-settings.py", os.X_OK), "GitHub settings auditor must be executable"
+    )
+    require(errors, os.access(ROOT / "scripts/fuzz-security.py", os.X_OK), "security fuzz driver must be executable")
+    config = json.loads((ROOT / ".github/repository-settings.json").read_text())
+    for key in (
+        "private_vulnerability_reporting",
+        "vulnerability_alerts",
+        "automated_security_fixes",
+        "secret_scanning",
+        "secret_scanning_push_protection",
+    ):
+        require(errors, nested(config, "security", key) is True, f"repository security setting {key} must be enabled")
+    required_checks = set(nested(config, "branch_protection", "required_status_checks", default=[]))
+    require(errors, {"validate", "local-e2e", "security-fuzz"} <= required_checks, "main protection misses core checks")
+    governance = " ".join((ROOT / "GOVERNANCE.md").read_text().lower().split())
+    for phrase in ("seven calendar days", "one reviewed maintenance release per month", "emeritus"):
+        require(errors, phrase in governance, f"governance policy missing {phrase}")
 
 
 def check_release_gates(errors: list[str]) -> None:
@@ -2002,6 +2209,12 @@ def main() -> int:
             errors,
         )
         check_vllm_render(
+            "customer-vllm-embeddings",
+            render_chart("vllm", ROOT / "deploy/clusters/customer/values/vllm-embeddings.yaml"),
+            "nvidia.com/gpu",
+            errors,
+        )
+        check_vllm_render(
             "customer-vllm-nvidia",
             render_chart("vllm", ROOT / "deploy/clusters/customer/values/vllm-nvidia.yaml"),
             "nvidia.com/gpu",
@@ -2025,10 +2238,12 @@ def main() -> int:
     check_tenant_onboarding(errors)
     check_chaos_drills(errors)
     check_static_workload_security(errors)
+    check_gitops_revisions(errors)
     check_evidence_pack(errors)
     check_validation_toolchain(errors)
     check_release_gates(errors)
     check_release_packaging(errors)
+    check_oss_governance(errors)
     check_slo_governance(errors)
     check_quota_governance(errors)
     check_model_provenance_governance(errors)

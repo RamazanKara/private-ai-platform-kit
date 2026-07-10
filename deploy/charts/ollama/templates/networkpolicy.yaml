@@ -5,6 +5,10 @@ metadata:
   name: {{ include "ollama.fullname" . }}
   labels:
     {{- include "ollama.labels" . | nindent 4 }}
+  {{- if .Values.networkPolicy.localDevelopmentException }}
+  annotations:
+    platform.ai/local-model-pull-egress: "true"
+  {{- end }}
 spec:
   podSelector:
     matchLabels:
@@ -38,8 +42,17 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    - ports:
+    {{- if not .Values.networkPolicy.modelPullEgressCidrs }}
+    {{- fail "networkPolicy.modelPullEgressCidrs must contain explicit CIDRs when allowModelPullEgress=true" }}
+    {{- end }}
+    {{- range .Values.networkPolicy.modelPullEgressCidrs }}
+    - to:
+        - ipBlock:
+            cidr: {{ . | quote }}
+      ports:
         - protocol: TCP
           port: 443
+    {{- end }}
+    {{- else }} []
     {{- end }}
 {{- end }}

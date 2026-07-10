@@ -13,7 +13,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, BinaryIO
 from urllib.parse import quote
 from xml.etree import ElementTree
 
@@ -49,6 +49,20 @@ class S3ObjectStore:
         if response.status_code >= 300:
             raise OSError(f"s3 put failed ({response.status_code}) for {key}")
 
+    def put_stream(self, key: str, stream: BinaryIO, size: int) -> None:
+        stream.seek(0)
+        digest = hashlib.sha256()
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+        if stream.tell() != size:
+            raise OSError("object stream size changed during upload")
+        stream.seek(0)
+        headers = self._signed_headers("PUT", self._url(key), b"", payload_hash=digest.hexdigest())
+        headers["Content-Length"] = str(size)
+        response = self._client.request("PUT", self._url(key), content=stream, headers=headers)
+        if response.status_code >= 300:
+            raise OSError(f"s3 put failed ({response.status_code}) for {key}")
+
     def get(self, key: str) -> bytes:
         response = self._request("GET", self._url(key))
         if response.status_code == 404:
@@ -80,18 +94,23 @@ class S3ObjectStore:
         keys = [node.text for node in root.iter(f"{_S3_NS}Key") if node.text]
         return sorted(keys)
 
+    def ready(self) -> bool:
+        """Return whether the configured bucket is reachable with the active credentials."""
+        response = self._request("HEAD", self._url())
+        return response.status_code < 300
+
     # --- SigV4 request signing ---
     def _request(self, method: str, url: str, body: bytes = b"") -> httpx.Response:
         headers = self._signed_headers(method, url, body)
         return self._client.request(method, url, content=body if body else None, headers=headers)
 
-    def _signed_headers(self, method: str, url: str, body: bytes) -> dict[str, str]:
+    def _signed_headers(self, method: str, url: str, body: bytes, *, payload_hash: str | None = None) -> dict[str, str]:
         request = httpx.Request(method, url)
         host = request.url.netloc.decode("ascii")
         now = datetime.now(UTC)
         amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
-        payload_hash = hashlib.sha256(body).hexdigest() if body else _EMPTY_SHA256
+        payload_hash = payload_hash or (hashlib.sha256(body).hexdigest() if body else _EMPTY_SHA256)
 
         canonical_uri = request.url.raw_path.decode("ascii").split("?", 1)[0]
         canonical_query = request.url.query.decode("ascii")

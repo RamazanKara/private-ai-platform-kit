@@ -34,3 +34,4 @@ results/**/*.log
 # Vendored Helm subchart dependencies (umbrella chart, built at package time)
 /deploy/charts/*/charts/
 /deploy/charts/*/Chart.lock
+!/deploy/charts/platform/Chart.lock

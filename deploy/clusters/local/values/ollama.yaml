@@ -5,6 +5,13 @@ model:
 persistence:
   enabled: true
   size: 10Gi
+networkPolicy:
+  allowModelPullEgress: true
+  # Development-only bootstrap: Ollama's registry addresses are dynamic and
+  # Kubernetes NetworkPolicy has no FQDN selector. Customer profiles may not use it.
+  modelPullEgressCidrs:
+    - 0.0.0.0/0
+  localDevelopmentException: true
 podLabels:
   platform.ai/cost-center: platform
   platform.ai/environment: local

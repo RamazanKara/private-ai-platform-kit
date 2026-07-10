@@ -11,7 +11,7 @@ import pytest
 from app.embeddings import HashEmbeddingProvider, OpenAICompatibleEmbeddingProvider
 from app.ingest import build_chunks, load_manifest
 from app.main import create_app
-from app.retriever import QdrantRetriever
+from app.retriever import LexicalRetriever, QdrantRetriever
 from app.settings import Settings
 from fastapi.testclient import TestClient
 
@@ -36,6 +36,16 @@ def test_healthz_reports_loaded_documents(tmp_path):
         "vector_store_configured": False,
         "source_manifest_configured": False,
     }
+
+
+def test_request_body_limit_rejects_oversized_query_before_validation(tmp_path):
+    client = TestClient(create_app(Settings(document_dir=tmp_path, max_request_body_bytes=128)))
+
+    response = client.post("/v1/rag/query", json={"query": "x" * 256})
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["reason"] == "request_body_too_large"
+    assert response.json()["detail"]["limit_bytes"] == 128
 
 
 def test_healthz_reports_qdrant_backend_without_network_call(tmp_path):
@@ -467,6 +477,32 @@ def test_lexical_tenant_isolation_off_serves_shared_corpus():
     assert ids == {"team-a-doc", "team-b-doc"}
 
 
+def test_document_listing_is_tenant_scoped_and_fails_closed(tmp_path):
+    settings = Settings(document_dir=tmp_path, retrieval_tenant_isolation_enabled=True)
+    app = create_app(settings)
+    app.state.retriever = LexicalRetriever(_lexical_two_tenant_documents(), tenant_isolation_enabled=True)
+    client = TestClient(app)
+
+    missing_identity = client.get("/v1/rag/documents")
+    team_a = client.get("/v1/rag/documents", headers={"X-Sandbox-ID": "team-a"})
+    team_b = client.get("/v1/rag/documents", headers={"X-Sandbox-ID": "team-b"})
+
+    assert missing_identity.status_code == 200
+    assert missing_identity.json()["documents"] == []
+    assert [document["id"] for document in team_a.json()["documents"]] == ["team-a-doc"]
+    assert [document["id"] for document in team_b.json()["documents"]] == ["team-b-doc"]
+
+
+def test_document_listing_shared_mode_remains_unscoped(tmp_path):
+    app = create_app(Settings(document_dir=tmp_path, retrieval_tenant_isolation_enabled=False))
+    app.state.retriever = LexicalRetriever(_lexical_two_tenant_documents(), tenant_isolation_enabled=False)
+    client = TestClient(app)
+
+    response = client.get("/v1/rag/documents", headers={"X-Sandbox-ID": "team-a"})
+
+    assert {document["id"] for document in response.json()["documents"]} == {"team-a-doc", "team-b-doc"}
+
+
 def test_lexical_from_directory_stamps_corpus_owner(tmp_path):
     from app.retriever import LexicalRetriever
 
@@ -833,6 +869,31 @@ def test_readyz_qdrant_returns_503_when_vector_store_is_unreachable(tmp_path, mo
     assert body["vector_store"]["status"] == "unavailable"
     # The internal failure detail must not leak into the readiness body.
     assert "vector store down" not in response.text
+
+
+def test_readyz_returns_503_when_embedding_provider_is_unavailable(tmp_path, monkeypatch):
+    write_doc(tmp_path, "agents.md", "# Coding Agents\nUse the gateway.")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"status": "ok"})
+
+    app = create_app(_qdrant_settings(tmp_path))
+    monkeypatch.setattr(
+        app.state.retriever,
+        "_client",
+        lambda: httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    async def unavailable():
+        return False
+
+    monkeypatch.setattr(app.state.retriever.embedding_provider, "ready", unavailable)
+    with TestClient(app) as client:
+        response = client.get("/readyz")
+
+    assert response.status_code == 503
+    assert response.json()["vector_store"]["status"] == "ok"
+    assert response.json()["embedding"]["status"] == "unavailable"
 
 
 def test_readyz_does_not_require_auth(tmp_path):

@@ -4,6 +4,54 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.27.0 - 2026-07-10
+
+### Added
+
+- **Release-grade SDK and public distribution.** Release tags now build and test the Python client
+  on Python 3.11 through 3.14, publish it with PyPI Trusted Publishing, attach checksummed wheel and
+  source distributions to the GitHub release, publish digest-bound Helm OCI charts, emit Artifact
+  Hub discovery metadata, and retain versioned documentation with `mike`.
+- **First-run and operator tooling.** New `scripts/bootstrap.sh` and `scripts/status.sh` commands
+  install pinned prerequisites and report cluster/application health. A release-level feature
+  inventory, distribution guide, repository-settings runbook, and machine-readable GitHub policy
+  baseline make adoption and maintenance boundaries explicit.
+- **Dedicated customer embedding runtime.** The customer GitOps profile now includes a separately
+  scaled vLLM `--task embed` deployment consumed by the RAG service, with governed model provenance.
+- **Continuous adversarial verification.** CI adds a scheduled 50,000-mutation security fuzz job,
+  stronger request/body and tool-payload coverage, and policy tests for model-pull egress exceptions.
+
+### Changed
+
+- GitOps synchronization now uses immutable release revisions, validates the active context and
+  namespace, fails closed in customer mode, waits for every declared application, and reserves
+  direct-apply fallback for the local profile. Calico is the secure local default.
+- Gateway and RAG readiness now verify their real dependencies, including declared runtime
+  fallback chains, Redis, object storage, Qdrant, and the embedding provider. KEDA scaling also
+  observes request rate, in-flight work, load shedding, and p95 latency.
+- Asynchronous batch uploads and downloads stream bounded data instead of buffering whole objects;
+  blocking object-store work leaves the event loop, and Redis state transitions are atomic.
+- Release CI promotes the already-tested commit images instead of rebuilding tags, signs image and
+  chart digests, publishes Sigstore bundles, and labels model-quality and conformance evidence as
+  distinct evidence classes.
+
+### Fixed
+
+- RAG document listings now enforce the same tenant ownership filter as retrieval and ingestion.
+- Budget windows retain their original expiry instead of extending on every update.
+- Helm renders byte-limit environment variables as exact base-10 integers, avoiding scientific
+  notation under Helm 4.
+
+### Security
+
+- Prompt admission and output guardrails recursively inspect tool calls, function arguments, and
+  provider-specific nested strings. Audit receipts retain redacted full-payload fingerprints while
+  request bodies are bounded independently from batch-file uploads.
+- Model-weight egress is closed by default. Only explicitly labeled local development workloads can
+  use the broad model-pull exception; Kyverno rejects unscoped or customer misuse.
+- Repository governance now defines maintainer succession, security support, required reviews and
+  checks, secret push protection, vulnerability reporting, and a reproducible settings audit.
+
 ## v0.26.0 - 2026-07-04
 
 ### Added

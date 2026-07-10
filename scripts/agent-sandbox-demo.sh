@@ -27,10 +27,19 @@ VALUES_FILE="$ROOT/deploy/clusters/${ENVIRONMENT}/values/agent-workspace.yaml"
 [[ -f "$VALUES_FILE" ]] || die "missing agent workspace values file ${VALUES_FILE}"
 # The demo provisions its own release in its own namespace so it never fights
 # the GitOps-managed instance for ownership.
+kubectl create namespace "$AGENT_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+kubectl label namespace "$AGENT_NAMESPACE" \
+  app.kubernetes.io/part-of=private-ai-platform-kit \
+  platform.ai/traceable-sandbox=true \
+  platform.ai/workload-kind=coding-agent \
+  pod-security.kubernetes.io/enforce=restricted \
+  pod-security.kubernetes.io/audit=restricted \
+  pod-security.kubernetes.io/warn=restricted \
+  --overwrite >/dev/null
 helm upgrade --install agent-workspace "$ROOT/deploy/charts/agent-workspace" \
   --namespace "$AGENT_NAMESPACE" \
-  --create-namespace \
   --values "$VALUES_FILE" \
+  --set namespace.create=false \
   --set namespace.name="$AGENT_NAMESPACE" \
   --set sandbox.id="$SANDBOX_ID" >/dev/null
 AGENT_NAMESPACE="$AGENT_NAMESPACE" SANDBOX_ID="$SANDBOX_ID" \

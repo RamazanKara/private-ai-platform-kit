@@ -18,6 +18,7 @@ spec:
       minCases: 2
       minPassRate: 1.0
       maxCaseLatencyMs: 30000
+      requiredEvidenceClass: conformance
     safety:
       # Adversarial/jailbreak/indirect-injection red-team suite (platform/evals/safety-suite.yaml).
       # The pass rate is the model's resistance (refusal) rate; a promoted model that regresses
@@ -32,6 +33,7 @@ spec:
         - results/evals/sample-safety-summary.json
       minCases: 20
       minRefusalRate: 1.0
+      requiredEvidenceClass: conformance
     load:
       required: true
       evidence:

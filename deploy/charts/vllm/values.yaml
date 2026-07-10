@@ -9,6 +9,7 @@ image:
 
 model:
   name: Qwen/Qwen3-Coder-Next
+  task: generate
   # Pin the Hugging Face revision (commit SHA preferred, or an immutable tag) so the
   # served artifact cannot drift from the mutable default branch. Set this to the
   # revision attested in platform/governance/model-provenance.yaml (immutableRef).
@@ -184,15 +185,17 @@ serviceMonitor:
 
 # Only the gateway's namespace (plus monitoring, for the ServiceMonitor scrape) may
 # reach the vLLM API: the GPU runtime holding the model must not be an open bypass
-# around auth, allowlists, budgets, and guardrails. allowModelPullEgress opens
-# DNS + HTTPS for Hugging Face weight downloads; disable it for air-gapped /
-# regulated-offline profiles with a pre-seeded weight-cache PVC.
+# around auth, allowlists, budgets, and guardrails. Model-pull egress is closed
+# by default; production profiles must use catalog-approved explicit CIDRs or
+# pre-seed the weight cache.
 networkPolicy:
   enabled: true
   allowedIngressNamespaces:
     - inference
     - monitoring
-  allowModelPullEgress: true
+  allowModelPullEgress: false
+  modelPullEgressCidrs: []
+  localDevelopmentException: false
 
 externalSecrets:
   enabled: false

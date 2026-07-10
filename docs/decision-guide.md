@@ -50,8 +50,8 @@ controller-managed sandbox pod with no ambient credentials and a short-lived, au
 platform token instead of long-lived secrets. The one environment-dependent choice left is the
 kernel-isolation runtime class: set `sandbox.runtimeClassName` (e.g. gVisor) where the cluster
 provides one, which is expected at the `high` risk tier (`C-ISOLATE`). NetworkPolicy enforcement requires
-a policy-capable CNI; `make agent-sandbox-smoke` verifies fail-closed egress and detects
-non-enforcing CNIs (locally, `LOCAL_CNI=calico make quickstart` builds an enforcing lab). See [agent-sandbox-integration.md](agent-sandbox-integration.md), ADR 0009,
+a policy-capable CNI; the local lab defaults to pinned Calico, and
+`make agent-sandbox-smoke` rejects non-enforcing kindnet instead of recording a vacuous pass. See [agent-sandbox-integration.md](agent-sandbox-integration.md), ADR 0009,
 and ADR 0010.
 
 ## Maturity Position

@@ -100,6 +100,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": 1048576,
+      "chart_default": 1048576,
+      "chart_value": "retrieval.maxRequestBodyBytes",
+      "description": "Maximum RAG request body size before parsing.",
+      "field": "max_request_body_bytes",
+      "name": "MAX_REQUEST_BODY_BYTES",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 8,
       "chart_default": 8,
       "chart_value": "retrieval.maxTopK",

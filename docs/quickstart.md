@@ -16,23 +16,25 @@ Everything here runs with a single command. The goal is a guaranteed first succe
 
 ## Before you begin
 
-Install these on your machine:
+For the managed Linux/WSL bootstrap, install only:
 
 - Python 3.12+
 - Docker (running, with enough CPU, memory, and disk for a small cluster)
-- kind
-- kubectl
-- Helm
-- Go
-- Syft
+- Bash and curl
 
-That is everything the tutorial needs. The stricter production-readiness path additionally uses kubeconform, the Kyverno CLI, the Argo CD CLI, Cosign, Trivy, and k6, but you do not need them yet.
+Run `make bootstrap`; it installs pinned `kind`, `kubectl`, Helm, and validation CLIs under `.tools/bin`, validates the workstation, and starts the full quickstart. It never uses `sudo` or writes outside the repository.
 
-If you would rather have the project manage the optional validation CLIs for you under `.tools/bin`, you can let the quickstart install them in the next step.
+On macOS or on a workstation where tools are centrally managed, install `kind`, `kubectl`, and Helm yourself, then use `make quickstart`. Go and Syft are optional unless you run their production/evidence targets.
 
 ## Step 1: Bring up the platform
 
-From the repository root, run:
+From the repository root on Linux/WSL, run:
+
+```bash
+make bootstrap
+```
+
+With the CLIs already present, run:
 
 ```bash
 make quickstart
@@ -42,11 +44,11 @@ That one command checks your toolchain, runs static validation, creates the loca
 
 A few variants for common situations:
 
-!!! tip "Let the project install validation tools"
+!!! tip "Install the pinned CLIs but keep the explicit quickstart command"
     ```bash
     QUICKSTART_INSTALL_TOOLS=1 make quickstart
     ```
-    Fetches the optional validation CLIs into `.tools/bin` first.
+    Fetches the workstation and validation CLIs into `.tools/bin` first.
 
 !!! tip "Skip Argo CD for a fast workstation check"
     ```bash

@@ -8,8 +8,10 @@ require_cmd kubectl "kubectl is required for agent-sandbox smoke validation."
 
 AGENT_NAMESPACE="${AGENT_NAMESPACE:-ai-agents}"
 SANDBOX_ID="${SANDBOX_ID:-agent-lab}"
-# RFC 5737 TEST-NET-2 address: never routable, never in the egress catalog.
-EGRESS_PROBE_TARGET="${EGRESS_PROBE_TARGET:-198.51.100.10}"
+# The Kubernetes API is a reachable in-cluster positive target but is not in the
+# workspace egress catalog. A failed connection therefore proves policy denial;
+# an unroutable internet address would fail even with no policy at all.
+EGRESS_PROBE_TARGET="${EGRESS_PROBE_TARGET:-kubernetes.default.svc.cluster.local}"
 
 validate_k8s_name "$AGENT_NAMESPACE" "AGENT_NAMESPACE"
 validate_k8s_name "$SANDBOX_ID" "SANDBOX_ID"
@@ -59,15 +61,18 @@ kubectl -n "$AGENT_NAMESPACE" exec "$SANDBOX_ID" -- /bin/sh -ceu '
   echo "hardening contract ok (uid=$uid, read-only rootfs, no SA token, writable workspace)"
 '
 
-# NetworkPolicy is only as good as the CNI that enforces it. kindnet (the kind
-# default) does not implement NetworkPolicy, so a successful probe there means
-# "not enforced", not "allowed by policy".
+# NetworkPolicy is only as good as the CNI that enforces it. The smoke must fail
+# when kindnet is present rather than recording an ambiguous success.
 cni_enforces_netpol() {
   if kubectl -n kube-system get daemonset kindnet >/dev/null 2>&1; then
     return 1
   fi
   return 0
 }
+
+if ! cni_enforces_netpol; then
+  die "kindnet does not enforce NetworkPolicy, so fail-closed egress cannot be proved. Recreate the local cluster with the default Calico profile"
+fi
 
 log "verifying the short-lived projected platform credential"
 kubectl -n "$AGENT_NAMESPACE" exec "$SANDBOX_ID" -- /bin/sh -ceu '
@@ -99,15 +104,10 @@ fi
 
 log "probing that non-catalog egress fails closed (target ${EGRESS_PROBE_TARGET})"
 if kubectl -n "$AGENT_NAMESPACE" exec "$SANDBOX_ID" -- \
-  curl -sS -o /dev/null --connect-timeout 5 "https://${EGRESS_PROBE_TARGET}" 2>/dev/null; then
+  curl -k -sS -o /dev/null --connect-timeout 5 "https://${EGRESS_PROBE_TARGET}" 2>/dev/null; then
   die "egress probe reached ${EGRESS_PROBE_TARGET}: default-deny is not effective"
 else
-  if cni_enforces_netpol; then
-    log "egress probe blocked: default-deny + approved-egress policies are enforced"
-  else
-    log "egress probe did not connect, but the cluster CNI is kindnet (no NetworkPolicy support)."
-    log "WARNING: install a policy-enforcing CNI (e.g. Calico) to validate fail-closed egress."
-  fi
+  log "egress probe blocked: default-deny + approved-egress policies are enforced"
 fi
 
 log "agent-sandbox smoke completed for ${SANDBOX_ID}"

@@ -1,6 +1,6 @@
 # Scope and Non-Goals
 
-This document draws an explicit boundary around what Private AI Platform Kit (v0.26.0) is and is not,
+This document draws an explicit boundary around what Private AI Platform Kit (v0.27.0) is and is not,
 and then maps the controls it ships to the six AWS Well-Architected pillars. Use it to set
 expectations before adoption and to sanity-check that the operator-owned gaps are understood.
 
@@ -152,20 +152,13 @@ A few items are neither shipped nor purely operator-owned: they are tracked, rem
 deliberately deferred engineering work. They are listed in full in the ROADMAP; the load-bearing
 ones for an evaluator are:
 
-- **RAG-side token verification.** RAG per-tenant isolation is enforced, but the RAG service still
-  trusts the tenant id asserted upstream; deriving it from a RAG-service-verified claim
-  (JWKS/audience or per-tenant keys) is tracked ([ROADMAP](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/ROADMAP.md) `rag`).
-- **A maintained JWT library.** Gateway JWT verification is a hand-rolled HS256/RS256/ES256 path on
-  `cryptography`; swapping it for a maintained library (e.g. PyJWT) is a code-hardening item, not a
-  feature gap (the JWKS/audience/issuer/scope semantics already hold).
 - **Native Anthropic `/v1/messages`.** Implemented (translated to/from the OpenAI chat shape
   through the same governance path; non-streaming this release). A translation sidecar remains
   an alternative for Anthropic-shaped features the native endpoint does not yet cover, such as
   streaming (see the API-surfaces list above and [client examples](client-examples.md)).
-- **OpenAI `/v1/responses` (stateless subset).** Implemented (translated to/from the OpenAI
-  chat shape through the same governance path; non-streaming this release). Only the stateless
-  subset is covered: `store` / `previous_response_id` (server-side state) are out of scope and
-  rejected (see the API-surfaces list above and [client examples](client-examples.md)).
+- **OpenAI `/v1/responses`.** The synchronous endpoint and opt-in, tenant-scoped, TTL-bounded
+  server-side state are implemented. Background and Responses-shaped streaming remain out of scope
+  (see the API-surfaces list above and [client examples](client-examples.md)).
 - **Semantic (embedding-similarity) response caching.** The response cache is exact-match only by
   design; the reasoning for deferring semantic caching is recorded in the ROADMAP
   ([Deliberate Deferrals](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/ROADMAP.md)).

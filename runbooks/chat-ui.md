@@ -6,9 +6,10 @@ model allowlist, admission, budget, and audit controls.
 
 ## Scope and non-goal
 
-The kit is **API-only** by design. A human-facing chat UI is an **operator-owned example, not a
-shipped or supported component**, consistent with the explicit
-[admin/usage console non-goal](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope-and-non-goals.md).
+The kit does not bundle an end-user chat product. It does ship an opt-in read-only operator
+console at `/console`; a human-facing multi-user chat UI remains an **operator-owned example, not a
+supported component**, consistent with the explicit
+[product boundary](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope-and-non-goals.md).
 [Open WebUI](https://github.com/open-webui/open-webui) is the common choice and is used here, but
 any OpenAI-compatible chat frontend works. The kit ships a copy-adapt manifest at
 [`docs/examples/open-webui.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/examples/open-webui.yaml)

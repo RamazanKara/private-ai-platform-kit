@@ -5,11 +5,13 @@ name: Docs site
 on:
   push:
     branches: [main]
+    tags: ["v*"]
     paths:
       - "docs/**"
       - "runbooks/**"
       - "mkdocs.yml"
       - "requirements-docs.txt"
+      - "requirements-docs.in"
       - "scripts/docs-build.sh"
       - ".github/workflows/docs.yml"
   # The strict build must gate PRs too: without this, broken links/nav merge green
@@ -20,6 +22,7 @@ on:
       - "runbooks/**"
       - "mkdocs.yml"
       - "requirements-docs.txt"
+      - "requirements-docs.in"
       - "scripts/docs-build.sh"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
@@ -28,15 +31,19 @@ permissions:
   contents: read
 
 concurrency:
-  group: docs-pages-${{ github.ref }}
+  group: docs-pages-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.14"
@@ -45,12 +52,36 @@ jobs:
       - run: pip install --require-hashes -r requirements-docs.txt
       # docs-build.sh build runs mkdocs --strict, so broken links or nav drift fail the deploy.
       - run: ./scripts/docs-build.sh build
+      - name: Publish version into retained documentation tree
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          had_docs_branch=false
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            had_docs_branch=true
+          fi
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            ./scripts/docs-build.sh mike deploy --branch gh-pages --push --update-aliases "$version" latest
+            ./scripts/docs-build.sh mike set-default --branch gh-pages --push latest
+          else
+            ./scripts/docs-build.sh mike deploy --branch gh-pages --push --update-aliases development
+            if [[ "$had_docs_branch" == "false" ]]; then
+              ./scripts/docs-build.sh mike set-default --branch gh-pages --push development
+            fi
+          fi
+          git fetch origin gh-pages
+          rm -rf versioned-site
+          mkdir -p versioned-site
+          git archive origin/gh-pages | tar -x -C versioned-site
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
         if: github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         if: github.event_name != 'pull_request'
         with:
-          path: site
+          path: versioned-site
 
   deploy:
     needs: build

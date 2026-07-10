@@ -295,9 +295,9 @@ Weekend-scoped milestones, target release v0.14.0:
   egress select sandbox pods by construction (`podSelector: {}`), and
   `scripts/egress-governance.py` already scans the agent-workspace cluster
   values. `make agent-sandbox-smoke` proves the hardening contract, a DNS
-  positive control, and a blocked probe to an RFC 5737 address, verified
-  fail-closed on a Calico `kind` cluster; on kindnet the script detects the
-  non-enforcing CNI and warns instead of passing vacuously.
+  positive control, and a blocked probe to the otherwise reachable Kubernetes
+  API, verified fail-closed on the default Calico `kind` cluster. The script
+  rejects kindnet because it cannot produce valid NetworkPolicy evidence.
 - **M3: Evidence & governance. Done 2026-07-01 (events deferred).**
   `C-ISOLATE` added to the control-framework map (recommended at `medium`,
   mandated at `high`) and the governance crosswalk; evidence pack gained a
@@ -352,7 +352,5 @@ Weekend-scoped milestones, target release v0.14.0:
    traffic) get emitted from without trusting the agent itself. Candidate:
    a sidecar-free node-level observer; out of scope for v0.14.0, relevant
    for the auditable-agent-execution paper.
-5. The default `kind` CNI (kindnet) enforces NetworkPolicy only partially in
-   some versions: confirm the blocked-exfiltration probe (M2) actually
-   fails closed on the local lab, or document a Calico/Cilium requirement
-   for the policy test.
+5. Resolved: the local lab defaults to Calico and the blocked-exfiltration
+   probe targets the reachable Kubernetes API; kindnet is rejected by the smoke.

@@ -77,10 +77,10 @@ runtime plus the restricted pod profile; set `sandbox.runtimeClassName` (gVisor/
 cluster provides one, expected at the `high` risk tier (`C-ISOLATE`). What kernel isolation does **not** change: prompt injection and tool abuse remain
 application-layer threats (bounded by the egress catalog, budgets, and gateway guardrails, not by
 the sandbox), and exfiltration through *approved* catalog destinations remains a governance
-decision. NetworkPolicy enforcement depends on the CNI: the default `kind` CNI does not enforce
-it, which `make agent-sandbox-smoke` detects and reports rather than reporting a vacuous pass.
-Create the local lab with `LOCAL_CNI=calico make quickstart` to get a pinned,
-NetworkPolicy-enforcing CNI and a genuinely fail-closed egress demo.
+decision. NetworkPolicy enforcement depends on the CNI: the local lab therefore defaults to
+pinned Calico, and `make agent-sandbox-smoke` fails if the non-enforcing kindnet CNI is present.
+Its deny target is the otherwise reachable Kubernetes API, so a failed connection is meaningful
+evidence of policy enforcement rather than an unroutable-address false positive.
 
 ## AI-Specific Threats
 

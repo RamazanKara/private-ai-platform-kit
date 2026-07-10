@@ -102,6 +102,7 @@ class Settings:
     default_sandbox_id: str = "local-lab"
     audit_log_enabled: bool = True
     max_query_chars: int = 2048
+    max_request_body_bytes: int = 1048576
     default_top_k: int = 3
     max_top_k: int = 8
     max_context_chars: int = 6000
@@ -155,6 +156,7 @@ class Settings:
         validate_sandbox_id(self.default_sandbox_id)
         for name, value in (
             ("max_query_chars", self.max_query_chars),
+            ("max_request_body_bytes", self.max_request_body_bytes),
             ("default_top_k", self.default_top_k),
             ("max_top_k", self.max_top_k),
             ("max_context_chars", self.max_context_chars),
@@ -221,6 +223,7 @@ class Settings:
             default_sandbox_id=validate_sandbox_id(os.getenv("DEFAULT_SANDBOX_ID", "local-lab")),
             audit_log_enabled=_bool_from_env("AUDIT_LOG_ENABLED", True),
             max_query_chars=_positive_int_from_env("MAX_QUERY_CHARS", 2048),
+            max_request_body_bytes=_positive_int_from_env("MAX_REQUEST_BODY_BYTES", 1048576),
             default_top_k=_positive_int_from_env("DEFAULT_TOP_K", 3),
             max_top_k=_positive_int_from_env("MAX_TOP_K", 8),
             max_context_chars=_positive_int_from_env("MAX_CONTEXT_CHARS", 6000),

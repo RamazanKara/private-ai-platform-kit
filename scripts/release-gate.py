@@ -62,7 +62,20 @@ def validate_config(config: dict[str, Any]) -> list[str]:
     if not isinstance(gates, dict) or not gates:
         errors.append("spec.gates must be a non-empty mapping")
         return errors
-    expected = {"eval", "safety", "load", "restore", "toolchain", "egress", "retention", "slo", "quota", "modelProvenance", "supplyChain", "evidencePack"}
+    expected = {
+        "eval",
+        "safety",
+        "load",
+        "restore",
+        "toolchain",
+        "egress",
+        "retention",
+        "slo",
+        "quota",
+        "modelProvenance",
+        "supplyChain",
+        "evidencePack",
+    }
     missing = sorted(expected - set(gates))
     if missing:
         errors.append(f"spec.gates missing required gates: {missing}")
@@ -123,11 +136,22 @@ def artifact_for(name: str, gate: dict[str, Any]) -> tuple[Path | None, GateResu
     if artifact is None:
         if gate.get("required", True):
             return None, fail_result(name, "", ["missing required evidence artifact"])
-        return None, GateResult(name=name, status="skip", summary="gate not required and no evidence found", evidence="", failures=[])
+        return None, GateResult(
+            name=name, status="skip", summary="gate not required and no evidence found", evidence="", failures=[]
+        )
     policy_failure = _artifact_policy_failure(name, artifact, gate)
     if policy_failure is not None:
         return artifact, policy_failure
     return artifact, None
+
+
+def check_evidence_class(payload: dict[str, Any], gate: dict[str, Any], failures: list[str]) -> None:
+    """Require conformance and live model-quality evidence to remain distinguishable."""
+    expected = gate.get("requiredEvidenceClass")
+    if expected is not None and payload.get("evidence_class") != expected:
+        failures.append(
+            f"evidence class {payload.get('evidence_class')!r} does not match requiredEvidenceClass {expected!r}"
+        )
 
 
 def check_eval(gate: dict[str, Any]) -> GateResult:
@@ -138,6 +162,7 @@ def check_eval(gate: dict[str, Any]) -> GateResult:
     payload = load_json(artifact)
     results = payload.get("results", [])
     failures: list[str] = []
+    check_evidence_class(payload, gate, failures)
     if not isinstance(results, list):
         return fail_result("eval", rel(artifact), ["eval evidence results must be a list"])
     min_cases = int(gate.get("minCases", 1))
@@ -176,6 +201,7 @@ def check_safety(gate: dict[str, Any]) -> GateResult:
     passed = sum(1 for item in results if isinstance(item, dict) and item.get("passed") is True)
     resistance_rate = passed / total if total else 0.0
     failures: list[str] = []
+    check_evidence_class(payload, gate, failures)
     min_cases = int(gate.get("minCases", 1))
     if total < min_cases:
         failures.append(f"safety cases {total} below minCases {min_cases}")
@@ -348,7 +374,9 @@ def check_slo(gate: dict[str, Any]) -> GateResult:
     if failures:
         return fail_result("slo", rel(artifact), failures)
     passed = int(nested(payload, "summary", "passed", default=0))
-    return pass_result("slo", artifact, f"{passed}/{len(objectives)} SLO objectives passed, {len(errors)} config errors")
+    return pass_result(
+        "slo", artifact, f"{passed}/{len(objectives)} SLO objectives passed, {len(errors)} config errors"
+    )
 
 
 def check_quota(gate: dict[str, Any]) -> GateResult:
@@ -392,12 +420,16 @@ def check_model_provenance(gate: dict[str, Any]) -> GateResult:
     if not isinstance(artifacts, list):
         return fail_result("modelProvenance", rel(artifact), ["model provenance artifacts_checked must be a list"])
     if not isinstance(approved, list):
-        return fail_result("modelProvenance", rel(artifact), ["model provenance approved_models_checked must be a list"])
+        return fail_result(
+            "modelProvenance", rel(artifact), ["model provenance approved_models_checked must be a list"]
+        )
     failures: list[str] = []
     if len(errors) > int(gate.get("maxErrors", 0)):
         failures.append(f"model provenance has {len(errors)} errors")
     if len(artifacts) < int(gate.get("minArtifacts", 1)):
-        failures.append(f"model provenance artifacts {len(artifacts)} below minArtifacts {int(gate.get('minArtifacts', 1))}")
+        failures.append(
+            f"model provenance artifacts {len(artifacts)} below minArtifacts {int(gate.get('minArtifacts', 1))}"
+        )
     missing = sorted(set(approved) - set(artifacts))
     if missing:
         failures.append(f"approved models missing provenance: {missing}")
@@ -427,7 +459,9 @@ def check_supply_chain(gate: dict[str, Any]) -> GateResult:
     payload = load_json(artifact)
     images = payload.get("images", [])
     image_count = len(images) if isinstance(images, list) else 0
-    return pass_result("supplyChain", artifact, f"{image_count} images have validated SBOM, SARIF, and checksum evidence")
+    return pass_result(
+        "supplyChain", artifact, f"{image_count} images have validated SBOM, SARIF, and checksum evidence"
+    )
 
 
 def check_evidence_pack(gate: dict[str, Any]) -> GateResult:
@@ -541,7 +575,9 @@ def write_json(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check Private AI Platform Kit release gates against operational evidence.")
+    parser = argparse.ArgumentParser(
+        description="Check Private AI Platform Kit release gates against operational evidence."
+    )
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--check", action="store_true", help="Validate and run gates without writing a report.")
     parser.add_argument("--report", action="store_true", help="Write JSON and Markdown release-gate reports.")

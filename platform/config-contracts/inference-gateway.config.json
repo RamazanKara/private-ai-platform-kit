@@ -531,6 +531,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": 1048576,
+      "chart_default": 1048576,
+      "chart_value": "admission.maxRequestBodyBytes",
+      "description": "Maximum JSON request body size before parsing; Files uploads use batch.maxFileBytes.",
+      "field": "max_request_body_bytes",
+      "name": "MAX_REQUEST_BODY_BYTES",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 64,
       "chart_default": 64,
       "chart_value": "admission.maxTools",

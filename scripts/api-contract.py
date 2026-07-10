@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import sys
@@ -37,7 +38,7 @@ CONTRACTS = {
     "inference-gateway": ServiceContract(
         service_dir=ROOT / "src/inference-gateway",
         title="Private AI Platform Kit Inference Gateway",
-        version="0.26.0",
+        version="0.27.0",
         snapshot=ROOT / "platform/api-contracts/inference-gateway.openapi.json",
         routes={
             "/healthz": RouteContract("get"),
@@ -92,26 +93,28 @@ CONTRACTS = {
             "/v1/responses/{response_id}": RouteContract("get"),
             "/v1/responses/{response_id}/input_items": RouteContract("get"),
         },
-        protected_paths=frozenset({
-            "/v1/models",
-            "/v1/sandbox/budget",
-            "/v1/usage",
-            "/v1/chat/completions",
-            "/v1/completions",
-            "/v1/messages",
-            "/v1/responses",
-            "/v1/embeddings",
-            "/v1/moderations",
-            "/v1/batch-inference",
-            "/v1/files",
-            "/v1/files/{file_id}",
-            "/v1/files/{file_id}/content",
-            "/v1/batches",
-            "/v1/batches/{batch_id}",
-            "/v1/batches/{batch_id}/cancel",
-            "/v1/responses/{response_id}",
-            "/v1/responses/{response_id}/input_items",
-        }),
+        protected_paths=frozenset(
+            {
+                "/v1/models",
+                "/v1/sandbox/budget",
+                "/v1/usage",
+                "/v1/chat/completions",
+                "/v1/completions",
+                "/v1/messages",
+                "/v1/responses",
+                "/v1/embeddings",
+                "/v1/moderations",
+                "/v1/batch-inference",
+                "/v1/files",
+                "/v1/files/{file_id}",
+                "/v1/files/{file_id}/content",
+                "/v1/batches",
+                "/v1/batches/{batch_id}",
+                "/v1/batches/{batch_id}/cancel",
+                "/v1/responses/{response_id}",
+                "/v1/responses/{response_id}/input_items",
+            }
+        ),
         required_schemas={
             "ChatCompletionRequest": {
                 "properties": {
@@ -191,7 +194,7 @@ CONTRACTS = {
     "rag-service": ServiceContract(
         service_dir=ROOT / "src/rag-service",
         title="Private AI Platform Kit RAG Service",
-        version="0.26.0",
+        version="0.27.0",
         snapshot=ROOT / "platform/api-contracts/rag-service.openapi.json",
         routes={
             "/healthz": RouteContract("get"),
@@ -213,6 +216,30 @@ CONTRACTS = {
             },
         },
     ),
+}
+
+SDK_METHOD_ROUTES = {
+    "chat": "/v1/chat/completions",
+    "chat_stream": "/v1/chat/completions",
+    "embeddings": "/v1/embeddings",
+    "moderations": "/v1/moderations",
+    "batch": "/v1/batch-inference",
+    "upload_batch_file": "/v1/files",
+    "get_file": "/v1/files/",
+    "get_file_content": "/v1/files/",
+    "list_files": "/v1/files",
+    "delete_file": "/v1/files/",
+    "create_batch": "/v1/batches",
+    "get_batch": "/v1/batches/",
+    "cancel_batch": "/v1/batches/",
+    "list_batches": "/v1/batches",
+    "create_response": "/v1/responses",
+    "get_response": "/v1/responses/",
+    "delete_response": "/v1/responses/",
+    "response_input_items": "/v1/responses/",
+    "models": "/v1/models",
+    "usage": "/v1/usage",
+    "sandbox_budget": "/v1/sandbox/budget",
 }
 
 
@@ -371,7 +398,11 @@ def validate_schema(service: str, contract: ServiceContract, schema: dict[str, A
         operation_ids.append(str(operation.get("operationId", "")))
         require(errors, bool(operation.get("summary")), f"{service}: {route.method.upper()} {path} missing summary")
         require(errors, bool(operation.get("tags")), f"{service}: {route.method.upper()} {path} missing tags")
-        require(errors, "200" in operation.get("responses", {}), f"{service}: {route.method.upper()} {path} missing 200 response")
+        require(
+            errors,
+            "200" in operation.get("responses", {}),
+            f"{service}: {route.method.upper()} {path} missing 200 response",
+        )
         if route.request_schema:
             require(
                 errors,
@@ -422,13 +453,44 @@ def validate_schema(service: str, contract: ServiceContract, schema: dict[str, A
     rag_query = schemas.get("RagQueryRequest")
     if isinstance(rag_query, dict):
         query_schema = rag_query.get("properties", {}).get("query", {})
-        require(errors, query_schema.get("minLength") == 1, f"{service}: RagQueryRequest.query must enforce minLength 1")
+        require(
+            errors, query_schema.get("minLength") == 1, f"{service}: RagQueryRequest.query must enforce minLength 1"
+        )
 
     return errors
 
 
 def canonical_json(schema: dict[str, Any]) -> str:
     return json.dumps(schema, indent=2, sort_keys=True) + "\n"
+
+
+def validate_python_sdk() -> list[str]:
+    """Keep the first-party client's method surface aligned with gateway paths."""
+    errors: list[str] = []
+    sdk_path = ROOT / "sdk/python/ai_platform_client.py"
+    tree = ast.parse(sdk_path.read_text(encoding="utf-8"), filename=str(sdk_path))
+    gateway_class = next(
+        (node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "GatewayClient"),
+        None,
+    )
+    require(errors, gateway_class is not None, "python SDK: GatewayClient class is missing")
+    if gateway_class is None:
+        return errors
+    methods = {node.name: node for node in gateway_class.body if isinstance(node, ast.FunctionDef)}
+    for method, route in SDK_METHOD_ROUTES.items():
+        node = methods.get(method)
+        require(errors, node is not None, f"python SDK: GatewayClient.{method} is missing")
+        if node is None:
+            continue
+        literals = {
+            value.value for value in ast.walk(node) if isinstance(value, ast.Constant) and isinstance(value.value, str)
+        }
+        require(
+            errors,
+            any(route in literal for literal in literals),
+            f"python SDK: GatewayClient.{method} must target {route}",
+        )
+    return errors
 
 
 def selected_contracts(service: str | None) -> dict[str, ServiceContract]:
@@ -464,9 +526,9 @@ def main() -> int:
                 continue
             current = contract.snapshot.read_text(encoding="utf-8")
             if current != rendered:
-                errors.append(
-                    f"{service}: OpenAPI snapshot is stale; run scripts/api-contract.py --write"
-                )
+                errors.append(f"{service}: OpenAPI snapshot is stale; run scripts/api-contract.py --write")
+    if args.service in (None, "inference-gateway"):
+        errors.extend(validate_python_sdk())
 
     if errors:
         print("api contract check failed:")

@@ -107,14 +107,11 @@ admits, budgets, routes to Ollama, and (when invoked) calls the RAG service for 
 CD reconciles all namespaces from this repo; Prometheus scrapes `/metrics` and Promtail ships the
 redacted audit JSON to Loki.
 
-**Known limitation: NetworkPolicies are not enforced on kind.** kind's default `kindnet` CNI
-does not implement NetworkPolicy, so the default-deny sandbox/tenant isolation and the runtime
-ingress restrictions render but do not block traffic on this profile. They are validated
-structurally (chart render + kubeconform + policy tests); enforcement is exercised on the
-customer profile, whose CNI (Calico, Cilium, or the cloud provider's) must implement
-NetworkPolicy. To enforce locally, create the cluster with `LOCAL_CNI=calico make local-up`,
-which disables the default CNI and installs Calico before the stack syncs
-(`scripts/local-up.sh`).
+**NetworkPolicies are enforced locally.** The local cluster defaults to pinned Calico because
+kind's `kindnet` CNI does not implement NetworkPolicy. `make agent-sandbox-smoke` requires a
+policy-capable CNI and proves denial against the otherwise reachable Kubernetes API. Setting
+`LOCAL_CNI=kindnet` is an explicit compatibility escape hatch; the fail-closed smoke rejects it.
+Customer clusters must likewise provide Calico, Cilium, or another conformant policy CNI.
 
 ## Profile 2: Customer Cluster (vLLM + GPU)
 

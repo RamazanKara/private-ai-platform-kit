@@ -1,6 +1,6 @@
 # Version and Compatibility Matrix
 
-This page records the versions this kit is **pinned to and tested against** for the `v0.26.0`
+This page records the versions this kit is **pinned to and tested against** for the `v0.27.0`
 release. It is a compatibility reference, not a support SLA: the tables list what the kit ships
 and what CI exercises, so you can reproduce a known-good state and reason about drift. Newer or
 older versions may work but are outside what the release was validated on.
@@ -14,8 +14,8 @@ Kubernetes distribution, ingress, storage, secrets, and GPU stack), that is call
 
 | Item | Version | Source |
 | --- | --- | --- |
-| Private AI Platform Kit | `v0.26.0` | [README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md) |
-| Helm chart version (all first-party charts) | `0.26.0` | `deploy/charts/*/Chart.yaml` |
+| Private AI Platform Kit | `v0.27.0` | [README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md) |
+| Helm chart version (all first-party charts) | `0.27.0` | `deploy/charts/*/Chart.yaml` |
 | `kubeVersion` constraint (all charts) | `>=1.25.0` | `deploy/charts/*/Chart.yaml` |
 
 Maturity is a reference implementation and customer lab; a production handoff still requires current
@@ -31,14 +31,14 @@ and an immutable manifest-list digest in `values.yaml`.
 
 | Component | Chart `appVersion` | Image | Tag | Notes |
 | --- | --- | --- | --- | --- |
-| Inference gateway | `0.26.0` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` | `v0.26.0` | First-party; release CI pins the published digest. |
-| RAG service | `0.26.0` | `ghcr.io/ramazankara/private-ai-platform-kit/rag-service` | `v0.26.0` | First-party; release CI pins the published digest. |
-| Ollama runtime | `0.26.0` | `ollama/ollama` | `0.26.0` | Default local-first LLM runtime; digest-pinned. |
+| Inference gateway | `0.27.0` | `ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway` | `v0.27.0` | First-party; release CI pins the published digest. |
+| RAG service | `0.27.0` | `ghcr.io/ramazankara/private-ai-platform-kit/rag-service` | `v0.27.0` | First-party; release CI pins the published digest. |
+| Ollama runtime | `0.24.0` | `ollama/ollama` | `0.24.0` | Default local-first LLM runtime; digest-pinned. |
 | vLLM runtime | `0.22.0` | `vllm/vllm-openai` | `v0.22.0` | GPU/production-style OpenAI-compatible runtime; digest-pinned. |
 | Qdrant vector store | `1.18.1` | `qdrant/qdrant` | `v1.18.1` | Optional vector-RAG profile; single-instance; digest-pinned. |
 | Budget Redis | `8.0` | `redis` | `8.0-alpine` | Shared sandbox budget accounting store; digest-pinned. |
-| Agent workspace | `0.26.0` | (namespace/RBAC template, no image) | n/a | Tenant namespace scaffold; no workload image of its own. |
-| Platform (umbrella) | `0.26.0` | (aggregates the charts above) | n/a | Single-command dev/demo bring-up; GitOps remains recommended for multi-namespace installs. |
+| Agent workspace | `0.27.0` | (namespace/RBAC template, no image) | n/a | Tenant namespace scaffold; no workload image of its own. |
+| Platform (umbrella) | `0.27.0` | (aggregates the charts above) | n/a | Single-command dev/demo bring-up; GitOps remains recommended for multi-namespace installs. |
 
 The first-party service container images are built on `python:3.14-alpine`
 (`src/inference-gateway/Dockerfile`, `src/rag-service/Dockerfile`), digest-pinned in the Dockerfiles.
@@ -84,11 +84,11 @@ Notes:
 | Kubernetes (tested node image) | `kindest/node:v1.31.4` | `.github/workflows/ci.yml` `local-e2e` (`LOCAL_KIND_NODE_IMAGE`) | The single Kubernetes version the end-to-end job actually spins up. Customer clusters bring their own conformant Kubernetes. |
 | Python (CI + images) | `3.14` | `.github/workflows/ci.yml`, `src/*/Dockerfile` | CI runs on 3.14; service images are `python:3.14-alpine`. |
 | Python (documented local minimum) | `3.12+` | [quickstart.md](quickstart.md), [getting-started.md](getting-started.md) | Minimum for running local validation tooling. The validation-toolchain install hint recommends 3.14 or newer. |
-| Python (SDK) | `>=3.11` | [sdk/python/pyproject.toml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/sdk/python/pyproject.toml) | `requires-python` for the client SDK package. |
-| Helm | v3 | [validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml); `azure/setup-helm` in CI | CI uses the action default; the toolchain requires Helm 3. |
+| Python (SDK) | `3.11`, `3.12`, `3.13`, `3.14` | `sdk-compatibility` CI matrix; [sdk/python/pyproject.toml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/sdk/python/pyproject.toml) | All declared supported versions are exercised; `requires-python` remains `>=3.11`. |
+| Helm | v4.2.0 bootstrap; v3/v4 charts | [validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml); `azure/setup-helm` in CI | The Linux/WSL bootstrap pins v4.2.0; charts remain compatible with Helm 3. |
 | Go | `1.26` | `.github/workflows/ci.yml`; toolchain install hint | Builds Go-based validation utilities (kubeconform, Kyverno CLI, restore-drill). |
 | agent-sandbox controller | `v0.5.0` | `deploy/vendor/agent-sandbox/` (SHA-256 in the vendor README) | Standard coding-agent workspace runtime (ADR 0010, platform prerequisite); CRDs `agents.x-k8s.io/v1beta1` + `extensions.agents.x-k8s.io/v1beta1`. `v1beta1` API; re-verify spec fields on upgrade. |
-| Calico (optional local CNI) | `v3.29.1` | `CALICO_VERSION` in `scripts/local-up.sh` | Opt-in NetworkPolicy-enforcing CNI for the local lab (`LOCAL_CNI=calico`); default remains kindnet (non-enforcing). |
+| Calico (default local CNI) | `v3.29.1` | `CALICO_VERSION` in `scripts/local-up.sh` | NetworkPolicy-enforcing local default; `LOCAL_CNI=kindnet` is an explicit non-enforcing compatibility escape hatch. |
 
 ## Validation toolchain (pinned tool versions)
 
@@ -107,6 +107,11 @@ Each is overridable via the listed environment variable.
 | Argo CD CLI | `v3.4.3` | `ARGOCD_VERSION` | GitOps client compatibility checks. |
 | Cosign | `v3.0.6` | `COSIGN_VERSION` | Image / Helm OCI artifact signature verification. |
 | Trivy | `v0.70.0` | `TRIVY_VERSION` | Filesystem, secret, config, and image vulnerability scanning. |
+
+Release-only distribution tooling is pinned separately: ORAS `v1.3.2` publishes Artifact Hub
+OCI metadata, `mike==2.2.0` retains versioned documentation, and
+`pypa/gh-action-pypi-publish` is commit-pinned at its `v1.14.0` release. Their exact pins live in
+`.github/workflows/ci.yml`, `.github/workflows/docs.yml`, and `requirements-docs.txt`.
 
 ## What the kit does not pin
 

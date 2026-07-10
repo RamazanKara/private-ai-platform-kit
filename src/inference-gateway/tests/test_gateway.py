@@ -87,6 +87,9 @@ class FakeRedisBudgetStore:
     def ttl(self, key):
         return 86400 if key in self.data else -2
 
+    def ping(self):
+        return True
+
     def eval(
         self,
         script,
@@ -277,6 +280,55 @@ def test_readyz_returns_503_when_runtime_is_unavailable():
     assert response.status_code == 503
     assert response.json()["status"] == "not_ready"
     assert "no route" not in response.text
+
+
+def test_readyz_stays_ready_when_primary_runtime_has_healthy_fallback():
+    settings = _tool_settings(runtime_backend="vllm", allowed_models=("primary", "fallback"), model_id="primary")
+    app = create_app(settings)
+    app.state.model_routing_policy = ModelRoutingPolicy(
+        routes=(
+            ModelRoute("primary", "vllm", fallbacks=("fallback",)),
+            ModelRoute("fallback", "ollama"),
+        )
+    )
+
+    class BackendHealth:
+        async def health(self, backend=None):
+            if backend == "vllm":
+                raise httpx.ConnectError("primary unavailable")
+            return {"status": "ok"}
+
+    app.state.runtime_client = BackendHealth()
+    response = TestClient(app).get("/readyz")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"
+    assert response.json()["runtimes"]["vllm"]["status"] == "unavailable"
+    assert response.json()["model_status"]["primary"] == {"status": "ok", "ready_via": "ollama"}
+
+
+def test_readyz_returns_503_when_required_redis_dependency_is_unavailable():
+    settings = _tool_settings(
+        sandbox_budget_enabled=True,
+        sandbox_budget_backend="redis",
+        sandbox_budget_redis_url="redis://redis.internal:6379/0",
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient()
+
+    class UnavailableRedis:
+        def ping(self):
+            raise OSError("redis is down")
+
+    app.state.budget_tracker.client = UnavailableRedis()
+    response = TestClient(app).get("/readyz")
+
+    assert response.status_code == 503
+    assert response.json()["dependencies"]["budget_store"] == {
+        "status": "unavailable",
+        "backend": "redis",
+    }
+    assert "redis is down" not in response.text
 
 
 def test_chat_completion_forwards_openai_payload():
@@ -2397,6 +2449,34 @@ def test_redis_budget_tracker_shares_usage_across_tracker_instances():
     assert snapshot["usage"]["requests"] == 1
 
 
+def test_redis_budget_uses_fixed_window_without_refreshing_positive_ttl():
+    from app.budget import REDIS_RESERVE_SCRIPT
+
+    assert "local existing_ttl = redis.call('TTL', key)" in REDIS_RESERVE_SCRIPT
+    assert "if ttl > 0 and existing_ttl < 0 then" in REDIS_RESERVE_SCRIPT
+
+
+def test_budget_counts_tool_call_arguments_as_prompt_context():
+    from app.budget import budget_delta
+
+    settings = _tool_settings(budget_estimated_chars_per_token=4)
+    payload = {
+        "messages": [
+            {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [{"id": "call", "type": "function", "function": {"name": "f", "arguments": "x" * 40}}],
+            }
+        ],
+        "max_tokens": 0,
+    }
+
+    delta = budget_delta(settings, payload)
+
+    assert delta.prompt_chars >= 40
+    assert delta.estimated_tokens >= 10
+
+
 def test_audit_log_redacts_prompt_content(caplog):
     caplog.set_level(logging.INFO, logger="ai_platform_ops_lab.audit")
     settings = Settings(
@@ -3229,6 +3309,23 @@ def test_prompt_secret_block_mode_rejects_by_default():
     assert fake.calls == 0
 
 
+def test_request_body_limit_rejects_before_runtime_parsing():
+    app = create_app(_tool_settings(max_request_body_bytes=128))
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={"messages": [{"role": "user", "content": "x" * 256}]},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["reason"] == "request_body_too_large"
+    assert response.json()["detail"]["limit_bytes"] == 128
+    assert fake.calls == 0
+
+
 def test_prompt_secret_redact_mode_forwards_redacted_prompt():
     app = create_app(_tool_settings(prompt_secret_mode="redact"))
     fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
@@ -3246,6 +3343,108 @@ def test_prompt_secret_redact_mode_forwards_redacted_prompt():
     forwarded = fake.payload["messages"][0]["content"]
     assert "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345" not in forwarded
     assert "[REDACTED:github_token]" in forwarded
+
+
+def test_prompt_secret_block_mode_scans_tool_schema_and_call_arguments():
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    schema_secret = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [{"role": "user", "content": "use the tool"}],
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "lookup",
+                        "description": "credential ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345",
+                    },
+                }
+            ],
+        },
+    )
+    argument_secret = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {
+                                "name": "lookup",
+                                "arguments": '{"token":"ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"}',
+                            },
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+
+    assert schema_secret.status_code == 400
+    assert argument_secret.status_code == 400
+    assert fake.calls == 0
+
+
+def test_prompt_secret_redact_mode_redacts_tool_call_arguments():
+    app = create_app(_tool_settings(prompt_secret_mode="redact"))
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {
+                                "name": "lookup",
+                                "arguments": '{"token":"ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"}',
+                            },
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    arguments = fake.payload["messages"][0]["tool_calls"][0]["function"]["arguments"]
+    assert "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345" not in arguments
+    assert "[REDACTED:github_token]" in arguments
+
+
+def test_payload_fingerprint_changes_when_only_tool_arguments_change():
+    base = {
+        "messages": [
+            {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [{"id": "call_1", "type": "function", "function": {"name": "lookup", "arguments": "{}"}}],
+            }
+        ]
+    }
+    changed = json.loads(json.dumps(base))
+    changed["messages"][0]["tool_calls"][0]["function"]["arguments"] = '{"tenant":"other"}'
+
+    first = gateway_main._payload_fingerprint(base)
+    second = gateway_main._payload_fingerprint(changed)
+
+    assert first["prompt_sha256"] != second["prompt_sha256"]
+    assert first["request_sha256"] != second["request_sha256"]
 
 
 def test_prompt_secret_flag_mode_allows_and_records():

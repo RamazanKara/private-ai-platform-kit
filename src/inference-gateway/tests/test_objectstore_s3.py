@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from io import BytesIO
 from types import SimpleNamespace
 
 import httpx
@@ -71,6 +72,25 @@ def test_put_signs_and_targets_path_style_url():
     assert seen["sha"] == hashlib.sha256(b"hello").hexdigest()
 
 
+def test_put_stream_hashes_and_uploads_rewound_stream():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = request.content
+        seen["sha"] = request.headers["x-amz-content-sha256"]
+        seen["length"] = request.headers["content-length"]
+        return httpx.Response(200)
+
+    data = b"streamed-jsonl\n"
+    _store(handler).put_stream("tenant-a/file-1", BytesIO(data), len(data))
+
+    assert seen == {
+        "body": data,
+        "sha": hashlib.sha256(data).hexdigest(),
+        "length": str(len(data)),
+    }
+
+
 def test_get_returns_body_and_maps_404():
     body = _store(lambda r: httpx.Response(200, content=b"data")).get("k")
     assert body == b"data"
@@ -93,6 +113,19 @@ def test_delete_is_idempotent_on_204_and_404():
 def test_exists_reads_head_status():
     assert _store(lambda r: httpx.Response(200)).exists("k") is True
     assert _store(lambda r: httpx.Response(404)).exists("k") is False
+
+
+def test_ready_probes_bucket_without_listing_objects():
+    seen = {}
+
+    def handler(request):
+        seen["method"] = request.method
+        seen["path"] = request.url.path
+        return httpx.Response(204)
+
+    assert _store(handler).ready() is True
+    assert seen == {"method": "HEAD", "path": "/batches"}
+    assert _store(lambda r: httpx.Response(403)).ready() is False
 
 
 def test_list_keys_parses_xml_and_sorts():

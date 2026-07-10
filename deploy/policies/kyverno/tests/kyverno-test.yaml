@@ -14,6 +14,9 @@ resources:
   - resources/unencrypted-pvc.yaml
   - resources/good-sandbox.yaml
   - resources/unhardened-sandbox.yaml
+  - resources/unscoped-egress.yaml
+  - resources/local-model-pull-egress.yaml
+  - resources/customer-model-pull-exception.yaml
 results:
   - policy: ai-platform-required-labels
     rule: require-platform-labels
@@ -74,6 +77,30 @@ results:
     resources:
       - unhardened-sandbox
     kind: Sandbox
+    result: fail
+  - policy: ai-platform-restrict-egress-cidrs
+    rule: deny-unscoped-egress-rules
+    resources:
+      - unscoped-egress
+    kind: NetworkPolicy
+    result: fail
+  - policy: ai-platform-restrict-egress-cidrs
+    rule: deny-broad-egress-cidrs
+    resources:
+      - local-model-pull-egress
+    kind: NetworkPolicy
+    result: skip
+  - policy: ai-platform-restrict-egress-cidrs
+    rule: restrict-local-model-pull-exception
+    resources:
+      - local-model-pull-egress
+    kind: NetworkPolicy
+    result: pass
+  - policy: ai-platform-restrict-egress-cidrs
+    rule: restrict-local-model-pull-exception
+    resources:
+      - customer-model-pull-exception
+    kind: NetworkPolicy
     result: fail
   - policy: ai-platform-hardened-sandboxes
     rule: require-hardened-sandbox-containers

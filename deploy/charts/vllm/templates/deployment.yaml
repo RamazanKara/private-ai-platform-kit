@@ -57,6 +57,8 @@ spec:
           args:
             - --model
             - {{ .Values.model.name | quote }}
+            - --task
+            - {{ .Values.model.task | quote }}
             {{- if .Values.model.revision }}
             - --revision
             - {{ .Values.model.revision | quote }}

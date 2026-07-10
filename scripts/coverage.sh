@@ -22,7 +22,11 @@ run_service_coverage() {
   python3 -m venv .venv
   .venv/bin/python -m pip install --require-hashes -r requirements-dev.lock >/dev/null
   .venv/bin/python -m pip install --require-hashes --no-deps -r "$ROOT/requirements-coverage.lock" >/dev/null
-  PYTHONPATH="$dir" .venv/bin/python -m pytest -q tests \
+  # Use Python-level capture here. Some container/WSL filesystems can invalidate
+  # pytest's fd-capture temporary file while the coverage plugin is finalizing,
+  # producing an infrastructure FileNotFoundError after otherwise successful tests.
+  # `sys` capture preserves capsys/caplog semantics without relying on that file.
+  PYTHONPATH="$dir" .venv/bin/python -m pytest -q tests --capture=sys \
     --cov=app \
     --cov-report=term-missing \
     --cov-report="xml:${dir}/coverage.xml" \

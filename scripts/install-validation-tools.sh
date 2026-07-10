@@ -16,6 +16,9 @@ SYFT_VERSION="${SYFT_VERSION:-v1.44.0}"
 ARGOCD_VERSION="${ARGOCD_VERSION:-v3.4.3}"
 COSIGN_VERSION="${COSIGN_VERSION:-v3.0.6}"
 TRIVY_VERSION="${TRIVY_VERSION:-v0.70.0}"
+KIND_VERSION="${KIND_VERSION:-v0.31.0}"
+KUBECTL_VERSION="${KUBECTL_VERSION:-v1.31.4}"
+HELM_VERSION="${HELM_VERSION:-v4.2.0}"
 
 INSTALL_TOOLS="${INSTALL_TOOLS:-kubeconform kyverno restore-drill k6 syft argocd cosign trivy}"
 CURL_ARGS=(-fsSL --retry 5 --retry-all-errors --retry-delay 2)
@@ -26,7 +29,8 @@ Usage: scripts/install-validation-tools.sh [--bin-dir PATH] [--force] [--dry-run
 
 Installs strict validation tools into a local bin directory. Versions can be
 overridden with KUBECONFORM_VERSION, KYVERNO_VERSION, RESTORE_DRILL_VERSION,
-K6_VERSION, SYFT_VERSION, ARGOCD_VERSION, COSIGN_VERSION, and TRIVY_VERSION.
+K6_VERSION, SYFT_VERSION, ARGOCD_VERSION, COSIGN_VERSION, TRIVY_VERSION,
+KIND_VERSION, KUBECTL_VERSION, and HELM_VERSION.
 
 Set INSTALL_TOOLS to a space-separated subset when only specific tools are needed.
 USAGE
@@ -153,6 +157,26 @@ download_github_asset() {
   fi
 }
 
+download_checked_url() {
+  local url="$1"
+  local checksum_url="$2"
+  local output="$3"
+  local checksum_file
+  checksum_file="$(mktemp)"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    log "dry-run download ${url} (checksum ${checksum_url})"
+    rm -f "$checksum_file"
+    return 0
+  fi
+  curl "${CURL_ARGS[@]}" "$url" -o "$output"
+  curl "${CURL_ARGS[@]}" "$checksum_url" -o "$checksum_file"
+  local expected actual
+  expected="$(awk '{print $1}' "$checksum_file")"
+  actual="$(sha256sum "$output" | awk '{print $1}')"
+  rm -f "$checksum_file"
+  [[ "$actual" == "$expected" ]] || die "sha256 mismatch for ${url}: expected ${expected}, got ${actual}"
+}
+
 install_tar_binary() {
   local owner_repo="$1"
   local tag="$2"
@@ -213,6 +237,35 @@ install_tool() {
   local arch
   arch="$(normalize_arch)"
   case "$tool" in
+    kind)
+      should_install kind || { log "skip kind: already available"; return 0; }
+      install_direct_binary kubernetes-sigs/kind "$KIND_VERSION" "kind-linux-${arch}" kind
+      ;;
+    kubectl)
+      should_install kubectl || { log "skip kubectl: already available"; return 0; }
+      local kubectl_target="$BIN_DIR/kubectl"
+      download_checked_url \
+        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${arch}/kubectl" \
+        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${arch}/kubectl.sha256" \
+        "$kubectl_target"
+      [[ "$DRY_RUN" == "1" ]] || chmod 0755 "$kubectl_target"
+      ;;
+    helm)
+      should_install helm || { log "skip helm: already available"; return 0; }
+      local helm_archive helm_unpack
+      helm_archive="$(mktemp)"
+      helm_unpack="$(mktemp -d)"
+      download_checked_url \
+        "https://get.helm.sh/helm-${HELM_VERSION}-linux-${arch}.tar.gz" \
+        "https://get.helm.sh/helm-${HELM_VERSION}-linux-${arch}.tar.gz.sha256sum" \
+        "$helm_archive"
+      if [[ "$DRY_RUN" != "1" ]]; then
+        tar -xzf "$helm_archive" -C "$helm_unpack"
+        install -m 0755 "$helm_unpack/linux-${arch}/helm" "$BIN_DIR/helm"
+      fi
+      rm -f "$helm_archive"
+      rm -rf "$helm_unpack"
+      ;;
     kubeconform)
       should_install kubeconform || { log "skip kubeconform: already available"; return 0; }
       install_tar_binary yannh/kubeconform "$KUBECONFORM_VERSION" "kubeconform-linux-${arch}.tar.gz" kubeconform

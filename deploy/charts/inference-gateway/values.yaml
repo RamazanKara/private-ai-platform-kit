@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway
   # First-party image: release CI pins the published digest (set image.digest) after build.
-  tag: "v0.26.0"
+  tag: "v0.27.0"
   pullPolicy: IfNotPresent
 
 runtime:
@@ -34,6 +34,8 @@ sandboxPolicy:
 admission:
   maxMessages: 16
   maxPromptChars: 8192
+  # Maximum JSON request body before parsing. Files uploads use batch.maxFileBytes.
+  maxRequestBodyBytes: 1048576
   maxCompletionTokens: 1024
   # Cap on the OpenAI `n` parameter (completions per request); the completion budget is
   # charged n times so a caller cannot request many completions for the price of one.
@@ -320,7 +322,12 @@ keda:
   minReplicaCount: 1
   maxReplicaCount: 5
   prometheusServerAddress: http://kube-prometheus-stack-prometheus.monitoring:9090
+  # Aggregate request rate across every governed /v1 API and every status.
   threshold: "10"
+  # Independent saturation signals; KEDA scales when any trigger is above target.
+  inflightThreshold: "20"
+  loadShedRateThreshold: "0.1"
+  p95LatencyThresholdSeconds: "5"
 
 observability:
   tracing:
