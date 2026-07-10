@@ -24,7 +24,8 @@ class EmbeddingProvider(Protocol):
 
     async def embed_async(self, value: str) -> list[float]: ...
 
-    async def ready(self) -> bool: ...
+    async def ready(self) -> bool:
+        raise NotImplementedError
 
 
 def tokenize(value: str) -> list[str]:

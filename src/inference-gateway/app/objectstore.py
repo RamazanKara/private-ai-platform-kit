@@ -36,7 +36,8 @@ class ObjectStore(Protocol):
 
     def put(self, key: str, data: bytes) -> None: ...
 
-    def put_stream(self, key: str, stream: BinaryIO, size: int) -> None: ...
+    def put_stream(self, key: str, stream: BinaryIO, size: int) -> None:
+        raise NotImplementedError
 
     def get(self, key: str) -> bytes: ...
 

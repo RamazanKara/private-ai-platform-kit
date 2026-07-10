@@ -163,7 +163,8 @@ class BatchStore(Protocol):
 
     def create_batch(self, record: BatchRecord) -> None: ...
 
-    def create_and_enqueue(self, record: BatchRecord) -> None: ...
+    def create_and_enqueue(self, record: BatchRecord) -> None:
+        raise NotImplementedError
 
     def get_batch(self, tenant: str, batch_id: str) -> BatchRecord | None: ...
 
