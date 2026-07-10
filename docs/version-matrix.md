@@ -108,7 +108,7 @@ Each is overridable via the listed environment variable.
 | Cosign | `v3.0.6` | `COSIGN_VERSION` | Image / Helm OCI artifact signature verification. |
 | Trivy | `v0.70.0` | `TRIVY_VERSION` | Filesystem, secret, config, and image vulnerability scanning. |
 
-Release-only distribution tooling is pinned separately: ORAS `v1.3.2` publishes Artifact Hub
+Release-only distribution tooling is pinned separately: ORAS `v1.3.1` publishes Artifact Hub
 OCI metadata, `mike==2.2.0` retains versioned documentation, and
 `pypa/gh-action-pypi-publish` is commit-pinned at its `v1.14.0` release. Their exact pins live in
 `.github/workflows/ci.yml`, `.github/workflows/docs.yml`, and `requirements-docs.txt`.
