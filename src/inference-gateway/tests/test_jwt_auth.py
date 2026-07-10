@@ -264,6 +264,16 @@ def _int_b64(value: int) -> str:
     return _b64url(value.to_bytes(length, "big"))
 
 
+def _fixed_int_b64(value: int, length: int) -> str:
+    return _b64url(value.to_bytes(length, "big"))
+
+
+def test_fixed_int_b64_preserves_leading_zero_octets():
+    encoded = _fixed_int_b64(1, 32)
+    decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+    assert decoded == b"\x00" * 31 + b"\x01"
+
+
 def _rsa_keypair(kid: str = "rsa-key"):
     private_key = _rsa.generate_private_key(public_exponent=65537, key_size=2048)
     numbers = private_key.public_key().public_numbers()
@@ -274,7 +284,16 @@ def _rsa_keypair(kid: str = "rsa-key"):
 def _ec_keypair(kid: str = "ec-key"):
     private_key = _ec.generate_private_key(_ec.SECP256R1())
     numbers = private_key.public_key().public_numbers()
-    jwk = {"kty": "EC", "kid": kid, "use": "sig", "crv": "P-256", "x": _int_b64(numbers.x), "y": _int_b64(numbers.y)}
+    jwk = {
+        "kty": "EC",
+        "kid": kid,
+        "use": "sig",
+        "crv": "P-256",
+        # RFC 7518 requires P-256 coordinates to be exactly 32 octets. Minimal
+        # integer encoding randomly drops a leading zero for roughly 1/256 keys.
+        "x": _fixed_int_b64(numbers.x, 32),
+        "y": _fixed_int_b64(numbers.y, 32),
+    }
     return private_key, jwk
 
 

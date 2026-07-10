@@ -254,8 +254,10 @@ jobs:
           docker buildx imagetools inspect "${rag_source}" >/dev/null
           docker buildx imagetools create --tag "${gateway_target}" "${gateway_source}"
           docker buildx imagetools create --tag "${rag_target}" "${rag_source}"
-          gateway_digest="$(docker buildx imagetools inspect "${gateway_target}" | awk '/^Digest:/ {print $2; exit}')"
-          rag_digest="$(docker buildx imagetools inspect "${rag_target}" | awk '/^Digest:/ {print $2; exit}')"
+          # Do not exit awk early: with pipefail that closes the pipe while
+          # buildx is still writing, so a successful inspect reports SIGPIPE.
+          gateway_digest="$(docker buildx imagetools inspect "${gateway_target}" | awk '/^Digest:/ {print $2}')"
+          rag_digest="$(docker buildx imagetools inspect "${rag_target}" | awk '/^Digest:/ {print $2}')"
           [[ "${gateway_digest}" == sha256:* && "${rag_digest}" == sha256:* ]]
           echo "gateway_digest=${gateway_digest}" >> "$GITHUB_OUTPUT"
           echo "rag_digest=${rag_digest}" >> "$GITHUB_OUTPUT"
