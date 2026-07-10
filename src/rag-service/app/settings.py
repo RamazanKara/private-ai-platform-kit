@@ -102,6 +102,7 @@ class Settings:
     default_sandbox_id: str = "local-lab"
     audit_log_enabled: bool = True
     max_query_chars: int = 2048
+    max_request_body_bytes: int = 1048576
     default_top_k: int = 3
     max_top_k: int = 8
     max_context_chars: int = 6000
@@ -118,7 +119,7 @@ class Settings:
     # Per-tenant retrieval isolation defaults ON: retrieval is scoped to the caller's tenant
     # (the ingest-stamped ``retrieval_tenant_field`` payload value) so a shared multi-tenant
     # collection never returns another tenant's documents. Single-tenant local labs opt out by
-    # setting this False (the chart's local profile does). Fails closed — see the retrievers.
+    # setting this False (the chart's local profile does). Fails closed; see the retrievers.
     retrieval_tenant_isolation_enabled: bool = True
     retrieval_tenant_field: str = "owner"
     reranker_provider: str = "none"
@@ -134,7 +135,7 @@ class Settings:
     api_key_header: str = "X-API-Key"
     # Audience-bound JWT verification. When enabled the RAG service verifies the bearer token
     # itself (JWKS/issuer/audience/exp/nbf) and DERIVES the caller's tenant from the verified
-    # ``jwt_tenant_claim`` rather than trusting the X-Sandbox-ID header — a header that
+    # ``jwt_tenant_claim`` rather than trusting the X-Sandbox-ID header, a header that
     # contradicts the verified claim is rejected (403). ``jwt_required`` makes a valid token
     # mandatory (fail closed: no/invalid token -> 401). OFF by default: behavior is unchanged
     # (header-trust), so single-tenant labs and existing deployments are backward compatible.
@@ -155,6 +156,7 @@ class Settings:
         validate_sandbox_id(self.default_sandbox_id)
         for name, value in (
             ("max_query_chars", self.max_query_chars),
+            ("max_request_body_bytes", self.max_request_body_bytes),
             ("default_top_k", self.default_top_k),
             ("max_top_k", self.max_top_k),
             ("max_context_chars", self.max_context_chars),
@@ -221,6 +223,7 @@ class Settings:
             default_sandbox_id=validate_sandbox_id(os.getenv("DEFAULT_SANDBOX_ID", "local-lab")),
             audit_log_enabled=_bool_from_env("AUDIT_LOG_ENABLED", True),
             max_query_chars=_positive_int_from_env("MAX_QUERY_CHARS", 2048),
+            max_request_body_bytes=_positive_int_from_env("MAX_REQUEST_BODY_BYTES", 1048576),
             default_top_k=_positive_int_from_env("DEFAULT_TOP_K", 3),
             max_top_k=_positive_int_from_env("MAX_TOP_K", 8),
             max_context_chars=_positive_int_from_env("MAX_CONTEXT_CHARS", 6000),

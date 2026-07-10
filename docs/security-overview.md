@@ -52,7 +52,7 @@ the runtime controls. All are documented per-control in the OWASP mapping and th
   the enterprise identity boundary and backing the hashes/records with the customer secret manager is
   operator-owned (RS256/ES256 preferred for customer IdPs). **Tenant binding:** with a JWT `tenantClaim`
   or a sandbox-bound key record, the sandbox is taken from the verified identity, not the client
-  `X-Sandbox-ID` header — a contradicting header is rejected (`sandbox_identity_mismatch`), and the
+  `X-Sandbox-ID` header. A contradicting header is rejected (`sandbox_identity_mismatch`), and the
   read-only `GET /v1/usage` and `GET /v1/sandbox/budget` endpoints are thereby scoped to the caller's own
   tenant. Without a binding the gateway is header-trusted (the documented single-tenant/local default).
   Human SSO for the operator dashboards (Grafana, Argo CD) is distinct from this machine auth; see the
@@ -111,12 +111,12 @@ release pipeline trust boundary" section of the threat model.
   [`platform/network/egress-catalog.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/network/egress-catalog.yaml).
   NetworkPolicies restrict who may connect but do **not** encrypt: the in-cluster data plane is plaintext
   HTTP by default. Encryption in transit is an opt-in, operator-owned overlay (service-mesh mTLS,
-  Cilium WireGuard/IPsec, or cert-manager TLS) —
+  Cilium WireGuard/IPsec, or cert-manager TLS):
   [`deploy/clusters/customer/mtls/`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md).
   Treat enabling it as required before handling regulated data in a multi-tenant cluster.
 - **Runtime threat detection.** Admission and NetworkPolicies are preventive; they do not observe
   post-admission behavior. An opt-in **Falco** runtime-detection layer (Argo app + runbook) provides
-  detective coverage —
+  detective coverage:
   [runtime-threat-detection.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md).
 - **Per-tenant RAG isolation.** The RAG service scopes retrieval to the caller's tenant via the
   ingest-stamped `owner` payload field, complementing the existing per-classification retrieval
@@ -126,11 +126,11 @@ release pipeline trust boundary" section of the threat model.
   (`retrieval.tenantIsolation.enabled: false` in the chart), and multi-tenant/customer profiles keep it
   on. **Both retrieval backends enforce it:** the Qdrant path appends an `owner` match to the query
   filter, and the lexical path (whose corpus is stamped with the default sandbox id) applies the same
-  owner scoping. **It fails closed:** a tenant with no matching documents — or a request that did not
-  explicitly assert `X-Sandbox-ID` (only the server-side default) — receives no documents rather than
+  owner scoping. **It fails closed:** a tenant with no matching documents (or a request that did not
+  explicitly assert `X-Sandbox-ID`, using only the server-side default) receives no documents rather than
   the whole corpus, and a missing-tenant query never runs an unfiltered search. **Verified-claim tenant
   binding.** The RAG service can now derive the tenant from its **own** verified token rather than a
-  trusted header: with `auth.jwt.enabled` (`RAG_JWT_*`, mirroring the gateway's `jwt_auth` — JWKS with a
+  trusted header: with `auth.jwt.enabled` (`RAG_JWT_*`, mirroring the gateway's `jwt_auth`: JWKS with a
   last-known-good cache, an `HS256`/`RS256`/`ES256` allowlist pinned so alg-confusion is rejected, and
   issuer/audience/exp/nbf enforcement) the caller's tenant is taken from the verified `tenantClaim` and
   used for the isolation filter, so a contradicting `X-Sandbox-ID` header is rejected
@@ -139,8 +139,8 @@ release pipeline trust boundary" section of the threat model.
   gap for direct callers; header-trust remains the fallback when JWT is off (the default, and the only
   shipped configuration on the single-tenant local lab). Without a binding the RAG service is
   header-trusted, so isolation is only trustworthy when the `X-Sandbox-ID` header comes from a trusted
-  path — gateway-fronted traffic that derives it from a verified JWT tenant claim, or a workspace egress
-  proxy that stamps it — not a direct caller under the shared key asserting another tenant's id. See the
+  path: gateway-fronted traffic that derives it from a verified JWT tenant claim, or a workspace egress
+  proxy that stamps it, not a direct caller under the shared key asserting another tenant's id. See the
   [RAG service runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/rag-service.md),
   the [Vector RAG runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/vector-rag.md),
   and OWASP LLM01.

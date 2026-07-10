@@ -46,7 +46,7 @@ serves as the CPU-runnable eval proxy for the multi-GPU `Qwen/Qwen3-Coder-Next` 
   `ollama-library/qwen3.5:0.8b@sha256:afb707b6b8fac6e475acc42bc8380fc0b8d2e0e4190be5a969fbf62fcc897db5`
 - Digest: `sha256:afb707b6b8fac6e475acc42bc8380fc0b8d2e0e4190be5a969fbf62fcc897db5`
   (scope: model-artifact)
-- Verification: `ollama-registry-model-layer` — resolve the model-weights layer digest from the
+- Verification: `ollama-registry-model-layer`. Resolve the model-weights layer digest from the
   Ollama registry manifest:
 
       curl -fsSL https://registry.ollama.ai/v2/library/qwen3.5/manifests/0.8b | \

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -131,13 +132,54 @@ def parse_completion_window(value: str) -> int:
     suffix, e.g. ``24h``. OpenAI only documents ``24h``; the wider grammar lets local test
     windows be short without a special case. The window is honored as an expiry bound.
     """
-    match = re.fullmatch(r"(\d+)([hms])", value.strip())
-    if not match:
+    normalized = value.strip()
+    # Bound and parse directly: this value is caller controlled on the Batch API,
+    # so it must not enter a repetition-bearing regular expression or an
+    # unbounded integer conversion.
+    if len(normalized) < 2 or len(normalized) > 13:
         raise ValueError("batch_completion_window must look like '24h', '30m', or '90s'")
-    amount = int(match.group(1))
+    amount_text, suffix = normalized[:-1], normalized[-1]
+    if suffix not in {"h", "m", "s"} or not amount_text.isascii() or not amount_text.isdigit():
+        raise ValueError("batch_completion_window must look like '24h', '30m', or '90s'")
+    amount = int(amount_text)
     if amount <= 0:
         raise ValueError("batch_completion_window must be greater than zero")
-    return amount * {"h": 3600, "m": 60, "s": 1}[match.group(2)]
+    return amount * {"h": 3600, "m": 60, "s": 1}[suffix]
+
+
+def iter_payload_strings(value: Any) -> Iterator[str]:
+    """Yield every string leaf in caller-controlled JSON.
+
+    Tool definitions, tool-call arguments, legacy function calls, and provider
+    extension fields are forwarded to a model and can carry the same secrets or
+    blocked content as ``message.content``. Recursion keeps admission aligned with
+    the complete forwarded payload instead of an incomplete field allowlist.
+    """
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, list):
+        for item in value:
+            yield from iter_payload_strings(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from iter_payload_strings(item)
+
+
+def payload_string_chars(value: Any) -> int:
+    """Return aggregate characters across every string leaf in a JSON value."""
+    return sum(len(text) for text in iter_payload_strings(value))
+
+
+def message_prompt_chars(messages: list[Any]) -> int:
+    """Count chat content plus model-visible tool/function-call arguments."""
+    total = 0
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        total += len(extract_text_content(message.get("content")))
+        total += payload_string_chars(message.get("tool_calls"))
+        total += payload_string_chars(message.get("function_call"))
+    return total
 
 
 def extract_text_content(content: Any) -> str:
@@ -305,6 +347,7 @@ class Settings:
     allowed_models: tuple[str, ...] = ()
     max_messages: int = 16
     max_prompt_chars: int = 8192
+    max_request_body_bytes: int = 1048576
     max_completion_tokens: int = 1024
     max_completions_per_request: int = 1
     image_part_token_estimate: int = 768
@@ -423,6 +466,8 @@ class Settings:
             raise ValueError("max_concurrent_requests must be zero or greater")
         if self.max_batch_requests <= 0:
             raise ValueError("max_batch_requests must be greater than zero")
+        if self.max_request_body_bytes <= 0:
+            raise ValueError("max_request_body_bytes must be greater than zero")
         if self.max_completions_per_request <= 0:
             raise ValueError("max_completions_per_request must be greater than zero")
         if self.image_part_token_estimate < 0:
@@ -527,6 +572,7 @@ class Settings:
             allowed_models=_csv_from_env("ALLOWED_MODELS", (model_id,)),
             max_messages=_int_from_env("MAX_MESSAGES", 16),
             max_prompt_chars=_int_from_env("MAX_PROMPT_CHARS", 8192),
+            max_request_body_bytes=_positive_int_from_env("MAX_REQUEST_BODY_BYTES", 1048576),
             max_completion_tokens=_int_from_env("MAX_COMPLETION_TOKENS", 1024),
             max_completions_per_request=_positive_int_from_env("MAX_COMPLETIONS_PER_REQUEST", 1),
             image_part_token_estimate=_int_from_env("IMAGE_PART_TOKEN_ESTIMATE", 768),
@@ -683,15 +729,18 @@ class Settings:
                 "too_many_messages",
                 f"request has {len(messages)} messages; limit is {self.max_messages}",
             )
-        prompt_chars = sum(len(extract_text_content(message.get("content"))) for message in messages)
+        # Complete message objects count toward the prompt ceiling. Assistant
+        # tool-call and legacy function-call arguments become prompt context on
+        # the next turn and must not bypass admission through non-content fields.
+        prompt_chars = message_prompt_chars(messages)
         if prompt_chars > self.max_prompt_chars:
             raise AdmissionPolicyError(
                 "prompt_too_large",
                 f"prompt has {prompt_chars} characters; limit is {self.max_prompt_chars}",
             )
         self._validate_tools(payload)
-        for message in messages:
-            self._enforce_content_policy(extract_text_content(message.get("content")))
+        for text in iter_payload_strings(payload):
+            self._enforce_content_policy(text)
         # Validate BOTH completion-cap fields independently: the request forwards both to
         # the runtime, and different runtimes honor different fields (vLLM prefers
         # max_completion_tokens, Ollama honors max_tokens), so a cap on only the "preferred"
@@ -771,7 +820,7 @@ class Settings:
                 "prompt_too_large",
                 f"embedding input has {total_chars} characters; limit is {self.max_prompt_chars}",
             )
-        for text in texts:
+        for text in iter_payload_strings(payload):
             self._enforce_content_policy(text)
 
     def validate_completion_admission(self, payload: dict) -> None:
@@ -795,7 +844,7 @@ class Settings:
                 "prompt_too_large",
                 f"prompt has {prompt_chars} characters; limit is {self.max_prompt_chars}",
             )
-        for text in prompt_texts:
+        for text in iter_payload_strings(payload):
             self._enforce_content_policy(text)
         for field in ("max_completion_tokens", "max_tokens"):
             value = payload.get(field)
@@ -878,63 +927,34 @@ class Settings:
                 text = pattern.sub(f"[REDACTED:{name}]", text)
         return text, matched
 
-    def _apply_secret_mode_to_content(self, content: Any, redact: bool) -> tuple[Any, list[str]]:
-        """Redact/scan a chat message ``content`` (string or content-part array)."""
-        if isinstance(content, str):
-            new_text, names = self._redact_secret_text(content)
-            return (new_text if redact else content), names
-        if isinstance(content, list):
-            matched: list[str] = []
-            new_parts: list[Any] = []
-            for part in content:
-                if isinstance(part, dict) and isinstance(part.get("text"), str):
-                    new_text, names = self._redact_secret_text(part["text"])
-                    matched.extend(names)
-                    if redact and names:
-                        part = {**part, "text": new_text}
-                new_parts.append(part)
-            return (new_parts if redact else content), matched
-        return content, []
-
     def apply_prompt_secret_mode(self, payload: dict[str, Any]) -> list[str]:
         """Redact or flag prompt secrets per ``prompt_secret_mode``; mutate payload in redact mode.
 
         A no-op in ``block`` mode (admission already rejected) or when detection is
-        disabled. Handles both chat ``messages`` and embedding ``input``. Returns the
-        sorted unique matched pattern names for metrics and the audit receipt.
+        disabled. Recursively handles every forwarded string, including tool schemas,
+        tool/function-call arguments, provider extensions, embedding input, and legacy
+        completion prompts. Returns sorted unique pattern names for metrics and audit.
         """
         if not self.prompt_secret_detection_enabled or self.prompt_secret_mode == "block":
             return []
         redact = self.prompt_secret_mode == "redact"
         matched: list[str] = []
-        messages = payload.get("messages")
-        if isinstance(messages, list):
-            for message in messages:
-                if isinstance(message, dict):
-                    new_content, names = self._apply_secret_mode_to_content(message.get("content"), redact)
-                    matched.extend(names)
-                    if redact and names:
-                        message["content"] = new_content
-        # ``input`` (embeddings) and ``prompt`` (legacy completions) share the same
-        # str-or-list-of-str shape, so redact/scan both the same way.
-        for field in ("input", "prompt"):
-            raw_field = payload.get(field)
-            if isinstance(raw_field, str):
-                new_text, names = self._redact_secret_text(raw_field)
+
+        def visit(value: Any) -> Any:
+            if isinstance(value, str):
+                new_text, names = self._redact_secret_text(value)
                 matched.extend(names)
-                if redact and names:
-                    payload[field] = new_text
-            elif isinstance(raw_field, list):
-                new_list: list[Any] = []
-                for item in raw_field:
-                    if isinstance(item, str):
-                        new_text, names = self._redact_secret_text(item)
-                        matched.extend(names)
-                        new_list.append(new_text if redact else item)
-                    else:
-                        new_list.append(item)
-                if redact:
-                    payload[field] = new_list
+                return new_text if redact and names else value
+            if isinstance(value, list):
+                return [visit(item) for item in value]
+            if isinstance(value, dict):
+                return {key: visit(item) for key, item in value.items()}
+            return value
+
+        updated = visit(payload)
+        if redact and isinstance(updated, dict):
+            payload.clear()
+            payload.update(updated)
         return sorted(set(matched))
 
     def output_findings(self, text: str) -> tuple[list[str], list[str]]:

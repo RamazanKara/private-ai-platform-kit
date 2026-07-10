@@ -1,15 +1,15 @@
-# Audit-chain head-anchoring CronJob (DOCUMENTED EXAMPLE — not rendered by validate).
+# Audit-chain head-anchoring CronJob (DOCUMENTED EXAMPLE, not rendered by validate).
 #
 # This example periodically anchors the gateway's tamper-evident audit hash chain: it pulls
 # the gateway's redacted audit JSON out of Loki, runs scripts/audit-anchor.py to compute the
 # per-chain head ({chain_id, count, last record_hash}), and stores that head in a ConfigMap.
 # A later `audit-verify --anchor <file>` (or the same job in verify mode) compares freshly
 # observed heads against the stored anchor and detects a wholesale re-chain, a shrunk chain
-# (rollback/truncation), or a missing chain — the one thing the in-record chain alone cannot
+# (rollback/truncation), or a missing chain: the one thing the in-record chain alone cannot
 # catch (ADR 0006).
 #
 # WHY THIS IS AN EXAMPLE, NOT A RENDERED MANIFEST:
-# The log SOURCE is inherently environment-specific — the Loki service URL, whether multi-tenancy
+# The log SOURCE is inherently environment-specific: the Loki service URL, whether multi-tenancy
 # (X-Scope-OrgID) is on, the LogQL selector that matches your gateway pods, the lookback window,
 # and RBAC to patch the ConfigMap all vary per cluster. Rendering a single "correct" manifest
 # through kubeconform/helm would bake in choices that are wrong for most clusters and would read

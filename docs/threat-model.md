@@ -37,7 +37,7 @@ This threat model covers the local lab and customer-owned Kubernetes deployment 
 - Output-side guardrail: model completions are inspected for leaked credentials/PII/blocked
   content and flagged, redacted, or blocked before return (OWASP LLM02/LLM06).
 - Default-deny NetworkPolicies and catalog-backed external egress.
-- Hardened agent-sandbox workspace runtime — the standard and only workspace runtime (ADR 0009,
+- Hardened agent-sandbox workspace runtime, the standard and only workspace runtime (ADR 0009,
   ADR 0010): controller-managed sandbox pods with no service-account token, read-only root
   filesystem, no capabilities, a short-lived projected platform credential instead of long-lived
   secrets, and an optional kernel-isolation runtime class, admission-enforced by the Kyverno
@@ -55,7 +55,7 @@ see [owasp-llm-top-10-mapping.md](owasp-llm-top-10-mapping.md) and
 The in-cluster data plane is **plaintext HTTP** by default: NetworkPolicies restrict who may
 connect but do not encrypt traffic, so prompts, completions, retrieved RAG context, and the
 API-key header traverse the pod network in cleartext. Encrypting the data plane is delegated to a
-documented, operator-owned CNI/mesh control — see the opt-in overlay and options in
+documented, operator-owned CNI/mesh control. See the opt-in overlay and options in
 [deploy/clusters/customer/mtls/README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md) (service-mesh
 mTLS, Cilium WireGuard/IPsec, or cert-manager-issued TLS). Treat enabling it as required before
 handling regulated data in a multi-tenant cluster (see Required Customer Hardening).
@@ -64,23 +64,23 @@ handling regulated data in a multi-tenant cluster (see Required Customer Hardeni
 
 Admission (Kyverno) and NetworkPolicies are preventive; they do not observe post-admission
 behavior of a hijacked agent or compromised runtime pod. An optional runtime-detection layer
-(Falco/Tetragon) is provided — see [runbooks/runtime-threat-detection.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md).
+(Falco/Tetragon) is provided. See [runbooks/runtime-threat-detection.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md).
 
 ### Agent workspace isolation boundary
 
 Coding-agent workspaces execute model-generated code and always run on the agent-sandbox runtime
 (ADR 0009, ADR 0010): controller-managed sandbox pods without ambient Kubernetes credentials on a
 hardened template. The platform credential is a projected, audience-bound ServiceAccount token
-with a short TTL — useless against the Kubernetes API and self-expiring, replacing long-lived
+with a short TTL, useless against the Kubernetes API and self-expiring, replacing long-lived
 secrets. Without a kernel-isolation runtime class the syscall boundary is still the container
 runtime plus the restricted pod profile; set `sandbox.runtimeClassName` (gVisor/Kata) where the
-cluster provides one — expected at the `high` risk tier (`C-ISOLATE`). What kernel isolation does **not** change: prompt injection and tool abuse remain
+cluster provides one, expected at the `high` risk tier (`C-ISOLATE`). What kernel isolation does **not** change: prompt injection and tool abuse remain
 application-layer threats (bounded by the egress catalog, budgets, and gateway guardrails, not by
 the sandbox), and exfiltration through *approved* catalog destinations remains a governance
-decision. NetworkPolicy enforcement depends on the CNI — the default `kind` CNI does not enforce
-it, which `make agent-sandbox-smoke` detects and reports rather than reporting a vacuous pass.
-Create the local lab with `LOCAL_CNI=calico make quickstart` to get a pinned,
-NetworkPolicy-enforcing CNI and a genuinely fail-closed egress demo.
+decision. NetworkPolicy enforcement depends on the CNI: the local lab therefore defaults to
+pinned Calico, and `make agent-sandbox-smoke` fails if the non-enforcing kindnet CNI is present.
+Its deny target is the otherwise reachable Kubernetes API, so a failed connection is meaningful
+evidence of policy enforcement rather than an unroutable-address false positive.
 
 ## AI-Specific Threats
 
@@ -157,7 +157,7 @@ and confirming the deployment region meets their residency obligations.
 
 - Wire API-key hashes or OIDC/JWT validation to the enterprise identity boundary, with RS256 or ES256 preferred for customer IdPs.
 - Enable in-cluster encryption in transit (service-mesh mTLS, Cilium WireGuard/IPsec, or
-  cert-manager TLS) — the data plane is plaintext HTTP by default. See
+  cert-manager TLS). The data plane is plaintext HTTP by default. See
   [deploy/clusters/customer/mtls/README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md).
 - Replace source-reference model digests with customer model-store digests.
 - Run strict gates with current evidence before production handoff.

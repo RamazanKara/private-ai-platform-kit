@@ -53,14 +53,14 @@ For a deprecated or blocked model, remove it from all gateway allowlists before 
 
 The catalog tracks these `proposed` newer models. Each still needs a real provenance digest and a
 promotion request before it can move to `approved` and into a gateway allowlist (see the Promotion
-Workflow above) — the gates intentionally block promoting a model without verifiable provenance:
+Workflow above); the gates intentionally block promoting a model without verifiable provenance:
 
-- `Qwen/Qwen3.6-35B-A3B` (vLLM) — newer Qwen MoE for general and coding workloads.
-- `zai-org/GLM-5.2` (vLLM) — strong open agentic-coding MoE (multi-GPU).
-- `deepseek-ai/DeepSeek-V4-Flash` (vLLM) — 1M-context MoE (multi-GPU).
+- `Qwen/Qwen3.6-35B-A3B` (vLLM): newer Qwen MoE for general and coding workloads.
+- `zai-org/GLM-5.2` (vLLM): strong open agentic-coding MoE (multi-GPU).
+- `deepseek-ai/DeepSeek-V4-Flash` (vLLM): 1M-context MoE (multi-GPU).
 
 The local smoke default `qwen2.5:0.5b` (fast, non-reasoning) and the customer Ollama default
 `qwen3.5:0.8b` (higher-quality reasoning, but slow to complete on a CPU-only laptop) were each
 promoted with a reproducible Ollama-registry model-layer provenance digest. The customer coding-agent
-default `Qwen/Qwen3-Coder-Next` stays approved: it is still Qwen's latest dedicated coder, so it
+default `Qwen/Qwen3-Coder-Next` stays approved. It is still Qwen's latest dedicated coder, so it
 remains the recommended coding profile.

@@ -8,6 +8,7 @@
 #
 #   scripts/docs-build.sh build              # build into site/ (runs --strict)
 #   scripts/docs-build.sh serve              # live-reload dev server
+#   scripts/docs-build.sh mike <args...>      # run mike with mirrored runbooks
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,7 +21,7 @@ if [ -z "$MKDOCS" ]; then
   elif [ -x .venv-docs/bin/mkdocs ]; then
     MKDOCS=".venv-docs/bin/mkdocs"
   else
-    echo "mkdocs not found. Install it: python3 -m venv .venv-docs && .venv-docs/bin/pip install -r requirements-docs.txt" >&2
+    echo "mkdocs not found. Install it: python3 -m venv .venv-docs && .venv-docs/bin/pip install --require-hashes -r requirements-docs.txt" >&2
     exit 1
   fi
 fi
@@ -35,6 +36,16 @@ cp runbooks/*.md docs/runbooks/
 
 CMD="${1:-build}"
 shift || true
+
+if [ "$CMD" = "mike" ]; then
+  MIKE="${MIKE:-mike}"
+  if ! command -v "$MIKE" >/dev/null 2>&1; then
+    echo "mike not found. Install requirements-docs.txt first." >&2
+    exit 1
+  fi
+  "$MIKE" "$@"
+  exit 0
+fi
 
 # A plain build is strict so broken links or nav drift fail the build (and CI). serve stays
 # non-strict so the live-reload dev loop is not interrupted while editing.

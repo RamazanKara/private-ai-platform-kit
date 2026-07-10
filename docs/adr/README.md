@@ -12,10 +12,10 @@ the choices those documents assume.
 
 ## Status legend
 
-- `Accepted` — the decision is in force and reflected in the repo today.
-- `Superseded by NNNN` — replaced by a later ADR; kept for history.
-- `Proposed` — under discussion, not yet reflected in the default configuration.
-- `Deprecated` — no longer recommended, but not yet removed.
+- `Accepted`: the decision is in force and reflected in the repo today.
+- `Superseded by NNNN`: replaced by a later ADR; kept for history.
+- `Proposed`: under discussion, not yet reflected in the default configuration.
+- `Deprecated`: no longer recommended, but not yet removed.
 
 All ADRs in this set are `Accepted` and describe the current repository.
 

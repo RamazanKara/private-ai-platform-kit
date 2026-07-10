@@ -41,8 +41,21 @@ PY
 
 MOCK_RUNTIME_PORT="${MOCK_RUNTIME_PORT:-$(choose_port)}"
 GATEWAY_PORT="${GATEWAY_PORT:-$(choose_port)}"
-EVAL_MODEL="${MODEL_ID:-qwen2.5:0.5b}"
 SUITE="${SUITE:-platform/evals/smoke-suite.yaml}"
+EVAL_MODEL="${MODEL_ID:-$(src/inference-gateway/.venv/bin/python - "$SUITE" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+suite = yaml.safe_load(Path(sys.argv[1]).read_text())
+print(suite["spec"]["model"])
+PY
+)}"
+EVIDENCE_KIND="${EVIDENCE_KIND:-eval}"
+if [[ "$(basename "$SUITE")" == "safety-suite.yaml" ]]; then
+  EVIDENCE_KIND="safety"
+fi
 PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}"
 LOCAL_API_KEY_SHA256="ed20191044553dac8f9c45e62062dd18e7dc1f898a897240b4179fb84fea3db4"
 LOG_DIR="${LOG_DIR:-/tmp/private-ai-platform-kit-eval}"
@@ -85,8 +98,8 @@ GATEWAY_PID=$!
 wait_http "http://127.0.0.1:${GATEWAY_PORT}/healthz"
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-OUT="results/evals/eval-${STAMP}.json"
-SUMMARY="results/evals/eval-${STAMP}.md"
+OUT="results/evals/${EVIDENCE_KIND}-${STAMP}.json"
+SUMMARY="results/evals/${EVIDENCE_KIND}-${STAMP}.md"
 
 log "running eval suite ${SUITE} against local mock-backed gateway"
 src/inference-gateway/.venv/bin/python scripts/eval-suite.py \
@@ -94,6 +107,7 @@ src/inference-gateway/.venv/bin/python scripts/eval-suite.py \
   --gateway-url "http://127.0.0.1:${GATEWAY_PORT}" \
   --output-json "$OUT" \
   --output-md "$SUMMARY" \
+  --evidence-class conformance \
   --api-key "$PLATFORM_API_KEY"
 
 log "wrote ${OUT} and ${SUMMARY}"

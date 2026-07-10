@@ -10,7 +10,7 @@ RAG_IMAGE="${RAG_IMAGE:-private-ai-platform-kit/rag-service:local}"
 LOCAL_GATEWAY_HOST_PORT="${LOCAL_GATEWAY_HOST_PORT:-8080}"
 DEFAULT_KIND_NODE_IMAGE="kindest/node:v1.35.1"
 CGROUP_V1_KIND_NODE_IMAGE="kindest/node:v1.31.4"
-LOCAL_CNI="${LOCAL_CNI:-kindnet}"
+LOCAL_CNI="${LOCAL_CNI:-calico}"
 CALICO_VERSION="${CALICO_VERSION:-v3.29.1}"
 
 if [[ "$LOCAL_CNI" != "kindnet" && "$LOCAL_CNI" != "calico" ]]; then
@@ -65,10 +65,13 @@ else
   log "kind cluster ${CLUSTER_NAME} already exists"
 fi
 
-# kindnet (the kind default) does not enforce NetworkPolicy, so default-deny
-# and the fail-closed egress demo are advisory there. LOCAL_CNI=calico creates
-# the cluster without the default CNI and installs a pinned Calico instead.
+# Calico is the secure local default because kindnet does not enforce
+# NetworkPolicy. A cluster created previously with kindnet cannot be converted
+# safely in place: require an explicit rebuild instead of installing two CNIs.
 if [[ "$LOCAL_CNI" == "calico" ]]; then
+  if kubectl -n kube-system get daemonset kindnet >/dev/null 2>&1; then
+    die "cluster ${CLUSTER_NAME} was created with kindnet, which does not enforce NetworkPolicy. Run 'make local-down' and recreate it with the default Calico profile"
+  fi
   if ! kubectl -n kube-system get daemonset calico-node >/dev/null 2>&1; then
     log "installing Calico ${CALICO_VERSION} (NetworkPolicy-enforcing CNI)"
     kubectl apply -f "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml" >/dev/null

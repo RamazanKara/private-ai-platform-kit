@@ -15,17 +15,17 @@ use a customer model are marked accordingly.
 All business endpoints accept:
 
 - `Authorization: Bearer <api-key-or-jwt>` (or the `X-API-Key` header) when auth is enabled
-- `X-Sandbox-ID: <sandbox>` — the tenant/sandbox the request is attributed to
-- `X-Request-ID` and W3C `traceparent` — optional, echoed back for tracing
+- `X-Sandbox-ID: <sandbox>`: the tenant/sandbox the request is attributed to
+- `X-Request-ID` and W3C `traceparent`: optional, echoed back for tracing
 
 Responses echo `X-Request-ID`, `X-Sandbox-ID`, and `traceparent` for correlation. When
 sandbox budgets are enabled, `/v1/chat/completions` (including streaming) and
 `/v1/embeddings` responses also carry the OpenAI-style budget headers that agent
 frameworks parse to pace themselves:
 
-- `x-ratelimit-limit-requests` / `x-ratelimit-remaining-requests` — the sandbox request
+- `x-ratelimit-limit-requests` / `x-ratelimit-remaining-requests`: the sandbox request
   budget and what remains of it in the current window
-- `x-ratelimit-limit-tokens` / `x-ratelimit-remaining-tokens` — the estimated-token budget
+- `x-ratelimit-limit-tokens` / `x-ratelimit-remaining-tokens`: the estimated-token budget
   and what remains of it, floored at zero
 
 Each pair is present only when the corresponding limit is configured (greater than zero);
@@ -62,7 +62,7 @@ curl -fsS "$GATEWAY/v1/messages" \
   -H 'Content-Type: application/json' \
   -d '{"model":"qwen2.5:0.5b","max_tokens":64,"messages":[{"role":"user","content":"hello"}]}'
 
-# OpenAI Responses API (stateless subset; governed like chat, non-streaming).
+# OpenAI Responses API (synchronous; optional tenant-scoped server-side state).
 curl -fsS "$GATEWAY/v1/responses" \
   -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
   -H 'Content-Type: application/json' \
@@ -89,8 +89,8 @@ layered behind the same endpoint later without changing callers.
 
 The gateway also exposes the pre-chat `/v1/completions` endpoint for tools that still use a
 `prompt` (a string or list of strings) instead of `messages`. It runs through the **same**
-governance path as chat — model allowlist, admission limits, prompt secret policy, sandbox
-budget, output guardrail, and audit — so legacy-completion traffic is not a control bypass.
+governance path as chat (model allowlist, admission limits, prompt secret policy, sandbox
+budget, output guardrail, and audit), so legacy-completion traffic is not a control bypass.
 Streaming is **not** supported on `/v1/completions` in this release (send `stream: false`,
 or use `/v1/chat/completions` for streaming); a streaming request is rejected with a clear
 `streaming_not_supported` error. Prefer `/v1/chat/completions` for new integrations.
@@ -98,7 +98,7 @@ or use `/v1/chat/completions` for streaming); a streaming request is rejected wi
 ## Native Anthropic Messages API (`/v1/messages`)
 
 The gateway exposes a **native** Anthropic-shaped `/v1/messages` endpoint, so Anthropic-SDK
-and Claude-style agents can point at the gateway directly — no translation sidecar required
+and Claude-style agents can point at the gateway directly, with no translation sidecar required
 for the common case. The Anthropic request and response are translated to and from the
 internal OpenAI chat shape and run through the **same** governance path as chat (model
 allowlist, admission limits, prompt secret policy, sandbox budget, output guardrail, and
@@ -128,9 +128,9 @@ clear `streaming_not_supported` error. For Anthropic-shaped features the native 
 not yet cover, such as streaming or blocks with no OpenAI equivalent, the translation-sidecar
 approach below remains available.
 
-## OpenAI Responses API (`/v1/responses`, stateless subset)
+## OpenAI Responses API (`/v1/responses`)
 
-The gateway exposes the OpenAI **Responses API** as a **stateless** subset, so tooling built
+The gateway exposes the synchronous OpenAI **Responses API**, so tooling built
 on `client.responses.create(...)` can point at the gateway directly. The Responses request and
 response are translated to and from the internal OpenAI chat shape and run through the **same**
 governance path as chat (model allowlist, admission limits, prompt secret policy, sandbox
@@ -153,10 +153,11 @@ curl -fsS "$GATEWAY/v1/responses" \
       }'
 ```
 
-This is the **stateless** subset: the gateway does not persist responses, so `store: true` or a
-`previous_response_id` is **rejected** with a clear `stateful_not_supported` error rather than
-silently ignored (a caller expecting server-side conversation state is told it is unavailable,
-not misled). Streaming is **not** supported on `/v1/responses` in this release (send
+Server-side state is opt-in and off by default because it persists raw conversation content.
+Set `RESPONSES_STORE_ENABLED=true` and use the Redis backend for multi-replica deployments;
+then `store: true`, `previous_response_id`, `GET`/`DELETE /v1/responses/{id}`, and
+`GET /v1/responses/{id}/input_items` are tenant-scoped and TTL-bounded. When state is disabled,
+those requests fail explicitly with `stateful_not_supported`. Streaming is **not** supported on `/v1/responses` (send
 `stream: false`, or use `/v1/chat/completions` for OpenAI-shaped streaming); a streaming request
 is rejected with a clear `streaming_not_supported` error. Assistant `tool_calls` are mapped to
 `function_call` output items (`name`, `arguments`, `call_id`) on a best-effort basis, and a
@@ -244,6 +245,10 @@ print(r.json()["choices"][0]["message"]["content"])
 The kit ships a minimal, retry-aware first-party client (`sdk/python`, packaged as
 `private-ai-platform-kit-client`) for scripts that do not want the full `openai` dependency:
 
+```bash
+python -m pip install private-ai-platform-kit-client
+```
+
 ```python
 from ai_platform_client import GatewayClient
 
@@ -311,12 +316,12 @@ http://<gateway-host>/v1`, the API key, and a `requestOptions.headers` entry set
 > Frameworks that cannot set a custom header should bind the sandbox with a JWT tenant claim
 > (`auth.jwt.tenantClaim`) so per-sandbox budgets and attribution cannot be spoofed.
 
-## Anthropic SDK / Claude-style agents (translation sidecar — alternative)
+## Anthropic SDK / Claude-style agents (translation sidecar as an alternative)
 
 The gateway now exposes a native Anthropic `/v1/messages` endpoint (see above), which is the
 preferred path for Anthropic-SDK and Claude-style agents. A translation **sidecar** remains a
 supported **alternative** for Anthropic-shaped features the native endpoint does not yet cover
-(most notably streaming, and content blocks with no OpenAI equivalent) — for example a
+(most notably streaming, and content blocks with no OpenAI equivalent). For example, a
 [LiteLLM](https://docs.litellm.ai/) proxy that exposes an Anthropic-shaped `/v1/messages`
 endpoint and forwards to the gateway's `/v1/chat/completions`. The sidecar does the
 Anthropic-to-OpenAI request/response translation; the gateway still applies auth, model

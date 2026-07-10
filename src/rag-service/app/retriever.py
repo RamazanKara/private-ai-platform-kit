@@ -383,7 +383,7 @@ class QdrantRetriever:
 
         When ``tenant_isolation_enabled`` and a tenant is supplied, a ``tenant_field``
         (default ``owner``, stamped per point at ingest) match is appended so a caller only
-        retrieves documents owned by its own tenant — closing cross-tenant retrieval in the
+        retrieves documents owned by its own tenant, closing cross-tenant retrieval in the
         shared collection. Fails closed: a tenant with no matching documents gets none, and a
         query with no resolvable tenant is rejected before this filter is built (see ``query``).
         """

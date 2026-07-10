@@ -52,7 +52,7 @@ across the GPUs of one node. For a model too large for any single node, combine
 tensor-parallel within a node with **pipeline parallelism across nodes**
 (`--pipeline-parallel-size`, also via `extraArgs`) and a gang-scheduled leader/worker topology.
 
-This needs a multi-pod primitive the single Deployment chart does not provide — the
+This needs a multi-pod primitive the single Deployment chart does not provide: the
 [LeaderWorkerSet](https://github.com/kubernetes-sigs/lws) operator (or Ray). Install the LWS
 controller, then run vLLM as a `LeaderWorkerSet` whose leader and workers form one Ray cluster:
 
@@ -84,7 +84,7 @@ spec:
 
 Set `tensor-parallel-size` to the GPUs per node and `pipeline-parallel-size` to the node
 count (`size`); point the gateway's `VLLM_BASE_URL` at the leader Service. This is an
-operator-supplied topology — validate the per-node GPU fit and the Ray cluster formation
+operator-supplied topology; validate the per-node GPU fit and the Ray cluster formation
 before promotion.
 
 ## Choosing a Quantization Method
@@ -100,7 +100,7 @@ as first-class values, and two ready profiles ship under `deploy/clusters/custom
 | Any | GPTQ 4-bit weights | set `server.quantization: gptq` | Alternative 4-bit path when an AWQ checkpoint is unavailable. |
 
 Always keep `--tensor-parallel-size` (in `extraArgs`) equal to `accelerator.count`, and re-validate
-answer quality with `make eval` after changing quantization — it trades a small accuracy cost for
+answer quality with `make eval` after changing quantization. It trades a small accuracy cost for
 GPU cost, and the acceptable trade is workload-specific.
 
 ## Speculative Decoding
@@ -118,7 +118,7 @@ When a runtime does not need a whole GPU (small models, dev/eval namespaces), sh
   config, then request the MIG resource name (e.g. `nvidia.com/mig-1g.10gb`) in
   `accelerator.resourceName` with `accelerator.count: 1`. Hardware-isolated; best for multi-tenant.
 - **Time-slicing**: enable time-slicing in the device plugin config to oversubscribe a GPU across
-  pods. No memory isolation — use only for trusted dev/eval workloads, never for tenant isolation.
+  pods. No memory isolation, so use only for trusted dev/eval workloads, never for tenant isolation.
 
 Both are cluster-level device-plugin/operator settings the operator owns; the chart only needs the
 resulting `accelerator.resourceName`/`count`. Size with the same KV-cache math in Sizing Estimates.

@@ -8,7 +8,7 @@
 
 The gateway emits one redacted audit event per request. For customer handoff and regulated tenants,
 an auditor must be able to detect whether that event stream has been edited, reordered, truncated, or
-had records inserted after the fact — without trusting the process that wrote it. Plain append-only
+had records inserted after the fact, without trusting the process that wrote it. Plain append-only
 logging does not give that property: a log writer (or anyone with log access) can rewrite history
 silently. The control must be cheap (no extra infrastructure), verifiable by independent tooling, and
 must not weaken the existing redaction guarantees.
@@ -48,8 +48,8 @@ Link each audit event into a per-process tamper-evident SHA-256 hash chain.
 ## Consequences
 
 - Any edit, insertion, deletion, or reordering of emitted records breaks the chain and is detectable
-  by recomputation. The control adds one SHA-256 per request and two fields per event — effectively
-  free, with no extra service to operate.
+  by recomputation. The control adds one SHA-256 per request and two fields per event, which is
+  effectively free, with no extra service to operate.
 - Detecting a wholesale rewrite (re-chaining every record from genesis) requires an external
   commitment to the head hash. The reference model is explicit about this: editing a record without
   re-chaining is caught by the internal consistency check, while a full re-chain is caught only by an
@@ -77,7 +77,7 @@ Link each audit event into a per-process tamper-evident SHA-256 hash chain.
 ## Alternatives considered
 
 - **Plain append-only logging (no chaining).** Simplest, but provides no detection of after-the-fact
-  edits or reordering — the exact property the audit trail needs for handoff. Rejected.
+  edits or reordering, the exact property the audit trail needs for handoff. Rejected.
 - **External managed audit log / SIEM with immutability guarantees.** Strong for retention and
   cross-service correlation, and operators are encouraged to ship these events into one. Rejected as
   the in-service mechanism because it adds an infrastructure dependency to get a property a few lines

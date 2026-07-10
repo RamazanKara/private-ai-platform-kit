@@ -4,6 +4,11 @@ This repository is for private AI platform operations and should be treated as s
 
 ## Supported Surface
 
+The latest tagged release and `main` receive security fixes. Pre-1.0 older minor lines are not
+maintained; operators should upgrade to the latest release. A coordinated fix may be backported
+when a customer cannot upgrade immediately, but that is an explicit exception rather than a
+standing support promise.
+
 Security fixes should cover:
 
 - inference gateway and RAG service code

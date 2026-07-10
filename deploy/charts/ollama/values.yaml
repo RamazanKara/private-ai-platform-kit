@@ -16,13 +16,16 @@ service:
 
 # Only the gateway's namespace may reach the Ollama API: the runtime holding the
 # model must not be an open bypass around auth, allowlists, budgets, and guardrails.
-# allowModelPullEgress opens DNS + HTTPS for registry pulls; disable it for
-# air-gapped / regulated-offline profiles with pre-seeded weights.
+# Model-pull egress is closed by default. When enabled, every HTTPS destination
+# must be an explicit CIDR; the local lab has a clearly labeled development-only
+# 0/0 exception because standard Kubernetes NetworkPolicy cannot express FQDNs.
 networkPolicy:
   enabled: true
   allowedIngressNamespaces:
     - inference
-  allowModelPullEgress: true
+  allowModelPullEgress: false
+  modelPullEgressCidrs: []
+  localDevelopmentException: false
 
 serviceAccount:
   create: true

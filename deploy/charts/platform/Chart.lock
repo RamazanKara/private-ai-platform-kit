@@ -1,0 +1,21 @@
+dependencies:
+- name: inference-gateway
+  repository: file://../inference-gateway
+  version: 0.27.0
+- name: rag-service
+  repository: file://../rag-service
+  version: 0.27.0
+- name: ollama
+  repository: file://../ollama
+  version: 0.27.0
+- name: budget-redis
+  repository: file://../budget-redis
+  version: 0.27.0
+- name: qdrant-vector-store
+  repository: file://../qdrant-vector-store
+  version: 0.27.0
+- name: vllm
+  repository: file://../vllm
+  version: 0.27.0
+digest: sha256:0f92f87aaa2bd08afc918040924b82abd439d8d0f5cbfca205c54d74c22f3c16
+generated: "2026-07-10T09:16:31.363896652+02:00"

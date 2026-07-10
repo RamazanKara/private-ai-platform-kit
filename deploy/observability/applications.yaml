@@ -120,7 +120,7 @@ spec:
           # Default retention so the audit/log stream is bounded instead of growing without limit.
           # The compactor enforces deletes; limits_config sets the horizon. Size per environment
           # and per your evidence-retention obligation (the tamper-evident audit receipts should
-          # be shipped onward to a SIEM/object store for long-term hold — see the SIEM runbook —
+          # be shipped onward to a SIEM/object store for long-term hold (see the SIEM runbook),
           # not kept solely in Loki).
           limits_config:
             retention_period: 744h  # 31 days

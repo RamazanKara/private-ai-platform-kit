@@ -90,6 +90,52 @@ class FakeRedis:
         table = self.hashes.get(key, {})
         return sum(1 for f in fields if table.pop(f, None) is not None)
 
+    def eval(self, script, numkeys, *values):
+        keys = list(values[:numkeys])
+        args = list(values[numkeys:])
+        if "batch-create-enqueue-v1" in script:
+            self.set(keys[0], args[0])
+            self.hset(keys[1], mapping=dict(zip(args[3::2], args[4::2], strict=True)))
+            self.lpush(keys[2], args[1])
+            self.lpush(keys[3], args[2])
+            return 1
+        if "batch-create-v1" in script:
+            self.set(keys[0], args[0])
+            self.hset(keys[1], mapping=dict(zip(args[2::2], args[3::2], strict=True)))
+            self.lpush(keys[2], args[1])
+            return 1
+        if "batch-update-v1" in script:
+            if not self.exists(keys[0]):
+                return 0
+            self.hset(keys[0], mapping=dict(zip(args[::2], args[1::2], strict=True)))
+            return 1
+        if "batch-cancel-v1" in script:
+            if not self.exists(keys[0]):
+                return 0
+            if self.hget(keys[0], "status") in {"validating", "in_progress", "finalizing"}:
+                self.hset(keys[0], mapping={"status": "cancelling", "cancelling_at": args[0]})
+            return 1
+        if "batch-claim-v1" in script:
+            message = self.rpoplpush(keys[0], keys[1])
+            if message is not None:
+                self.hset(keys[2], message, args[0])
+            return message
+        if "batch-ack-v1" in script:
+            self.lrem(keys[0], 0, args[0])
+            self.hdel(keys[1], args[0])
+            return 1
+        if "batch-reclaim-v1" in script:
+            claimed = self.hget(keys[1], args[0])
+            if claimed is not None and float(claimed) > float(args[1]):
+                return 0
+            removed = self.lrem(keys[0], 1, args[0])
+            self.hdel(keys[1], args[0])
+            if removed:
+                self.lpush(keys[2], args[0])
+                return 1
+            return 0
+        raise AssertionError("unexpected Lua script")
+
 
 @pytest.fixture(params=["memory", "redis"])
 def store(request):
@@ -143,6 +189,13 @@ def test_batch_create_get_and_public_shape(store):
     assert public["object"] == "batch"
     assert public["request_counts"] == {"total": 0, "completed": 0, "failed": 0}
     assert public["endpoint"] == "/v1/chat/completions"
+
+
+def test_create_and_enqueue_publishes_record_and_queue_together(store):
+    store.create_and_enqueue(_batch())
+
+    assert store.get_batch("tA", "batch-1") is not None
+    assert store.claim() == ("tA", "batch-1")
 
 
 def test_update_batch_sets_fields_and_types(store):

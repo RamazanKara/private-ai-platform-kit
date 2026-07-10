@@ -8,7 +8,7 @@ Start with the docs:
 
 - [Quickstart](../docs/quickstart.md) for a first local run.
 - [Decision guide](../docs/decision-guide.md) to check whether this kit fits your use case.
-- [Operational runbooks](../README.md#docs) — the docs and runbooks index in the README.
+- [Operational runbooks](../README.md#docs): the docs and runbooks index in the README.
 
 If the docs do not answer your question, open a discussion in the repository's
 **Discussions** tab. If Discussions is not enabled, open an issue using the

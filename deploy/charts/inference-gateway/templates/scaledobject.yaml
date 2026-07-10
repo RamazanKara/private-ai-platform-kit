@@ -18,6 +18,23 @@ spec:
         serverAddress: {{ .Values.keda.prometheusServerAddress | quote }}
         metricName: inference_gateway_requests_per_second
         threshold: {{ .Values.keda.threshold | quote }}
-        query: sum(rate(inference_gateway_requests_total{route="/v1/chat/completions",status="200"}[2m]))
+        query: sum(rate(inference_gateway_requests_total{route=~"/v1/.*"}[2m])) or vector(0)
+    - type: prometheus
+      metadata:
+        serverAddress: {{ .Values.keda.prometheusServerAddress | quote }}
+        metricName: inference_gateway_inflight_requests
+        threshold: {{ .Values.keda.inflightThreshold | quote }}
+        query: sum(inference_gateway_inflight_requests) or vector(0)
+    - type: prometheus
+      metadata:
+        serverAddress: {{ .Values.keda.prometheusServerAddress | quote }}
+        metricName: inference_gateway_load_shed_per_second
+        threshold: {{ .Values.keda.loadShedRateThreshold | quote }}
+        query: sum(rate(inference_gateway_load_shed_total{route=~"/v1/.*"}[2m])) or vector(0)
+    - type: prometheus
+      metadata:
+        serverAddress: {{ .Values.keda.prometheusServerAddress | quote }}
+        metricName: inference_gateway_p95_latency_seconds
+        threshold: {{ .Values.keda.p95LatencyThresholdSeconds | quote }}
+        query: histogram_quantile(0.95, sum by (le) (rate(inference_gateway_request_duration_seconds_bucket{route=~"/v1/.*"}[5m]))) or vector(0)
 {{- end }}
-

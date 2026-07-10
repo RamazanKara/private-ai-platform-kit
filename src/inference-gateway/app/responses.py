@@ -9,8 +9,8 @@ and the resulting OpenAI chat completion is translated back into a Responses obj
 mirrors the Anthropic ``/v1/messages`` translation module (``app/messages.py``) exactly.
 
 STATELESS subset: this implementation does not persist responses. The stateful surface of
-the Responses API — server-side conversation state via ``store: true`` and
-``previous_response_id`` — is out of scope; a request asking for it is rejected with a
+the Responses API (server-side conversation state via ``store: true`` and
+``previous_response_id``) is out of scope; a request asking for it is rejected with a
 clear 400 (``stateful_not_supported``) rather than silently ignored, so a caller that
 expects the server to remember prior turns is never misled into thinking it did.
 
@@ -29,8 +29,8 @@ from pydantic import BaseModel, ConfigDict
 
 # Responses ``status`` for each OpenAI chat ``finish_reason``. ``length`` maps to
 # ``incomplete`` (with ``incomplete_details.reason == "max_output_tokens"``); every other
-# reason — including ``content_filter`` (the guardrail already rewrote the content) and an
-# unknown/absent reason — maps to a ``completed`` response.
+# reason, including ``content_filter`` (the guardrail already rewrote the content) and an
+# unknown/absent reason, maps to a ``completed`` response.
 _INCOMPLETE_FINISH_REASONS = {"length"}
 
 
@@ -87,7 +87,7 @@ def _content_to_text(content: Any) -> str:
 
     A string is returned as-is. An array's recognized text parts (``input_text`` /
     ``output_text`` / ``text`` / bare strings) are concatenated; non-text parts (e.g. image
-    or file parts) contribute nothing to the text projection but do not raise — the chat
+    or file parts) contribute nothing to the text projection but do not raise. The chat
     governance path meters on the resulting text.
     """
     if content is None:
@@ -153,8 +153,8 @@ def responses_to_chat_payload(
     chained turn is shown the full prior history; the stateless runtime never has to remember it.
 
     The returned dict is fed to the *same* chat governance path as ``/v1/chat/completions``
-    (allowlist, admission — including the ``max_tokens`` cap and prompt-secret modes on the
-    translated messages — budget reserve, runtime call, output guardrail, audit). Mapping:
+    (allowlist, admission (including the ``max_tokens`` cap and prompt-secret modes on the
+    translated messages), budget reserve, runtime call, output guardrail, audit). Mapping:
 
     - ``instructions`` is prepended as a ``role: "system"`` message.
     - ``input`` is translated to chat messages (a string -> one user message; an item array
@@ -234,7 +234,7 @@ def chat_completion_to_responses(response: dict[str, Any], *, request_model: str
     Produces ``{id, object:"response", created_at, status, model, output:[...], usage,
     ...}``. The assistant text becomes a ``message`` output item carrying an ``output_text``
     content part; any assistant ``tool_calls`` become ``function_call`` output items
-    (best-effort — id/name are preserved and the ``arguments`` JSON string is passed
+    (best-effort: id/name are preserved and the ``arguments`` JSON string is passed
     through). ``finish_reason`` is mapped to ``status`` (``length`` -> ``incomplete`` with
     ``incomplete_details.reason == "max_output_tokens"``, else ``completed``) and the runtime
     ``usage`` is surfaced as ``input_tokens``/``output_tokens``/``total_tokens``.

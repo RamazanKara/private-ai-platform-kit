@@ -21,8 +21,10 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, ge
 from pydantic import BaseModel, ConfigDict
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.audit import AUDIT_GENESIS, chain_audit_event, payload_fingerprint
 from app.batch_api import register_batch_routes
 from app.batchstore import build_batch_store
+from app.body_limit import RequestBodyLimitMiddleware
 from app.budget import (
     BudgetBackendError,
     BudgetReservation,
@@ -51,19 +53,17 @@ from app.settings import (
     AdmissionPolicyError,
     Settings,
     completion_prompt_texts,
-    extract_text_content,
     moderate_text,
     validate_sandbox_id,
 )
 from app.tracing import configure_tracing, trace_request
 
+_chain_audit_event = chain_audit_event
+_payload_fingerprint = payload_fingerprint
+
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-# Tamper-evident audit chain: h_0 = SHA-256("genesis"); h_i = SHA-256(h_{i-1} ||
-# canonical(record_i)). Matches paper/evidence-model/audit_chain.py so the live audit log
-# is verifiable by the same auditor tooling. The chain is per-process (per gateway replica).
-AUDIT_GENESIS = hashlib.sha256(b"genesis").hexdigest()
-SERVICE_VERSION = "0.26.0"
+SERVICE_VERSION = "0.27.0"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
@@ -777,68 +777,6 @@ def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
     return response
 
 
-def _chain_audit_event(request: Request, event: dict[str, Any]) -> None:
-    """Link the audit event into the per-process tamper-evident hash chain in place.
-
-    Computes ``record_hash = SHA-256(prev_hash || canonical(event))`` over the event
-    before the chain fields are added, then stamps ``prev_hash`` and ``record_hash`` onto
-    the event and advances the stored head. Any edit, insertion, deletion, or reordering
-    of the emitted records breaks the chain and is detectable by the auditor tooling.
-    """
-    state = request.app.state
-    prev = getattr(state, "audit_prev_hash", AUDIT_GENESIS)
-    canonical = json.dumps(event, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    record_hash = hashlib.sha256(prev.encode("ascii") + canonical).hexdigest()
-    event["prev_hash"] = prev
-    event["record_hash"] = record_hash
-    state.audit_prev_hash = record_hash
-
-
-def _payload_fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
-    """Summarize a chat payload into redacted audit fields (counts, roles, prompt hash)."""
-    messages = payload.get("messages") or []
-    # Embeddings carry ``input`` and legacy completions carry ``prompt`` (both str or
-    # list-of-str) instead of ``messages``; fingerprint either the same redacted way.
-    raw_text_field = payload.get("input")
-    if raw_text_field is None:
-        raw_text_field = payload.get("prompt")
-    if not messages and raw_text_field is not None:
-        texts = [str(item) for item in (raw_text_field if isinstance(raw_text_field, list) else [raw_text_field])]
-        canonical = json.dumps(texts, sort_keys=True, separators=(",", ":"))
-        return {
-            "input_count": len(texts),
-            "prompt_chars": sum(len(text) for text in texts),
-            "prompt_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
-        }
-    canonical_messages = []
-    roles = []
-    prompt_chars = 0
-    tool_call_count = 0
-    for message in messages:
-        role = str(message.get("role", "unknown"))
-        text = extract_text_content(message.get("content"))
-        roles.append(role)
-        prompt_chars += len(text)
-        # Hash the raw content structure (string or content-part array) so vision
-        # parts and tool fields are covered by the fingerprint, not just text.
-        canonical_messages.append({"role": role, "content": message.get("content")})
-        tool_calls = message.get("tool_calls")
-        if isinstance(tool_calls, list):
-            tool_call_count += len(tool_calls)
-    canonical = json.dumps(canonical_messages, sort_keys=True, separators=(",", ":"), default=str)
-    fingerprint: dict[str, Any] = {
-        "message_count": len(messages),
-        "message_roles": roles,
-        "prompt_chars": prompt_chars,
-        "prompt_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
-    }
-    if payload.get("tools"):
-        fingerprint["tool_count"] = len(payload["tools"])
-    if tool_call_count:
-        fingerprint["tool_call_count"] = tool_call_count
-    return fingerprint
-
-
 def _record_token_usage(backend: str, runtime_response: dict[str, Any] | None) -> None:
     usage = (runtime_response or {}).get("usage")
     if not isinstance(usage, dict):
@@ -866,36 +804,43 @@ def _record_estimated_cost(settings: Settings, sandbox_id: str, backend: str, us
         ESTIMATED_COST.labels(_sandbox_label(sandbox_id), backend).inc(cost)
 
 
-def _guardrail_choice_text(choice: dict[str, Any]) -> str:
-    """Return the assistant message text of an OpenAI-style choice, or '' when absent."""
-    message = choice.get("message")
-    if not isinstance(message, dict):
-        return ""
-    content = message.get("content")
-    if isinstance(content, str):
-        return content
-    return extract_text_content(content)
+def _guardrail_targets(choice: dict[str, Any], legacy_completion: bool) -> list[tuple[str, dict[str, Any], str]]:
+    """Return writable generated-text fields subject to the output policy.
 
-
-def _guardrail_target(choice: dict[str, Any], legacy_completion: bool) -> tuple[str, dict[str, Any], str] | None:
-    """Return ``(text, container, key)`` for a choice's generated text, or None to skip it.
-
-    Chat completions carry the text in ``choice.message.content``; legacy completions put it
-    in ``choice.text``. Returning the writable container plus key lets the single guardrail
-    loop redact/block in place without caring which shape it is scanning.
+    In addition to visible assistant content, model-generated tool and legacy
+    function arguments are executable output. Scanning those fields closes the
+    path where a credential or denied value could bypass the response guardrail
+    and be handed directly to a tool runner.
     """
     if legacy_completion:
         text = choice.get("text")
         if not isinstance(text, str) or not text:
-            return None
-        return text, choice, "text"
-    text = _guardrail_choice_text(choice)
-    if not text:
-        return None
+            return []
+        return [(text, choice, "text")]
     message = choice.get("message")
     if not isinstance(message, dict):
-        return None
-    return text, message, "content"
+        return []
+    targets: list[tuple[str, dict[str, Any], str]] = []
+    content = message.get("content")
+    if isinstance(content, str) and content:
+        targets.append((content, message, "content"))
+    function_call = message.get("function_call")
+    if isinstance(function_call, dict):
+        arguments = function_call.get("arguments")
+        if isinstance(arguments, str) and arguments:
+            targets.append((arguments, function_call, "arguments"))
+    tool_calls = message.get("tool_calls")
+    if isinstance(tool_calls, list):
+        for tool_call in tool_calls:
+            if not isinstance(tool_call, dict):
+                continue
+            function = tool_call.get("function")
+            if not isinstance(function, dict):
+                continue
+            arguments = function.get("arguments")
+            if isinstance(arguments, str) and arguments:
+                targets.append((arguments, function, "arguments"))
+    return targets
 
 
 def _apply_output_guardrail(
@@ -924,24 +869,21 @@ def _apply_output_guardrail(
     for choice in choices:
         if not isinstance(choice, dict):
             continue
-        target = _guardrail_target(choice, legacy_completion)
-        if target is None:
-            continue
-        text, container, key = target
-        if settings.output_guardrail_mode == "redact":
-            redacted, matched = settings.redact_output_text(text)
-            if matched:
-                container[key] = redacted
-                action = "redacted"
-        else:
-            patterns, terms = settings.output_findings(text)
-            if patterns or terms:
-                if settings.output_guardrail_mode == "block":
-                    container[key] = "[response withheld by output policy]"
-                    choice["finish_reason"] = "content_filter"
-                    action = "blocked"
-                else:
-                    action = action or "flagged"
+        for text, container, key in _guardrail_targets(choice, legacy_completion):
+            if settings.output_guardrail_mode == "redact":
+                redacted, matched = settings.redact_output_text(text)
+                if matched:
+                    container[key] = redacted
+                    action = "redacted"
+            else:
+                patterns, terms = settings.output_findings(text)
+                if patterns or terms:
+                    if settings.output_guardrail_mode == "block":
+                        container[key] = "[response withheld by output policy]"
+                        choice["finish_reason"] = "content_filter"
+                        action = "blocked"
+                    else:
+                        action = action or "flagged"
     if action:
         OUTPUT_GUARDRAIL.labels(action, route).inc()
         request.state.output_guardrail_action = action
@@ -1298,6 +1240,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         docs_url="/docs",
         redoc_url=None,
     )
+    # Bound JSON bodies before Pydantic or endpoint code parses them. The Files
+    # endpoint gets its own upload ceiling plus multipart framing overhead.
+    app.add_middleware(
+        RequestBodyLimitMiddleware,
+        max_bytes=resolved.max_request_body_bytes,
+        path_limits={"/v1/files": resolved.batch_max_file_bytes + 65536},
+    )
     app.state.settings = resolved
     app.state.runtime_client = RuntimeClient(resolved)
     app.router.add_event_handler("shutdown", app.state.runtime_client.aclose)
@@ -1362,7 +1311,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request.state.key_budget_updates = {}
         except ValueError as exc:
             # A request header failed validation. The message is a controlled, developer-authored
-            # validation string describing the malformed header (e.g. the sandbox-id charset rule) —
+            # validation string describing the malformed header (e.g. the sandbox-id charset rule);
             # it carries no stack trace or server internals, so returning it as an actionable 400 is
             # correct API behavior, not information disclosure. Also logged for server-side triage.
             reason = str(exc)
@@ -1545,23 +1494,73 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         policy: ModelRoutingPolicy = app.state.model_routing_policy
         backends = sorted({route.backend for route in policy.routes} or {resolved.runtime_backend})
         runtime_status: dict[str, Any] = {}
-        ready = True
+        healthy_backends: set[str] = set()
         for backend in backends:
             try:
                 runtime_health = await client.health(backend)
+                healthy_backends.add(backend)
                 runtime_status[backend] = {
                     "status": "ok",
                     "detail": runtime_health.get("status", "ok"),
                 }
             except Exception:
-                ready = False
                 runtime_status[backend] = {"status": "unavailable"}
+        # A model remains available when any route in its declared failover chain
+        # is healthy. Do not evict a gateway pod merely because its primary is down
+        # while the exact request path would successfully fail over.
+        model_status: dict[str, Any] = {}
+        for route in policy.routes:
+            chain = policy.resolve_chain(route.model_id, resolved.model_id)
+            ready_via = next((candidate.backend for candidate in chain if candidate.backend in healthy_backends), None)
+            model_status[route.model_id] = {
+                "status": "ok" if ready_via is not None else "unavailable",
+                "ready_via": ready_via,
+            }
+        dependencies: dict[str, dict[str, str]] = {}
+
+        async def redis_dependency(name: str, dependency: Any) -> bool:
+            client_obj = getattr(dependency, "client", None)
+            if client_obj is None:
+                dependencies[name] = {"status": "ok", "backend": "memory"}
+                return True
+            try:
+                reachable = bool(await asyncio.to_thread(client_obj.ping))
+            except Exception:
+                reachable = False
+            dependencies[name] = {"status": "ok" if reachable else "unavailable", "backend": "redis"}
+            return reachable
+
+        dependency_ready = True
+        if resolved.sandbox_budget_enabled:
+            dependency_ready &= await redis_dependency("budget_store", app.state.budget_tracker)
+        if resolved.responses_store_enabled:
+            dependency_ready &= await redis_dependency("response_store", app.state.response_store)
+        if resolved.batch_api_enabled:
+            dependency_ready &= await redis_dependency("batch_store", app.state.batch_store)
+            object_store = app.state.object_store
+            object_probe = getattr(object_store, "ready", None)
+            if callable(object_probe):
+                try:
+                    object_ready = bool(await asyncio.to_thread(object_probe))
+                except Exception:
+                    object_ready = False
+                dependencies["object_store"] = {
+                    "status": "ok" if object_ready else "unavailable",
+                    "backend": "s3",
+                }
+                dependency_ready &= object_ready
+            else:
+                dependencies["object_store"] = {"status": "ok", "backend": "filesystem"}
+        models_ready = bool(model_status) and all(status["status"] == "ok" for status in model_status.values())
+        ready = models_ready and dependency_ready
         response.status_code = 200 if ready else 503
         REQUESTS.labels("/readyz", resolved.runtime_backend, str(response.status_code)).inc()
         return {
             "status": "ready" if ready else "not_ready",
             "models": policy.model_ids(),
+            "model_status": model_status,
             "runtimes": runtime_status,
+            "dependencies": dependencies,
         }
 
     @app.get(

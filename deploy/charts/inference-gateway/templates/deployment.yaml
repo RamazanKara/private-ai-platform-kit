@@ -74,6 +74,8 @@ spec:
               value: {{ .Values.admission.maxMessages | quote }}
             - name: MAX_PROMPT_CHARS
               value: {{ .Values.admission.maxPromptChars | quote }}
+            - name: MAX_REQUEST_BODY_BYTES
+              value: {{ .Values.admission.maxRequestBodyBytes | int64 | quote }}
             - name: MAX_COMPLETION_TOKENS
               value: {{ .Values.admission.maxCompletionTokens | quote }}
             - name: MAX_COMPLETIONS_PER_REQUEST
@@ -227,7 +229,7 @@ spec:
             - name: BATCH_KEY_PREFIX
               value: {{ .Values.batch.store.keyPrefix | quote }}
             - name: BATCH_MAX_FILE_BYTES
-              value: {{ .Values.batch.maxFileBytes | quote }}
+              value: {{ .Values.batch.maxFileBytes | int64 | quote }}
             - name: BATCH_MAX_REQUESTS_PER_BATCH
               value: {{ .Values.batch.maxRequestsPerBatch | quote }}
             - name: BATCH_COMPLETION_WINDOW

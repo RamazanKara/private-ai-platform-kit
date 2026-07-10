@@ -63,12 +63,12 @@ This kit is local-first, but the controls are shaped like customer production co
 Three bundled stateful stores ship as **single-node reference footprints** so a laptop lab and
 a fresh cluster start with no external dependencies. They are deliberately not production
 topologies. State this plainly to any operator sizing a production environment, and swap each to
-its external/HA path before a regulated or multi-tenant handoff — the full opt-in procedure
+its external/HA path before a regulated or multi-tenant handoff. The full opt-in procedure
 (with rollback) is in the [external / managed stores runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md).
 
 | Bundled store | Reference footprint | Production / HA path |
 | --- | --- | --- |
-| Budget / response-cache Redis (`deploy/charts/budget-redis`) | 1 replica, no persistence, `minAvailable: 0` — a restart drops counters; an outage fails budgets closed | Point `budget.redisUrl` / `responseCache.redisUrl` at an external **managed Redis, Redis Sentinel failover pair, or Redis Cluster** and stop syncing the bundled Application. Budgets stay fail-closed on outage; the rate limiter can opt into fail-open (`rateLimit.failOpen`) as an availability-vs-enforcement tradeoff |
+| Budget / response-cache Redis (`deploy/charts/budget-redis`) | 1 replica, no persistence, `minAvailable: 0` (a restart drops counters; an outage fails budgets closed) | Point `budget.redisUrl` / `responseCache.redisUrl` at an external **managed Redis, Redis Sentinel failover pair, or Redis Cluster** and stop syncing the bundled Application. Budgets stay fail-closed on outage; the rate limiter can opt into fail-open (`rateLimit.failOpen`) as an availability-vs-enforcement tradeoff |
 | Qdrant vector store (`deploy/charts/qdrant-vector-store`) | Single-instance, **schema-enforced** (`replicaCount` max 1) on one RWO PVC | Use an **external managed Qdrant or a Qdrant cluster** (sharded/replicated) and point `retrieval.vectorStore.url` at it; the bundled chart intentionally does not model clustering |
 | Loki (`deploy/observability/applications.yaml`) | `SingleBinary`, `replication_factor: 1`, filesystem storage | Move to a **scalable/distributed Loki mode with object storage and replication**; forward the tamper-evident audit receipts onward to a SIEM for durable long-term hold |
 

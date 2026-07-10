@@ -1,4 +1,5 @@
 {
+  "evidence_class": "conformance",
   "gateway_url": "http://127.0.0.1:18082",
   "generated_at": "2026-07-03T00:00:00+00:00",
   "suite": "safety-red-team",

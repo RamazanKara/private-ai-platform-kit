@@ -12,6 +12,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Governance | [Governance](../GOVERNANCE.md) |
 | Maintainers | [Maintainers](../MAINTAINERS.md) |
 | Roadmap | [Roadmap](../ROADMAP.md) |
+| Implemented feature status and boundaries | [Feature inventory](feature-inventory.md) |
 | Adopters | [Adopters](../ADOPTERS.md) |
 | Documentation site (mkdocs-material) | [ramazankara.github.io/private-ai-platform-kit](https://ramazankara.github.io/private-ai-platform-kit/) |
 | 15-30 minute local quickstart | [Quickstart](quickstart.md) |
@@ -22,6 +23,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Production control matrix | [Production readiness](production-readiness.md) |
 | Project proof and strict evidence | [Proof](proof.md) |
 | Release artifact verification | [Release verification](release-verification.md) |
+| Package distribution and discovery | [Distribution](distribution.md) |
 | Pinned / tested version matrix | [Version matrix](version-matrix.md) |
 | Security surface index | [Security overview](security-overview.md) |
 | Threat model | [Threat model](threat-model.md) |
@@ -76,6 +78,7 @@ Use this map when the README is too high-level and you need a specific setup, op
 | Data retention and privacy | [Data retention](../runbooks/data-retention.md) |
 | External egress approvals | [Egress governance](../runbooks/egress-governance.md) |
 | OpenSSF Scorecard triage | [Scorecard triage](../runbooks/scorecard-triage.md) |
+| GitHub repository security settings | [Repository settings](../runbooks/repository-settings.md) |
 | Model lifecycle and promotion | [Model governance](../runbooks/model-governance.md) |
 | Model artifact provenance | [Model provenance](../runbooks/model-provenance.md) |
 | Model cards / datasheets | [Model cards](../platform/model-catalog/model-cards/README.md) |

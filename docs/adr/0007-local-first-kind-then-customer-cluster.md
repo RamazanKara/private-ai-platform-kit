@@ -10,7 +10,7 @@ The platform targets two audiences with one repository: a contributor or evaluat
 the whole stack on a laptop in minutes, and a customer who runs it on their own production Kubernetes.
 If those were two different deployment models, the local lab would not be evidence for the customer
 path. The decision is how to structure environments so the local experience is genuinely the same
-operating model as the customer one — same charts, GitOps layout, policies, runbooks, and evidence —
+operating model as the customer one (same charts, GitOps layout, policies, runbooks, and evidence)
 without depending on a cloud provider.
 
 ## Decision
@@ -25,8 +25,8 @@ customer already operates.
   mapping), brought up by `make local-up`.
 - Both environments use the same charts and the same Argo CD app-of-apps mechanism
   (see [0001](0001-gitops-with-argo-cd.md)); the only structural difference is the cluster directory
-  each root app points at — [`deploy/clusters/local`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local) versus
-  [`deploy/clusters/customer`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer) — and a pinned `targetRevision` on the
+  each root app points at ([`deploy/clusters/local`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local) versus
+  [`deploy/clusters/customer`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer)) and a pinned `targetRevision` on the
   customer root.
 - The customer overlay assumes Kubernetes already exists and adds what a tenant cluster needs:
   `appprojects.yaml` for project tenancy, `external-secrets.yaml`, `gpu-scheduling.yaml`, and GPU

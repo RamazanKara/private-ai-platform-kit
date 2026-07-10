@@ -27,7 +27,7 @@ v0.5.0 in June 2026 and graduated its core API to `agents.x-k8s.io/v1beta1`
 under `extensions.agents.x-k8s.io/v1beta1`. It provides secure-by-default
 networking on the template path (cluster-internal IPs and metadata endpoints
 blocked since v0.2.1; a directly created `Sandbox` gets no upstream
-NetworkPolicy — verified on `kind`, 2026-07-01), lifetime bounds
+NetworkPolicy, verified on `kind`, 2026-07-01), lifetime bounds
 (`shutdownTime`/`shutdownPolicy` on sandboxes, `ttlSecondsAfterFinished` on
 pooled claims), suspend/resume, warm pools for ~1 s allocation, and Python/Go
 SDKs. It supports stronger runtimes (gVisor, Kata Containers) via the pod
@@ -57,7 +57,7 @@ runtime** underneath the existing governance envelope:
    pattern in the vLLM chart), disables service-account token automount,
    and stays compatible with the `restricted` Pod Security level.
 3. The kit's NetworkPolicies and `ApprovedEgressCatalog` remain the
-   **authoritative egress control** — on the direct-`Sandbox` path they are
+   **authoritative egress control**: on the direct-`Sandbox` path they are
    the *only* network control, since upstream creates no policy there. The
    catalog stays the only allow-path, `make egress-check` extends to
    sandbox-managed pods, and policy-as-code enforces that sandbox pods are
@@ -83,7 +83,7 @@ Positive:
 - The isolation primitive is maintained by SIG Apps and its ecosystem
   (SDKs, warm pools, managed equivalents), not by this kit.
 - The kit's story sharpens: governance, egress, budgets, and evidence over a
-  standard primitive — the layer above agent-sandbox, not a competitor to it.
+  standard primitive: the layer above agent-sandbox, not a competitor to it.
 - Warm pools give a path to low-latency workspace allocation without bespoke
   pooling code.
 
@@ -109,7 +109,7 @@ Negative / accepted costs:
 - **Keep namespace-only isolation (status quo).** Rejected as the terminal
   state: it offers no syscall-level barrier for model-generated code, which is
   unacceptable at the `high` risk tier. Retained as the default and local-lab
-  profile — the envelope must keep working on any conformant cluster.
+  profile, since the envelope must keep working on any conformant cluster.
 - **Build a kit-owned sandbox CRD and controller.** Rejected: duplicates a
   SIG Apps project with production adoption, adds permanent controller
   maintenance to a solo-maintained kit, and weakens the "governance layer over

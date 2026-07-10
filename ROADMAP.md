@@ -17,13 +17,13 @@ This roadmap is ordered by what most improves open-source evaluation quality.
   `--selftest` wired into `make validate`) and head anchoring (`make audit-anchor`,
   `audit-verify --anchor`) with a hash-covered per-replica `chain_id`. This closes the
   head-anchoring gap ADR 0006 flagged. **Remaining (operator-owned):** committing/exporting the
-  anchor and forwarding the audit receipts to a SIEM for long-term hold — the CronJob example and
+  anchor and forwarding the audit receipts to a SIEM for long-term hold. The CronJob example and
   the procedure ship in `runbooks/audit-chain.md`.
 
 ## 3. Platform Hardening
 
 - Shipped (v0.22.0): native Anthropic Messages API (`POST /v1/messages`), translated to/from the OpenAI chat shape and routed through the same governance path as chat (non-streaming this release; a translation sidecar remains the option for streaming).
-- Shipped (v0.23.0): OpenAI Responses API (`POST /v1/responses`, stateless subset), translated to/from the OpenAI chat shape and routed through the same governance path as chat (non-streaming this release; `store`/`previous_response_id` server-side state is out of scope and rejected with `stateful_not_supported`).
+- Shipped (v0.23.0-v0.26.0): OpenAI Responses API plus opt-in tenant-scoped, TTL-bounded server-side state (`store`, `previous_response_id`, retrieve/delete/input-items). Background and Responses-shaped streaming remain out of scope.
 - Add IdP-specific examples and rotation drills for optional OIDC/JWT/JWKS validation.
 - Shipped (v0.22.0): the gateway's JWT signature/claim core now runs on the maintained PyJWT library (`jwt.decode`, algorithm pinned to the configured allowlist), replacing the in-tree RSA/EC verification while preserving the JWKS cache and 503-vs-401 semantics behind the same `JwtVerifier` interface.
 - Keep model-catalog-driven runtime routing and per-sandbox admission policy covered by contracts.
@@ -34,17 +34,22 @@ This roadmap is ordered by what most improves open-source evaluation quality.
 
 - Per-tenant retrieval isolation is enforced by default (`retrieval.tenantIsolation` on both the
   Qdrant and lexical backends, fail-closed on a missing/unasserted tenant), and the RAG service now
-  derives per-caller identity from its **own** audience-bound token verification (`auth.jwt`, `RAG_JWT_*`
-  — JWKS/issuer/audience/exp/nbf with an alg allowlist, mirroring the gateway's `jwt_auth`): the tenant
+  derives per-caller identity from its **own** audience-bound token verification (`auth.jwt`, `RAG_JWT_*`,
+  covering JWKS/issuer/audience/exp/nbf with an alg allowlist, mirroring the gateway's `jwt_auth`): the tenant
   comes from a verified claim on the RAG service itself (a contradicting `X-Sandbox-ID` header is rejected
   403, a missing token fails closed 401 when required), with header-trust as the fallback when JWT is off.
-- Replace demo hashed-vector behavior with a pluggable embedding provider interface.
+- Shipped: pluggable hash and OpenAI-compatible embedding providers, plus a dedicated customer vLLM embedding release and governed model provenance.
 - Expand collection migration dry runs and rollback guidance around the reviewed ingestion job, source metadata, collection versioning, and Qdrant readiness checks.
 - Add examples for customer document-source approvals and retention classes.
 
 ## 5. Helm And Distribution
 
-- Keep OCI chart publishing green (tag builds push every chart to GHCR; see ADR 0008).
+- Keep digest-bound OCI chart publishing green (tag builds promote the tested images and push
+  every chart plus Artifact Hub metadata to GHCR; see ADR 0008).
+- Keep PyPI Trusted Publishing, the Python 3.11-3.14 SDK matrix, package checksums, and release
+  artifacts green.
+- Keep versioned `mike` documentation (`development`, `latest`, and immutable release aliases)
+  available through GitHub Pages.
 - Keep chart READMEs and values tables current.
 - Add minimal, local, and customer profile examples for each major chart.
 
@@ -63,8 +68,8 @@ decision reads as intentional and can be revisited with evidence.
 
 - **Semantic (embedding-similarity) response caching.** The gateway response cache
   (`responseCache`, `src/inference-gateway/app/cache.py`) is **exact-match only**: a hit requires
-  the same sandbox and a byte-identical request payload. Semantic caching — embedding the prompt
-  and serving a cached completion for a *similar* (not identical) prompt — was considered and
+  the same sandbox and a byte-identical request payload. Semantic caching (embedding the prompt
+  and serving a cached completion for a *similar*, not identical, prompt) was considered and
   deferred. The reasoning: for the agent and tool-use traffic this gateway is built around, a
   near-miss is a correctness/staleness hazard, not a convenience. Two prompts a similarity
   threshold treats as equivalent routinely demand different answers (a changed file path, an
@@ -74,7 +79,7 @@ decision reads as intentional and can be revisited with evidence.
   lookup on the hot path, weakens the audit story (what was served vs. what was requested), and
   interacts badly with the output guardrail (a cached hit skips re-inspection). Exact-match
   caching keeps the semantics obvious and safe. Revisit only behind an explicit opt-in with a
-  conservative threshold, per-sandbox scoping, TTL, and cache-hit audit — and only for workloads
+  conservative threshold, per-sandbox scoping, TTL, and cache-hit audit, and only for workloads
   (e.g. FAQ-style retrieval) where a near-duplicate answer is acceptable.
 
 ## Seed Issue List
@@ -100,14 +105,18 @@ encryption-at-rest policy, the usage+cost API, self-service onboarding apply, th
 SDK, and embedding-model governance all ship. What remains is inherently external to the kit's
 "manifests, charts, service code, validation tooling, and runbooks" boundary:
 
+- `distribution`: PyPI's pending Trusted Publisher and Artifact Hub's OCI repository entry each
+  require a one-time account-owner registration. The release workflows, protected GitHub
+  environment, package metadata, OCI discovery metadata, and exact registration instructions
+  ship in-tree; the assigned Artifact Hub `repositoryID` is recorded after registration.
 - `runtime`: Multi-node distributed serving requires the LeaderWorkerSet (or Ray) operator and
-  a per-cluster GPU topology — the kit ships the working LWS example and the pipeline-parallel
-  flags (runbooks/gpu-capacity.md); the operator installs and sizes it.
+  a per-cluster GPU topology; the kit ships the working LWS example and the pipeline-parallel
+  flags (runbooks/gpu-capacity.md), and the operator installs and sizes it.
 - `runtime`: LoRA/adapter *artifacts* and the embedding/serving model *weights* are the
-  customer's to host and pin — the kit ships the serving flags, catalog governance, and a
+  customer's to host and pin; the kit ships the serving flags, catalog governance, and a
   source-reference provenance digest the customer replaces with their pinned model-store checksum.
-- `dx`: A standalone admin/usage *console UI* is a separate web application; the kit ships the
-  `/v1/usage` data layer, the metrics, and the client SDK it would build on.
+- `dx`: A richer multi-tenant administration product remains separate; the kit now ships the
+  opt-in read-only `/console`, `/v1/usage`, metrics, and the client SDK.
 - `security`: Flipping the encryption-at-rest Kyverno policy from Audit to Enforce, and scheduling
   the age-based retention purge as a CronJob, are per-environment operational decisions; the
   policy, the labels, and the purge command ship ready to use.

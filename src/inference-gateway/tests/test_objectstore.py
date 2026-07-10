@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from io import BytesIO
 from types import SimpleNamespace
 
 import pytest
@@ -24,6 +25,17 @@ def store(request, tmp_path) -> ObjectStore:
 def test_put_get_round_trips(store):
     store.put("tenant-a/file-1", b"hello\nworld\n")
     assert store.get("tenant-a/file-1") == b"hello\nworld\n"
+
+
+def test_put_stream_round_trips_without_bytes_materialization(store):
+    data = b"line one\nline two\n"
+    store.put_stream("tenant-a/stream", BytesIO(data), len(data))
+    assert store.get("tenant-a/stream") == data
+
+
+def test_put_stream_rejects_size_mismatch(store):
+    with pytest.raises(OSError):
+        store.put_stream("tenant-a/stream", BytesIO(b"short"), 99)
 
 
 def test_put_overwrites(store):

@@ -10,7 +10,7 @@ TENANT_OUTPUT ?= .out/tenants
 TOOLCHAIN_PROFILE ?= validate
 RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS ?= 24
 CUSTOMER_REPO_URL ?= https://github.com/RamazanKara/private-ai-platform-kit.git
-CUSTOMER_REVISION ?= v0.26.0
+CUSTOMER_REVISION ?= v0.27.0
 CUSTOMER_GPU_PROFILE ?= nvidia
 TOOLCHAIN_BIN_DIR ?= $(CURDIR)/.tools/bin
 PYTHONDONTWRITEBYTECODE ?= 1
@@ -19,14 +19,16 @@ PYTHON := src/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help clean clean-all python-env quickstart local-up local-down bootstrap-argocd sync smoke rag-smoke trace-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu tenant-offboard customer-overlay customer-overlay-check agent-smoke chaos-drill eval eval-local rag-eval rag-eval-check loadtest loadtest-local benchmark-local docs-install docs-serve docs-build restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag lint format format-check typecheck quality coverage dashboard-check dashboard-update paths paths-check audit-verify audit-verify-demo audit-anchor
+.PHONY: help clean clean-all python-env bootstrap quickstart status local-up local-down bootstrap-argocd sync smoke rag-smoke trace-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu tenant-offboard customer-overlay customer-overlay-check agent-smoke chaos-drill eval eval-local rag-eval rag-eval-check loadtest loadtest-local benchmark-local docs-install docs-serve docs-build restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test production-check validate validate-full test-gateway test-rag fuzz lint format format-check typecheck quality coverage dashboard-check dashboard-update paths paths-check audit-verify audit-verify-demo audit-anchor
 
 help:
 	@printf '%s\n' \
 		'Private AI Platform Kit targets' \
 		'' \
 		'Local platform:' \
+		'  make bootstrap             Install pinned CLIs and run the full guided local lab (Linux/WSL)' \
 		'  make quickstart            Guided local lab path with validation and smoke tests' \
+		'  make status                Show cluster, GitOps, workload, and warning status' \
 		'  make local-up              Create the local kind cluster' \
 		'  make bootstrap-argocd      Install/bootstrap Argo CD' \
 		'  make sync                  Sync local or customer GitOps apps' \
@@ -47,6 +49,7 @@ help:
 		'  make format                Apply Ruff format and autofixes' \
 		'  make typecheck             Run mypy on both services' \
 		'  make coverage              Report test coverage with enforced floors' \
+		'  make fuzz                  Mutate security-critical parser inputs' \
 		'  make production-check      Run static production-readiness checks' \
 		'  make image-scan            Build and Trivy-scan runtime images' \
 		'  make supply-chain-check    Validate local image scan evidence' \
@@ -91,8 +94,14 @@ clean-all: clean
 python-env:
 	./scripts/bootstrap-python.sh
 
+bootstrap:
+	./scripts/bootstrap.sh
+
 quickstart:
 	./scripts/quickstart.sh
+
+status:
+	./scripts/status.sh
 
 local-up:
 	./scripts/local-up.sh
@@ -179,7 +188,7 @@ benchmark-local:
 	./scripts/benchmark-ollama.sh
 
 docs-install:
-	python3 -m venv .venv-docs && .venv-docs/bin/pip install -r requirements-docs.txt
+	python3 -m venv .venv-docs && .venv-docs/bin/pip install --require-hashes -r requirements-docs.txt
 
 docs-serve:
 	./scripts/docs-build.sh serve
@@ -330,6 +339,9 @@ test-gateway:
 
 test-rag:
 	./scripts/test-rag.sh
+
+fuzz: python-env
+	PYTHONPATH=src/inference-gateway $(PYTHON) scripts/fuzz-security.py
 
 lint:
 	./scripts/quality.sh lint

@@ -45,7 +45,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `autoscaling.targetCPUUtilizationPercentage` | `70` |
 | `image.pullPolicy` | `IfNotPresent` |
 | `image.repository` | `ghcr.io/ramazankara/private-ai-platform-kit/rag-service` |
-| `image.tag` | `v0.26.0` |
+| `image.tag` | `v0.27.0` |
 | `ingestion.annotations` | `{}` |
 | `ingestion.backoffLimit` | `1` |
 | `ingestion.chunkChars` | `1200` |
@@ -94,6 +94,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `retrieval.lexicalWeight` | `0.5` |
 | `retrieval.maxContextChars` | `6000` |
 | `retrieval.maxQueryChars` | `2048` |
+| `retrieval.maxRequestBodyBytes` | `1048576` |
 | `retrieval.maxTopK` | `8` |
 | `retrieval.reranker.baseUrl` | `""` |
 | `retrieval.reranker.model` | `""` |

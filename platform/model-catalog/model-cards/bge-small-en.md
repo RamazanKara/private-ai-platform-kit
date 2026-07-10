@@ -49,7 +49,7 @@ governance as generation models.
   `huggingface://BAAI/bge-small-en-v1.5@sha256:99aab2ead8654ba801d2a01b188b13cc119e5d2d10880e8d1ee4a1315aa99e72`
 - Digest: `sha256:99aab2ead8654ba801d2a01b188b13cc119e5d2d10880e8d1ee4a1315aa99e72`
   (scope: source-reference)
-- Verification: `customer-model-store` — `huggingface-cli scan-cache --dir /models`
+- Verification: `customer-model-store` via `huggingface-cli scan-cache --dir /models`
 - License: mit
 
 The bundled digest is a deterministic source-reference over the model reference string

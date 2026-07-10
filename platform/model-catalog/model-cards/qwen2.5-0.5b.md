@@ -47,7 +47,7 @@ wired correctly, not to judge model quality.
   `ollama-library/qwen2.5:0.5b@sha256:c5396e06af294bd101b30dce59131a76d2b773e76950acc870eda801d3ab0515`
 - Digest: `sha256:c5396e06af294bd101b30dce59131a76d2b773e76950acc870eda801d3ab0515`
   (scope: model-artifact)
-- Verification: `ollama-registry-model-layer` — resolve the model-weights layer digest from the
+- Verification: `ollama-registry-model-layer`. Resolve the model-weights layer digest from the
   Ollama registry manifest:
 
       curl -fsSL https://registry.ollama.ai/v2/library/qwen2.5/manifests/0.5b | \

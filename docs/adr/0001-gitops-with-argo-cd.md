@@ -6,8 +6,8 @@
 
 ## Context
 
-The kit must deliver the same platform — gateway, runtimes, RAG, vector store, budget Redis, agent
-workspaces, policies, observability, backup — onto a local `kind` cluster and onto customer-owned
+The kit must deliver the same platform (gateway, runtimes, RAG, vector store, budget Redis, agent
+workspaces, policies, observability, backup) onto a local `kind` cluster and onto customer-owned
 clusters, with no manual `kubectl apply` drift between them. Delivery has to be declarative so the
 desired state is reviewable in Git, auditable for customer handoff, and reproducible by an operator
 who has never seen the cluster.

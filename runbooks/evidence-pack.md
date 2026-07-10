@@ -40,9 +40,9 @@ After the local lab is synced, run:
 
     make evidence LIVE=1
 
-Live mode also verifies that key namespaces exist, gateway/RAG/budget deployments have available replicas, the coding-agent workspace PVC is bound, and — when the agent-sandbox CRDs are installed — that the agent-sandbox controller has available replicas (when they are not installed, the pack records that workspaces run on namespace isolation only and `C-ISOLATE` is not claimed).
+Live mode also verifies that key namespaces exist, gateway/RAG/budget deployments have available replicas, the coding-agent workspace PVC is bound, and (when the agent-sandbox CRDs are installed) that the agent-sandbox controller has available replicas (when they are not installed, the pack records that workspaces run on namespace isolation only and `C-ISOLATE` is not claimed).
 
-Note: on `WaitForFirstConsumer` storage classes (including the `kind` default), the workspace PVC stays `Pending` until a pod mounts it, so the PVC control fails on a workspace with no running workload — start a workspace pod or sandbox before generating live evidence.
+Note: on `WaitForFirstConsumer` storage classes (including the `kind` default), the workspace PVC stays `Pending` until a pod mounts it, so the PVC control fails on a workspace with no running workload. Start a workspace pod or sandbox before generating live evidence.
 
 ## Interpret Results
 

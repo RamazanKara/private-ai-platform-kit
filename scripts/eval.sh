@@ -15,8 +15,12 @@ fi
 SUITE="${SUITE:-platform/evals/smoke-suite.yaml}"
 GATEWAY_URL="${GATEWAY_URL:-}"
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-output_json="results/evals/eval-${timestamp}.json"
-output_md="results/evals/eval-${timestamp}.md"
+evidence_kind="${EVIDENCE_KIND:-eval}"
+if [[ "$(basename "$SUITE")" == "safety-suite.yaml" ]]; then
+  evidence_kind="safety"
+fi
+output_json="results/evals/${evidence_kind}-${timestamp}.json"
+output_md="results/evals/${evidence_kind}-${timestamp}.md"
 PLATFORM_API_KEY="${PLATFORM_API_KEY:-local-development-only}"
 
 if [[ -z "$GATEWAY_URL" ]]; then
@@ -36,5 +40,6 @@ src/inference-gateway/.venv/bin/python scripts/eval-suite.py \
   --gateway-url "$GATEWAY_URL" \
   --output-json "$output_json" \
   --output-md "$output_md" \
+  --evidence-class model_quality \
   --api-key "$PLATFORM_API_KEY"
 log "eval evidence written to ${output_json} and ${output_md}"

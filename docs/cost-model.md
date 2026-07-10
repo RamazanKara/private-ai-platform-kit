@@ -72,7 +72,7 @@ gateway, RAG, and the full control plane. Use the NVIDIA or AMD profile under
 | Component | Quantity (grounded) | Cost driver |
 | --- | --- | --- |
 | GPU runtime | vLLM, `replicaCount: 2`, `accelerator.count: 4` GPUs per replica (`vllm-nvidia.yaml`) | GPU node amortization (largest line) |
-| GPU autoscaling | KEDA `minReplicaCount: 2`, `maxReplicaCount: 8` on queue depth (`vllm-nvidia.yaml`) | Peak GPU spend scales 2x-4x at burst |
+| GPU autoscaling | KEDA `minReplicaCount: 2`, `maxReplicaCount: 8` on queue depth (`vllm-nvidia.yaml`) | Peak GPU spend scales 2x to 4x at burst |
 | Model weight cache | `400Gi` ReadWriteMany shared PVC (`vllm-nvidia.yaml`) | High-throughput shared/file storage |
 | Platform CPU | Gateway + RAG + Qdrant + Redis + control plane; `requestsCpu: 16`, `requestsMemory: 64Gi` quota (`customer-shared-runtime`) | CPU node-hours |
 | Qdrant PVC | `20Gi` default, size to corpus | Block storage |
@@ -98,7 +98,7 @@ The GPU class itself depends on the model. From `runbooks/gpu-capacity.md`:
 KV-cache, not weights, usually dominates at long context: the default coding profile sets
 `model.maxModelLen: "262144"`, so size memory headroom for the context length you actually enable.
 These concurrency figures are rough simultaneous in-flight requests at a usable interactive latency,
-not a throughput ceiling — re-derive them per model with a load test.
+not a throughput ceiling; re-derive them per model with a load test.
 
 ### Size 3: Multi-tenant coding-agent platform
 
@@ -125,8 +125,8 @@ for cost.
 
 ### Per-sandbox token budgets cap the GPU draw
 
-The gateway enforces three ceilings per `X-Sandbox-ID` — accepted request count, cumulative prompt
-characters, and cumulative estimated tokens — over a rolling window (`windowSeconds`, default
+The gateway enforces three ceilings per `X-Sandbox-ID` (accepted request count, cumulative prompt
+characters, and cumulative estimated tokens) over a rolling window (`windowSeconds`, default
 `86400`). Because GPU spend is driven by tokens served, the estimated-token budget is the direct
 spend cap: a sandbox that hits `estimatedTokenLimit` is rejected with HTTP 400 and stops drawing GPU
 time. Estimated tokens are computed as
@@ -209,7 +209,7 @@ A like-for-like comparison against a hosted API has to account for what each sid
 
 | Dimension | This kit (build, self-host) | Hosted AI API / gateway (buy) |
 | --- | --- | --- |
-| Pricing model | Capacity you provision (GPU/CPU node-hours, storage) — largely fixed, plus operator effort | Per-token, usage-metered — fully variable |
+| Pricing model | Capacity you provision (GPU/CPU node-hours, storage), largely fixed, plus operator effort | Per-token, usage-metered, fully variable |
 | Marginal cost of a token | Near zero once the GPU tier is provisioned (you pay for the node, not the token) | Charged per token, every token, forever |
 | Data boundary | Data, control plane, and model-routing policy stay inside the customer boundary | Data and routing policy usually leave the customer boundary |
 | Identity / billing / support | You own them (delegated by the kit) | Managed by the provider |
@@ -217,7 +217,7 @@ A like-for-like comparison against a hosted API has to account for what each sid
 | Best when | Steady, predictable, privacy-sensitive volume; data must not leave | Spiky or low volume; fast start; no platform team |
 
 The crossover is utilization. A self-hosted GPU tier has a high fixed cost and a near-zero marginal
-cost per token, so it wins when utilization is high and steady — the provisioned GPUs are kept busy.
+cost per token, so it wins when utilization is high and steady: the provisioned GPUs are kept busy.
 A hosted API has zero fixed cost and a fixed marginal cost per token, so it wins at low or spiky
 volume where dedicated GPUs would sit idle. To find your crossover, divide your modeled monthly
 fixed cost (GPU amortization plus platform overhead) by the hosted per-token price to get the
@@ -236,7 +236,7 @@ shared runtime in the multi-tenant size spreads one GPU tier's fixed cost across
    the cited charts and `platform/governance/quota-plans.yaml`.
 2. Choose a GPU class from the `runbooks/gpu-capacity.md` table for your model, then validate
    real concurrency and throughput with a load test (`make loadtest-local`, then a live load test
-   against the customer profile) — do not trust the rough concurrency figures for capital planning.
+   against the customer profile); do not trust the rough concurrency figures for capital planning.
 3. Get current unit prices (GPU node-hour or purchase price, CPU node-hour, RWX/block/object storage
    per GB-month, egress per GB) from your own provider or hardware quote.
 4. Derive a blended cost per 1k tokens from GPU amortization at your measured throughput, set

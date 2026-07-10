@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 
+from app.body_limit import RequestBodyLimitMiddleware
 from app.embeddings import build_embedding_provider
 from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.reranker import build_reranker_provider
@@ -27,7 +28,7 @@ from app.tracing import configure_tracing, trace_request
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.rag.audit")
 TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.26.0"
+SERVICE_VERSION = "0.27.0"
 OPENAPI_DESCRIPTION = (
     "Private retrieval service for platform and customer knowledge. The service "
     "returns traceable retrieval results, optional context blocks, and "
@@ -261,7 +262,7 @@ async def _apply_jwt_identity(request: Request, settings: Settings, verifier: Jw
 
     - A verified token derives the tenant from ``jwt_tenant_claim``; the request's
       ``sandbox_id`` is set to that verified value and marked as an explicit assertion, so
-      the tenant-isolation filter scopes retrieval to the tenant the *claim* names — never
+      the tenant-isolation filter scopes retrieval to the tenant the *claim* names, never
       the client-supplied header. A missing/empty claim -> 403.
     - A verified token whose tenant contradicts an explicit ``X-Sandbox-ID`` header -> 403
       (the header cannot override the verified identity).
@@ -377,6 +378,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url=None,
         lifespan=_lifespan,
     )
+    app.add_middleware(RequestBodyLimitMiddleware, max_bytes=resolved.max_request_body_bytes)
     app.state.settings = resolved
     if resolved.retrieval_backend == "qdrant":
         embedding_provider = build_embedding_provider(
@@ -453,7 +455,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request.state.traceparent = _traceparent_from_header(request)
         except ValueError as exc:
             # A request header failed validation. The message is a controlled, developer-authored
-            # validation string describing the malformed header (e.g. the sandbox-id charset rule) —
+            # validation string describing the malformed header (e.g. the sandbox-id charset rule);
             # it carries no stack trace or server internals, so returning it as an actionable 400 is
             # correct API behavior, not information disclosure. Also logged for server-side triage.
             reason = str(exc)
@@ -519,20 +521,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def readyz(response: Response) -> dict[str, Any]:
         ready = True
         vector_store: dict[str, Any] = {"status": "ok"}
+        embedding: dict[str, Any] = {
+            "provider": resolved.embedding_provider,
+            "status": "ok",
+        }
         if resolved.retrieval_backend == "qdrant":
             ping = getattr(app.state.retriever, "ping", None)
             reachable = await ping() if callable(ping) else False
-            ready = bool(reachable)
-            vector_store = {"status": "ok" if ready else "unavailable"}
+            vector_store = {"status": "ok" if reachable else "unavailable"}
             status_obj = getattr(app.state.retriever, "status", None)
             if callable(status_obj):
                 vector_store["last_sync_status"] = status_obj().get("last_sync_status")
+            provider = getattr(app.state.retriever, "embedding_provider", None)
+            provider_ready = getattr(provider, "ready", None)
+            embedding_reachable = await provider_ready() if callable(provider_ready) else False
+            embedding = {
+                "provider": getattr(provider, "name", resolved.embedding_provider),
+                "status": "ok" if embedding_reachable else "unavailable",
+            }
+            ready = bool(reachable and embedding_reachable)
         response.status_code = 200 if ready else 503
         REQUESTS.labels("/readyz", str(response.status_code)).inc()
         return {
             "status": "ready" if ready else "not_ready",
             "retrieval_backend": resolved.retrieval_backend,
             "vector_store": vector_store,
+            "embedding": embedding,
         }
 
     @app.get(
@@ -553,6 +567,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def documents(request: Request) -> dict[str, Any]:
         route = "/v1/rag/documents"
         start = perf_counter()
+        visible_documents = app.state.retriever.documents
+        if resolved.retrieval_tenant_isolation_enabled:
+            # Metadata is tenant data too. Apply the same fail-closed identity
+            # rule as query(): only an explicit header or verified JWT claim is
+            # trusted, and lexical documents can only be scoped by ``owner``.
+            tenant = request.state.sandbox_id if request.state.sandbox_id_from_header else None
+            if tenant is None or resolved.retrieval_tenant_field != "owner":
+                visible_documents = []
+            else:
+                visible_documents = [document for document in visible_documents if document.owner == tenant]
         REQUESTS.labels(route, "200").inc()
         LATENCY.labels(route).observe(perf_counter() - start)
         return {
@@ -564,7 +588,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "title": document.title,
                     "source": document.source,
                 }
-                for document in app.state.retriever.documents
+                for document in visible_documents
             ],
         }
 

@@ -19,7 +19,7 @@ synchronous `POST /v1/batch-inference` fan-out (which returns inline within one 
 
 Because items are replayed through the gateway, every batched request passes the model
 allowlist, admission caps, prompt-secret policy, per-tenant budget, the output guardrail, tenant
-isolation, and the audit chain — identically to live traffic.
+isolation, and the audit chain, identically to live traffic.
 
 ## Enabling it
 
@@ -45,7 +45,7 @@ batch:
 ```
 
 The object store (MinIO or cloud S3) is operator-provided. The `filesystem`/`memory` object
-backends are for single-process local runs only — they are **not** shared across the gateway and
+backends are for single-process local runs only; they are **not** shared across the gateway and
 worker pods, so a cluster must use `s3`.
 
 ## Normal flow
@@ -72,7 +72,7 @@ else lands in the `error_file_id` file. Partial completion is normal.
 ## Cancellation and expiry
 
 - `POST /v1/batches/{id}/cancel` flips the batch to `cancelling`; the worker finalizes it to
-  `cancelled` at its next item boundary (best-effort — in-flight items may still complete).
+  `cancelled` at its next item boundary (best-effort; in-flight items may still complete).
 - A batch not finished within its `completion_window` (default `24h`, honored as an expiry
   bound) is swept to `expired` by the worker's reaper.
 

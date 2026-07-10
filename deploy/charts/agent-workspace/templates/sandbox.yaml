@@ -1,4 +1,4 @@
-{{- /* Hardened workspace on the kubernetes-sigs/agent-sandbox runtime — the
+{{- /* Hardened workspace on the kubernetes-sigs/agent-sandbox runtime, the
        standard and only workspace runtime (ADR 0009, ADR 0010). The Sandbox
        name equals sandbox.id, and the controller names the pod after the
        Sandbox, so the gateway's X-Sandbox-ID binding is physical. The

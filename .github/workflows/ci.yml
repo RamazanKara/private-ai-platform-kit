@@ -70,6 +70,72 @@ jobs:
         # something runs them; plain pytest in validate-full does not.
         run: make coverage
 
+  sdk-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements-sdk-test.lock
+      - run: pip install --require-hashes -r requirements-sdk-test.lock
+      - run: PYTHONPATH=sdk/python python -m pytest -q sdk/python/tests
+
+  sdk-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: validate
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements-sdk-build.lock
+            requirements-sdk-test.lock
+      - run: pip install --require-hashes -r requirements-sdk-build.lock -r requirements-sdk-test.lock
+      - name: Validate SDK version matches release tag
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          version = tomllib.loads(Path("sdk/python/pyproject.toml").read_text())["project"]["version"]
+          expected = os.environ["GITHUB_REF_NAME"].removeprefix("v")
+          if version != expected:
+              raise SystemExit(f"SDK version {version} does not match tag {expected}")
+          PY
+      - name: Build and smoke-test wheel and source distribution
+        run: |
+          set -euo pipefail
+          python -m build --no-isolation --outdir sdk-dist sdk/python
+          python -m pip install --no-deps --target /tmp/sdk-smoke sdk-dist/*.whl
+          PYTHONPATH=/tmp/sdk-smoke python -c 'from ai_platform_client import GatewayClient; print(GatewayClient.__name__)'
+          sha256sum sdk-dist/* > sdk-checksums.txt
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5.0.0
+        with:
+          name: python-sdk-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            sdk-dist/*
+            sdk-checksums.txt
+
   # PR-time image build check (no push, single-arch): a Dockerfile or hashed
   # lock-install regression must fail the PR, not main's publish job.
   image-check:
@@ -140,39 +206,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Package and publish Helm charts
+      - uses: oras-project/setup-oras@38de303aac69abb66f3e6255b7198bff35f323e3  # v2.0.0
         if: github.ref_type == 'tag'
-        env:
-          HELM_EXPERIMENTAL_OCI: "1"
-        run: |
-          set -euo pipefail
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
-            --username "${{ github.actor }}" \
-            --password-stdin
-          mkdir -p chart-packages
-          for chart in deploy/charts/*; do
-            [[ -f "${chart}/Chart.yaml" ]] || continue
-            # Umbrella/parent charts declare subchart dependencies (file:// for the local
-            # charts); vendor them into charts/ before packaging or `helm package` errors.
-            if grep -q '^dependencies:' "${chart}/Chart.yaml"; then
-              helm dependency update "$chart"
-            fi
-            helm package "$chart" --destination chart-packages
-          done
-          # Record each pushed chart as <oci-ref>@<digest> so the signing step can
-          # cosign-sign the immutable OCI artifact (mirrors digest-based image signing).
-          : > chart-oci-refs.txt
-          for package in chart-packages/*.tgz; do
-            push_out="$(helm push "$package" "oci://ghcr.io/${IMAGE_REPO}/charts" 2>&1)"
-            echo "${push_out}"
-            ref="$(printf '%s\n' "${push_out}" | awk '/^Pushed:/ {print $2}')"
-            digest="$(printf '%s\n' "${push_out}" | awk '/^Digest:/ {print $2}')"
-            if [[ -n "${ref}" && -n "${digest}" ]]; then
-              echo "${ref%:*}@${digest}" >> chart-oci-refs.txt
-            fi
-          done
+        with:
+          version: 1.3.2
       - name: Build and push gateway image
         id: build_gateway
+        if: github.ref_type != 'tag'
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
         with:
           context: src/inference-gateway
@@ -186,6 +226,7 @@ jobs:
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
       - name: Build and push RAG service image
         id: build_rag
+        if: github.ref_type != 'tag'
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
         with:
           context: src/rag-service
@@ -197,6 +238,56 @@ jobs:
           build-args: |
             VCS_REF=${{ github.sha }}
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
+      - name: Promote previously built SHA images to release tags
+        id: promote_images
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          gateway_source="ghcr.io/${IMAGE_REPO}/inference-gateway:${GITHUB_SHA}"
+          rag_source="ghcr.io/${IMAGE_REPO}/rag-service:${GITHUB_SHA}"
+          gateway_target="ghcr.io/${IMAGE_REPO}/inference-gateway:${GITHUB_REF_NAME}"
+          rag_target="ghcr.io/${IMAGE_REPO}/rag-service:${GITHUB_REF_NAME}"
+          docker buildx imagetools inspect "${gateway_source}" >/dev/null
+          docker buildx imagetools inspect "${rag_source}" >/dev/null
+          docker buildx imagetools create --tag "${gateway_target}" "${gateway_source}"
+          docker buildx imagetools create --tag "${rag_target}" "${rag_source}"
+          gateway_digest="$(docker buildx imagetools inspect "${gateway_target}" | awk '/^Digest:/ {print $2; exit}')"
+          rag_digest="$(docker buildx imagetools inspect "${rag_target}" | awk '/^Digest:/ {print $2; exit}')"
+          [[ "${gateway_digest}" == sha256:* && "${rag_digest}" == sha256:* ]]
+          echo "gateway_digest=${gateway_digest}" >> "$GITHUB_OUTPUT"
+          echo "rag_digest=${rag_digest}" >> "$GITHUB_OUTPUT"
+      - name: Package and publish digest-bound Helm charts
+        if: github.ref_type == 'tag'
+        env:
+          HELM_EXPERIMENTAL_OCI: "1"
+          GATEWAY_DIGEST: ${{ steps.promote_images.outputs.gateway_digest }}
+          RAG_DIGEST: ${{ steps.promote_images.outputs.rag_digest }}
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username "${{ github.actor }}" \
+            --password-stdin
+          scripts/package-release-charts.py \
+            --version "${GITHUB_REF_NAME#v}" \
+            --gateway-digest "${GATEWAY_DIGEST}" \
+            --rag-digest "${RAG_DIGEST}" \
+            --source-revision "${GITHUB_SHA}" \
+            --output-dir chart-packages
+          : > chart-oci-refs.txt
+          for package in chart-packages/*.tgz; do
+            push_out="$(helm push "$package" "oci://ghcr.io/${IMAGE_REPO}/charts" 2>&1)"
+            echo "${push_out}"
+            ref="$(printf '%s\n' "${push_out}" | awk '/^Pushed:/ {print $2}')"
+            digest="$(printf '%s\n' "${push_out}" | awk '/^Digest:/ {print $2}')"
+            [[ -n "${ref}" && -n "${digest}" ]]
+            echo "${ref%:*}@${digest}" >> chart-oci-refs.txt
+          done
+          # Artifact Hub OCI discovery expects repository metadata at the special
+          # artifacthub.io tag. The main umbrella chart is the public entry point;
+          # its vendored dependencies remain available in the same OCI namespace.
+          oras push "ghcr.io/${IMAGE_REPO}/charts/platform:artifacthub.io" \
+            --config /dev/null:application/vnd.cncf.artifacthub.config.v1+yaml \
+            artifacthub-repo.yml:application/vnd.cncf.artifacthub.repository-metadata.layer.v1.yaml
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
         with:
           image: ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway:${{ github.sha }}
@@ -208,18 +299,21 @@ jobs:
           format: spdx-json
           output-file: rag-service.spdx.json
       - name: Attest gateway build provenance
+        if: github.ref_type != 'tag'
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373  # v4.1.1
         with:
           subject-name: ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway
           subject-digest: ${{ steps.build_gateway.outputs.digest }}
           push-to-registry: true
       - name: Attest RAG service build provenance
+        if: github.ref_type != 'tag'
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373  # v4.1.1
         with:
           subject-name: ghcr.io/${{ env.IMAGE_REPO }}/rag-service
           subject-digest: ${{ steps.build_rag.outputs.digest }}
           push-to-registry: true
       - name: Attest gateway SBOM
+        if: github.ref_type != 'tag'
         uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763  # v4.1.1
         with:
           subject-name: ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway
@@ -227,6 +321,7 @@ jobs:
           sbom-path: inference-gateway.spdx.json
           push-to-registry: true
       - name: Attest RAG service SBOM
+        if: github.ref_type != 'tag'
         uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763  # v4.1.1
         with:
           subject-name: ghcr.io/${{ env.IMAGE_REPO }}/rag-service
@@ -261,9 +356,9 @@ jobs:
       - name: Sign image digests
         env:
           GATEWAY_IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/inference-gateway
-          GATEWAY_DIGEST: ${{ steps.build_gateway.outputs.digest }}
+          GATEWAY_DIGEST: ${{ github.ref_type == 'tag' && steps.promote_images.outputs.gateway_digest || steps.build_gateway.outputs.digest }}
           RAG_IMAGE: ghcr.io/${{ env.IMAGE_REPO }}/rag-service
-          RAG_DIGEST: ${{ steps.build_rag.outputs.digest }}
+          RAG_DIGEST: ${{ github.ref_type == 'tag' && steps.promote_images.outputs.rag_digest || steps.build_rag.outputs.digest }}
         run: |
           set -euo pipefail
           cosign sign --yes "${GATEWAY_IMAGE}@${GATEWAY_DIGEST}"
@@ -290,6 +385,19 @@ jobs:
             trivy-results.sarif \
             trivy-rag-results.sarif \
             > supply-chain-checksums.txt
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            sha256sum chart-packages/*.tgz chart-packages/chart-release-manifest.json \
+              >> supply-chain-checksums.txt
+          fi
+      - name: Sign release evidence manifests
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes --bundle supply-chain-checksums.sigstore.json supply-chain-checksums.txt
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            cosign sign-blob --yes \
+              --bundle chart-packages/chart-release-manifest.sigstore.json \
+              chart-packages/chart-release-manifest.json
+          fi
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5.0.0
         with:
           name: supply-chain-evidence-${{ github.sha }}
@@ -300,6 +408,10 @@ jobs:
             trivy-results.sarif
             trivy-rag-results.sarif
             supply-chain-checksums.txt
+            supply-chain-checksums.sigstore.json
+            chart-packages/*.tgz
+            chart-packages/chart-release-manifest.json
+            chart-packages/chart-release-manifest.sigstore.json
       - name: Attach supply-chain evidence to release
         if: github.ref_type == 'tag'
         env:
@@ -312,6 +424,12 @@ jobs:
             trivy-results.sarif
             trivy-rag-results.sarif
             supply-chain-checksums.txt
+            supply-chain-checksums.sigstore.json
+          )
+          release_assets+=(
+            chart-packages/*.tgz
+            chart-packages/chart-release-manifest.json
+            chart-packages/chart-release-manifest.sigstore.json
           )
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "${release_assets[@]}" --clobber
@@ -321,6 +439,30 @@ jobs:
               --generate-notes \
               --verify-tag
           fi
+
+  sdk-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [image, sdk-build]
+    if: github.ref_type == 'tag'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/private-ai-platform-kit-client
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53  # v6.0.0
+        with:
+          name: python-sdk-${{ github.sha }}
+      - name: Attach SDK distributions to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" sdk-dist/* sdk-checksums.txt --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Publish SDK with PyPI Trusted Publishing and attestations
+        uses: pypa/gh-action-pypi-publish@6733eb7d741f0b11ec6a39b58540dab7590f9b7d  # v1.14.0
+        with:
+          packages-dir: sdk-dist
 
   scheduled-proof:
     runs-on: ubuntu-latest
@@ -365,6 +507,7 @@ jobs:
           make validate-full
           make toolchain-report TOOLCHAIN_PROFILE=strict
           make eval-local
+          SUITE=platform/evals/safety-suite.yaml make eval-local
           make loadtest-local
           make restore-drill
           make egress-report
@@ -395,7 +538,7 @@ jobs:
   local-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0

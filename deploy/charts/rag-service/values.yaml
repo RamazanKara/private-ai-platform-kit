@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/ramazankara/private-ai-platform-kit/rag-service
   # First-party image: release CI pins the published digest (set image.digest) after build.
-  tag: "v0.26.0"
+  tag: "v0.27.0"
   pullPolicy: IfNotPresent
 
 service:
@@ -27,12 +27,12 @@ auth:
     key: api-key-sha256s
   # Audience-bound JWT verification. When enabled the RAG service verifies the caller's own
   # bearer token (JWKS/issuer/audience/exp/nbf) and DERIVES the tenant from the verified
-  # `tenantClaim` — the tenant-isolation filter then scopes retrieval to that verified tenant
+  # `tenantClaim`. The tenant-isolation filter then scopes retrieval to that verified tenant
   # instead of trusting the X-Sandbox-ID header (a contradicting header is rejected with 403).
   # `required: true` makes a valid token mandatory (no/invalid token -> 401); an unreachable
   # JWKS issuer with no cached keys -> 503. OFF here (the base chart and local lab keep it off):
   # header-trust is unchanged and backward compatible. Multi-tenant customer profiles enable it
-  # (see deploy/clusters/customer/values/rag-service.yaml) — the same closed identity boundary
+  # (see deploy/clusters/customer/values/rag-service.yaml): the same closed identity boundary
   # the inference gateway provides, now on the RAG service itself.
   jwt:
     enabled: false
@@ -47,6 +47,7 @@ auth:
 retrieval:
   backend: lexical
   maxQueryChars: 2048
+  maxRequestBodyBytes: 1048576
   defaultTopK: 3
   maxTopK: 8
   maxContextChars: 6000
@@ -60,8 +61,8 @@ retrieval:
   # Per-tenant retrieval isolation: when enabled, a caller only retrieves documents whose
   # `field` payload value (stamped at ingest, default `owner`) equals the request's
   # X-Sandbox-ID. Both backends honor it (the lexical corpus is stamped with the default
-  # sandbox id). Fails closed: a tenant with no matching documents — or a request that did not
-  # explicitly assert X-Sandbox-ID — gets nothing rather than the whole corpus. Requires
+  # sandbox id). Fails closed: a tenant with no matching documents (or a request that did not
+  # explicitly assert X-Sandbox-ID) gets nothing rather than the whole corpus. Requires
   # ingesting documents with owner set to the tenant/sandbox id.
   #
   # The application default is ON (`RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED` defaults true).

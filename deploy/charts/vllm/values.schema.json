@@ -4,6 +4,12 @@
   "type": "object",
   "properties": {
     "replicaCount": { "type": "integer", "minimum": 0 },
+    "model": {
+      "type": "object",
+      "properties": {
+        "task": { "type": "string", "enum": ["generate", "embed", "classify", "score", "reward"] }
+      }
+    },
     "accelerator": {
       "type": "object",
       "properties": {

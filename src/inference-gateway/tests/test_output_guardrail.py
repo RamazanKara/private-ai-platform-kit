@@ -305,3 +305,66 @@ def test_output_guardrail_applies_to_batch_items():
     assert GITHUB_TOKEN not in content
     assert "[REDACTED:github_token]" in content
     assert resp.headers["X-Output-Guardrail"] == "redacted"
+
+
+def test_output_guardrail_redacts_generated_tool_arguments():
+    response = {
+        "id": "chatcmpl-tool",
+        "object": "chat.completion",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {"name": "store", "arguments": f'{{"token":"{GITHUB_TOKEN}"}}'},
+                        }
+                    ],
+                },
+                "finish_reason": "tool_calls",
+            }
+        ],
+    }
+    client, _ = _client(
+        _settings(output_guardrail_enabled=True, output_guardrail_mode="redact"),
+        response=response,
+    )
+
+    result = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "call it"}]})
+
+    assert result.status_code == 200
+    arguments = result.json()["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"]
+    assert GITHUB_TOKEN not in arguments
+    assert "[REDACTED:github_token]" in arguments
+    assert result.headers["X-Output-Guardrail"] == "redacted"
+
+
+def test_output_guardrail_blocks_legacy_function_arguments():
+    response = {
+        "id": "chatcmpl-function",
+        "object": "chat.completion",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": None,
+                    "function_call": {"name": "store", "arguments": f'{{"token":"{GITHUB_TOKEN}"}}'},
+                },
+                "finish_reason": "function_call",
+            }
+        ],
+    }
+    client, _ = _client(
+        _settings(output_guardrail_enabled=True, output_guardrail_mode="block"),
+        response=response,
+    )
+
+    result = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "call it"}]})
+
+    assert result.status_code == 200
+    choice = result.json()["choices"][0]
+    assert choice["message"]["function_call"]["arguments"] == "[response withheld by output policy]"
+    assert choice["finish_reason"] == "content_filter"

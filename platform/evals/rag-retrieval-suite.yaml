@@ -16,7 +16,7 @@ spec:
     sandboxId: eval-lab
   # Aggregate floors. The default hashed-vector retriever clears these on this
   # small corpus; tighten them when a real embedding model is in place.
-  # retrievalHitRate replaces the old (misnamed) groundingRate — it is a retrieval
+  # retrievalHitRate replaces the old (misnamed) groundingRate; it is a retrieval
   # metric. faithfulness/contextPrecision are RAGAS-style generation-grounding proxies
   # scored only on cases that carry a ground-truth `answer`.
   thresholds:

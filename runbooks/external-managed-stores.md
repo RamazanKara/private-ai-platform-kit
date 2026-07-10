@@ -12,13 +12,13 @@ dev/reference default, not a production topology:
 
 | Store | Bundled footprint | What it holds | SPOF? |
 | --- | --- | --- | --- |
-| Budget / response-cache Redis | [`deploy/charts/budget-redis`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/budget-redis) — 1 replica, no persistence, `podDisruptionBudget.minAvailable: 0` | Shared per-sandbox budget counters and the optional exact-match response cache | Yes — a restart drops counters; an outage fails budgets closed (503) |
-| Qdrant vector store | [`deploy/charts/qdrant-vector-store`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/qdrant-vector-store) — single-instance, **enforced** by [`values.schema.json`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/qdrant-vector-store/values.schema.json) (`replicaCount` max 1) on one RWO PVC | RAG dense vectors / hybrid retrieval corpus | Yes — a node drain briefly evicts retrieval |
-| Loki logging | [`deploy/observability/applications.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/observability/applications.yaml) — `deploymentMode: SingleBinary`, `replication_factor: 1`, filesystem storage, 31-day retention | Pod stdout including the redacted gateway/RAG audit JSON | Yes — filesystem-backed, not replicated |
+| Budget / response-cache Redis | [`deploy/charts/budget-redis`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/budget-redis), 1 replica, no persistence, `podDisruptionBudget.minAvailable: 0` | Shared per-sandbox budget counters and the optional exact-match response cache | Yes; a restart drops counters, an outage fails budgets closed (503) |
+| Qdrant vector store | [`deploy/charts/qdrant-vector-store`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/qdrant-vector-store), single-instance, **enforced** by [`values.schema.json`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/qdrant-vector-store/values.schema.json) (`replicaCount` max 1) on one RWO PVC | RAG dense vectors / hybrid retrieval corpus | Yes; a node drain briefly evicts retrieval |
+| Loki logging | [`deploy/observability/applications.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/observability/applications.yaml), `deploymentMode: SingleBinary`, `replication_factor: 1`, filesystem storage, 31-day retention | Pod stdout including the redacted gateway/RAG audit JSON | Yes; filesystem-backed, not replicated |
 
 None of these should be relied on as the durable system of record in a regulated or
 multi-tenant production environment. The sections below make each one a clean opt-in swap to
-an external/HA service **without ripping out the bundled dev default** — you point config at
+an external/HA service **without ripping out the bundled dev default**. You point config at
 your managed endpoint and stop syncing the bundled Application.
 
 For the control-by-control map that references this runbook, see the
@@ -32,14 +32,15 @@ The gateway talks to Redis over a plain URL, so "bring your own HA Redis" is a c
 not a code change. The same guidance covers a managed cloud Redis (ElastiCache, MemoryStore,
 Azure Cache), a self-run **Redis Sentinel** failover pair, or a **Redis Cluster**.
 
+
 ### What talks to Redis
 
 Two independent URLs, both in the gateway values
 ([`deploy/charts/inference-gateway/values.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/charts/inference-gateway/values.yaml)):
 
-- `budget.redisUrl` (env `SANDBOX_BUDGET_REDIS_URL`) — shared budget counters. Requires
+- `budget.redisUrl` (env `SANDBOX_BUDGET_REDIS_URL`): shared budget counters. Requires
   `budget.backend: redis`. This is the correctness-critical one under multi-replica scale-out.
-- `responseCache.redisUrl` (env `RESPONSE_CACHE_REDIS_URL`) — the optional shared response
+- `responseCache.redisUrl` (env `RESPONSE_CACHE_REDIS_URL`): the optional shared response
   cache. Requires `responseCache.backend: redis`. Cache loss is a performance event, not a
   correctness event (the gateway degrades to a miss and calls the runtime).
 
@@ -76,7 +77,7 @@ They may point at the same server on different logical databases (the defaults u
    [`deploy/clusters/customer/apps.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/apps.yaml)
    so the reference Redis is not deployed alongside your managed one. The local lab
    ([`deploy/clusters/local/apps.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/local/apps.yaml))
-   keeps the bundled chart — the dev default is untouched.
+   keeps the bundled chart, so the dev default is untouched.
 
 5. **Open egress.** The gateway namespace runs under a default-deny NetworkPolicy. Add an
    egress allowance to the managed Redis endpoint/port. If Redis is off-cluster, this is an
@@ -96,7 +97,7 @@ They may point at the same server on different logical databases (the defaults u
 
 When the shared Redis is unreachable:
 
-- **Budgets always fail CLOSED** — the gateway returns `503 budget_backend_unavailable` with
+- **Budgets always fail CLOSED**: the gateway returns `503 budget_backend_unavailable` with
   `Retry-After`. This is not configurable and is not weakened by any setting: an outage of the
   spend-enforcement store must never silently admit unmetered traffic.
 - **The rate limiter fails CLOSED by default** too (`503 rate_limit_backend_unavailable`), so a
@@ -109,12 +110,12 @@ When the shared Redis is unreachable:
 
   With `failOpen: true`, a rate-limit-backend outage admits the request with a logged warning
   and increments `inference_gateway_rate_limit_fail_open_total{sandbox}` so the degraded window
-  is visible on the dashboard. This is a **deliberate availability-vs-enforcement tradeoff** —
+  is visible on the dashboard. This is a **deliberate availability-vs-enforcement tradeoff**:
   during the outage the per-sandbox burst throttle is not enforced. It changes the rate limiter
   only; budgets stay fail-closed. Leave it `false` (the default) when the throttle is a hard
   abuse control you would rather 503 than drop.
 
-- **The response cache always degrades to a miss** (no error) — cache is an optimization.
+- **The response cache always degrades to a miss** (no error). Cache is an optimization.
 
 See [Budget controls](budget-controls.md) for budget sizing and
 [Failure modes](failure-modes.md) for the consolidated dependency degradation matrix.
@@ -123,16 +124,16 @@ See [Budget controls](budget-controls.md) for budget sizing and
 
 ## 2. External / HA Qdrant (vector RAG)
 
-The bundled Qdrant chart is **single-instance by design and enforced** — `replicaCount` is
+The bundled Qdrant chart is **single-instance by design and enforced**: `replicaCount` is
 capped at 1 by its `values.schema.json`, because raising replicas on the shared RWO PVC would
 corrupt data, not scale it. For production RAG at scale or with an availability target, use an
 external managed Qdrant or a Qdrant cluster instead of raising the bundled replica count.
 
 ### Options
 
-- **External managed Qdrant** (Qdrant Cloud or a separately-operated Qdrant cluster) — point
+- **External managed Qdrant** (Qdrant Cloud or a separately-operated Qdrant cluster): point
   the RAG service at it and stop deploying the bundled chart.
-- **Self-run Qdrant cluster** — a multi-node deployment with sharding/replication, operated
+- **Self-run Qdrant cluster**, a multi-node deployment with sharding/replication, operated
   outside this chart (the bundled chart intentionally does not model clustering).
 
 ### Steps
@@ -151,7 +152,7 @@ external managed Qdrant or a Qdrant cluster instead of raising the bundled repli
 
    Supply the Qdrant API key from your secret manager, not in values.
 
-3. **Stop deploying the bundled Qdrant** — remove/stop-syncing the `qdrant-vector-store` Argo
+3. **Stop deploying the bundled Qdrant**: remove/stop-syncing the `qdrant-vector-store` Argo
    `Application` from your customer `apps.yaml` so only the managed instance serves retrieval.
 
 4. **Open egress** from the `rag` namespace to the managed Qdrant endpoint (reviewed external
@@ -170,7 +171,7 @@ external managed Qdrant or a Qdrant cluster instead of raising the bundled repli
 
 ## 3. HA Loki (audit / log durability)
 
-The bundled Loki is `SingleBinary` with `replication_factor: 1` and **filesystem** storage —
+The bundled Loki is `SingleBinary` with `replication_factor: 1` and **filesystem** storage,
 fine for a lab, but not a durable or replicated log store. The redacted, tamper-evident audit
 receipts the gateway emits should not live **only** in this Loki; ship them onward to a SIEM /
 object store for long-term hold (see [Audit chain & SIEM forwarding](audit-chain.md)).
@@ -187,7 +188,7 @@ object store for long-term hold (see [Audit chain & SIEM forwarding](audit-chain
    `X-Scope-OrgID` header, so you must also set `clients[].tenant_id` on the Promtail values AND
    add the same `X-Scope-OrgID` header on every read path (the Grafana Loki datasource and any
    `audit-anchor` Loki query). The in-file comment in `applications.yaml` documents this exact
-   hardening path — follow it or every push 401s and the audit stream silently drops.
+   hardening path; follow it or every push 401s and the audit stream silently drops.
 
 3. **Forward audit receipts onward.** Regardless of Loki topology, treat Loki as a queryable
    buffer, not the durable audit hold. The [Audit chain & SIEM forwarding](audit-chain.md)
@@ -210,8 +211,8 @@ footprint for a demo or a debugging session is a one-line values change.
 
 ## Related runbooks
 
-- [Budget controls](budget-controls.md) — budget sizing and enforcement.
-- [Vector RAG](vector-rag.md) and [Qdrant migration](qdrant-migration.md) — RAG vector profile and migrations.
-- [Audit chain & SIEM forwarding](audit-chain.md) — durable audit hold beyond Loki.
-- [Failure modes & degradation](failure-modes.md) — consolidated dependency failure-mode matrix.
-- [Disaster recovery](disaster-recovery.md) — single-cluster RPO/RTO and restore order.
+- [Budget controls](budget-controls.md): budget sizing and enforcement.
+- [Vector RAG](vector-rag.md) and [Qdrant migration](qdrant-migration.md): RAG vector profile and migrations.
+- [Audit chain & SIEM forwarding](audit-chain.md): durable audit hold beyond Loki.
+- [Failure modes & degradation](failure-modes.md): consolidated dependency failure-mode matrix.
+- [Disaster recovery](disaster-recovery.md): single-cluster RPO/RTO and restore order.

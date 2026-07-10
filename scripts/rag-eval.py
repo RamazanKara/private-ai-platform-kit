@@ -49,7 +49,7 @@ def context_precision_at_k(retrieved: list[str], relevant: list[str], k: int) ->
     """Fraction of the top-k retrieved documents that are relevant (precision@k).
 
     Complements recall@k: recall asks "did we find the relevant docs", precision asks
-    "how much of what we returned was on-topic" — a RAGAS-style context-precision proxy.
+    "how much of what we returned was on-topic", a RAGAS-style context-precision proxy.
     """
     top = retrieved[:k]
     if not top:
@@ -268,19 +268,26 @@ def write_markdown(path: Path, suite_name: str, metrics: dict[str, float], resul
 
 
 def selftest() -> int:
-    """Assert the metric functions on a fixed example; return non-zero on mismatch."""
+    """Check the metric functions on a fixed example; return non-zero on mismatch."""
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            raise RuntimeError(message)
+
     retrieved = ["accelerators", "controls", "coding-agents"]
     relevant = ["controls"]
-    assert recall_at_k(retrieved, relevant, 3) == 1.0
-    assert recall_at_k(retrieved, relevant, 1) == 0.0
-    assert abs(reciprocal_rank(retrieved, relevant, 3) - 0.5) < 1e-9
-    assert abs(ndcg_at_k(retrieved, relevant, 3) - (1.0 / math.log2(3))) < 1e-9
-    assert recall_at_k(["x"], [], 3) == 1.0
-    assert context_precision_at_k(retrieved, relevant, 3) == 1.0 / 3
-    assert context_precision_at_k([], relevant, 3) == 0.0
-    assert answer_support("inference gateway routes", "the inference gateway routes traffic") == 1.0
-    assert abs(answer_support("alpha beta", "only alpha here") - 0.5) < 1e-9
-    assert answer_support("", "anything") == 1.0
+    require(recall_at_k(retrieved, relevant, 3) == 1.0, "recall@3 mismatch")
+    require(recall_at_k(retrieved, relevant, 1) == 0.0, "recall@1 mismatch")
+    require(abs(reciprocal_rank(retrieved, relevant, 3) - 0.5) < 1e-9, "reciprocal rank mismatch")
+    require(abs(ndcg_at_k(retrieved, relevant, 3) - (1.0 / math.log2(3))) < 1e-9, "nDCG mismatch")
+    require(recall_at_k(["x"], [], 3) == 1.0, "empty-relevance recall mismatch")
+    require(context_precision_at_k(retrieved, relevant, 3) == 1.0 / 3, "context precision mismatch")
+    require(context_precision_at_k([], relevant, 3) == 0.0, "empty context precision mismatch")
+    require(
+        answer_support("inference gateway routes", "the inference gateway routes traffic") == 1.0,
+        "full answer support mismatch",
+    )
+    require(abs(answer_support("alpha beta", "only alpha here") - 0.5) < 1e-9, "partial support mismatch")
+    require(answer_support("", "anything") == 1.0, "empty answer support mismatch")
     print("rag-eval selftest OK")
     return 0
 

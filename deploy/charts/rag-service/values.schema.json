@@ -7,7 +7,8 @@
     "retrieval": {
       "type": "object",
       "properties": {
-        "backend": { "type": "string", "enum": ["lexical", "qdrant"] }
+        "backend": { "type": "string", "enum": ["lexical", "qdrant"] },
+        "maxRequestBodyBytes": { "type": "integer", "minimum": 1 }
       }
     }
   }

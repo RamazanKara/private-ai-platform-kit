@@ -28,6 +28,9 @@ log "checking audit-chain verifier self-test and the checked-in sample log"
 python3 scripts/audit-verify.py --selftest
 python3 scripts/audit-verify.py results/sample-gateway-audit.log
 
+log "fuzzing caller-controlled security parsers"
+PYTHONPATH=src/inference-gateway src/inference-gateway/.venv/bin/python scripts/fuzz-security.py --iterations 2000
+
 log "running Python lint, format, and type checks"
 ./scripts/quality.sh
 
