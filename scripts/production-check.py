@@ -1329,6 +1329,11 @@ def check_release_packaging(errors: list[str]) -> None:
                 token in workflow,
                 f"CI workflow must publish and sign release supply-chain evidence with {token}",
             )
+        require(
+            errors,
+            "awk '/^Digest:/ {print $2; exit}'" not in workflow,
+            "CI digest extraction must not early-exit and SIGPIPE buildx under pipefail",
+        )
         # The tested Kubernetes version is pinned in two places: the CI kind node
         # image and the Trivy chart-render version. Keep them moving together.
         kind_match = re.search(r"kindest/node:v(\d+\.\d+\.\d+)", workflow)
