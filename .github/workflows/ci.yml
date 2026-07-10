@@ -209,7 +209,10 @@ jobs:
       - uses: oras-project/setup-oras@38de303aac69abb66f3e6255b7198bff35f323e3  # v2.0.0
         if: github.ref_type == 'tag'
         with:
-          version: 1.3.2
+          # setup-oras v2.0.0 ships a signed static release catalog whose newest
+          # supported CLI is 1.3.1; requesting a newer ORAS release fails before
+          # any image or chart publish step runs.
+          version: 1.3.1
       - name: Build and push gateway image
         id: build_gateway
         if: github.ref_type != 'tag'

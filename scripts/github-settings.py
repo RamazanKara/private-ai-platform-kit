@@ -118,8 +118,10 @@ def audit(repo: str, config: dict[str, Any]) -> list[str]:
             )
         policies = gh("GET", f"repos/{repo}/environments/{name}/deployment-branch-policies") or {}
         found = {(item.get("name"), item.get("type")) for item in policies.get("branch_policies", [])}
-        if (expected["tag_pattern"], "tag") not in found:
-            failures.append(f"environments.{name}: missing tag policy {expected['tag_pattern']}")
+        for policy in expected["deployment_policies"]:
+            wanted = (policy["name"], policy["type"])
+            if wanted not in found:
+                failures.append(f"environments.{name}: missing {policy['type']} policy {policy['name']}")
     return failures
 
 
@@ -185,12 +187,14 @@ def apply(repo: str, config: dict[str, Any]) -> None:
         )
         policies = gh("GET", f"repos/{repo}/environments/{name}/deployment-branch-policies") or {}
         found = {(item.get("name"), item.get("type")) for item in policies.get("branch_policies", [])}
-        if (desired["tag_pattern"], "tag") not in found:
-            gh(
-                "POST",
-                f"repos/{repo}/environments/{name}/deployment-branch-policies",
-                {"name": desired["tag_pattern"], "type": "tag"},
-            )
+        for policy in desired["deployment_policies"]:
+            wanted = (policy["name"], policy["type"])
+            if wanted not in found:
+                gh(
+                    "POST",
+                    f"repos/{repo}/environments/{name}/deployment-branch-policies",
+                    policy,
+                )
 
 
 def main() -> int:

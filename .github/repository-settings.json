@@ -54,7 +54,18 @@
     "pypi": {
       "reviewers": ["RamazanKara"],
       "prevent_self_review": false,
-      "tag_pattern": "v*"
+      "deployment_policies": [
+        {"name": "v*", "type": "tag"}
+      ]
+    },
+    "github-pages": {
+      "reviewers": [],
+      "prevent_self_review": false,
+      "deployment_policies": [
+        {"name": "main", "type": "branch"},
+        {"name": "gh-pages", "type": "branch"},
+        {"name": "v*", "type": "tag"}
+      ]
     }
   }
 }
