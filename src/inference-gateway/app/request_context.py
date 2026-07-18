@@ -165,6 +165,9 @@ def _api_key_digest(request: Request, settings: Settings) -> str | None:
     api_key = _api_key_from_request(request, settings)
     if not api_key:
         return None
+    # API keys are high-entropy tokens and their SHA-256 digests are the configured
+    # identifiers used for constant-time allowlist matching, not password storage.
+    # codeql[py/weak-sensitive-data-hashing]
     return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
 
 
@@ -258,6 +261,7 @@ def _api_key_principal(request: Request, settings: Settings, record: KeyRecord |
     # Non-reversible attribution identifier, not a security control and not password
     # storage: API keys are high-entropy random tokens, so a digest prefix is a stable
     # audit handle (usedforsecurity=False marks this a non-cryptographic-control use).
+    # codeql[py/weak-sensitive-data-hashing]
     digest = hashlib.sha256(api_key.encode("utf-8"), usedforsecurity=False).hexdigest()
     return {"auth": "api_key", "key_id": digest[:12]}
 

@@ -23,9 +23,11 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 from starlette.datastructures import UploadFile
 
+from app.admission import BATCH_ALLOWED_ENDPOINTS
 from app.batchstore import BatchRecord, FileRecord
+from app.env_config import parse_completion_window
 from app.objectstore import ObjectNotFound
-from app.settings import BATCH_ALLOWED_ENDPOINTS, Settings, parse_completion_window
+from app.settings import Settings
 
 _FILE_PURPOSES = frozenset({"batch"})
 _MAX_METADATA_PAIRS = 16
