@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#regulated-offline-tenant-example" class="md-skip">
+        <a href="#restricted-egress-tenant-example" class="md-skip">
           Skip to content
         </a>
       
@@ -653,36 +653,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-this-profile-enforces" class="md-nav__link">
+  <a href="#render-the-manifests" class="md-nav__link">
     <span class="md-ellipsis">
-      What This Profile Enforces
+      Render the manifests
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#render-the-tenant-artifacts" class="md-nav__link">
+  <a href="#review-before-apply" class="md-nav__link">
     <span class="md-ellipsis">
-      Render The Tenant Artifacts
+      Review before apply
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#apply-and-verify" class="md-nav__link">
+  <a href="#test-the-boundary" class="md-nav__link">
     <span class="md-ellipsis">
-      Apply And Verify
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#customizing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Customizing
+      Test the boundary
     </span>
   </a>
   
@@ -1196,7 +1187,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1259,7 +1250,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1282,7 +1273,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1326,36 +1317,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-this-profile-enforces" class="md-nav__link">
+  <a href="#render-the-manifests" class="md-nav__link">
     <span class="md-ellipsis">
-      What This Profile Enforces
+      Render the manifests
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#render-the-tenant-artifacts" class="md-nav__link">
+  <a href="#review-before-apply" class="md-nav__link">
     <span class="md-ellipsis">
-      Render The Tenant Artifacts
+      Review before apply
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#apply-and-verify" class="md-nav__link">
+  <a href="#test-the-boundary" class="md-nav__link">
     <span class="md-ellipsis">
-      Apply And Verify
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#customizing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Customizing
+      Test the boundary
     </span>
   </a>
   
@@ -1384,100 +1366,67 @@
   
 
 
-<h1 id="regulated-offline-tenant-example">Regulated Offline Tenant Example<a class="headerlink" href="#regulated-offline-tenant-example" title="Permanent link">&para;</a></h1>
-<p>This walkthrough onboards a coding-agent tenant for a regulated, air-gapped team: confidential data
-classification, <strong>no external egress</strong>, a private registry, and long evidence retention. It renders
-from the reviewed spec
-<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/tenants/onboarding/regulated-offline-coding-agents.yaml">tenants/onboarding/regulated-offline-coding-agents.yaml</a>
-using the same onboarding flow as <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/tenant-labs.md">Tenant labs</a>.</p>
-<h2 id="what-this-profile-enforces">What This Profile Enforces<a class="headerlink" href="#what-this-profile-enforces" title="Permanent link">&para;</a></h2>
+<h1 id="restricted-egress-tenant-example">Restricted-egress tenant example<a class="headerlink" href="#restricted-egress-tenant-example" title="Permanent link">&para;</a></h1>
+<p>The file <code>tenants/onboarding/regulated-offline-coding-agents.yaml</code> defines a tenant named <code>regulated-offline</code>. The name describes its intended use; the generated manifests enforce a narrower fact: pods in that tenant namespace receive no external CIDR egress rule.</p>
+<p>This is not an air-gap configuration for the cluster. Image pulls, model downloads, GitOps, identity, and services outside the tenant namespace need separate offline controls.</p>
+<h2 id="render-the-manifests">Render the manifests<a class="headerlink" href="#render-the-manifests" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>tenant-onboard-regulated<span class="w"> </span><span class="nv">TENANT_OUTPUT</span><span class="o">=</span>.out/tenants
+</code></pre></div>
+<p>The renderer writes namespace, quota, limit range, NetworkPolicy, RBAC, trace-contract, and agent-workspace values under <code>.out/tenants</code>. Review the output before applying it.</p>
+<p>The checked-in spec requests:</p>
 <table>
 <thead>
 <tr>
-<th>Control</th>
+<th>Setting</th>
 <th>Value</th>
-<th>Effect</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>compliance.profile</code></td>
-<td><code>regulated-offline</code></td>
-<td>Marks the namespace and contract as regulated/offline.</td>
-</tr>
-<tr>
-<td><code>compliance.dataClassification</code></td>
+<td>Data classification</td>
 <td><code>confidential</code></td>
-<td>Stamped on the namespace and trace contract.</td>
 </tr>
 <tr>
-<td><code>compliance.externalEgressAllowed</code></td>
-<td><code>false</code></td>
-<td>No external CIDR egress is rendered.</td>
+<td>External CIDR egress</td>
+<td>disabled</td>
 </tr>
 <tr>
-<td><code>network.allowedEgressCidrs</code></td>
-<td><code>[]</code></td>
-<td>Egress is limited to in-cluster gateway, RAG, and DNS only.</td>
+<td>Allowed in-cluster services</td>
+<td>DNS, inference gateway, RAG service</td>
 </tr>
 <tr>
-<td><code>compliance.requirePrivateRegistry</code></td>
-<td><code>true</code></td>
-<td>Images must come from the customer's private registry.</td>
+<td>Private registry required</td>
+<td><code>true</code> metadata flag</td>
 </tr>
 <tr>
-<td><code>compliance.evidenceRetentionDays</code></td>
-<td><code>730</code></td>
-<td>Two-year evidence retention.</td>
+<td>Evidence retention</td>
+<td>730 days metadata value</td>
 </tr>
 <tr>
-<td><code>agentWorkspace.rbac.allowJobManagement</code></td>
-<td><code>false</code></td>
-<td>Agents cannot create or manage Jobs.</td>
+<td>Job-management RBAC</td>
+<td>disabled</td>
 </tr>
 </tbody>
 </table>
-<p>The key difference from the default coding-agent profile is that <code>allowedEgressCidrs</code> is empty, so
-the rendered NetworkPolicy permits only DNS and the in-cluster inference gateway and RAG service.</p>
-<h2 id="render-the-tenant-artifacts">Render The Tenant Artifacts<a class="headerlink" href="#render-the-tenant-artifacts" title="Permanent link">&para;</a></h2>
-<p>Validate the spec, then render namespace, quota, limit range, default-deny + allowlist
-NetworkPolicies, the trace-contract ConfigMap, RBAC, and the agent workspace:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>tenant-onboard-regulated<span class="w"> </span><span class="nv">TENANT_OUTPUT</span><span class="o">=</span>.out/tenants
-</code></pre></div>
-<p>This is equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python3<span class="w"> </span>scripts/tenant-onboard.py<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>--spec<span class="w"> </span>tenants/onboarding/regulated-offline-coding-agents.yaml<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>--output-dir<span class="w"> </span>.out/tenants
-</code></pre></div>
-<p>Review the generated manifests under <code>.out/tenants/</code> before applying. Confirm:</p>
+<p><code>requirePrivateRegistry</code> and <code>evidenceRetentionDays</code> are contract fields. They do not configure a registry, storage lifecycle, or retention job by themselves.</p>
+<h2 id="review-before-apply">Review before apply<a class="headerlink" href="#review-before-apply" title="Permanent link">&para;</a></h2>
+<p>Confirm that:</p>
 <ul>
-<li>the namespace carries <code>platform.ai/tenant</code>, <code>platform.ai/sandbox-id</code>, <code>pod-security.kubernetes.io/enforce=restricted</code>, and the confidential data-classification label;</li>
-<li>a default-deny NetworkPolicy exists with <strong>no</strong> egress allow rules beyond DNS, gateway, and RAG;</li>
-<li>the workspace <code>ServiceAccount</code> has a viewer-only Role (no job management).</li>
+<li>the target namespace and sandbox ID are correct;</li>
+<li>the CNI actually enforces Kubernetes NetworkPolicy;</li>
+<li>no generated rule contains an external CIDR;</li>
+<li>the gateway and RAG namespace selectors match the target cluster;</li>
+<li>the workspace image is available from an internal registry;</li>
+<li>storage class, quota, and PVC size are appropriate;</li>
+<li>identity and API-key material are supplied without being written to Git.</li>
 </ul>
-<h2 id="apply-and-verify">Apply And Verify<a class="headerlink" href="#apply-and-verify" title="Permanent link">&para;</a></h2>
-<p>Apply through GitOps or <code>kubectl apply -f .out/tenants/</code>, then:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>tenant-smoke
+<p>Apply the reviewed files through the customer's GitOps process. A direct <code>kubectl apply</code> can be used in a disposable lab, but it is not the documented customer handoff path.</p>
+<h2 id="test-the-boundary">Test the boundary<a class="headerlink" href="#test-the-boundary" title="Permanent link">&para;</a></h2>
+<p>Use an image that is already present or available from the internal registry. From a pod in the tenant namespace, test both an allowed in-cluster destination and a destination that is otherwise reachable from the cluster. A timeout to an unroutable address does not prove that NetworkPolicy is working.</p>
+<p>The repository's agent-sandbox smoke test uses the Kubernetes API as the deny target for this reason:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>agent-sandbox-smoke
 </code></pre></div>
-<p>Verify offline posture explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># From a pod in the tenant namespace, external egress must fail:</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ai-regulated-agents<span class="w"> </span>run<span class="w"> </span>egress-test<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span>--image<span class="o">=</span>curlimages/curl<span class="w"> </span>--restart<span class="o">=</span>Never<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>curl<span class="w"> </span>-m<span class="w"> </span><span class="m">5</span><span class="w"> </span>https://example.com<span class="w">   </span><span class="c1"># expected: timeout / blocked</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># In-cluster gateway access must succeed:</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ai-regulated-agents<span class="w"> </span>run<span class="w"> </span>gw-test<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span>--image<span class="o">=</span>curlimages/curl<span class="w"> </span>--restart<span class="o">=</span>Never<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span>curl<span class="w"> </span>-sS<span class="w"> </span>http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080/healthz
-</code></pre></div>
-<h2 id="customizing">Customizing<a class="headerlink" href="#customizing" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Tighten quotas (<code>spec.quotas</code>) and the limit range to the team's footprint.</li>
-<li>Set <code>storageClassName</code> on the agent workspace PVC to a customer-approved encrypted class.</li>
-<li>Keep <code>allowedEgressCidrs</code> empty for true offline; if a private mirror is unavoidable, add a single
-  reviewed CIDR and record the approval, then re-render.</li>
-<li>Adjust <code>evidenceRetentionDays</code> to the customer's compliance requirement.</li>
-</ul>
-<p>For the egress-allowed counterpart, see the
-<a href="../gpu-coding-agent-tenant-example/">GPU coding-agent tenant example</a>.</p>
+<p>To make the entire deployment offline, add private image/chart mirrors, preloaded model weights, internal Git and identity endpoints, DNS policy, cluster-wide egress rules, and an offline release-verification process.</p>
 
 
 

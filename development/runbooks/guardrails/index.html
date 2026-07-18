@@ -1109,7 +1109,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1172,7 +1172,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1195,7 +1195,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1361,8 +1361,8 @@ changing callers.</p>
 <h2 id="output-guardrail-response-path">Output Guardrail (Response Path)<a class="headerlink" href="#output-guardrail-response-path" title="Permanent link">&para;</a></h2>
 <p>Input moderation cannot catch a credential or PII value that the <em>model</em> emits: a successful
 prompt injection or a hallucinated secret leaves the gateway in the completion. The output
-guardrail inspects the model response before it is returned or cached, closing OWASP LLM02
-(insecure output handling) and LLM06 (sensitive information disclosure).</p>
+guardrail inspects the model response before it is returned or cached, contributing controls for
+OWASP LLM02:2025 (sensitive information disclosure) and LLM05:2025 (improper output handling).</p>
 <p>Configure it in Helm values:</p>
 <div class="highlight"><pre><span></span><code>guardrails:
   outputGuardrail:

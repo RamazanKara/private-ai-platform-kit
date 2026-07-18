@@ -590,9 +590,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#tool-requirements" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites
+      Tool requirements
     </span>
   </a>
   
@@ -601,34 +601,25 @@
         <li class="md-nav__item">
   <a href="#static-validation" class="md-nav__link">
     <span class="md-ellipsis">
-      Static Validation
+      Static validation
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#local-cluster" class="md-nav__link">
+  <a href="#local-cluster-step-by-step" class="md-nav__link">
     <span class="md-ellipsis">
-      Local Cluster
+      Local cluster, step by step
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#platform-checks" class="md-nav__link">
+  <a href="#tenant-and-workspace-checks" class="md-nav__link">
     <span class="md-ellipsis">
-      Platform Checks
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#restore-and-resilience" class="md-nav__link">
-    <span class="md-ellipsis">
-      Restore And Resilience
+      Tenant and workspace checks
     </span>
   </a>
   
@@ -637,16 +628,7 @@
         <li class="md-nav__item">
   <a href="#evals-load-tests-and-evidence" class="md-nav__link">
     <span class="md-ellipsis">
-      Evals, Load Tests, And Evidence
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#governance-checks" class="md-nav__link">
-    <span class="md-ellipsis">
-      Governance Checks
+      Evals, load tests, and evidence
     </span>
   </a>
   
@@ -655,16 +637,16 @@
         <li class="md-nav__item">
   <a href="#customer-owned-kubernetes" class="md-nav__link">
     <span class="md-ellipsis">
-      Customer-Owned Kubernetes
+      Customer-owned Kubernetes
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#clean-up" class="md-nav__link">
+  <a href="#cleanup" class="md-nav__link">
     <span class="md-ellipsis">
-      Clean Up
+      Cleanup
     </span>
   </a>
   
@@ -1241,7 +1223,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1304,7 +1286,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1327,7 +1309,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1371,9 +1353,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#tool-requirements" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites
+      Tool requirements
     </span>
   </a>
   
@@ -1382,34 +1364,25 @@
         <li class="md-nav__item">
   <a href="#static-validation" class="md-nav__link">
     <span class="md-ellipsis">
-      Static Validation
+      Static validation
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#local-cluster" class="md-nav__link">
+  <a href="#local-cluster-step-by-step" class="md-nav__link">
     <span class="md-ellipsis">
-      Local Cluster
+      Local cluster, step by step
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#platform-checks" class="md-nav__link">
+  <a href="#tenant-and-workspace-checks" class="md-nav__link">
     <span class="md-ellipsis">
-      Platform Checks
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#restore-and-resilience" class="md-nav__link">
-    <span class="md-ellipsis">
-      Restore And Resilience
+      Tenant and workspace checks
     </span>
   </a>
   
@@ -1418,16 +1391,7 @@
         <li class="md-nav__item">
   <a href="#evals-load-tests-and-evidence" class="md-nav__link">
     <span class="md-ellipsis">
-      Evals, Load Tests, And Evidence
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#governance-checks" class="md-nav__link">
-    <span class="md-ellipsis">
-      Governance Checks
+      Evals, load tests, and evidence
     </span>
   </a>
   
@@ -1436,16 +1400,16 @@
         <li class="md-nav__item">
   <a href="#customer-owned-kubernetes" class="md-nav__link">
     <span class="md-ellipsis">
-      Customer-Owned Kubernetes
+      Customer-owned Kubernetes
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#clean-up" class="md-nav__link">
+  <a href="#cleanup" class="md-nav__link">
     <span class="md-ellipsis">
-      Clean Up
+      Cleanup
     </span>
   </a>
   
@@ -1474,146 +1438,118 @@
   
 
 
-<h1 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
-<p>This guide runs the local lab first, then points to the customer-owned Kubernetes path. The local path is intentionally close to the customer path: the same charts, policies, runbooks, and validation checks are used in both places.</p>
-<p>For a shorter first evaluation path, start with <a href="../quickstart/">Quickstart</a>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>quickstart
+<h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
+<p>Use the <a href="../quickstart/">local quickstart</a> for the first cluster run. This page is the command reference for development, validation, and customer handoff.</p>
+<h2 id="tool-requirements">Tool requirements<a class="headerlink" href="#tool-requirements" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Required tools</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Repository validation</td>
+<td>Python 3.12+, Helm</td>
+</tr>
+<tr>
+<td>Local cluster</td>
+<td>Docker, <code>kind</code>, <code>kubectl</code>, Helm, Python</td>
+</tr>
+<tr>
+<td>Strict validation</td>
+<td>The tools in the <code>strict</code> profile under <code>platform/tools/validation-toolchain.yaml</code></td>
+</tr>
+</tbody>
+</table>
+<p>Check the installed tools:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>toolchain-doctor<span class="w"> </span><span class="nv">TOOLCHAIN_PROFILE</span><span class="o">=</span>validate
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>toolchain-doctor<span class="w"> </span><span class="nv">TOOLCHAIN_PROFILE</span><span class="o">=</span><span class="nb">local</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>toolchain-doctor<span class="w"> </span><span class="nv">TOOLCHAIN_PROFILE</span><span class="o">=</span>strict
 </code></pre></div>
-<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
-<p>Local validation needs:</p>
-<ul>
-<li>Python 3.12+</li>
-<li>Docker</li>
-<li>kind</li>
-<li>kubectl</li>
-<li>Helm</li>
-<li>Go</li>
-<li>Syft</li>
-</ul>
-<p>Full validation also uses Argo CD CLI, Cosign, Trivy, k6, kubeconform, and the Kyverno CLI.</p>
-<p>Check what is already installed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>toolchain-doctor
+<p>On Linux or WSL, <code>make toolchain-install</code> installs the default validation set under <code>.tools/bin</code>. The Makefile prepends that directory to <code>PATH</code>.</p>
+<h2 id="static-validation">Static validation<a class="headerlink" href="#static-validation" title="Permanent link">&para;</a></h2>
+<p>Run the default gate:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>validate
 </code></pre></div>
-<p>Install the optional validation CLIs into <code>.tools/bin</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>toolchain-install
+<p>It runs service tests, parser fuzz checks, Ruff, mypy, chart lint/render checks, API and configuration contract checks, governance checks, and production-readiness checks. Optional external tools are reported and skipped. <code>make validate-full</code> fails when the strict tool set is incomplete.</p>
+<p>Focused targets are faster while editing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>test-gateway
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>make<span class="w"> </span>test-rag
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>make<span class="w"> </span>quality
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>make<span class="w"> </span>chart-docs
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>make<span class="w"> </span>api-contract
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>make<span class="w"> </span>config-contract
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>make<span class="w"> </span>repo-hygiene
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>make<span class="w"> </span>docs-build
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>make<span class="w"> </span>production-check
 </code></pre></div>
-<p>Make targets and repo scripts automatically prepend <code>.tools/bin</code> when it exists.</p>
-<p>Generate a toolchain evidence report:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>toolchain-report<span class="w"> </span><span class="nv">TOOLCHAIN_PROFILE</span><span class="o">=</span>strict
+<p>Use the corresponding <code>*-update</code> target only when a reviewed code or values change intentionally alters a generated contract.</p>
+<h2 id="local-cluster-step-by-step">Local cluster, step by step<a class="headerlink" href="#local-cluster-step-by-step" title="Permanent link">&para;</a></h2>
+<p>The manual equivalent of <code>make quickstart</code> is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>local-up
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>make<span class="w"> </span>agent-sandbox-install
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>make<span class="w"> </span>bootstrap-argocd
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>make<span class="w"> </span>sync
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>make<span class="w"> </span>smoke<span class="w"> </span><span class="nv">RUNTIME_BACKEND</span><span class="o">=</span>ollama
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>make<span class="w"> </span>rag-smoke
 </code></pre></div>
-<h2 id="static-validation">Static Validation<a class="headerlink" href="#static-validation" title="Permanent link">&para;</a></h2>
-<p>Run the default validation set:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>validate
+<p>For the reduced direct-Helm path:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>local-up
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>make<span class="w"> </span>agent-sandbox-install
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nv">LOCAL_DIRECT_APPLY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>sync
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>make<span class="w"> </span>smoke<span class="w"> </span><span class="nv">RUNTIME_BACKEND</span><span class="o">=</span>ollama
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>make<span class="w"> </span>rag-smoke
 </code></pre></div>
-<p>Check the public service API snapshots when route or schema behavior changes:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>api-contract
+<p>The direct path only covers the core runtime charts. Use the Argo CD path when testing GitOps, policy, observability, or backup applications.</p>
+<h2 id="tenant-and-workspace-checks">Tenant and workspace checks<a class="headerlink" href="#tenant-and-workspace-checks" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>trace-smoke
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>make<span class="w"> </span>tenant-smoke
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>make<span class="w"> </span>agent-smoke
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>make<span class="w"> </span>agent-sandbox-smoke
 </code></pre></div>
-<p>Check that service settings, Helm environment variables, and chart defaults remain aligned:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>config-contract
+<p>Render tenant manifests without applying them:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>tenant-onboard
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>make<span class="w"> </span>tenant-onboard-regulated
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>make<span class="w"> </span>tenant-onboard-gpu
 </code></pre></div>
-<p>Run the stricter check that fails when optional production tools are missing:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>make<span class="w"> </span>validate-full
+<p>Generated files go under <code>.out/tenants</code>. Review them before applying them to any cluster.</p>
+<h2 id="evals-load-tests-and-evidence">Evals, load tests, and evidence<a class="headerlink" href="#evals-load-tests-and-evidence" title="Permanent link">&para;</a></h2>
+<p><code>make eval-local</code> and <code>make loadtest-local</code> use an ephemeral mock runtime. They exercise the gateway and report pipeline; they do not measure Ollama or vLLM throughput.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>make<span class="w"> </span>eval-local
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>make<span class="w"> </span>loadtest-local
 </code></pre></div>
-<p>Run the static production-readiness gates without a live cluster:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>make<span class="w"> </span>production-check
+<p>For a running gateway:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">GATEWAY_URL</span><span class="o">=</span>http://127.0.0.1:8080<span class="w"> </span>make<span class="w"> </span><span class="nb">eval</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nv">GATEWAY_URL</span><span class="o">=</span>http://127.0.0.1:8080<span class="w"> </span>make<span class="w"> </span>loadtest
 </code></pre></div>
-<h2 id="local-cluster">Local Cluster<a class="headerlink" href="#local-cluster" title="Permanent link">&para;</a></h2>
-<p>Create a local cluster and bootstrap GitOps:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>make<span class="w"> </span>local-up
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>make<span class="w"> </span>bootstrap-argocd
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>make<span class="w"> </span>sync
+<p>Generate static or live evidence:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>make<span class="w"> </span>evidence
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>make<span class="w"> </span>evidence<span class="w"> </span><span class="nv">LIVE</span><span class="o">=</span><span class="m">1</span>
 </code></pre></div>
-<p>Run a smoke test through the gateway:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make<span class="w"> </span>smoke<span class="w"> </span><span class="nv">RUNTIME_BACKEND</span><span class="o">=</span>ollama
+<p>The non-strict release gate may use checked-in <code>sample-*</code> reports to test the gate configuration. It is not release evidence. Before a release or customer handoff, generate current reports and run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make<span class="w"> </span>validate-full
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>make<span class="w"> </span>release-gate-strict
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>make<span class="w"> </span>release-report-strict
 </code></pre></div>
-<p>The default local runtime is Ollama with <code>qwen2.5:0.5b</code>, a fast non-reasoning model chosen so the laptop CPU smoke completes in seconds. The smoke scripts send <code>PLATFORM_API_KEY</code>, defaulting to the local demo key <code>local-development-only</code>.</p>
-<h2 id="platform-checks">Platform Checks<a class="headerlink" href="#platform-checks" title="Permanent link">&para;</a></h2>
-<p>Run the traceable sandbox proof:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>make<span class="w"> </span>trace-smoke
+<h2 id="customer-owned-kubernetes">Customer-owned Kubernetes<a class="headerlink" href="#customer-owned-kubernetes" title="Permanent link">&para;</a></h2>
+<p>The customer path assumes an existing cluster and Argo CD installation. Work in the customer fork or deployment branch because the configurator edits tracked manifests:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>make<span class="w"> </span>customer-overlay<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nv">CUSTOMER_REPO_URL</span><span class="o">=</span>https://github.com/&lt;customer&gt;/&lt;repo&gt;.git<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nv">CUSTOMER_REVISION</span><span class="o">=</span>v0.27.1<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nv">CUSTOMER_GPU_PROFILE</span><span class="o">=</span>nvidia
 </code></pre></div>
-<p>Validate RAG and coding-agent workspace access:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>make<span class="w"> </span>rag-smoke
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>make<span class="w"> </span>agent-smoke
+<p>Use <code>CUSTOMER_GPU_PROFILE=amd</code> for the AMD values or <code>default</code> for the base vLLM values. Then review the diff and run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>make<span class="w"> </span>customer-overlay-check
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nv">ENVIRONMENT</span><span class="o">=</span>customer<span class="w"> </span>make<span class="w"> </span>bootstrap-argocd
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nv">ENVIRONMENT</span><span class="o">=</span>customer<span class="w"> </span>make<span class="w"> </span>sync
 </code></pre></div>
-<p>Create and validate a team tenant lab:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>make<span class="w"> </span>tenant-smoke
-</code></pre></div>
-<p>Generate customer tenant onboarding artifacts:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>make<span class="w"> </span>tenant-onboard
-</code></pre></div>
-<p>Generate the regulated/offline tenant profile with no external CIDR egress:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>make<span class="w"> </span>tenant-onboard-regulated
-</code></pre></div>
-<h2 id="restore-and-resilience">Restore And Resilience<a class="headerlink" href="#restore-and-resilience" title="Permanent link">&para;</a></h2>
-<p>Run the local restore drill:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>make<span class="w"> </span>restore-drill<span class="w"> </span><span class="nv">RUNTIME</span><span class="o">=</span><span class="nb">local</span>
-</code></pre></div>
-<p>Run restore-drill plus the Velero disposable namespace scenario:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>make<span class="w"> </span>backup-drill
-</code></pre></div>
-<p>Run safe recovery and dependency drills:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>make<span class="w"> </span>chaos-drill
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="nv">DRILL</span><span class="o">=</span>rag-service-rollout<span class="w"> </span>make<span class="w"> </span>chaos-drill
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="nv">DRILL</span><span class="o">=</span>qdrant-vector-store-rollout<span class="w"> </span>make<span class="w"> </span>chaos-drill
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="nv">DRILL</span><span class="o">=</span>vllm-runtime-rollout<span class="w"> </span>make<span class="w"> </span>chaos-drill
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="nv">DRILL</span><span class="o">=</span>gpu-capacity-preflight<span class="w"> </span><span class="nv">RUN_SMOKE</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>make<span class="w"> </span>chaos-drill
-</code></pre></div>
-<p>Restore evidence is written under <code>results/restore-drill/</code>.</p>
-<h2 id="evals-load-tests-and-evidence">Evals, Load Tests, And Evidence<a class="headerlink" href="#evals-load-tests-and-evidence" title="Permanent link">&para;</a></h2>
-<p>Run repeatable prompt checks:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>make<span class="w"> </span><span class="nb">eval</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="nv">SUITE</span><span class="o">=</span>platform/evals/coding-agent-suite.yaml<span class="w"> </span>make<span class="w"> </span><span class="nb">eval</span>
-</code></pre></div>
-<p>Run k6 load tests against an ephemeral local gateway and mock runtime:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>make<span class="w"> </span>loadtest-local
-</code></pre></div>
-<p>When a live local or customer gateway is already running, use <code>GATEWAY_URL=http://127.0.0.1:8080 make loadtest</code>.</p>
-<p>Generate a customer-facing evidence pack:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>make<span class="w"> </span>evidence
-</code></pre></div>
-<p>After the local lab is synced, include live Kubernetes readiness checks:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>make<span class="w"> </span>evidence<span class="w"> </span><span class="nv">LIVE</span><span class="o">=</span><span class="m">1</span>
-</code></pre></div>
-<p>Check handoff gates against eval, load, restore, toolchain, SLO, governance, and evidence-pack thresholds:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>make<span class="w"> </span>release-gate
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>make<span class="w"> </span>release-gate-strict
-<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>make<span class="w"> </span>release-report-strict
-</code></pre></div>
-<h2 id="governance-checks">Governance Checks<a class="headerlink" href="#governance-checks" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>make<span class="w"> </span>slo-check
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>make<span class="w"> </span>quota-check
-<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>make<span class="w"> </span>egress-check
-<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>make<span class="w"> </span>retention-check
-<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>make<span class="w"> </span>model-check
-<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>make<span class="w"> </span>model-provenance-check
-</code></pre></div>
-<p>The matching report targets write JSON and Markdown evidence under <code>results/</code>.</p>
-<h2 id="customer-owned-kubernetes">Customer-Owned Kubernetes<a class="headerlink" href="#customer-owned-kubernetes" title="Permanent link">&para;</a></h2>
-<p>For an existing Kubernetes cluster, install Argo CD, configure the customer overlay, and sync the applications from <code>deploy/clusters/customer/</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>make<span class="w"> </span>customer-overlay<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">  </span><span class="nv">CUSTOMER_REPO_URL</span><span class="o">=</span>https://github.com/&lt;customer&gt;/&lt;repo&gt;.git<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="w">  </span><span class="nv">CUSTOMER_REVISION</span><span class="o">=</span>v0.27.0<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="w">  </span><span class="nv">CUSTOMER_GPU_PROFILE</span><span class="o">=</span>nvidia
-</code></pre></div>
-<p>Use <code>CUSTOMER_GPU_PROFILE=amd</code> for AMD ROCm clusters.</p>
-<p>Customer clusters should provide ingress, storage classes, secret backends, logging, and optional GPU nodes. The stack expects GPU nodes to expose standard Kubernetes device resources:</p>
-<ul>
-<li>NVIDIA: <code>nvidia.com/gpu</code></li>
-<li>AMD: <code>amd.com/gpu</code></li>
-</ul>
-<p>Label GPU nodes with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>kubectl<span class="w"> </span>label<span class="w"> </span>node<span class="w"> </span>&lt;node&gt;<span class="w"> </span>platform.ai/node-pool<span class="o">=</span>gpu<span class="w"> </span>platform.ai/gpu-vendor<span class="o">=</span>&lt;nvidia<span class="p">|</span>amd&gt;
-</code></pre></div>
-<p>Then choose the matching vLLM profile:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>deploy/clusters/customer/values/vllm-nvidia.yaml
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>deploy/clusters/customer/values/vllm-amd.yaml
-</code></pre></div>
-<p>Customer RAG values switch retrieval to Qdrant and deploy <code>deploy/charts/qdrant-vector-store</code> with persistent storage. Size Qdrant storage, vector dimensions, and ingestion to the customer's embedding model and approved knowledge pipeline.</p>
-<p>For regulated or offline teams, start from <code>tenants/onboarding/regulated-offline-coding-agents.yaml</code>.</p>
-<p>The full customer deployment checklist is in <code>deploy/clusters/customer/README.md</code>.</p>
-<h2 id="clean-up">Clean Up<a class="headerlink" href="#clean-up" title="Permanent link">&para;</a></h2>
-<p>Stop the local cluster:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>make<span class="w"> </span>local-down
+<p>The customer profile is a template. Before syncing, replace the identity and secret placeholders, select storage classes, review every image and model source, size GPU and stateful resources, and connect the cluster's ingress, metrics, logs, alerts, and backups. The detailed checklist is in <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/README.md">the customer deployment guide</a>.</p>
+<h2 id="cleanup">Cleanup<a class="headerlink" href="#cleanup" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>make<span class="w"> </span>local-down<span class="w">  </span><span class="c1"># delete the kind cluster</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>make<span class="w"> </span>clean<span class="w">       </span><span class="c1"># remove generated output, caches, build output, and service venvs</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>make<span class="w"> </span>clean-all<span class="w">   </span><span class="c1"># also remove downloaded tools and tooling venvs</span>
 </code></pre></div>
 
 

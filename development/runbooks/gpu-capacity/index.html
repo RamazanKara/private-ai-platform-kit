@@ -20,7 +20,7 @@
     
     
       
-        <title>Incident Runbook: GPU Capacity - Private AI Platform Kit</title>
+        <title>GPU capacity - Private AI Platform Kit</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#incident-runbook-gpu-capacity" class="md-skip">
+        <a href="#gpu-capacity" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Incident Runbook: GPU Capacity
+              GPU capacity
             
           </span>
         </div>
@@ -1109,7 +1109,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1172,7 +1172,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1195,7 +1195,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1275,45 +1275,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sizing-estimates" class="md-nav__link">
+  <a href="#capacity-changes" class="md-nav__link">
     <span class="md-ellipsis">
-      Sizing Estimates
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#multi-node-serving-models-larger-than-one-node" class="md-nav__link">
-    <span class="md-ellipsis">
-      Multi-Node Serving (Models Larger Than One Node)
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#choosing-a-quantization-method" class="md-nav__link">
-    <span class="md-ellipsis">
-      Choosing a Quantization Method
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#speculative-decoding" class="md-nav__link">
-    <span class="md-ellipsis">
-      Speculative Decoding
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sub-gpu-sharing-mig-time-slicing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Sub-GPU Sharing (MIG / Time-Slicing)
+      Capacity changes
     </span>
   </a>
   
@@ -1351,7 +1315,7 @@
   
 
 
-<h1 id="incident-runbook-gpu-capacity">Incident Runbook: GPU Capacity<a class="headerlink" href="#incident-runbook-gpu-capacity" title="Permanent link">&para;</a></h1>
+<h1 id="gpu-capacity">GPU capacity<a class="headerlink" href="#gpu-capacity" title="Permanent link">&para;</a></h1>
 <h2 id="symptoms">Symptoms<a class="headerlink" href="#symptoms" title="Permanent link">&para;</a></h2>
 <p>vLLM pods remain Pending, GPU utilization is absent after enabling vLLM, or <code>kubectl describe pod -n vllm</code> reports that <code>nvidia.com/gpu</code> or <code>amd.com/gpu</code> is unavailable.</p>
 <h2 id="inspect">Inspect<a class="headerlink" href="#inspect" title="Permanent link">&para;</a></h2>
@@ -1372,133 +1336,27 @@ kubectl get nodes -o custom-columns=NAME:.metadata.name,NVIDIA:.status.capacity.
 deploy/clusters/customer/values/vllm-amd.yaml
 </code></pre></div>
 <p>For AMD ROCm vLLM, use an ROCm-compatible vLLM image and verify that the worker nodes have ROCm-capable AMD GPUs, drivers, and the AMD Kubernetes device plugin.</p>
-<h2 id="sizing-estimates">Sizing Estimates<a class="headerlink" href="#sizing-estimates" title="Permanent link">&para;</a></h2>
-<p>These are planning estimates to size a starting point, not guarantees. Always validate the chosen GPU class, parallelism, and replica count with a real load test (<code>make loadtest-local</code> against the customer profile) before committing to capacity. VRAM figures assume a quantized or BF16/FP16 serving build; actual usage depends on weight precision, KV-cache size at your context length and batch, and the serving runtime. Concurrency is rough simultaneous in-flight requests at a usable interactive latency, not a throughput ceiling.</p>
-<table>
-<thead>
-<tr>
-<th>Model (class)</th>
-<th>Approx weight VRAM</th>
-<th>Recommended GPU class</th>
-<th>Rough concurrency</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>7-8B dense (e.g. an 8B chat model)</td>
-<td>~16-20 GB (FP16) / ~6-8 GB (4-bit)</td>
-<td>1x 24 GB (L4 / RTX 4090 / A10)</td>
-<td>~8-16 requests per replica</td>
-</tr>
-<tr>
-<td>30-35B MoE, ~3B active (e.g. <code>Qwen/Qwen3.6-35B-A3B</code>)</td>
-<td>~70-80 GB (FP16) / ~20-24 GB (4-bit)</td>
-<td>1-2x 80 GB (A100 / H100), or 2x 48 GB</td>
-<td>~4-8 requests per replica</td>
-</tr>
-<tr>
-<td><code>Qwen/Qwen3-Coder-Next</code> coding profile (long context)</td>
-<td>~140-180 GB across GPUs at FP16</td>
-<td>4x 48-80 GB with tensor parallelism (default profile requests 4 GPUs per replica)</td>
-<td>~2-6 concurrent coding sessions per replica</td>
-</tr>
-</tbody>
-</table>
-<p>Notes:</p>
-<ul>
-<li>KV-cache, not weights, usually dominates at long context. The Qwen3 Coder Next profile defaults to a large context window, so size memory headroom for the context length you actually enable (<code>model.maxModelLen</code>) rather than the model maximum.</li>
-<li>4-bit quantization roughly halves or quarters weight VRAM but can reduce quality; validate evals before relying on it for coding agents.</li>
-<li>To fit smaller clusters, reduce <code>accelerator.count</code>, <code>--tensor-parallel-size</code>, <code>model.maxModelLen</code>, replicas, or the model itself, as described under Mitigation.</li>
-</ul>
-<h2 id="multi-node-serving-models-larger-than-one-node">Multi-Node Serving (Models Larger Than One Node)<a class="headerlink" href="#multi-node-serving-models-larger-than-one-node" title="Permanent link">&para;</a></h2>
-<p>Single-node tensor parallelism (<code>--tensor-parallel-size</code>, via the chart's <code>extraArgs</code>) scales
-across the GPUs of one node. For a model too large for any single node, combine
-tensor-parallel within a node with <strong>pipeline parallelism across nodes</strong>
-(<code>--pipeline-parallel-size</code>, also via <code>extraArgs</code>) and a gang-scheduled leader/worker topology.</p>
-<p>This needs a multi-pod primitive the single Deployment chart does not provide: the
-<a href="https://github.com/kubernetes-sigs/lws">LeaderWorkerSet</a> operator (or Ray). Install the LWS
-controller, then run vLLM as a <code>LeaderWorkerSet</code> whose leader and workers form one Ray cluster:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">leaderworkerset.x-k8s.io/v1</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LeaderWorkerSet</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">metadata</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vllm-multinode</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vllm</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nt">spec</span><span class="p">:</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">leaderWorkerTemplate</span><span class="p">:</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">                 </span><span class="c1"># 1 leader + 1 worker node (set to the pipeline-parallel size)</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nt">leaderTemplate</span><span class="p">:</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vllm</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">            </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vllm/vllm-openai</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">            </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;--model&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;Qwen/Qwen3-Coder-Next&quot;</span><span class="p p-Indicator">,</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">                   </span><span class="s">&quot;--tensor-parallel-size&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;8&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;--pipeline-parallel-size&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;2&quot;</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">            </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> limits</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;8&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w"> </span><span class="p p-Indicator">}</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="nt">workerTemplate</span><span class="p">:</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vllm</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">            </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vllm/vllm-openai</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">            </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> limits</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;8&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w"> </span><span class="p p-Indicator">}</span>
-</code></pre></div>
-<p>Set <code>tensor-parallel-size</code> to the GPUs per node and <code>pipeline-parallel-size</code> to the node
-count (<code>size</code>); point the gateway's <code>VLLM_BASE_URL</code> at the leader Service. This is an
-operator-supplied topology; validate the per-node GPU fit and the Ray cluster formation
-before promotion.</p>
-<h2 id="choosing-a-quantization-method">Choosing a Quantization Method<a class="headerlink" href="#choosing-a-quantization-method" title="Permanent link">&para;</a></h2>
-<p>Quantization is the single biggest lever for fitting a modern coding/MoE model onto fewer GPUs.
-The vLLM chart exposes <code>server.quantization</code>, <code>server.kvCacheDtype</code>, and <code>server.gpuMemoryUtilization</code>
-as first-class values, and two ready profiles ship under <code>deploy/clusters/customer/values/</code>:</p>
-<table>
-<thead>
-<tr>
-<th>GPU class</th>
-<th>Method</th>
-<th>Profile</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Hopper/Ada (H100, H200, L40S)</td>
-<td>FP8 weights + FP8 KV cache</td>
-<td><code>vllm-nvidia-fp8.yaml</code></td>
-<td>~2x memory saving; native FP8, smallest quality cost. Cuts the 4-GPU floor to ~2.</td>
-</tr>
-<tr>
-<td>Ampere (A100, A10)</td>
-<td>AWQ 4-bit weights</td>
-<td><code>vllm-nvidia-awq.yaml</code></td>
-<td>Point <code>model.name</code> at a pre-quantized <code>…-AWQ</code> checkpoint. No FP8 KV cache on Ampere.</td>
-</tr>
-<tr>
-<td>Any</td>
-<td>GPTQ 4-bit weights</td>
-<td>set <code>server.quantization: gptq</code></td>
-<td>Alternative 4-bit path when an AWQ checkpoint is unavailable.</td>
-</tr>
-</tbody>
-</table>
-<p>Always keep <code>--tensor-parallel-size</code> (in <code>extraArgs</code>) equal to <code>accelerator.count</code>, and re-validate
-answer quality with <code>make eval</code> after changing quantization. It trades a small accuracy cost for
-GPU cost, and the acceptable trade is workload-specific.</p>
-<h2 id="speculative-decoding">Speculative Decoding<a class="headerlink" href="#speculative-decoding" title="Permanent link">&para;</a></h2>
-<p><code>server.speculative.enabled</code> + <code>server.speculative.config</code> render <code>--speculative-config</code> to cut
-latency by drafting tokens with a small model (or n-gram) and verifying them in one pass. It only
-helps when the draft acceptance rate is high, so enable it per model and confirm the tokens/sec and
-p95 latency improve under <code>make loadtest</code> before promoting; a low acceptance rate can be net-negative.</p>
-<h2 id="sub-gpu-sharing-mig-time-slicing">Sub-GPU Sharing (MIG / Time-Slicing)<a class="headerlink" href="#sub-gpu-sharing-mig-time-slicing" title="Permanent link">&para;</a></h2>
-<p>When a runtime does not need a whole GPU (small models, dev/eval namespaces), share one physical GPU:</p>
-<ul>
-<li><strong>MIG (A100/H100)</strong>: partition the GPU into isolated instances via the NVIDIA GPU Operator's MIG
-  config, then request the MIG resource name (e.g. <code>nvidia.com/mig-1g.10gb</code>) in
-  <code>accelerator.resourceName</code> with <code>accelerator.count: 1</code>. Hardware-isolated; best for multi-tenant.</li>
-<li><strong>Time-slicing</strong>: enable time-slicing in the device plugin config to oversubscribe a GPU across
-  pods. No memory isolation, so use only for trusted dev/eval workloads, never for tenant isolation.</li>
-</ul>
-<p>Both are cluster-level device-plugin/operator settings the operator owns; the chart only needs the
-resulting <code>accelerator.resourceName</code>/<code>count</code>. Size with the same KV-cache math in Sizing Estimates.</p>
+<h2 id="capacity-changes">Capacity changes<a class="headerlink" href="#capacity-changes" title="Permanent link">&para;</a></h2>
+<p>The checked-in NVIDIA profile requests four GPUs per vLLM replica, sets tensor parallelism to four,
+and allows a 262,144-token context. Those values are a render-tested reference profile, not a
+hardware recommendation.</p>
+<p>Size the actual model artifact on the target GPU. Account for weights, KV cache, activations,
+runtime overhead, prompt/completion length, and concurrent requests. Change
+<code>accelerator.count</code>, tensor parallelism, context length, replica count, and KEDA bounds together.</p>
+<p><code>make loadtest-local</code> uses a mock runtime and cannot size a GPU deployment. Point <code>make loadtest</code>
+at the deployed gateway and collect vLLM queue, latency, token-throughput, and GPU-memory metrics
+at the same time. Run the relevant eval suite again after changing the model, precision, or
+quantization.</p>
+<p>The chart creates a Kubernetes <code>Deployment</code>. Its tensor-parallel configuration assumes that all
+requested GPUs are available to one pod on one node. The repository does not install or test a
+multi-node vLLM operator. A model that cannot fit on one node needs a separately designed and tested
+LeaderWorkerSet, Ray, or equivalent deployment.</p>
+<p>The FP8 and AWQ files under <code>deploy/clusters/customer/values/</code> are configuration examples. The
+operator must supply a compatible GPU, runtime image, and model artifact. MIG and time-slicing are
+also cluster/device-plugin settings; the chart can request the resulting resource name but does not
+configure GPU partitioning.</p>
+<p>See <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/capacity-sizing.md">Capacity and sizing</a>
+for the measurement loop.</p>
 <h2 id="evidence">Evidence<a class="headerlink" href="#evidence" title="Permanent link">&para;</a></h2>
 <p>Capture pod events, node labels, node allocatable GPU resources, NVIDIA or AMD device plugin logs, and the vLLM values used for scheduling.</p>
 

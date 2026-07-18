@@ -24,7 +24,7 @@
     
     
       
-        <title>Agent-sandbox integration design - Private AI Platform Kit</title>
+        <title>Agent-sandbox integration - Private AI Platform Kit</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#agent-sandbox-integration-design" class="md-skip">
+        <a href="#agent-sandbox-integration" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Agent-sandbox integration design
+              Agent-sandbox integration
             
           </span>
         </div>
@@ -1120,7 +1120,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1192,7 +1192,7 @@
           
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1203,7 +1203,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1225,141 +1225,72 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#goals" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Goals
+      Installation
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#non-goals" class="md-nav__link">
+  <a href="#workspace-resource" class="md-nav__link">
     <span class="md-ellipsis">
-      Non-goals
+      Workspace resource
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#upstream-summary" class="md-nav__link">
+  <a href="#kernel-isolation" class="md-nav__link">
     <span class="md-ellipsis">
-      Upstream summary
+      Kernel isolation
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#concept-mapping" class="md-nav__link">
+  <a href="#platform-credential" class="md-nav__link">
     <span class="md-ellipsis">
-      Concept mapping
+      Platform credential
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#component-changes" class="md-nav__link">
+  <a href="#network-boundary" class="md-nav__link">
     <span class="md-ellipsis">
-      Component changes
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Component changes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-deploychartsagent-workspace" class="md-nav__link">
-    <span class="md-ellipsis">
-      1. deploy/charts/agent-workspace
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-controller-installation-gitops" class="md-nav__link">
-    <span class="md-ellipsis">
-      2. Controller installation (GitOps)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-egress-governance-platformnetwork-kyverno" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Egress governance (platform/network, Kyverno)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-gateway-binding-srcinference-gateway" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. Gateway binding (src/inference-gateway)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-evidence-packs-make-evidence" class="md-nav__link">
-    <span class="md-ellipsis">
-      5. Evidence packs (make evidence)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-governance-crosswalk-platformgovernance-docsai-governance-crosswalkmd" class="md-nav__link">
-    <span class="md-ellipsis">
-      6. Governance crosswalk (platform/governance, docs/ai-governance-crosswalk.md)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#7-docs" class="md-nav__link">
-    <span class="md-ellipsis">
-      7. Docs
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#threat-model-delta" class="md-nav__link">
-    <span class="md-ellipsis">
-      Threat-model delta
+      Network boundary
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#delivery-plan" class="md-nav__link">
+  <a href="#updates-and-lifecycle" class="md-nav__link">
     <span class="md-ellipsis">
-      Delivery plan
+      Updates and lifecycle
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-questions" class="md-nav__link">
+  <a href="#validation" class="md-nav__link">
     <span class="md-ellipsis">
-      Open questions
+      Validation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      Limits
     </span>
   </a>
   
@@ -1387,7 +1318,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1431,141 +1362,72 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#goals" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Goals
+      Installation
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#non-goals" class="md-nav__link">
+  <a href="#workspace-resource" class="md-nav__link">
     <span class="md-ellipsis">
-      Non-goals
+      Workspace resource
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#upstream-summary" class="md-nav__link">
+  <a href="#kernel-isolation" class="md-nav__link">
     <span class="md-ellipsis">
-      Upstream summary
+      Kernel isolation
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#concept-mapping" class="md-nav__link">
+  <a href="#platform-credential" class="md-nav__link">
     <span class="md-ellipsis">
-      Concept mapping
+      Platform credential
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#component-changes" class="md-nav__link">
+  <a href="#network-boundary" class="md-nav__link">
     <span class="md-ellipsis">
-      Component changes
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Component changes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-deploychartsagent-workspace" class="md-nav__link">
-    <span class="md-ellipsis">
-      1. deploy/charts/agent-workspace
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-controller-installation-gitops" class="md-nav__link">
-    <span class="md-ellipsis">
-      2. Controller installation (GitOps)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-egress-governance-platformnetwork-kyverno" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Egress governance (platform/network, Kyverno)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-gateway-binding-srcinference-gateway" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. Gateway binding (src/inference-gateway)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-evidence-packs-make-evidence" class="md-nav__link">
-    <span class="md-ellipsis">
-      5. Evidence packs (make evidence)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-governance-crosswalk-platformgovernance-docsai-governance-crosswalkmd" class="md-nav__link">
-    <span class="md-ellipsis">
-      6. Governance crosswalk (platform/governance, docs/ai-governance-crosswalk.md)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#7-docs" class="md-nav__link">
-    <span class="md-ellipsis">
-      7. Docs
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#threat-model-delta" class="md-nav__link">
-    <span class="md-ellipsis">
-      Threat-model delta
+      Network boundary
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#delivery-plan" class="md-nav__link">
+  <a href="#updates-and-lifecycle" class="md-nav__link">
     <span class="md-ellipsis">
-      Delivery plan
+      Updates and lifecycle
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-questions" class="md-nav__link">
+  <a href="#validation" class="md-nav__link">
     <span class="md-ellipsis">
-      Open questions
+      Validation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      Limits
     </span>
   </a>
   
@@ -1594,377 +1456,79 @@
   
 
 
-<h1 id="agent-sandbox-integration-design">Agent-Sandbox Integration Design<a class="headerlink" href="#agent-sandbox-integration-design" title="Permanent link">&para;</a></h1>
-<p>Status: Implemented (<a href="../adr/0009-adopt-agent-sandbox-workspace-runtime/">ADR 0009</a>, Accepted).
-Since <a href="../adr/0010-agent-sandbox-standard-runtime/">ADR 0010</a> the agent-sandbox
-runtime is the <strong>standard and only</strong> workspace runtime: the <code>sandbox.runtime</code>
-toggle described in the design below was removed, the projected workspace
-credential is on by default, and the controller is a platform prerequisite.
-Sections referring to the toggle or the namespace fallback are historical
-design record.
-Date: 2026-07-01 (amended 2026-07-02)</p>
-<p>This document describes how the kit adopts
-<a href="https://github.com/kubernetes-sigs/agent-sandbox">kubernetes-sigs/agent-sandbox</a>
-as an optional runtime for coding-agent workspaces, component by component, and
-the delivery plan to ship it.</p>
-<h2 id="goals">Goals<a class="headerlink" href="#goals" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Offer kernel-level isolation (gVisor/Kata via runtime class) for agent
-  workspaces at the <code>medium</code>/<code>high</code> governance risk tiers.</li>
-<li>Keep the kit's governance envelope (approved-egress catalog, per-sandbox
-  budgets, audit chain, evidence packs) authoritative and unchanged in
-  authority.</li>
-<li>Bind the platform's logical sandbox (<code>X-Sandbox-ID</code>) 1:1 to the runtime
-  <code>Sandbox</code> resource so evidence correlates with the workload.</li>
-<li>Keep the local <code>kind</code> lab fully functional with no new prerequisites.</li>
-</ul>
-<h2 id="non-goals">Non-goals<a class="headerlink" href="#non-goals" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Replacing namespace isolation: the <code>agent-workspace</code> chart's namespace,
-  RBAC, quota, and NetworkPolicy envelope stays for both runtimes.</li>
-<li>Wrapping or re-exposing the agent-sandbox API: consumers use upstream CRDs
-  and SDKs directly inside the envelope the kit provisions.</li>
-<li>Multi-cluster sandbox scheduling, GPU-in-sandbox, or snapshot/restore
-  workflows (revisit after upstream GA).</li>
-</ul>
-<h2 id="upstream-summary">Upstream summary<a class="headerlink" href="#upstream-summary" title="Permanent link">&para;</a></h2>
-<p>Verified against the vendored v0.5.0 CRD schemas and a live kind install on
-2026-07-01 (M0).</p>
-<ul>
-<li>Core API group <code>agents.x-k8s.io/v1beta1</code> (storage version; <code>v1alpha1</code> still
-  served): <code>Sandbox</code> only. Spec fields: <code>podTemplate</code> (<code>metadata</code> + <code>spec</code>,
-  standard pod schema), <code>operatingMode</code> (<code>Running</code>|<code>Suspended</code>, default
-  <code>Running</code>), <code>shutdownPolicy</code> (<code>Delete</code>|<code>Retain</code>, default <code>Retain</code>),
-  <code>shutdownTime</code> (RFC 3339), <code>service</code> (bool; no Service is created by
-  default), <code>volumeClaimTemplates</code>.</li>
-<li>Extensions API group <code>extensions.agents.x-k8s.io/v1beta1</code>:</li>
-<li><code>SandboxTemplate</code>: <code>podTemplate</code>, <code>networkPolicy</code> (<code>egress</code>/<code>ingress</code>
-    rule arrays), <code>networkPolicyManagement</code>, <code>envVarsInjectionPolicy</code>,
-    <code>service</code>, <code>volumeClaimTemplates</code> (+ <code>volumeClaimTemplatesPolicy</code>).</li>
-<li><code>SandboxClaim</code>: <code>warmPoolRef.name</code> (pool allocation only in <code>v1beta1</code>;
-    the direct <code>sandboxTemplateRef</code> exists only in <code>v1alpha1</code>), <code>lifecycle</code>
-    (<code>ttlSecondsAfterFinished</code>, <code>shutdownPolicy</code> incl. <code>DeleteForeground</code>,
-    <code>shutdownTime</code>), <code>env</code>, <code>additionalPodMetadata</code>.</li>
-<li><code>SandboxWarmPool</code>: <code>replicas</code>, <code>sandboxTemplateRef.name</code>,
-    <code>updateStrategy</code>.</li>
-<li>Consequence: on the <strong>direct path</strong> (create a <code>Sandbox</code> with an inline pod
-  template) there is no template, and (verified live) <strong>no upstream
-  NetworkPolicy is created</strong>. Upstream's secure-by-default networking is
-  template-scoped. TTL cleanup is claim-scoped; a bare <code>Sandbox</code> is bounded
-  with <code>shutdownTime</code>/<code>shutdownPolicy</code>.</li>
-<li>Controller: namespace <code>agent-sandbox-system</code>, Deployment
-  <code>agent-sandbox-controller</code>, webhook Service. Install from versioned release
-  manifests (no Helm chart), server-side apply required (CRD size). Vendored
-  under <code>deploy/vendor/agent-sandbox/</code> with checksums; installed by
-  <code>make agent-sandbox-install</code>.</li>
-<li>Live behaviour (kind, k8s v1.31.4): the sandbox pod is named exactly after
-  the <code>Sandbox</code>, <code>podTemplate</code> labels propagate to the pod, the controller
-  adds an <code>agents.x-k8s.io/sandbox-name-hash</code> selector label, and status
-  reports <code>Ready</code> with <code>podIPs</code> and <code>nodeName</code>.</li>
-<li>Upgrade caveat (verified live): the controller does <strong>not</strong> roll the
-  singleton pod when <code>spec.podTemplate</code> changes: the <code>Sandbox</code> object
-  updates but the running pod keeps the old spec. Workspace template changes
-  require deleting the pod (the controller recreates it from the current
-  spec); <code>make agent-sandbox-smoke</code> does this automatically when it detects
-  drift.</li>
-</ul>
-<h2 id="concept-mapping">Concept mapping<a class="headerlink" href="#concept-mapping" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Kit concept (today)</th>
-<th>Upstream resource / mechanism</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Workspace namespace (<code>ai-agents</code>)</td>
-<td>Unchanged; <code>Sandbox</code> objects live inside it</td>
-</tr>
-<tr>
-<td><code>sandbox.id</code> chart value / <code>X-Sandbox-ID</code> header</td>
-<td><code>Sandbox</code> <code>metadata.name</code> (pod inherits the name) + <code>platform.ai/sandbox-id</code> label</td>
-</tr>
-<tr>
-<td>Workspace pod (implicit, user-launched)</td>
-<td><code>Sandbox</code> pod managed by the controller</td>
-</tr>
-<tr>
-<td>Chart hardening values</td>
-<td>Hardened inline <code>podTemplate</code> on the rendered <code>Sandbox</code> (direct path)</td>
-</tr>
-<tr>
-<td>PVC template in chart</td>
-<td><code>volumeClaimTemplates</code> on the sandbox</td>
-</tr>
-<tr>
-<td>Manual teardown</td>
-<td><code>shutdownTime</code>/<code>shutdownPolicy</code> on <code>Sandbox</code>; <code>lifecycle.ttlSecondsAfterFinished</code> only on the pooled <code>SandboxClaim</code> path</td>
-</tr>
-<tr>
-<td>(none)</td>
-<td><code>SandboxTemplate</code> + <code>SandboxWarmPool</code>/<code>SandboxClaim</code>: deferred pooled path</td>
-</tr>
-</tbody>
-</table>
-<h2 id="component-changes">Component changes<a class="headerlink" href="#component-changes" title="Permanent link">&para;</a></h2>
-<h3 id="1-deploychartsagent-workspace">1. <code>deploy/charts/agent-workspace</code><a class="headerlink" href="#1-deploychartsagent-workspace" title="Permanent link">&para;</a></h3>
-<ul>
-<li>New value <code>sandbox.runtime: namespace | agent-sandbox</code> (default
-  <code>namespace</code>). Update <code>values.schema.json</code> and run
-  <code>make config-contract-update</code>.</li>
-<li>When <code>agent-sandbox</code>: render a <code>Sandbox</code> named <code>&lt;sandbox.id&gt;</code> (the pod
-  inherits that name, so the gateway's <code>X-Sandbox-ID</code> binding becomes
-  physical) with a hardened inline pod template:</li>
-<li><code>runtimeClassName</code> from a new <code>sandbox.runtimeClassName</code> value
-    (empty by default, <code>gvisor</code> in customer profiles; same pattern as
-    <code>accelerator.runtimeClassName</code> in the vLLM chart);</li>
-<li><code>automountServiceAccountToken: false</code>;</li>
-<li><code>securityContext</code> compatible with PSA <code>restricted</code> (non-root, no
-    privilege escalation, all capabilities dropped, read-only root
-    filesystem, seccomp <code>RuntimeDefault</code>);</li>
-<li>workspace labels: <code>platform.ai/sandbox-id</code>,
-    <code>platform.ai/traceable-sandbox: "true"</code> on the pod template (verified to
-    propagate to the pod);</li>
-<li>resources within the existing LimitRange defaults;</li>
-<li>the chart PVC becomes <code>volumeClaimTemplates</code> on the sandbox;</li>
-<li>a <code>shutdownTime</code>/<code>shutdownPolicy</code> option for bounded workspace lifetime
-    (TTL-after-finished only exists on the pooled claim path).</li>
-<li>Opt-in short-lived platform credential
-  (<code>workspace.credentials.projectedToken</code>, implemented 2026-07-01): a
-  projected, audience-bound ServiceAccount token (min 600 s TTL,
-  kubelet-rotated) mounted read-only at <code>/var/run/platform/token</code>, with the
-  path and audience published in the <code>agent-platform-contract</code> ConfigMap. No
-  Secret object and no long-lived credential enters the workspace, and the
-  ambient SA token stays unmounted (Kyverno-enforced). The gateway verifies
-  it with its existing JWT/JWKS auth: set <code>JWT_AUTH_ENABLED</code>,
-  <code>JWT_JWKS_URL</code> (the cluster's service-account issuer JWKS, e.g.
-  <code>https://kubernetes.default.svc.cluster.local/openid/v1/jwks</code>; grant the
-  gateway issuer-discovery access where anonymous discovery is disabled),
-  and <code>JWT_AUDIENCE=inference-gateway</code>. The local lab keeps API-key mode;
-  JWT mode is the customer-profile path. Verified live by
-  <code>make agent-sandbox-smoke</code> (JWT shape, audience, no ambient token).</li>
-<li><code>SandboxTemplate</code> is <strong>not</strong> rendered on this path; it becomes relevant
-  with warm pools (<code>SandboxWarmPool.spec.sandboxTemplateRef</code>), since
-  <code>v1beta1</code> claims allocate exclusively from pools.</li>
-<li>The <code>agent-platform-contract</code> ConfigMap is unchanged: sandbox pods consume
-  the same gateway/RAG URLs and required headers.</li>
-</ul>
-<p>The following manifest was applied successfully on the M0 spike cluster
-(busybox stand-in for the workspace image; pod ran, exec as uid 65532
-worked, Sandbox reported <code>Ready</code>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agents.x-k8s.io/v1beta1</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Sandbox</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">metadata</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agent-lab</span><span class="w">                          </span><span class="c1"># == sandbox.id == X-Sandbox-ID</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ai-agents</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">platform.ai/sandbox-id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agent-lab</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">platform.ai/traceable-sandbox</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nt">spec</span><span class="p">:</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="nt">podTemplate</span><span class="p">:</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">      </span><span class="nt">labels</span><span class="p">:</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="nt">platform.ai/sandbox-id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agent-lab</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">      </span><span class="nt">runtimeClassName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gvisor</span><span class="w">            </span><span class="c1"># customer profile only</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">      </span><span class="nt">automountServiceAccountToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workspace</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;agent</span><span class="nv"> </span><span class="s">runner</span><span class="nv"> </span><span class="s">image&gt;&quot;</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">          </span><span class="nt">securityContext</span><span class="p">:</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">            </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">            </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">65532</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">            </span><span class="nt">runAsGroup</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">65532</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">            </span><span class="nt">allowPrivilegeEscalation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">            </span><span class="nt">readOnlyRootFilesystem</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">            </span><span class="nt">capabilities</span><span class="p">:</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">              </span><span class="nt">drop</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;ALL&quot;</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">            </span><span class="nt">seccompProfile</span><span class="p">:</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">              </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RuntimeDefault</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">            </span><span class="nt">requests</span><span class="p">:</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">              </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50m</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">              </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64Mi</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="w">            </span><span class="nt">limits</span><span class="p">:</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="w">              </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">200m</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">              </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128Mi</span>
+<h1 id="agent-sandbox-integration">Agent-sandbox integration<a class="headerlink" href="#agent-sandbox-integration" title="Permanent link">&para;</a></h1>
+<p>Agent workspaces run as <code>agents.x-k8s.io/v1beta1</code> <code>Sandbox</code> resources managed by the
+vendored <code>kubernetes-sigs/agent-sandbox</code> controller. This is the only workspace runtime in
+release <code>v0.27.1</code>.</p>
+<p>The decisions are recorded in <a href="../adr/0009-adopt-agent-sandbox-workspace-runtime/">ADR 0009</a>
+and <a href="../adr/0010-agent-sandbox-standard-runtime/">ADR 0010</a>. This page describes the current
+contract rather than the implementation history.</p>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<p>The controller manifests are vendored under <code>deploy/vendor/agent-sandbox/v0.5.0/</code> with
+recorded SHA-256 checksums. Both Argo CD profiles contain an
+<code>agent-sandbox-controller</code> application. The direct quickstart path installs the same files with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>agent-sandbox-install
 </code></pre></div>
-<h3 id="2-controller-installation-gitops">2. Controller installation (GitOps)<a class="headerlink" href="#2-controller-installation-gitops" title="Permanent link">&para;</a></h3>
+<p>The install uses server-side apply because the CRDs are too large for the client-side
+last-applied annotation.</p>
+<h2 id="workspace-resource">Workspace resource<a class="headerlink" href="#workspace-resource" title="Permanent link">&para;</a></h2>
+<p><code>deploy/charts/agent-workspace</code> always renders one <code>Sandbox</code>. Its name is
+<code>sandbox.id</code>, and the controller gives the managed pod the same name. The chart also creates:</p>
 <ul>
-<li>Vendor the upstream release manifests under
-  <code>deploy/vendor/agent-sandbox/&lt;version&gt;/</code> and pin the version in
-  <code>docs/version-matrix.md</code>.</li>
-<li>New Argo CD Application (customer profile) pointing at the vendored path;
-  local lab installs via a new <code>make agent-sandbox-install</code> target.</li>
-<li>Upgrades follow <code>runbooks/release-verification.md</code>.</li>
+<li>the workspace namespace, service account, RBAC, quota, and limit range;</li>
+<li>a writable PVC mounted at <code>/workspace</code>;</li>
+<li>a configuration map with the gateway and RAG service addresses;</li>
+<li>default-deny ingress and egress policies plus explicit DNS, gateway, RAG, and catalog-approved
+  CIDR rules.</li>
 </ul>
-<h3 id="3-egress-governance-platformnetwork-kyverno">3. Egress governance (<code>platform/network</code>, Kyverno)<a class="headerlink" href="#3-egress-governance-platformnetwork-kyverno" title="Permanent link">&para;</a></h3>
+<p>The pod template runs as UID/GID <code>10001</code>, uses <code>RuntimeDefault</code> seccomp, drops all Linux
+capabilities, disables privilege escalation, and makes the root filesystem read-only. The
+default Kubernetes service-account token is not mounted.</p>
+<h2 id="kernel-isolation">Kernel isolation<a class="headerlink" href="#kernel-isolation" title="Permanent link">&para;</a></h2>
+<p>The controller-managed pod is a lifecycle and policy boundary. It is not automatically a separate
+kernel boundary. <code>sandbox.runtimeClassName</code> is empty in the checked-in local and customer values.
+Set it to a cluster-provided runtime such as gVisor or Kata when that isolation is required, and
+verify that the runtime exists on every node that may host a workspace.</p>
+<h2 id="platform-credential">Platform credential<a class="headerlink" href="#platform-credential" title="Permanent link">&para;</a></h2>
+<p>The chart projects a service-account token at <code>/var/run/platform/token</code>. It is scoped to the
+<code>inference-gateway</code> audience, expires after 600 seconds by default, and is rotated by the kubelet.
+The gateway only accepts it when JWT/JWKS verification is configured against the cluster issuer.</p>
+<p>This token is still a credential. Audience binding and expiry reduce its usefulness elsewhere but
+do not make the workspace trusted.</p>
+<h2 id="network-boundary">Network boundary<a class="headerlink" href="#network-boundary" title="Permanent link">&para;</a></h2>
+<p>The direct <code>Sandbox</code> resource does not create an upstream NetworkPolicy. The chart's
+NetworkPolicies are therefore the network boundary for this path. They require a CNI that enforces
+NetworkPolicy; the local profile uses Calico. The smoke check refuses to treat kindnet as valid
+egress evidence.</p>
+<p>Every external CIDR entry needs a <code>catalogRef</code> from
+<code>platform/network/egress-catalog.yaml</code>. Approved destinations can still receive data, so the
+catalog must stay narrow and be reviewed as an exfiltration boundary.</p>
+<h2 id="updates-and-lifecycle">Updates and lifecycle<a class="headerlink" href="#updates-and-lifecycle" title="Permanent link">&para;</a></h2>
+<p><code>workspace.shutdownTime</code> and <code>workspace.shutdownPolicy</code> can bound a workspace lifetime. They are
+unset by default.</p>
+<p>The v0.5.0 controller does not replace its singleton pod when the <code>Sandbox</code> pod template changes.
+After a chart update, delete the managed pod so the controller recreates it from the current
+template. <code>make agent-sandbox-smoke</code> detects image or volume drift and performs that refresh.</p>
+<p>Warm pools, <code>SandboxClaim</code>, multi-cluster scheduling, and workspace snapshot/restore are not
+implemented by this chart.</p>
+<h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
+<p>After the controller and workspace application are synced, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>agent-sandbox-smoke
+</code></pre></div>
+<p>The check verifies controller readiness, the <code>Sandbox</code> and pod state, non-root execution, the
+read-only root filesystem, writable workspace storage, absence of the ambient token, the projected
+token audience, working DNS, and blocked non-catalog egress.</p>
+<p><code>make agent-sandbox-demo</code> adds the governed model-call and audit-receipt walkthrough used by the
+README animation.</p>
+<h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Verified on the M0 spike: on the direct-<code>Sandbox</code> path upstream creates
-  <strong>no NetworkPolicy at all</strong>. Its secure-by-default networking is
-  template-scoped (<code>SandboxTemplate.spec.networkPolicy</code> +
-  <code>networkPolicyManagement</code>). The kit's default-deny + catalog-allow
-  policies are therefore the <em>only</em> network control on this path, not a
-  second layer. They must select sandbox pods (label selector on
-  <code>platform.ai/sandbox-id</code>), and the Kyverno check below is load-bearing.
-  When the pooled path lands, set <code>networkPolicyManagement</code> so template
-  policies cannot silently widen what the catalog allows.</li>
-<li><code>scripts/egress-governance.py</code> / <code>make egress-check</code>: extend coverage to
-  namespaces containing <code>Sandbox</code> resources; fail if a sandbox pod is not
-  selected by the default-deny policy.</li>
-<li>New Kyverno policies + tests (<code>deploy/policies/kyverno/tests/</code>):</li>
-<li>require <code>automountServiceAccountToken: false</code> in any <code>SandboxTemplate</code>;</li>
-<li>require the hardened <code>securityContext</code>;</li>
-<li>at <code>high</code> risk tier, require a non-empty <code>runtimeClassName</code>.</li>
+<li>A missing isolation <code>RuntimeClass</code> means the workspace shares the node kernel.</li>
+<li>NetworkPolicy restricts connections but does not encrypt them.</li>
+<li>Namespace RBAC does not restrict actions performed through an approved external service.</li>
+<li>The gateway audit chain records governed model calls, not every process or file operation inside
+  the workspace.</li>
+<li>PVC availability, backup, retention, and secure deletion depend on the cluster storage system.</li>
 </ul>
-<h3 id="4-gateway-binding-srcinference-gateway">4. Gateway binding (<code>src/inference-gateway</code>)<a class="headerlink" href="#4-gateway-binding-srcinference-gateway" title="Permanent link">&para;</a></h3>
-<ul>
-<li>No change was needed for the binding itself: <code>X-Sandbox-ID</code> validation,
-  budgets, and audit events already key on the sandbox id; the binding
-  becomes physical by naming the <code>Sandbox</code> resource with the same id.</li>
-<li><strong>Receipts (implemented 2026-07-01).</strong> Rather than a parallel
-  <code>agent_action</code> event class (which would double-record every action), the
-  existing chained audit events carry receipt semantics: <code>action_type</code>
-  (<code>model_call</code> for <code>inference_request</code>/<code>batch_request</code>), <code>decision</code>
-  (<code>allowed</code>, or <code>denied</code> with the reason in <code>error</code>, covering admission
-  rejects, budget exhaustion, and guardrail blocks), and <code>guardrail_action</code>
-  (the output-guardrail outcome when it fired). One action, one chained
-  receipt; same hash chain, same redaction rules (fingerprints and counts,
-  never raw content). Contract: <code>deploy/sandbox/base/trace-contract.yaml</code>;
-  test: <code>test_audit_events_carry_agent_action_receipts</code>.</li>
-<li>Future action types (<code>tool_invocation</code>, <code>egress_attempt</code>,
-  <code>workspace_exec</code>) require an emitter outside the sandbox trust boundary
-  (open question 4) and are the implementation core of the
-  auditable-agent-execution paper.</li>
-</ul>
-<h3 id="5-evidence-packs-make-evidence">5. Evidence packs (<code>make evidence</code>)<a class="headerlink" href="#5-evidence-packs-make-evidence" title="Permanent link">&para;</a></h3>
-<ul>
-<li>New check <code>agent-sandbox-readiness</code> (LIVE mode): controller Deployment
-  ready, CRDs present at expected version, <code>SandboxTemplate</code> renders, runtime
-  class present when the profile requires it, sandbox pods selected by
-  default-deny policy.</li>
-<li>Evidence pack section: pinned upstream version (from the version matrix)
-  and the isolation posture per workspace (runtime, runtimeClassName).</li>
-</ul>
-<h3 id="6-governance-crosswalk-platformgovernance-docsai-governance-crosswalkmd">6. Governance crosswalk (<code>platform/governance</code>, <code>docs/ai-governance-crosswalk.md</code>)<a class="headerlink" href="#6-governance-crosswalk-platformgovernance-docsai-governance-crosswalkmd" title="Permanent link">&para;</a></h3>
-<ul>
-<li>New control <code>C-ISOLATE</code>, "Agent workloads execute under kernel-level
-  isolation with no ambient credentials":</li>
-<li>NIST AI RMF: Manage;</li>
-<li>EU AI Act: Art. 15 (accuracy, robustness and cybersecurity); the
-    <code>agent_action</code> audit events extend the existing C-AUDIT mapping to
-    Art. 12 (record-keeping) for agent execution;</li>
-<li>ISO/IEC 42001: operational controls clause.</li>
-<li>Risk tiers: <code>medium</code>, recommended; <code>high</code>, mandated (enforced by the
-  Kyverno tier policy above).</li>
-</ul>
-<h3 id="7-docs">7. Docs<a class="headerlink" href="#7-docs" title="Permanent link">&para;</a></h3>
-<ul>
-<li>This document under Explanation in <code>mkdocs.yml</code> nav; ADR 0009 row in
-  <code>docs/adr/README.md</code> index (both files carry unrelated uncommitted edits as
-  of writing; wire in when committing).</li>
-<li><code>docs/decision-guide.md</code>: new row for when to enable the hardened runtime.</li>
-<li><code>docs/version-matrix.md</code>: agent-sandbox version pin.</li>
-<li><code>README.md</code> workspaces bullet: mention isolation via the upstream SIG
-  primitive once the ADR is Accepted.</li>
-</ul>
-<h2 id="threat-model-delta">Threat-model delta<a class="headerlink" href="#threat-model-delta" title="Permanent link">&para;</a></h2>
-<p>Gains: syscall-level isolation between agent code and the node kernel
-(gVisor/Kata); no ambient service-account token; metadata endpoints blocked by
-two independent layers (upstream default + kit policy); TTL bounds the
-lifetime of a compromised workspace.</p>
-<p>Explicitly unchanged: prompt injection and tool-abuse remain application-layer
-risks (mitigated by the gateway's guardrails, budgets, and the egress
-catalog, not by the sandbox); data exfiltration through <em>approved</em> egress
-destinations remains a governance decision recorded in the catalog; the audit
-chain's wholesale-rewrite limitation still requires external head anchoring
-(<code>runbooks/evidence-pack.md</code>).</p>
-<p>Update <code>docs/threat-model.md</code> accordingly in M3.</p>
-<h2 id="delivery-plan">Delivery plan<a class="headerlink" href="#delivery-plan" title="Permanent link">&para;</a></h2>
-<p>Weekend-scoped milestones, target release v0.14.0:</p>
-<ul>
-<li><strong>M0: Spike. Done 2026-07-01.</strong> Vendored v0.5.0 manifests with checksums
-  (<code>deploy/vendor/agent-sandbox/</code>), added <code>make agent-sandbox-install</code> +
-  <code>scripts/agent-sandbox-install.sh</code>, verified all four CRD schemas, and ran
-  a hardened <code>Sandbox</code> end-to-end on a <code>kind</code> spike cluster
-  (<code>agent-sandbox-spike</code>, node image v1.31.4 for cgroup-v1 hosts; same
-  fallback as <code>local-up.sh</code>): pod <code>Running</code>, exec as uid 65532, status
-  <code>Ready</code>. Corrections fed back into this document: extensions API group,
-  claims are pool-only in <code>v1beta1</code>, no upstream NetworkPolicy on the
-  direct path, TTL is claim-scoped.</li>
-<li><strong>M1: Chart runtime option. Done 2026-07-01.</strong> <code>sandbox.runtime</code> +
-  <code>sandbox.runtimeClassName</code> values render a hardened <code>Sandbox</code>
-  (<code>deploy/charts/agent-workspace/templates/sandbox.yaml</code>); schema updated
-  (no config-contract impact; contracts cover only the two services);
-  Kyverno <code>ai-platform-hardened-sandboxes</code> policy with good/bad test
-  resources (kyverno test: 11/11). Verified live: chart-managed sandbox
-  Ready in ~9 s, uid 10001, read-only rootfs, no SA token, writable
-  workspace PVC and /tmp scratch.</li>
-<li><strong>M2: Egress fail-closed. Done 2026-07-01.</strong> Default-deny + approved
-  egress select sandbox pods by construction (<code>podSelector: {}</code>), and
-  <code>scripts/egress-governance.py</code> already scans the agent-workspace cluster
-  values. <code>make agent-sandbox-smoke</code> proves the hardening contract, a DNS
-  positive control, and a blocked probe to the otherwise reachable Kubernetes
-  API, verified fail-closed on the default Calico <code>kind</code> cluster. The script
-  rejects kindnet because it cannot produce valid NetworkPolicy evidence.</li>
-<li><strong>M3: Evidence &amp; governance. Done 2026-07-01 (events deferred).</strong>
-  <code>C-ISOLATE</code> added to the control-framework map (recommended at <code>medium</code>,
-  mandated at <code>high</code>) and the governance crosswalk; evidence pack gained a
-  static asset check and a live controller check (verified against the
-  spike cluster); threat model gained the isolation-boundary section.
-  Deferred: the <code>agent_action</code> audit-event vocabulary (section 4) ships
-  with the auditable-agent-execution paper work, where the untrusted-emitter
-  question (open question 4) is resolved.</li>
-<li><strong>Addendum: standard runtime (ADR 0010). Done 2026-07-02.</strong> The
-  <code>sandbox.runtime</code> toggle was removed (the chart always renders the
-  hardened Sandbox), the projected credential became default-on, the
-  controller became a platform prerequisite (<code>agent-sandbox-controller</code>
-  Application in both overlays + quickstart install), the <code>agent-lab-up</code>
-  target was removed in favour of the GitOps-owned instance, the smokes
-  became validation-only, and the <code>sandbox-smoke</code> target was renamed
-  <code>trace-smoke</code>.</li>
-<li><strong>Addendum: receipts, credential broker, real-agent demo. Done
-  2026-07-01.</strong> The three deliberately-deferred pieces were implemented the
-  same day: (1) agent-action receipt semantics on the gateway audit chain
-  (section 4); (2) the projected-token workspace credential (section 1);
-  (3) <code>make agent-sandbox-demo</code> runs aider inside the hardened sandbox on
-  the full lab: allowed, denied, and real-agent receipts verified on the
-  chain, with sandbox-id attribution via aider model settings
-  (<code>extra_headers</code>). Verified operational caveats now handled by the
-  scripts: singleton pods do not roll on template changes (drift detection</li>
-<li>refresh), GitOps-managed namespaces are adopted rather than owned, and
-  the local <code>qwen2.5:0.5b</code> CPU model is too small for aider's edit format.
-  The demo reports this honestly; customer-profile models complete the
-  task.</li>
-<li><strong>M4: Demo &amp; docs. Done 2026-07-01 (release pending).</strong>
-  <code>make agent-sandbox-demo</code> composes controller install → hardened workspace
-  → fail-closed exfiltration probe → evidence pack, and exercises the
-  governed model path from inside the sandbox when the inference gateway is
-  deployed (skips with guidance on a sandbox-only cluster). Decision guide,
-  version matrix, chart README (generated), and CHANGELOG updated; full
-  <code>make validate</code> green. Remaining for release: run the demo against the
-  full lab (<code>make quickstart</code> first), update the top-level README workspaces
-  bullet, cut v0.14.0, and flip ADR 0009 to Accepted.</li>
-</ul>
-<h2 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">&para;</a></h2>
-<ol>
-<li>~~Exact v0.5.0 CRD schema for pod templates and label propagation.~~
-   Resolved in M0. See "Upstream summary".</li>
-<li>~~Whether upstream's NetworkPolicy and the kit's default-deny compose.~~
-   Narrowed in M0: no upstream policy exists on the direct path, so the
-   question only applies to the pooled/template path
-   (<code>networkPolicyManagement</code> semantics; verify enum values when that
-   phase starts).</li>
-<li>Warm pools: worth the resource cost on customer clusters, or defer until
-   a real latency requirement appears? (Deferred by default.)</li>
-<li>Where <code>agent_action</code> events for <em>in-workspace</em> activity (not gateway
-   traffic) get emitted from without trusting the agent itself. Candidate:
-   a sidecar-free node-level observer; out of scope for v0.14.0, relevant
-   for the auditable-agent-execution paper.</li>
-<li>Resolved: the local lab defaults to Calico and the blocked-exfiltration
-   probe targets the reachable Kubernetes API; kindnet is rejected by the smoke.</li>
-</ol>
 
 
 

@@ -1214,7 +1214,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1277,7 +1277,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1300,7 +1300,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1423,7 +1423,7 @@
 <h1 id="release-verification">Release Verification<a class="headerlink" href="#release-verification" title="Permanent link">&para;</a></h1>
 <p>Use this checklist before trusting a public release in a customer-owned cluster.</p>
 <p>Set the release and repository once:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">RELEASE</span><span class="o">=</span>v0.27.0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">RELEASE</span><span class="o">=</span>v0.27.1
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">IMAGE_REPO</span><span class="o">=</span>ghcr.io/ramazankara/private-ai-platform-kit
 </code></pre></div>
 <h2 id="helm-oci-charts">Helm OCI Charts<a class="headerlink" href="#helm-oci-charts" title="Permanent link">&para;</a></h2>
@@ -1505,7 +1505,7 @@
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>make<span class="w"> </span>evidence
 <a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>make<span class="w"> </span>release-gate-strict
 </code></pre></div>
-<p>For a live customer-style proof path, run the local cluster checks and generate live evidence:</p>
+<p>For a live customer-style validation path, run the local cluster checks and generate live evidence:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">QUICKSTART_DIRECT_APPLY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>make<span class="w"> </span>trace-smoke
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>make<span class="w"> </span>tenant-smoke

@@ -1301,7 +1301,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1364,7 +1364,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1387,7 +1387,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1594,16 +1594,18 @@
   
 
 
-<h1 id="client-api-examples">Client API Examples<a class="headerlink" href="#client-api-examples" title="Permanent link">&para;</a></h1>
-<p>The gateway is OpenAI-compatible, so any OpenAI client library works by pointing its
-base URL at the gateway and sending the platform headers. These examples use the local
-port-forward address (<code>make local-up</code> then port-forward the gateway service); replace it
-with your Ingress host in a customer cluster.</p>
+<h1 id="client-api-examples">Client API examples<a class="headerlink" href="#client-api-examples" title="Permanent link">&para;</a></h1>
+<p>The gateway implements a documented subset of the OpenAI API. Clients that use those
+routes can point their base URL at the gateway and send the platform headers. Check the
+<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json">OpenAPI contract</a>
+and <a href="../scope-and-non-goals/">scope</a> before assuming that an SDK feature is supported.
+These examples use the local port-forward address (<code>make local-up</code> then port-forward the
+gateway service); replace it with your ingress host in a customer cluster.</p>
 <p>The <code>model</code> id must be on the active profile's allowlist: the local lab allows
 <code>qwen2.5:0.5b</code>, while the customer profiles default to <code>qwen3.5:0.8b</code> (Ollama) and
 <code>Qwen/Qwen3-Coder-Next</code> (vLLM). Streaming is admitted by default in every shipped
-profile (<code>admission.allowStreaming: true</code>); an air-gapped/regulated deployment that
-requires end-of-stream-only guardrail enforcement sets it <code>false</code>. Examples below that
+profile (<code>admission.allowStreaming: true</code>); a deployment that requires end-of-stream-only
+guardrail enforcement sets it <code>false</code>. Examples below that
 use a customer model are marked accordingly.</p>
 <p>All business endpoints accept:</p>
 <ul>

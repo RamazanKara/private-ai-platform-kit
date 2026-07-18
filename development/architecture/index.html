@@ -1099,45 +1099,54 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#components-common-to-every-profile" class="md-nav__link">
+  <a href="#core-request-path" class="md-nav__link">
     <span class="md-ellipsis">
-      Components Common To Every Profile
+      Core request path
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#profile-1-local-kind-lab-ollama" class="md-nav__link">
+  <a href="#components" class="md-nav__link">
     <span class="md-ellipsis">
-      Profile 1: Local kind Lab (Ollama)
+      Components
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#profile-2-customer-cluster-vllm-gpu" class="md-nav__link">
+  <a href="#local-profile" class="md-nav__link">
     <span class="md-ellipsis">
-      Profile 2: Customer Cluster (vLLM + GPU)
+      Local profile
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#profile-3-regulated-offline-tenant-no-egress" class="md-nav__link">
+  <a href="#customer-profile" class="md-nav__link">
     <span class="md-ellipsis">
-      Profile 3: Regulated-Offline Tenant (No Egress)
+      Customer profile
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#choosing-a-profile" class="md-nav__link">
+  <a href="#regulated-offline-tenant-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Choosing A Profile
+      regulated-offline tenant example
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stateful-and-failure-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stateful and failure boundaries
     </span>
   </a>
   
@@ -1205,7 +1214,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1268,7 +1277,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1291,7 +1300,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1335,45 +1344,54 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#components-common-to-every-profile" class="md-nav__link">
+  <a href="#core-request-path" class="md-nav__link">
     <span class="md-ellipsis">
-      Components Common To Every Profile
+      Core request path
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#profile-1-local-kind-lab-ollama" class="md-nav__link">
+  <a href="#components" class="md-nav__link">
     <span class="md-ellipsis">
-      Profile 1: Local kind Lab (Ollama)
+      Components
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#profile-2-customer-cluster-vllm-gpu" class="md-nav__link">
+  <a href="#local-profile" class="md-nav__link">
     <span class="md-ellipsis">
-      Profile 2: Customer Cluster (vLLM + GPU)
+      Local profile
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#profile-3-regulated-offline-tenant-no-egress" class="md-nav__link">
+  <a href="#customer-profile" class="md-nav__link">
     <span class="md-ellipsis">
-      Profile 3: Regulated-Offline Tenant (No Egress)
+      Customer profile
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#choosing-a-profile" class="md-nav__link">
+  <a href="#regulated-offline-tenant-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Choosing A Profile
+      regulated-offline tenant example
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stateful-and-failure-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stateful and failure boundaries
     </span>
   </a>
   
@@ -1402,259 +1420,127 @@
   
 
 
-<h1 id="architecture-and-deployment-profiles">Architecture And Deployment Profiles<a class="headerlink" href="#architecture-and-deployment-profiles" title="Permanent link">&para;</a></h1>
-<p>This document describes the runtime architecture of the Private AI Platform Kit across the three
-deployment profiles the repo ships values for: the local <code>kind</code>/Ollama lab, the customer
-cluster/vLLM+GPU profile, and a regulated-offline tenant profile. The component set and GitOps
-layout are identical across profiles; what changes is the runtime backend, the namespaces that are
-operator-owned versus kit-owned, the secret backend, and the network egress posture.</p>
-<p>For the single combined overview diagram see <a href="../assets/architecture.svg"><code>assets/architecture.svg</code></a>. For
-the high-level narrative see the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md">README "How It Works" section</a>. Whether the kit fits
-your use case is covered in the <a href="../decision-guide/">decision guide</a>; the trust boundaries are in the
-<a href="../threat-model/">threat model</a>.</p>
-<h2 id="components-common-to-every-profile">Components Common To Every Profile<a class="headerlink" href="#components-common-to-every-profile" title="Permanent link">&para;</a></h2>
-<p>Every profile deploys the same Argo CD <code>Application</code> set (<code>deploy/clusters/local/apps.yaml</code> and
-<code>deploy/clusters/customer/apps.yaml</code>). The kit-owned workloads and their namespaces are:</p>
+<h1 id="architecture-and-deployment-profiles">Architecture and deployment profiles<a class="headerlink" href="#architecture-and-deployment-profiles" title="Permanent link">&para;</a></h1>
+<p>The repository has a local profile, a customer-cluster profile, and tenant onboarding examples. They share the first-party services and Helm charts, but they do not install the same Argo CD application set and they do not provide the same security or availability guarantees.</p>
+<p>Use the <a href="../feature-inventory/">feature inventory</a> for endpoint and default status, and the <a href="../threat-model/">threat model</a> for trust boundaries.</p>
+<h2 id="core-request-path">Core request path<a class="headerlink" href="#core-request-path" title="Permanent link">&para;</a></h2>
+<p><img alt="Platform architecture" src="../assets/architecture.svg" /></p>
+<p>The inference gateway is the entry point for model API traffic. A normal request passes through:</p>
+<ol>
+<li>API-key or bearer-token authentication;</li>
+<li>sandbox identity binding, when the key record or token supplies one;</li>
+<li>model allowlist, admission, and input-secret checks;</li>
+<li>rate and budget accounting;</li>
+<li>routing to Ollama or vLLM;</li>
+<li>the optional output guardrail;</li>
+<li>metrics and a redacted audit event.</li>
+</ol>
+<p>The exact HTTP surface is generated into <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json"><code>platform/api-contracts/inference-gateway.openapi.json</code></a>. Not every route performs model inference, and optional controls only apply when enabled in the active values.</p>
+<p>RAG is a separate service. It returns retrieved passages and grounded message objects; it does not automatically intercept gateway calls. The local profile uses the checked-in lexical corpus. The customer values select Qdrant and an embedding endpoint.</p>
+<h2 id="components">Components<a class="headerlink" href="#components" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Component</th>
 <th>Namespace</th>
-<th>Service (in-cluster DNS)</th>
 <th>Source</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Inference gateway</td>
 <td><code>inference</code></td>
-<td><code>inference-gateway-inference-gateway.inference.svc.cluster.local:8080</code></td>
-<td><code>deploy/charts/inference-gateway</code></td>
+<td><code>src/inference-gateway</code>, <code>deploy/charts/inference-gateway</code></td>
+<td>First-party API and policy point</td>
 </tr>
 <tr>
 <td>RAG service</td>
 <td><code>rag</code></td>
-<td><code>rag-service.rag.svc.cluster.local</code></td>
-<td><code>deploy/charts/rag-service</code></td>
-</tr>
-<tr>
-<td>Qdrant vector store (optional)</td>
-<td><code>vector</code></td>
-<td><code>qdrant-vector-store.vector.svc.cluster.local:6333</code></td>
-<td><code>deploy/charts/qdrant-vector-store</code></td>
+<td><code>src/rag-service</code>, <code>deploy/charts/rag-service</code></td>
+<td>Lexical or Qdrant retrieval</td>
 </tr>
 <tr>
 <td>Budget Redis</td>
 <td><code>budget</code></td>
-<td><code>budget-redis.budget.svc.cluster.local:6379</code></td>
 <td><code>deploy/charts/budget-redis</code></td>
+<td>Single-node reference store by default</td>
 </tr>
 <tr>
-<td>Ollama runtime</td>
+<td>Qdrant</td>
+<td><code>vector</code></td>
+<td><code>deploy/charts/qdrant-vector-store</code></td>
+<td>Single-instance chart; customer values enable persistence</td>
+</tr>
+<tr>
+<td>Ollama</td>
 <td><code>ollama</code></td>
-<td><code>ollama.ollama.svc.cluster.local:11434</code></td>
 <td><code>deploy/charts/ollama</code></td>
+<td>Local default and a customer chat route</td>
 </tr>
 <tr>
-<td>vLLM runtime</td>
+<td>vLLM</td>
 <td><code>vllm</code></td>
-<td><code>vllm.vllm.svc.cluster.local:8000</code></td>
 <td><code>deploy/charts/vllm</code></td>
+<td>Customer generation and embedding profiles</td>
 </tr>
 <tr>
-<td>Agent workspaces</td>
-<td><code>ai-agents</code></td>
-<td>hardened <code>Sandbox</code> workspaces (<code>agents.x-k8s.io</code>) + PVC</td>
+<td>Agent workspace</td>
+<td>tenant namespace</td>
 <td><code>deploy/charts/agent-workspace</code></td>
+<td>Creates <code>agents.x-k8s.io</code> sandbox resources and namespace controls</td>
 </tr>
 <tr>
 <td>Agent-sandbox controller</td>
-<td>cluster-scoped CRD + controller</td>
-<td><code>Sandbox</code> API, controller in <code>agent-sandbox-system</code></td>
-<td><code>deploy/vendor/agent-sandbox/v0.5.0</code></td>
+<td><code>agent-sandbox-system</code></td>
+<td><code>deploy/vendor/agent-sandbox</code></td>
+<td>Cluster-scoped prerequisite</td>
 </tr>
 <tr>
-<td>Model catalog</td>
-<td><code>inference</code></td>
-<td>reviewed allowlist ConfigMaps</td>
-<td><code>platform/model-catalog/k8s</code></td>
-</tr>
-<tr>
-<td>Traceable sandbox</td>
-<td><code>ai-sandbox</code></td>
-<td>trace-contract base</td>
-<td><code>deploy/sandbox/base</code></td>
-</tr>
-<tr>
-<td>Kyverno policies</td>
-<td><code>kyverno</code></td>
-<td>admission policies</td>
-<td><code>deploy/policies/kyverno</code></td>
-</tr>
-<tr>
-<td>Observability stack</td>
-<td><code>monitoring</code></td>
-<td>kube-prometheus-stack, Loki, Promtail, pushgateway</td>
-<td><code>deploy/observability</code></td>
+<td>Policies and catalog</td>
+<td>cluster/inference</td>
+<td><code>deploy/policies</code>, <code>platform/model-catalog</code></td>
+<td>Admission policy and approved model records</td>
 </tr>
 </tbody>
 </table>
-<p>The inference gateway is the single ingress point for model traffic. It exposes an
-OpenAI-compatible API on port <code>8080</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/completions</code>,
-<code>POST /v1/embeddings</code>, <code>POST /v1/moderations</code>, <code>POST /v1/batch-inference</code>, the native <code>POST /v1/messages</code>
-(Anthropic Messages) and <code>POST /v1/responses</code> (OpenAI Responses) surfaces, the asynchronous
-OpenAI Files + Batch API (<code>/v1/files</code>, <code>/v1/batches</code>), <code>GET /v1/models</code>, <code>GET /v1/usage</code>, and
-<code>GET /v1/sandbox/budget</code>, plus unauthenticated <code>/healthz</code>, <code>/readyz</code>,
-and <code>/metrics</code> (<code>src/inference-gateway/app/main.py</code>). Every business endpoint runs the same
-governance path and returns OpenAI-shaped error envelopes. The async batch subsystem
-(ADR 0011) adds an object store for the JSONL blobs, a Redis-backed job store + queue, and a
-separate stateless <code>batch-processor</code> worker that replays each batched item back through the
-gateway so governance stays single-sourced. Cross-cutting controls applied to
-every request:</p>
+<p>The data plane uses plaintext HTTP by default. NetworkPolicy restricts reachability but does not encrypt traffic. The customer must supply transport encryption where it is required.</p>
+<h2 id="local-profile">Local profile<a class="headerlink" href="#local-profile" title="Permanent link">&para;</a></h2>
+<p><img alt="Local profile" src="../assets/architecture-local.svg" /></p>
+<p><code>make quickstart</code> creates a single-node <code>kind</code> cluster with Calico, builds the gateway and RAG images locally, installs the vendored agent-sandbox controller, and deploys the local application set.</p>
+<p>The local profile uses:</p>
 <ul>
-<li><strong>Authentication.</strong> API-key auth is enabled by default via the <code>X-API-Key</code> header; the gateway
-  stores only SHA-256 digests of accepted keys and compares with constant-time <code>hmac.compare_digest</code>
-  (<code>src/inference-gateway/app/main.py</code>). Bearer JWTs are verified against a JWKS document
-  (HS256/RS256/ES256) with key caching and last-known-good fallback on a transient JWKS outage; an
-  unreachable issuer returns <code>503 jwks_unavailable</code>, not a token rejection
-  (<code>src/inference-gateway/app/jwt_auth.py</code>).</li>
-<li><strong>Admission and guardrails.</strong> Per-request limits on message count, prompt characters, and
-  completion tokens; prompt secret-detection patterns (private keys, GitHub/Slack/bearer tokens,
-  generic API-key assignments) configured under <code>admission</code> and <code>guardrails</code> in the gateway values.</li>
-<li><strong>Budgets.</strong> A shared per-sandbox budget backed by <code>budget-redis</code> enforces request, prompt-char,
-  and estimated-token windows keyed by <code>X-Sandbox-ID</code> (<code>budget</code> block in the gateway values).</li>
-<li><strong>Routing, canary, shadow, and failover.</strong> A model routing policy maps each model id to a backend;
-  the gateway supports weighted canary selection, fire-and-forget shadow mirroring, and runtime
-  failover across an ordered backend chain (<code>src/inference-gateway/app/main.py</code>,
-  <code>src/inference-gateway/app/policy.py</code>).</li>
-<li><strong>Tamper-evident audit chain.</strong> Each redacted audit event is linked into a per-replica SHA-256
-  hash chain (<code>h_i = SHA-256(h_{i-1} || canonical(event_i))</code>, genesis <code>SHA-256("genesis")</code>), so any
-  reorder or edit is detectable by the auditor tooling. Raw prompt text is never logged; prompts are
-  recorded as <code>prompt_sha256</code> (<code>src/inference-gateway/app/main.py</code>).</li>
-<li><strong>Metrics.</strong> Prometheus counters and histograms (requests, canary routing, shadow requests,
-  runtime fallbacks, auth failures) are scraped by the observability stack.</li>
+<li>Ollama with <code>qwen2.5:0.5b</code> for gateway smoke tests;</li>
+<li>a public development API key;</li>
+<li>lexical RAG data from the repository;</li>
+<li>a bundled Redis and Qdrant footprint;</li>
+<li>local-path storage and single-node availability.</li>
 </ul>
-<p>The <strong>RAG service</strong> (<code>src/rag-service</code>) serves OpenAI-compatible embeddings and approved retrieval
-context. It runs lexical retrieval by default and switches to a Qdrant-backed hybrid profile when
-<code>retrieval.backend: qdrant</code> is set. <strong>GitOps</strong> (Argo CD) reconciles every component from this repo;
-<strong>Kyverno</strong> enforces admission policy; the <strong>observability</strong> stack (kube-prometheus-stack, Loki,
-Promtail, pushgateway, and OpenCost on the local profile) provides metrics, logs, and cost
-attribution.</p>
-<p>The arrows in each profile diagram below follow the same data flow: client/agent -&gt; gateway -&gt;
-(runtime, and optionally RAG -&gt; Qdrant), with the gateway reading JWKS for auth, Redis for budgets,
-emitting metrics/audit to observability, and GitOps reconciling the whole set.</p>
-<h2 id="profile-1-local-kind-lab-ollama">Profile 1: Local <code>kind</code> Lab (Ollama)<a class="headerlink" href="#profile-1-local-kind-lab-ollama" title="Permanent link">&para;</a></h2>
-<p><img alt="Local kind/Ollama architecture" src="../assets/architecture-local.svg" /></p>
-<p>The local profile (<code>deploy/clusters/local/</code>) runs the entire stack on a single-node <code>kind</code> cluster
-and is the default <code>make quickstart</code> / <code>make local-up</code> target. It is zero-dependency: there is no
-external identity provider, no external secret manager, and no GPU.</p>
-<p><strong>Runtime and models.</strong> The runtime backend is <code>ollama</code> with the default model <code>qwen2.5:0.5b</code>, a fast
-non-reasoning model chosen to keep the laptop CPU smoke quick (<code>deploy/clusters/local/values/inference-gateway.yaml</code>).
-The routing policy pins <code>qwen2.5:0.5b</code> to the Ollama backend.</p>
-<p><strong>Access.</strong> The kind config (<code>deploy/clusters/local/kind-config.yaml</code>) maps host port <code>8080</code> to node
-port <code>30080</code>, but the gateway Ingress is disabled by default; local access is via <code>kubectl
-port-forward</code> to the gateway service. API-key auth is on, with a literal SHA-256 digest under
-<code>auth.apiKeyHashes</code> in the local values (no external secret store).</p>
-<p><strong>Secrets.</strong> Local secrets are plain Kubernetes Secrets / inline hashes; the External Secrets
-operator is installed but not wired to an external backend on this profile.</p>
-<p><strong>Budgets and observability.</strong> <code>budget-redis</code> enforces a small per-sandbox window
-(<code>requestLimit: 250</code>). The observability Argo CD <code>Application</code> deploys kube-prometheus-stack, Loki,
-Promtail, and pushgateway into <code>monitoring</code>, plus OpenCost (<code>cost-controls</code>) into <code>opencost</code>. Velero
-examples and the <code>restore-drill</code> (Redis AOF) <code>Application</code> are also reconciled for backup drills.</p>
-<p><strong>Data flow.</strong> API clients and coding agents call the gateway on <code>:8080</code>. The gateway authenticates,
-admits, budgets, routes to Ollama, and (when invoked) calls the RAG service for lexical context. Argo
-CD reconciles all namespaces from this repo; Prometheus scrapes <code>/metrics</code> and Promtail ships the
-redacted audit JSON to Loki.</p>
-<p><strong>NetworkPolicies are enforced locally.</strong> The local cluster defaults to pinned Calico because
-kind's <code>kindnet</code> CNI does not implement NetworkPolicy. <code>make agent-sandbox-smoke</code> requires a
-policy-capable CNI and proves denial against the otherwise reachable Kubernetes API. Setting
-<code>LOCAL_CNI=kindnet</code> is an explicit compatibility escape hatch; the fail-closed smoke rejects it.
-Customer clusters must likewise provide Calico, Cilium, or another conformant policy CNI.</p>
-<h2 id="profile-2-customer-cluster-vllm-gpu">Profile 2: Customer Cluster (vLLM + GPU)<a class="headerlink" href="#profile-2-customer-cluster-vllm-gpu" title="Permanent link">&para;</a></h2>
-<p><img alt="Customer cluster vLLM+GPU architecture" src="../assets/architecture-customer.svg" /></p>
-<p>The customer profile (<code>deploy/clusters/customer/</code>) assumes Kubernetes already exists and that the
-operator owns ingress, storage classes, the secret backend, logging, observability, and GPU node
-pools (README "Customer-Owned Kubernetes"). The kit reuses the same charts and adds a vLLM GPU
-runtime, External Secrets wiring, and an Argo CD project (<code>private-ai-platform</code>) scoped to the
-customer overlay. Generate it with <code>make customer-overlay</code>.</p>
-<p><strong>Runtime and models.</strong> The default customer runtime is <code>ollama</code> with <code>qwen3.5:0.8b</code> as the general
-chat model, while the vLLM runtime serves <code>Qwen/Qwen3-Coder-Next</code> for coding-agent workloads and
-<code>BAAI/bge-small-en-v1.5</code> for governed embeddings. The routing policy maps each allowlisted model id
-to its backend, so coding traffic lands on vLLM and chat on Ollama
-(<code>deploy/clusters/customer/values/inference-gateway.yaml</code>).</p>
-<p><strong>GPU scheduling.</strong> Label GPU nodes <code>platform.ai/node-pool=gpu</code> and
-<code>platform.ai/gpu-vendor=&lt;nvidia|amd&gt;</code>. The NVIDIA profile
-(<code>deploy/clusters/customer/values/vllm-nvidia.yaml</code>) requests <code>nvidia.com/gpu</code> (4 GPUs by default),
-sets tensor/context sizing, persists weights on an RWX volume, and scales on request-queue depth via
-KEDA against the cluster's Prometheus. The AMD profile uses <code>amd.com/gpu</code>
-(<code>deploy/clusters/customer/values/vllm-amd.yaml</code>). See <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md">GPU capacity</a>
-for sizing.</p>
-<p><strong>Secrets.</strong> The customer overlay deploys an External Secrets <code>ClusterSecretStore</code> and
-<code>ExternalSecret</code>s (<code>deploy/clusters/customer/external-secrets.yaml</code>) that pull the gateway and RAG
-API-key digests (<code>existingSecret</code>) and the Hugging Face token for vLLM from the customer's backend.
-No secret material lives in Git on this profile.</p>
-<p><strong>RAG.</strong> The customer RAG profile sets <code>retrieval.backend: qdrant</code>, an OpenAI-compatible embedding
-endpoint (<code>http://vllm-embeddings.vllm.svc.cluster.local:8000</code>, model <code>BAAI/bge-small-en-v1.5</code>,
-384-dim), and a Qdrant collection (<code>deploy/clusters/customer/values/rag-service.yaml</code>,
-<code>qdrant-vector-store.vector.svc.cluster.local:6333</code>).</p>
-<p><strong>Access and scale.</strong> Ingress is operator-provided (the chart Ingress is opt-in via
-<code>ingress.enabled</code>). The gateway runs multi-replica with KEDA (<code>maxReplicaCount: 20</code>) and a larger
-budget window (<code>requestLimit: 10000</code>).</p>
-<p><strong>Data flow.</strong> External clients reach the gateway through the operator's ingress; coding agents in
-<code>ai-agents</code> reach it in-cluster. The gateway routes coding requests to vLLM on GPU nodes and chat to
-Ollama, calls RAG (Qdrant-backed) for context, fetches JWKS from the customer IdP, and enforces
-Redis budgets. Observability, logging, and backup integrate with the customer's existing stacks.</p>
-<h2 id="profile-3-regulated-offline-tenant-no-egress">Profile 3: Regulated-Offline Tenant (No Egress)<a class="headerlink" href="#profile-3-regulated-offline-tenant-no-egress" title="Permanent link">&para;</a></h2>
-<p><img alt="Regulated-offline tenant architecture" src="../assets/architecture-regulated-offline.svg" /></p>
-<p>The regulated-offline profile is a tenant overlay rather than a separate cluster: it is the same
-customer cluster with a coding-agent tenant onboarded under the <code>regulated-offline</code> compliance
-profile (<code>tenants/onboarding/regulated-offline-coding-agents.yaml</code>, rendered by
-<code>make tenant-onboard-regulated</code>). It is the air-gapped, confidential-data posture described in the
-<a href="../regulated-offline-tenant-example/">regulated offline tenant example</a>.</p>
-<p><strong>No external egress.</strong> The tenant sets <code>compliance.externalEgressAllowed: false</code> and
-<code>network.allowedEgressCidrs: []</code>, so the rendered NetworkPolicy permits only in-cluster DNS, the
-inference gateway, and the RAG service. No external CIDR is rendered. The example verifies this
-explicitly: an external <code>curl https://example.com</code> from a tenant pod must time out, while an
-in-cluster call to the gateway <code>/healthz</code> must succeed.</p>
-<p><strong>Private registry and retention.</strong> <code>compliance.requirePrivateRegistry: true</code> forces images from the
-customer's private registry; <code>compliance.evidenceRetentionDays: 730</code> sets two-year evidence
-retention. The namespace is stamped <code>confidential</code> and <code>pod-security.kubernetes.io/enforce=restricted</code>.</p>
-<p><strong>Restricted RBAC.</strong> <code>agentWorkspace.rbac.allowJobManagement: false</code> gives the workspace
-ServiceAccount a viewer-only Role; agents cannot create or manage Jobs.</p>
-<p><strong>Runtime and RAG stay in-cluster.</strong> The tenant calls the same in-cluster gateway and RAG service
-(which can be Qdrant- or lexical-backed); the no-egress boundary means model weights, embeddings, and
-retrieval all stay inside the cluster. There is no call to an external model provider, external
-identity provider over the internet, or external mirror unless a single reviewed CIDR is added and
-recorded.</p>
-<p><strong>Data flow.</strong> Coding agents in the tenant namespace call only the in-cluster gateway and RAG
-service; all other egress is denied by the default-deny + DNS-only NetworkPolicy, drawn as the
-no-egress boundary in the diagram. GitOps, evidence, and observability remain in-cluster.</p>
-<h2 id="choosing-a-profile">Choosing A Profile<a class="headerlink" href="#choosing-a-profile" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>If you need...</th>
-<th>Use</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>A laptop demo / repo validation with no cloud, no GPU</td>
-<td>Local <code>kind</code>/Ollama</td>
-</tr>
-<tr>
-<td>Production coding-agent and chat traffic on your own GPU cluster</td>
-<td>Customer cluster (vLLM + GPU)</td>
-</tr>
-<tr>
-<td>Air-gapped, confidential-data, no-egress coding-agent tenant</td>
-<td>Regulated-offline tenant overlay</td>
-</tr>
-</tbody>
-</table>
-<p>See the <a href="../customer-handoff-example/">customer handoff example</a>,
-<a href="../gpu-coding-agent-tenant-example/">GPU coding-agent tenant example</a>, and
-<a href="../regulated-offline-tenant-example/">regulated offline tenant example</a> for end-to-end walkthroughs.</p>
+<p>The default Argo CD path includes platform operators, observability, policies, cost controls, and backup examples. <code>QUICKSTART_DIRECT_APPLY=1</code> is intentionally smaller: it applies the core runtime charts directly and omits those add-ons.</p>
+<p>The local path needs network access for downloads and image/model pulls. It keeps inference requests on the local cluster after those components are installed, but it is not an air-gapped installation procedure.</p>
+<h2 id="customer-profile">Customer profile<a class="headerlink" href="#customer-profile" title="Permanent link">&para;</a></h2>
+<p><img alt="Customer profile" src="../assets/architecture-customer.svg" /></p>
+<p>The customer profile assumes that the cluster, Argo CD, ingress, secret integration, observability, and backup systems already exist. Its Argo CD application list is deliberately smaller than the local list and does not install the local observability, cost-control, platform-operator, or Velero applications.</p>
+<p>The checked-in customer values deploy both Ollama and vLLM routes. They also add a separate vLLM embedding service and configure RAG to use Qdrant. The NVIDIA example requests four GPUs per vLLM replica and keeps at least two replicas when KEDA is enabled. Those values describe a large reference configuration, not a minimum or recommendation.</p>
+<p>Before deployment, the operator must at least:</p>
+<ul>
+<li>configure a reachable, immutable Git revision;</li>
+<li>install and configure the required operators, including External Secrets if those manifests are used;</li>
+<li>replace identity and secret placeholders;</li>
+<li>select storage classes and backup targets;</li>
+<li>choose model artifacts and verify their provenance;</li>
+<li>size GPU count, context length, replicas, and persistent volumes;</li>
+<li>connect metrics, logs, alerts, ingress, and transport encryption.</li>
+</ul>
+<p>See <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/README.md">the customer deployment guide</a>.</p>
+<h2 id="regulated-offline-tenant-example"><code>regulated-offline</code> tenant example<a class="headerlink" href="#regulated-offline-tenant-example" title="Permanent link">&para;</a></h2>
+<p><img alt="Restricted-egress tenant" src="../assets/architecture-regulated-offline.svg" /></p>
+<p><code>tenants/onboarding/regulated-offline-coding-agents.yaml</code> is a tenant policy example. It renders a namespace with no external CIDR egress and allows only DNS plus the in-cluster gateway and RAG service.</p>
+<p>The profile name does not make the cluster air-gapped. It does not control image pulls, model downloads, Argo CD, the gateway namespace, the identity provider, or other cluster services. An offline deployment also needs private registries and mirrors, preloaded model weights, internal Git and identity endpoints, and cluster-wide egress controls.</p>
+<p>Use the <a href="../regulated-offline-tenant-example/">restricted-egress tenant walkthrough</a> to render and inspect the manifests.</p>
+<h2 id="stateful-and-failure-boundaries">Stateful and failure boundaries<a class="headerlink" href="#stateful-and-failure-boundaries" title="Permanent link">&para;</a></h2>
+<p>The bundled Redis, Qdrant, and Loki configurations are development/reference footprints. Redis has no persistence in the bundled chart, Qdrant is a single instance, and the local observability stack is not an HA logging service. The <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md">external stores runbook</a> describes the handoff path.</p>
+<p>The gateway audit chain is per process/replica. Export records and store chain-head anchors outside the gateway if the log is intended as tamper or rollback evidence.</p>
 
 
 

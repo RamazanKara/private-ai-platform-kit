@@ -889,9 +889,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#platform-add-ons-argo-cd-applications" class="md-nav__link">
+  <a href="#local-profile-add-ons" class="md-nav__link">
     <span class="md-ellipsis">
-      Platform add-ons (Argo CD Applications)
+      Local-profile add-ons
     </span>
   </a>
   
@@ -1214,7 +1214,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1277,7 +1277,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1300,7 +1300,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1362,9 +1362,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#platform-add-ons-argo-cd-applications" class="md-nav__link">
+  <a href="#local-profile-add-ons" class="md-nav__link">
     <span class="md-ellipsis">
-      Platform add-ons (Argo CD Applications)
+      Local-profile add-ons
     </span>
   </a>
   
@@ -1420,8 +1420,8 @@
   
 
 
-<h1 id="version-and-compatibility-matrix">Version and Compatibility Matrix<a class="headerlink" href="#version-and-compatibility-matrix" title="Permanent link">&para;</a></h1>
-<p>This page records the versions this kit is <strong>pinned to and tested against</strong> for the <code>v0.27.0</code>
+<h1 id="version-and-compatibility-matrix">Version and compatibility matrix<a class="headerlink" href="#version-and-compatibility-matrix" title="Permanent link">&para;</a></h1>
+<p>This page records the versions this kit is <strong>pinned to and tested against</strong> for the <code>v0.27.1</code>
 release. It is a compatibility reference, not a support SLA: the tables list what the kit ships
 and what CI exercises, so you can reproduce a known-good state and reason about drift. Newer or
 older versions may work but are outside what the release was validated on.</p>
@@ -1441,12 +1441,12 @@ Kubernetes distribution, ingress, storage, secrets, and GPU stack), that is call
 <tbody>
 <tr>
 <td>Private AI Platform Kit</td>
-<td><code>v0.27.0</code></td>
+<td><code>v0.27.1</code></td>
 <td><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md">README.md</a></td>
 </tr>
 <tr>
 <td>Helm chart version (all first-party charts)</td>
-<td><code>0.27.0</code></td>
+<td><code>0.27.1</code></td>
 <td><code>deploy/charts/*/Chart.yaml</code></td>
 </tr>
 <tr>
@@ -1477,16 +1477,16 @@ and an immutable manifest-list digest in <code>values.yaml</code>.</p>
 <tbody>
 <tr>
 <td>Inference gateway</td>
-<td><code>0.27.0</code></td>
+<td><code>0.27.1</code></td>
 <td><code>ghcr.io/ramazankara/private-ai-platform-kit/inference-gateway</code></td>
-<td><code>v0.27.0</code></td>
+<td><code>v0.27.1</code></td>
 <td>First-party; release CI pins the published digest.</td>
 </tr>
 <tr>
 <td>RAG service</td>
-<td><code>0.27.0</code></td>
+<td><code>0.27.1</code></td>
 <td><code>ghcr.io/ramazankara/private-ai-platform-kit/rag-service</code></td>
-<td><code>v0.27.0</code></td>
+<td><code>v0.27.1</code></td>
 <td>First-party; release CI pins the published digest.</td>
 </tr>
 <tr>
@@ -1519,14 +1519,14 @@ and an immutable manifest-list digest in <code>values.yaml</code>.</p>
 </tr>
 <tr>
 <td>Agent workspace</td>
-<td><code>0.27.0</code></td>
+<td><code>0.27.1</code></td>
 <td>(namespace/RBAC template, no image)</td>
 <td>n/a</td>
 <td>Tenant namespace scaffold; no workload image of its own.</td>
 </tr>
 <tr>
 <td>Platform (umbrella)</td>
-<td><code>0.27.0</code></td>
+<td><code>0.27.1</code></td>
 <td>(aggregates the charts above)</td>
 <td>n/a</td>
 <td>Single-command dev/demo bring-up; GitOps remains recommended for multi-namespace installs.</td>
@@ -1535,11 +1535,10 @@ and an immutable manifest-list digest in <code>values.yaml</code>.</p>
 </table>
 <p>The first-party service container images are built on <code>python:3.14-alpine</code>
 (<code>src/inference-gateway/Dockerfile</code>, <code>src/rag-service/Dockerfile</code>), digest-pinned in the Dockerfiles.</p>
-<h2 id="platform-add-ons-argo-cd-applications">Platform add-ons (Argo CD Applications)<a class="headerlink" href="#platform-add-ons-argo-cd-applications" title="Permanent link">&para;</a></h2>
-<p>These are third-party operators and observability components installed as Argo CD <code>Application</code>
-resources. Versions are the chart <code>targetRevision</code> pinned in the manifests. The observability stack
-is defined once in <code>deploy/observability/applications.yaml</code> and referenced by both cluster overlays;
-the operator and cost/backup add-ons are pinned per overlay in <code>deploy/clusters/*/apps.yaml</code>.</p>
+<h2 id="local-profile-add-ons">Local-profile add-ons<a class="headerlink" href="#local-profile-add-ons" title="Permanent link">&para;</a></h2>
+<p>These third-party charts are referenced by the local Argo CD application set. The customer
+application list does not install them; customer clusters must provide compatible operators and
+observability services before syncing resources that depend on them.</p>
 <table>
 <thead>
 <tr>
@@ -1591,21 +1590,21 @@ the operator and cost/backup add-ons are pinned per overlay in <code>deploy/clus
 <td><code>kyverno</code></td>
 <td><code>3.2.7</code></td>
 <td>kyverno</td>
-<td><code>deploy/clusters/local/apps.yaml</code>, <code>deploy/clusters/customer/apps.yaml</code></td>
+<td><code>deploy/clusters/local/apps.yaml</code></td>
 </tr>
 <tr>
 <td>KEDA</td>
 <td><code>keda</code></td>
 <td><code>2.16.1</code></td>
 <td>kedacore</td>
-<td><code>deploy/clusters/local/apps.yaml</code>, <code>deploy/clusters/customer/apps.yaml</code></td>
+<td><code>deploy/clusters/local/apps.yaml</code></td>
 </tr>
 <tr>
 <td>External Secrets Operator</td>
 <td><code>external-secrets</code></td>
 <td><code>0.11.0</code></td>
 <td>external-secrets</td>
-<td><code>deploy/clusters/local/apps.yaml</code>, <code>deploy/clusters/customer/apps.yaml</code></td>
+<td><code>deploy/clusters/local/apps.yaml</code></td>
 </tr>
 <tr>
 <td>OpenCost</td>
@@ -1618,8 +1617,9 @@ the operator and cost/backup add-ons are pinned per overlay in <code>deploy/clus
 </table>
 <p>Notes:</p>
 <ul>
-<li>Kyverno, KEDA, and External Secrets are grouped into a single <code>platform-operators</code> Application
-  (multi-source) in both the local and customer overlays.</li>
+<li>Kyverno, KEDA, and External Secrets are grouped into the local multi-source
+  <code>platform-operators</code> Application. The customer overlay assumes the required operators already
+  exist and does not sync <code>external-secrets.yaml</code> automatically.</li>
 <li>OpenCost is pinned in the <strong>local</strong> overlay only (<code>cost-controls</code> Application); the customer overlay
   leaves cost tooling to the operator's chargeback stack.</li>
 <li>The kyverno <code>3.2.7</code> value is the <strong>Helm chart</strong> version. The Kyverno <strong>CLI</strong> used for
@@ -1627,8 +1627,9 @@ the operator and cost/backup add-ons are pinned per overlay in <code>deploy/clus
 <li>Velero-based backup (<code>backup-velero</code>) and the restore-drill workload are shipped from in-repo
   manifests rather than a pinned third-party chart.</li>
 <li>The agent-sandbox workspace runtime is installed from vendored, checksummed release manifests
-  (<code>deploy/vendor/agent-sandbox/</code>) via <code>make agent-sandbox-install</code> rather than a chart; there is
-  no upstream Helm chart. See ADR 0009 and the row below.</li>
+  (<code>deploy/vendor/agent-sandbox/</code>) by the local/customer Argo CD applications or, on the direct
+  quickstart path, by <code>make agent-sandbox-install</code>. It is not installed from a Helm chart. See
+  ADR 0009 and the row below.</li>
 </ul>
 <h2 id="runtime-kubernetes-and-toolchain">Runtime, Kubernetes, and toolchain<a class="headerlink" href="#runtime-kubernetes-and-toolchain" title="Permanent link">&para;</a></h2>
 <table>
@@ -1648,10 +1649,16 @@ the operator and cost/backup add-ons are pinned per overlay in <code>deploy/clus
 <td>Minimum the charts declare compatible.</td>
 </tr>
 <tr>
-<td>Kubernetes (tested node image)</td>
+<td>Kubernetes (local default)</td>
+<td><code>kindest/node:v1.35.1</code></td>
+<td><code>scripts/local-up.sh</code>, <code>deploy/clusters/local/kind-config.yaml</code></td>
+<td>Used on cgroup v2 unless overridden; not the CI E2E image.</td>
+</tr>
+<tr>
+<td>Kubernetes (CI and cgroup-v1 fallback)</td>
 <td><code>kindest/node:v1.31.4</code></td>
-<td><code>.github/workflows/ci.yml</code> <code>local-e2e</code> (<code>LOCAL_KIND_NODE_IMAGE</code>)</td>
-<td>The single Kubernetes version the end-to-end job actually spins up. Customer clusters bring their own conformant Kubernetes.</td>
+<td><code>.github/workflows/ci.yml</code>, <code>scripts/local-up.sh</code></td>
+<td>The version exercised by the local E2E job and selected automatically on cgroup v1.</td>
 </tr>
 <tr>
 <td>Python (CI + images)</td>
@@ -1673,9 +1680,9 @@ the operator and cost/backup add-ons are pinned per overlay in <code>deploy/clus
 </tr>
 <tr>
 <td>Helm</td>
-<td>v4.2.0 bootstrap; v3/v4 charts</td>
+<td><code>v4.2.0</code> bootstrap</td>
 <td><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml">validation-toolchain.yaml</a>; <code>azure/setup-helm</code> in CI</td>
-<td>The Linux/WSL bootstrap pins v4.2.0; charts remain compatible with Helm 3.</td>
+<td>The Linux/WSL bootstrap pins v4.2.0. Helm 3 is not exercised by a dedicated CI matrix.</td>
 </tr>
 <tr>
 <td>Go</td>

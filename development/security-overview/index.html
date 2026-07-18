@@ -1120,9 +1120,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#threat-model-mappings-and-reporting" class="md-nav__link">
+  <a href="#defaults-that-matter" class="md-nav__link">
     <span class="md-ellipsis">
-      Threat model, mappings, and reporting
+      Defaults that matter
     </span>
   </a>
   
@@ -1138,6 +1138,33 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#tenant-and-rag-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tenant and RAG identity
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspace-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workspace isolation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audit-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      Audit records
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supply-chain" class="md-nav__link">
     <span class="md-ellipsis">
       Supply chain
@@ -1147,18 +1174,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cluster-policy-and-isolation" class="md-nav__link">
+  <a href="#production-work-left-to-the-operator" class="md-nav__link">
     <span class="md-ellipsis">
-      Cluster policy and isolation
+      Production work left to the operator
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#audit-and-evaluation-evidence" class="md-nav__link">
+  <a href="#related-documents" class="md-nav__link">
     <span class="md-ellipsis">
-      Audit and evaluation evidence
+      Related documents
     </span>
   </a>
   
@@ -1205,7 +1232,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1268,7 +1295,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1291,7 +1318,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1335,9 +1362,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#threat-model-mappings-and-reporting" class="md-nav__link">
+  <a href="#defaults-that-matter" class="md-nav__link">
     <span class="md-ellipsis">
-      Threat model, mappings, and reporting
+      Defaults that matter
     </span>
   </a>
   
@@ -1353,6 +1380,33 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#tenant-and-rag-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tenant and RAG identity
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspace-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workspace isolation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audit-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      Audit records
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supply-chain" class="md-nav__link">
     <span class="md-ellipsis">
       Supply chain
@@ -1362,18 +1416,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cluster-policy-and-isolation" class="md-nav__link">
+  <a href="#production-work-left-to-the-operator" class="md-nav__link">
     <span class="md-ellipsis">
-      Cluster policy and isolation
+      Production work left to the operator
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#audit-and-evaluation-evidence" class="md-nav__link">
+  <a href="#related-documents" class="md-nav__link">
     <span class="md-ellipsis">
-      Audit and evaluation evidence
+      Related documents
     </span>
   </a>
   
@@ -1402,163 +1456,66 @@
   
 
 
-<h1 id="security-overview">Security Overview<a class="headerlink" href="#security-overview" title="Permanent link">&para;</a></h1>
-<p>This page is the single entry point to the kit's security surface. It is an <strong>index, not a set of new
-controls</strong>: every item below is a one-paragraph summary that points at the authoritative source in the
-tree. Nothing here changes behavior; if a summary and a linked source ever disagree, the linked source
-wins. Read it alongside the <a href="../production-readiness/">Production readiness matrix</a>, which lists the
-validation command behind each control.</p>
-<p>The framing throughout the kit applies here too: these are mechanisms, defense in depth, not
-guarantees. Each authoritative page states its own residual risk and where the kit delegates the
-control to the operator.</p>
-<h2 id="threat-model-mappings-and-reporting">Threat model, mappings, and reporting<a class="headerlink" href="#threat-model-mappings-and-reporting" title="Permanent link">&para;</a></h2>
+<h1 id="security-overview">Security overview<a class="headerlink" href="#security-overview" title="Permanent link">&para;</a></h1>
+<p>This page summarizes the security-relevant defaults in release <code>v0.27.1</code>. The <a href="../threat-model/">threat model</a> has the detailed trust boundaries and residual risks. The <a href="../production-readiness/">production readiness matrix</a> lists validation commands.</p>
+<h2 id="defaults-that-matter">Defaults that matter<a class="headerlink" href="#defaults-that-matter" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Threat model.</strong> The <a href="../threat-model/">Threat model</a> covers the local lab and customer-owned
-  Kubernetes pattern: assets, trust boundaries, primary and AI-specific threats (indirect/RAG prompt
-  injection, model-artifact tampering, the build/release pipeline boundary), the current controls, and
-  the Required Customer Hardening list. It is the deepest treatment of the AI-specific threats and the
-  place to start.</li>
-<li><strong>OWASP LLM Top 10 mapping.</strong> The <a href="../owasp-llm-top-10-mapping/">OWASP LLM Top 10 mapping</a> maps each
-  LLM01..LLM10 item to the concrete in-repo control at a cited file, or to an explicit
-  accepted-residual-risk statement where the control is operator-owned. It also carries a MITRE ATLAS
-  pointer for adversary tactics.</li>
-<li><strong>AI governance crosswalk.</strong> The <a href="../ai-governance-crosswalk/">AI governance crosswalk</a> maps the same
-  controls to the NIST AI RMF, the EU AI Act (Regulation (EU) 2024/1689), and ISO/IEC 42001:2023, and
-  defines the <code>riskTier</code> (<code>low | medium | high</code>) semantics used across the model catalog and provenance.
-  A framework citation means "this control contributes evidence toward that obligation," not "this
-  deployment is conformant."</li>
-<li><strong>Vulnerability reporting.</strong> <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/SECURITY.md">SECURITY.md</a>
-  is the security policy: report privately through GitHub Private Vulnerability Reporting (the repo's
-  Security tab, "Report a vulnerability") or, as an alternate, email security@fluentorbit.de. It also
-  lists the supported surface, the coordinated-disclosure window (default 90 days), and the handling
-  rules (hashes only, no raw prompts logged, hashed lockfiles, signed-by-digest promotion).</li>
+<li>The local profile uses the public key <code>local-development-only</code>. It is for the local lab only.</li>
+<li>In-cluster application traffic is plaintext HTTP. NetworkPolicy controls reachability, not encryption.</li>
+<li>The output guardrail and stored Responses state are off in the base chart.</li>
+<li>The local RAG profile disables tenant isolation because it uses one shared demo corpus.</li>
+<li>Without a tenant-bound key record or verified JWT claim, <code>X-Sandbox-ID</code> is caller-supplied.</li>
+<li>The agent-sandbox pod template is restricted, but a separate kernel boundary exists only when the cluster supplies and the values select an isolation <code>RuntimeClass</code> such as gVisor or Kata.</li>
+<li>The bundled Redis, Qdrant, and Loki footprints are single-node reference services.</li>
+<li>Sample reports under <code>results/</code> are not current security evidence.</li>
 </ul>
+<p>Do not deploy the customer values unchanged.</p>
 <h2 id="gateway-controls">Gateway controls<a class="headerlink" href="#gateway-controls" title="Permanent link">&para;</a></h2>
-<p>The inference gateway (<code>src/inference-gateway</code>) is the request/response chokepoint and carries most of
-the runtime controls. All are documented per-control in the OWASP mapping and the threat model.</p>
+<p>The gateway supports API-key hashes and JWT/JWKS verification. Key records can add scopes, expiry, sandbox binding, and budget overrides. JWT configuration can bind a verified tenant claim to the sandbox. A contradictory <code>X-Sandbox-ID</code> is rejected when a binding exists.</p>
+<p>Before forwarding an inference request, the gateway can enforce:</p>
 <ul>
-<li><strong>Authentication.</strong> API-key SHA-256 digest auth (<code>API_KEY_AUTH_ENABLED</code>, <code>API_KEY_SHA256S</code>) and/or
-  JWT bearer auth with JWKS-backed HS256/RS256/ES256 verification
-  (<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/jwt_auth.py"><code>src/inference-gateway/app/jwt_auth.py</code></a>).
-  Signature and standard-claim checks are performed by the maintained
-  <a href="https://pyjwt.readthedocs.io/">PyJWT</a> library (<code>jwt.decode</code>), with the verifying algorithm pinned
-  to the configured allowlist rather than read from the token header (alg-confusion defense); the
-  gateway retains its own JWKS fetch, last-known-good cache, and the 503-vs-401 distinction (issuer
-  unreachable with no cached keys is a retryable 503, a rejected token is a 401).
-  Optional <strong>API-key records</strong> (<code>API_KEY_RECORDS_PATH</code>,
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/key_records.py"><code>src/inference-gateway/app/key_records.py</code></a>)
-  add per-key scopes, expiry (<code>api_key_expired</code> on a stale key), sandbox binding, and budget overrides
-  beside the flat hash list; a malformed records file fails the gateway closed at startup. Wiring auth to
-  the enterprise identity boundary and backing the hashes/records with the customer secret manager is
-  operator-owned (RS256/ES256 preferred for customer IdPs). <strong>Tenant binding:</strong> with a JWT <code>tenantClaim</code>
-  or a sandbox-bound key record, the sandbox is taken from the verified identity, not the client
-  <code>X-Sandbox-ID</code> header. A contradicting header is rejected (<code>sandbox_identity_mismatch</code>), and the
-  read-only <code>GET /v1/usage</code> and <code>GET /v1/sandbox/budget</code> endpoints are thereby scoped to the caller's own
-  tenant. Without a binding the gateway is header-trusted (the documented single-tenant/local default).
-  Human SSO for the operator dashboards (Grafana, Argo CD) is distinct from this machine auth; see the
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/api-access.md">API access runbook</a>.</li>
-<li><strong>Admission limits.</strong> <code>Settings.validate_admission</code> and <code>_validate_tools</code>
-  (<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/settings.py"><code>src/inference-gateway/app/settings.py</code></a>)
-  bound message count, prompt characters, completion tokens, temperature, streaming, and tool
-  count/size before any runtime call (OWASP LLM04).</li>
-<li><strong>Input prompt-secret detection.</strong> On by default (<code>prompt_secret_detection_enabled</code>), it rejects
-  credential material against <code>BUILT_IN_SECRET_PATTERNS</code> before forwarding, with opt-in PII detectors
-  (email, US SSN, credit card). The <code>/v1/moderations</code> endpoint exposes the same rule-based classifier as
-  an explicit pre-submit check (OWASP LLM01/LLM06).</li>
-<li><strong>Output guardrail.</strong> Shipped in v0.13.0. <code>_apply_output_guardrail</code>
-  (<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/main.py"><code>src/inference-gateway/app/main.py</code></a>)
-  inspects each completion for leaked credentials/PII/blocked content and <strong>flags, redacts, or blocks</strong>
-  it per <code>OUTPUT_GUARDRAIL_MODE</code> before the response is cached, audited, or returned. It emits an
-  <code>inference_gateway_output_guardrail_total</code> metric and an <code>X-Output-Guardrail</code> header; streaming
-  responses are detected-and-flagged at end-of-stream (redact/block requires non-streaming). Disabled by
-  default (<code>OUTPUT_GUARDRAIL_ENABLED=false</code>). See the
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/guardrails.md">Guardrails runbook</a>
-  (OWASP LLM02/LLM06).</li>
-<li><strong>Sandbox budgets.</strong> Per-<code>X-Sandbox-ID</code> cumulative request/prompt-char/estimated-token ceilings over a
-  rolling window (<code>SANDBOX_BUDGET_ENABLED</code>,
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/budget.py"><code>src/inference-gateway/app/budget.py</code></a>),
-  backed by in-memory or shared Redis counters; exhaustion returns 429 with <code>Retry-After</code>. See the
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/budget-controls.md">Budget controls runbook</a>.</li>
-<li><strong>Rate limiting and load-shedding.</strong> A short-window per-sandbox rate limiter (<code>RATE_LIMIT_ENABLED</code>,
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/ratelimit.py"><code>src/inference-gateway/app/ratelimit.py</code></a>)
-  checked after sandbox binding, plus concurrency load-shedding (<code>MAX_CONCURRENT_REQUESTS</code>) and a
-  batch-size cap (OWASP LLM04).</li>
+<li>allowed model IDs and routing policy;</li>
+<li>message, prompt, tool, completion, and batch size limits;</li>
+<li>per-sandbox rate and estimated-token budgets;</li>
+<li>input credential-pattern detection;</li>
+<li>a per-process concurrency limit and load shedding.</li>
 </ul>
+<p>The optional output guardrail can flag, redact, or block configured credential, PII, and denied-content patterns. Redact and block behavior require a non-streaming response. Streaming can only be flagged after the stream has already been emitted.</p>
+<p>These are deterministic application checks. They do not make model output trustworthy or prevent prompt injection.</p>
+<h2 id="tenant-and-rag-identity">Tenant and RAG identity<a class="headerlink" href="#tenant-and-rag-identity" title="Permanent link">&para;</a></h2>
+<p>The customer RAG values enable owner-based tenant filtering. That filtering is only a security boundary when the tenant identity is trustworthy.</p>
+<p>The RAG service can verify its own JWT and derive the tenant from a claim. When JWT verification is off, it trusts <code>X-Sandbox-ID</code>; a caller with the shared key can assert another sandbox ID. Put direct RAG access behind a trusted identity-stamping path or enable RAG-side JWT verification for multi-tenant use.</p>
+<p>Tenant NetworkPolicies default to deny and add explicit DNS, gateway, RAG, and reviewed external CIDR rules. Enforcement depends on the cluster CNI. The local cluster uses Calico by default because kindnet does not enforce NetworkPolicy.</p>
+<h2 id="workspace-isolation">Workspace isolation<a class="headerlink" href="#workspace-isolation" title="Permanent link">&para;</a></h2>
+<p>Agent workspaces use the vendored <code>kubernetes-sigs/agent-sandbox</code> controller and a restricted pod template: non-root user, read-only root filesystem, dropped capabilities, no ambient service-account token, resource limits, namespace RBAC, and default-deny egress.</p>
+<p>The projected platform token is short-lived and audience-bound, but it is still a credential. The workspace can also exfiltrate through any approved destination. Keep the egress catalog narrow and treat files, retrieved text, model output, and tool arguments as untrusted.</p>
+<h2 id="audit-records">Audit records<a class="headerlink" href="#audit-records" title="Permanent link">&para;</a></h2>
+<p>The gateway audit event stores request metadata and hashes rather than raw prompt or completion text. Records are linked into a per-process hash chain.</p>
+<p>The chain detects edits and reordering in an exported sequence. It does not by itself prevent deletion, survive a lost log stream, join replicas into one chain, or prove that the first and last records are complete. Export logs, retain the <code>chain_id</code>, and commit chain-head anchors to a separate trusted system. Use <code>make audit-verify</code> and follow the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/audit-chain.md">audit-chain runbook</a>.</p>
+<p>Also review runtime, ingress, proxy, RAG, object-store, and application logs. Gateway redaction does not control what another component logs.</p>
 <h2 id="supply-chain">Supply chain<a class="headerlink" href="#supply-chain" title="Permanent link">&para;</a></h2>
-<p>CI (<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/.github/workflows/ci.yml"><code>.github/workflows/ci.yml</code></a>)
-and supporting tooling secure the artifacts the kit builds: pinned Alpine Python base images and hashed
-Python lockfiles, <strong>SBOM</strong> generation, <strong>Trivy</strong> image/repo scans that fail the build on HIGH/CRITICAL,
-keyless <strong>Cosign</strong> signing of images and Helm charts over OIDC, <strong>OpenSSF Scorecard</strong>
-(<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/.github/workflows/scorecard.yml"><code>.github/workflows/scorecard.yml</code></a>),
-<strong>CodeQL</strong>, and all GitHub Actions pinned to full commit SHAs with Dependabot updates. Local evidence:
-<code>make supply-chain-check</code>, <code>make image-scan</code>, <code>make repo-security-scan</code>. Customer-supplied base images,
-third-party charts, and model weights are outside this boundary; see OWASP LLM05 and the "Build /
-release pipeline trust boundary" section of the threat model.</p>
-<h2 id="cluster-policy-and-isolation">Cluster policy and isolation<a class="headerlink" href="#cluster-policy-and-isolation" title="Permanent link">&para;</a></h2>
+<p>Release workflows build the two first-party images, create SBOM and vulnerability-scan artifacts, sign image/chart digests with Cosign, and publish provenance. GitHub Actions are pinned by commit.</p>
+<p>That boundary does not cover the integrity or license of customer model weights, customer base images, external Helm charts, private mirrors, or the target cluster. Verify those separately. Forks that publish their own images must update the Kyverno image reference and signing identity or admission will reject them.</p>
+<h2 id="production-work-left-to-the-operator">Production work left to the operator<a class="headerlink" href="#production-work-left-to-the-operator" title="Permanent link">&para;</a></h2>
+<p>At minimum:</p>
 <ul>
-<li><strong>Policy-as-code (Kyverno) + Pod Security Admission.</strong> Kyverno policies
-  (<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/policies/kyverno/policies.yaml"><code>deploy/policies/kyverno/policies.yaml</code></a>)
-  verify signed images at admission (<code>ai-platform-verify-project-images</code>, Enforce), restrict egress
-  CIDRs (<code>ai-platform-restrict-egress-cidrs</code>), require CPU/memory requests-and-limits, and audit PVC
-  encryption-at-rest. These are backed by apiserver-native <strong>Pod Security Admission</strong> (restricted
-  profile) on the platform data-plane namespaces (v0.13.0). See the
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/policy-blocked-deploy.md">Policy blocked-deploy runbook</a>.</li>
-<li><strong>Network default-deny + encryption-in-transit.</strong> Coding-agent and tenant namespaces run a
-  default-deny <code>NetworkPolicy</code> plus an approved-egress policy whose only defaults are DNS, the gateway,
-  and RAG; any external CIDR must cite a reviewed <code>catalogRef</code> in
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/network/egress-catalog.yaml"><code>platform/network/egress-catalog.yaml</code></a>.
-  NetworkPolicies restrict who may connect but do <strong>not</strong> encrypt: the in-cluster data plane is plaintext
-  HTTP by default. Encryption in transit is an opt-in, operator-owned overlay (service-mesh mTLS,
-  Cilium WireGuard/IPsec, or cert-manager TLS):
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md"><code>deploy/clusters/customer/mtls/</code></a>.
-  Treat enabling it as required before handling regulated data in a multi-tenant cluster.</li>
-<li><strong>Runtime threat detection.</strong> Admission and NetworkPolicies are preventive; they do not observe
-  post-admission behavior. An opt-in <strong>Falco</strong> runtime-detection layer (Argo app + runbook) provides
-  detective coverage:
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md">runtime-threat-detection.md</a>.</li>
-<li><strong>Per-tenant RAG isolation.</strong> The RAG service scopes retrieval to the caller's tenant via the
-  ingest-stamped <code>owner</code> payload field, complementing the existing per-classification retrieval
-  allowlist. It is <strong>enabled by default</strong> (<code>RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED</code> defaults true,
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/rag-service/app/settings.py"><code>src/rag-service/app/settings.py</code></a>);
-  the bundled single-tenant local lexical profile is the only shipped configuration that turns it off
-  (<code>retrieval.tenantIsolation.enabled: false</code> in the chart), and multi-tenant/customer profiles keep it
-  on. <strong>Both retrieval backends enforce it:</strong> the Qdrant path appends an <code>owner</code> match to the query
-  filter, and the lexical path (whose corpus is stamped with the default sandbox id) applies the same
-  owner scoping. <strong>It fails closed:</strong> a tenant with no matching documents (or a request that did not
-  explicitly assert <code>X-Sandbox-ID</code>, using only the server-side default) receives no documents rather than
-  the whole corpus, and a missing-tenant query never runs an unfiltered search. <strong>Verified-claim tenant
-  binding.</strong> The RAG service can now derive the tenant from its <strong>own</strong> verified token rather than a
-  trusted header: with <code>auth.jwt.enabled</code> (<code>RAG_JWT_*</code>, mirroring the gateway's <code>jwt_auth</code>: JWKS with a
-  last-known-good cache, an <code>HS256</code>/<code>RS256</code>/<code>ES256</code> allowlist pinned so alg-confusion is rejected, and
-  issuer/audience/exp/nbf enforcement) the caller's tenant is taken from the verified <code>tenantClaim</code> and
-  used for the isolation filter, so a contradicting <code>X-Sandbox-ID</code> header is rejected
-  (<code>sandbox_identity_mismatch</code>, 403) and, when <code>required</code>, a missing/invalid token fails closed (401)
-  while an unreachable issuer with no cached keys returns 503, not a false denial. This closes the last
-  gap for direct callers; header-trust remains the fallback when JWT is off (the default, and the only
-  shipped configuration on the single-tenant local lab). Without a binding the RAG service is
-  header-trusted, so isolation is only trustworthy when the <code>X-Sandbox-ID</code> header comes from a trusted
-  path: gateway-fronted traffic that derives it from a verified JWT tenant claim, or a workspace egress
-  proxy that stamps it, not a direct caller under the shared key asserting another tenant's id. See the
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/rag-service.md">RAG service runbook</a>,
-  the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/vector-rag.md">Vector RAG runbook</a>,
-  and OWASP LLM01.</li>
+<li>connect gateway and RAG auth to the customer identity boundary;</li>
+<li>source secrets from the customer secret system;</li>
+<li>enable transport encryption where required;</li>
+<li>select and test a kernel-isolation runtime for higher-risk agent workspaces;</li>
+<li>replace bundled stateful services with an appropriate availability and backup design;</li>
+<li>configure log export, retention, chain-head anchoring, alerts, and incident response;</li>
+<li>validate model artifacts, RAG ingestion, tenant binding, and egress rules;</li>
+<li>generate current eval, load, restore, policy, and supply-chain evidence.</li>
 </ul>
-<h2 id="audit-and-evaluation-evidence">Audit and evaluation evidence<a class="headerlink" href="#audit-and-evaluation-evidence" title="Permanent link">&para;</a></h2>
+<h2 id="related-documents">Related documents<a class="headerlink" href="#related-documents" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Audit hash chain.</strong> The gateway audit log never records raw prompt or completion text: it stores
-  message count, roles, prompt character length, and a SHA-256 fingerprint of the canonical message
-  structure, with each record linked by <code>prev_hash</code>/<code>record_hash</code> over canonical JSON so the chain is
-  tamper-evident (<code>_write_audit_log</code>, <code>_chain_audit_event</code> in
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/src/inference-gateway/app/main.py"><code>src/inference-gateway/app/main.py</code></a>;
-  asserted by <code>test_audit_log_redacts_prompt_content</code>). Retention is governed by
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/data-retention.yaml"><code>platform/governance/data-retention.yaml</code></a>
-  (OWASP LLM06).</li>
-<li><strong>Safety and faithfulness evals.</strong> The eval harness includes an adversarial safety/jailbreak/bias
-  suite (<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/evals/safety-suite.yaml"><code>platform/evals/safety-suite.yaml</code></a>)
-  gated by a <code>safety</code> release gate, and <strong>RAGAS-style</strong> context-precision and answer-faithfulness scoring
-  in <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/rag-eval.py"><code>scripts/rag-eval.py</code></a>
-  (both shipped in v0.13.0), which fails when aggregate metrics fall below the suite thresholds
-  (<code>minFaithfulness</code>, <code>minContextPrecision</code>). Run with <code>make eval</code> / <code>make eval-local</code> (OWASP LLM09).</li>
+<li><a href="../threat-model/">Threat model</a></li>
+<li><a href="../owasp-llm-top-10-mapping/">OWASP Top 10 for LLM Applications 2025 mapping</a></li>
+<li><a href="../ai-governance-crosswalk/">AI governance crosswalk</a></li>
+<li><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/SECURITY.md">Security policy</a></li>
+<li><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md">External stores</a></li>
+<li><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/guardrails.md">Guardrails</a></li>
 </ul>
 
 

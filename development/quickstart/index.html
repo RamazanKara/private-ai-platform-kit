@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#your-first-private-ai-platform" class="md-skip">
+        <a href="#local-quickstart" class="md-skip">
           Skip to content
         </a>
       
@@ -498,63 +498,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#before-you-begin" class="md-nav__link">
+  <a href="#requirements" class="md-nav__link">
     <span class="md-ellipsis">
-      Before you begin
+      Requirements
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-1-bring-up-the-platform" class="md-nav__link">
+  <a href="#run-it" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 1: Bring up the platform
+      Run it
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-2-confirm-it-worked" class="md-nav__link">
+  <a href="#check-the-result" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 2: Confirm it worked
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-3-compare-against-the-recorded-run" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 3: Compare against the recorded run
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-just-happened" class="md-nav__link">
-    <span class="md-ellipsis">
-      What just happened
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#keep-exploring" class="md-nav__link">
-    <span class="md-ellipsis">
-      Keep exploring
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#clean-up" class="md-nav__link">
-    <span class="md-ellipsis">
-      Clean up
+      Check the result
     </span>
   </a>
   
@@ -570,9 +534,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-to-next" class="md-nav__link">
+  <a href="#remove-the-lab" class="md-nav__link">
     <span class="md-ellipsis">
-      Where to next
+      Remove the lab
     </span>
   </a>
   
@@ -1241,7 +1205,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1304,7 +1268,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1327,7 +1291,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1371,63 +1335,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#before-you-begin" class="md-nav__link">
+  <a href="#requirements" class="md-nav__link">
     <span class="md-ellipsis">
-      Before you begin
+      Requirements
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-1-bring-up-the-platform" class="md-nav__link">
+  <a href="#run-it" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 1: Bring up the platform
+      Run it
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-2-confirm-it-worked" class="md-nav__link">
+  <a href="#check-the-result" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 2: Confirm it worked
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-3-compare-against-the-recorded-run" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 3: Compare against the recorded run
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-just-happened" class="md-nav__link">
-    <span class="md-ellipsis">
-      What just happened
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#keep-exploring" class="md-nav__link">
-    <span class="md-ellipsis">
-      Keep exploring
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#clean-up" class="md-nav__link">
-    <span class="md-ellipsis">
-      Clean up
+      Check the result
     </span>
   </a>
   
@@ -1443,9 +1371,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-to-next" class="md-nav__link">
+  <a href="#remove-the-lab" class="md-nav__link">
     <span class="md-ellipsis">
-      Where to next
+      Remove the lab
     </span>
   </a>
   
@@ -1474,113 +1402,82 @@
   
 
 
-<h1 id="your-first-private-ai-platform">Your first private AI platform<a class="headerlink" href="#your-first-private-ai-platform" title="Permanent link">&para;</a></h1>
-<p>This tutorial takes you from an empty machine to a <strong>working private chat completion</strong> served from your own Kubernetes cluster, with no cloud account, no external API, and nothing leaving your laptop.</p>
-<p>By the end you will have:</p>
+<h1 id="local-quickstart">Local quickstart<a class="headerlink" href="#local-quickstart" title="Permanent link">&para;</a></h1>
+<p>The quickstart creates a single-node <code>kind</code> cluster, builds the two first-party service images, deploys the local charts, and runs gateway and RAG smoke tests. The default model is <code>qwen2.5:0.5b</code> served by Ollama on the local machine.</p>
+<p>This is a development environment. It uses a public demo API key, plaintext in-cluster HTTP, single-node data stores, and workstation storage.</p>
+<h2 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
+<p>The managed bootstrap supports Linux and WSL and requires:</p>
 <ul>
-<li>a local <code>kind</code> cluster running the platform's Helm charts,</li>
-<li>an OpenAI-compatible gateway in front of a local Ollama model (<code>qwen2.5:0.5b</code>),</li>
-<li>a retrieval-augmented (RAG) service answering a grounded query,</li>
-<li>and the same evidence and smoke checks the project uses on customer clusters.</li>
+<li>Docker with a working daemon;</li>
+<li>Python 3.12 or newer;</li>
+<li>Bash, <code>curl</code>, <code>tar</code>, <code>sha256sum</code>, and <code>install</code>;</li>
+<li>enough disk for the <code>kind</code> node, platform images, and Ollama model.</li>
 </ul>
-<p>Everything here runs with a single command. The goal is a guaranteed first success; the <a href="../getting-started/">how-to guides</a> come next, once you have seen the platform work.</p>
-<div class="admonition note">
-<p class="admonition-title">Time and space</p>
-<p>Plan for <strong>15 to 30 minutes</strong> once Docker images and the default model are cached. The <em>first</em> run is slower because <code>kind</code>, the platform images, and <code>qwen2.5:0.5b</code> are pulled fresh. Keep several GB of free disk available.</p>
-</div>
-<h2 id="before-you-begin">Before you begin<a class="headerlink" href="#before-you-begin" title="Permanent link">&para;</a></h2>
-<p>For the managed Linux/WSL bootstrap, install only:</p>
-<ul>
-<li>Python 3.12+</li>
-<li>Docker (running, with enough CPU, memory, and disk for a small cluster)</li>
-<li>Bash and curl</li>
-</ul>
-<p>Run <code>make bootstrap</code>; it installs pinned <code>kind</code>, <code>kubectl</code>, Helm, and validation CLIs under <code>.tools/bin</code>, validates the workstation, and starts the full quickstart. It never uses <code>sudo</code> or writes outside the repository.</p>
-<p>On macOS or on a workstation where tools are centrally managed, install <code>kind</code>, <code>kubectl</code>, and Helm yourself, then use <code>make quickstart</code>. Go and Syft are optional unless you run their production/evidence targets.</p>
-<h2 id="step-1-bring-up-the-platform">Step 1: Bring up the platform<a class="headerlink" href="#step-1-bring-up-the-platform" title="Permanent link">&para;</a></h2>
-<p>From the repository root on Linux/WSL, run:</p>
+<p>The bootstrap downloads pinned copies of <code>kind</code>, <code>kubectl</code>, Helm, kubeconform, the Kyverno CLI, k6, Syft, the Argo CD CLI, Cosign, and Trivy into <code>.tools/bin</code>.</p>
+<p>The first run also downloads container base images, the Kubernetes node image, Calico and Argo CD manifests, third-party charts and images, Python packages, and the Ollama model. It creates Docker state, writes a <code>kind</code> context to your kubeconfig, and binds host port <code>8080</code> unless overridden. Do not use the quickstart on a workstation where those changes are unacceptable.</p>
+<p>On macOS or a managed workstation, install <code>kind</code>, <code>kubectl</code>, and Helm separately and run <code>make quickstart</code>; the repository's tool installer is Linux-only.</p>
+<h2 id="run-it">Run it<a class="headerlink" href="#run-it" title="Permanent link">&para;</a></h2>
+<p>From the repository root:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>bootstrap
 </code></pre></div>
-<p>With the CLIs already present, run:</p>
+<p>If the required cluster tools are already installed:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>quickstart
 </code></pre></div>
-<p>That one command checks your toolchain, runs static validation, creates the local cluster, syncs the platform through GitOps, then runs the gateway and RAG smoke tests. Leave it running; it is doing the work you would otherwise do by hand.</p>
-<p>A few variants for common situations:</p>
-<div class="admonition tip">
-<p class="admonition-title">Install the pinned CLIs but keep the explicit quickstart command</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">QUICKSTART_INSTALL_TOOLS</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart
+<p>The command runs, in order:</p>
+<ol>
+<li>the local toolchain check;</li>
+<li><code>make validate</code>;</li>
+<li><code>make local-up</code> to create the cluster and build the gateway and RAG images;</li>
+<li><code>make agent-sandbox-install</code> from the vendored manifests;</li>
+<li>Argo CD bootstrap and sync;</li>
+<li>the gateway smoke test against Ollama;</li>
+<li>the RAG smoke test against the local lexical corpus.</li>
+</ol>
+<p>The Argo CD path needs the configured Git repository to be reachable from the cluster. For a reduced workstation check that applies the core charts directly, use:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">QUICKSTART_DIRECT_APPLY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart
 </code></pre></div>
-Fetches the workstation and validation CLIs into <code>.tools/bin</code> first.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Skip Argo CD for a fast workstation check</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">QUICKSTART_DIRECT_APPLY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart
+<p>Direct apply skips the Argo CD application set, including the full observability, policy, cost, and backup add-ons. It is useful for the gateway/RAG smoke path, not as a GitOps or production-readiness test.</p>
+<p>Other switches:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">QUICKSTART_INSTALL_TOOLS</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">  </span><span class="c1"># install the pinned CLI set first</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">QUICKSTART_SKIP_VALIDATE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">  </span><span class="c1"># skip static validation</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">QUICKSTART_SKIP_RAG</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">       </span><span class="c1"># skip the RAG smoke test</span>
 </code></pre></div>
-Renders and applies the charts directly instead of bootstrapping GitOps. Useful if Argo CD is overkill for a quick look.</p>
-</div>
-<h2 id="step-2-confirm-it-worked">Step 2: Confirm it worked<a class="headerlink" href="#step-2-confirm-it-worked" title="Permanent link">&para;</a></h2>
-<p>When the run finishes, the last lines should read:</p>
+<h2 id="check-the-result">Check the result<a class="headerlink" href="#check-the-result" title="Permanent link">&para;</a></h2>
+<p>A complete default run ends with:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[private-ai-platform-kit] smoke test completed for ollama
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>[private-ai-platform-kit] RAG smoke completed for agent-lab
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>[private-ai-platform-kit] quickstart completed
 </code></pre></div>
-<p>That is your private platform answering real requests:</p>
-<ul>
-<li>The <strong>gateway smoke</strong> response includes an OpenAI-compatible <code>choices</code> array: a chat completion produced entirely on your machine.</li>
-<li>The <strong>RAG smoke</strong> response includes <code>results</code>, <code>grounded_messages</code>, <code>query_sha256</code>, <code>X-Request-ID</code>, and <code>X-Sandbox-ID</code>: a grounded answer with an auditable request trail.</li>
-</ul>
-<p>If you see those three lines, you are done: you have a private AI platform running. The rest of this page helps you understand what you just built and where to go next.</p>
-<h2 id="step-3-compare-against-the-recorded-run">Step 3: Compare against the recorded run<a class="headerlink" href="#step-3-compare-against-the-recorded-run" title="Permanent link">&para;</a></h2>
-<p>The repository commits a real capture of a successful run as the canonical expected output, so you can confirm yours matches:</p>
-<ul>
-<li><a href="../assets/quickstart-screenshots/">quickstart-success.txt</a>: gateway and RAG smoke output.</li>
-<li><a href="../assets/quickstart-screenshots/">agent-smoke.txt</a>: coding-agent smoke output.</li>
-</ul>
-<p>Captures for the follow-up steps live alongside them (Argo CD applications, the Grafana dashboard, and an evidence report) in <a href="../assets/quickstart-screenshots/">docs/assets/quickstart-screenshots/</a>.</p>
-<h2 id="what-just-happened">What just happened<a class="headerlink" href="#what-just-happened" title="Permanent link">&para;</a></h2>
-<p><code>make quickstart</code> ran these steps in order:</p>
-<ol>
-<li><code>make toolchain-doctor TOOLCHAIN_PROFILE=local</code>: check the local toolchain.</li>
-<li><code>make validate</code>: static validation (skipped if <code>QUICKSTART_SKIP_VALIDATE=1</code>).</li>
-<li><code>make local-up</code>: create the local <code>kind</code> cluster.</li>
-<li><code>make agent-sandbox-install</code>: install the agent-sandbox controller, the workspace-runtime prerequisite.</li>
-<li><code>make bootstrap-argocd</code> and <code>make sync</code>: install Argo CD and sync the platform (with <code>QUICKSTART_DIRECT_APPLY=1</code> the charts are applied directly with Helm instead).</li>
-<li><code>make smoke RUNTIME_BACKEND=ollama</code>: a chat completion through the gateway.</li>
-<li><code>make rag-smoke</code>: a grounded RAG query (skipped if <code>QUICKSTART_SKIP_RAG=1</code>).</li>
-</ol>
-<p>The cluster is left running so you can inspect it. This is the same flow (same charts, policies, and checks) that runs against customer clusters; only the runtime backend and GPU profile change.</p>
-<h2 id="keep-exploring">Keep exploring<a class="headerlink" href="#keep-exploring" title="Permanent link">&para;</a></h2>
-<p>With the cluster up, try the other smoke paths and generate evidence:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>trace-smoke<span class="w">          </span><span class="c1"># traceable sandbox controls</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>make<span class="w"> </span>tenant-smoke<span class="w">         </span><span class="c1"># a team tenant lab</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>make<span class="w"> </span>agent-smoke<span class="w">          </span><span class="c1"># a locked-down coding-agent workspace</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>make<span class="w"> </span>agent-sandbox-smoke<span class="w">  </span><span class="c1"># the hardened workspace-runtime contract</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>make<span class="w"> </span>evidence<span class="w"> </span><span class="nv">LIVE</span><span class="o">=</span><span class="m">1</span><span class="w">      </span><span class="c1"># customer-style evidence pack against the live cluster</span>
+<p>These lines confirm that the local gateway reached Ollama and that the RAG service returned results. They do not validate a customer identity provider, GPU runtime, production storage, backup, or external observability system.</p>
+<p>Inspect the cluster with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>status
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A
 </code></pre></div>
-<h2 id="clean-up">Clean up<a class="headerlink" href="#clean-up" title="Permanent link">&para;</a></h2>
-<p>When you are finished, tear the cluster down:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>local-down
+<p>Then run any focused checks you need:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>trace-smoke
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>make<span class="w"> </span>tenant-smoke
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>make<span class="w"> </span>agent-smoke
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>make<span class="w"> </span>agent-sandbox-smoke
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>make<span class="w"> </span>evidence<span class="w"> </span><span class="nv">LIVE</span><span class="o">=</span><span class="m">1</span>
 </code></pre></div>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<p><strong>Docker</strong>: confirm <code>docker info</code> works and Docker has enough CPU, memory, and disk for a kind cluster plus the model and runtime images.</p>
-<p><strong>kind</strong>: run <code>kind get clusters</code>; if the cluster is broken, <code>make local-down</code> then <code>make local-up</code>.</p>
-<p><strong>kubectl</strong>: after <code>make local-up</code>, confirm <code>kubectl config current-context</code> points at <code>kind-private-ai-platform-kit</code>.</p>
-<p><strong>Helm</strong>: run <code>helm version --short</code>; <code>make validate</code> lints and renders every chart before the cluster path.</p>
-<p><strong>Argo CD</strong>: if bootstrap or sync is blocked by a local CLI issue, rerun with <code>QUICKSTART_DIRECT_APPLY=1 make quickstart</code>.</p>
-<p><strong>Model pull</strong>: the first Ollama pull of <code>qwen2.5:0.5b</code> can dominate the runtime. Watch progress with <code>kubectl -n ollama logs statefulset/ollama</code>.</p>
-<p><strong>API keys</strong>: local smoke scripts send <code>X-API-Key: local-development-only</code>. Customer overlays should source SHA-256 API-key hashes from External Secrets instead of committing plaintext keys.</p>
-<p><strong>Port conflicts</strong>: smoke tests bind localhost ports such as <code>18080</code> and <code>18083</code>; override <code>LOCAL_PORT</code> if one is already in use. The cluster also maps gateway nodePort <code>30080</code> to host port <code>8080</code>; if another process owns <code>8080</code>, set <code>LOCAL_GATEWAY_HOST_PORT</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">LOCAL_GATEWAY_HOST_PORT</span><span class="o">=</span><span class="m">18080</span><span class="w"> </span><span class="nv">QUICKSTART_DIRECT_APPLY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart
+<p>Docker must be reachable with <code>docker info</code>. If cluster creation stopped partway through, remove the cluster with <code>make local-down</code> before retrying.</p>
+<p>The default node image is set in <code>scripts/local-up.sh</code> and <code>deploy/clusters/local/kind-config.yaml</code>. Docker hosts using cgroup v1 automatically fall back to <code>kindest/node:v1.31.4</code>. To select a node image explicitly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">LOCAL_KIND_NODE_IMAGE</span><span class="o">=</span>kindest/node:v1.31.4<span class="w"> </span>make<span class="w"> </span>quickstart
 </code></pre></div>
-<p><strong>Kind node image</strong>: Docker hosts on cgroup v1 are automatically given a compatible node image. To force a specific one, set <code>LOCAL_KIND_NODE_IMAGE</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">LOCAL_KIND_NODE_IMAGE</span><span class="o">=</span>kindest/node:v1.31.4<span class="w"> </span><span class="nv">QUICKSTART_DIRECT_APPLY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart
+<p>The cluster maps gateway node port <code>30080</code> to host port <code>8080</code>. Choose another host port if it is in use:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">LOCAL_GATEWAY_HOST_PORT</span><span class="o">=</span><span class="m">18080</span><span class="w"> </span>make<span class="w"> </span>quickstart
 </code></pre></div>
-<h2 id="where-to-next">Where to next<a class="headerlink" href="#where-to-next" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Operate the lab</strong>: the <a href="../getting-started/">how-to guides</a> cover evals, load tests, governance checks, and the customer-cluster path.</li>
-<li><strong>Decide if it fits</strong>: the <a href="../decision-guide/">decision guide</a> explains who this is and is not for.</li>
-<li><strong>Understand the controls</strong>: the <a href="../production-readiness/">production-readiness matrix</a> maps every claim to where it is enforced.</li>
-</ul>
+<p>The smoke scripts also use temporary local port-forwards. Override <code>LOCAL_PORT</code> for an individual smoke command if its default port is occupied.</p>
+<p>For model-pull progress:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ollama<span class="w"> </span>logs<span class="w"> </span>statefulset/ollama
+</code></pre></div>
+<p>The local smoke key is <code>local-development-only</code>. It is deliberately public and must not be reused outside the local profile.</p>
+<h2 id="remove-the-lab">Remove the lab<a class="headerlink" href="#remove-the-lab" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make<span class="w"> </span>local-down
+</code></pre></div>
+<p>This deletes the <code>kind</code> cluster. It does not remove downloaded tools, Docker images, or caches. <code>make clean-all</code> removes repository-local tool environments and generated files; Docker cleanup remains a Docker operation.</p>
+<p>Continue with <a href="../getting-started/">Getting started</a> for focused validation and customer-deployment commands.</p>
 
 
 

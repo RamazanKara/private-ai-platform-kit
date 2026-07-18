@@ -1295,7 +1295,7 @@
         
   
   <span class="md-ellipsis">
-    OWASP LLM Top 10 mapping
+    OWASP LLM Top 10 2025
   </span>
   
 
@@ -1358,7 +1358,7 @@
         
   
   <span class="md-ellipsis">
-    Agent-sandbox integration design
+    Agent-sandbox integration
   </span>
   
 
@@ -1381,7 +1381,7 @@
         
   
   <span class="md-ellipsis">
-    Proof and strict evidence
+    Evidence and strict validation
   </span>
   
 
@@ -1706,8 +1706,9 @@ artifact cannot drift. See
 <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/model-provenance.md">Model provenance</a>.</p>
 <h2 id="o">O<a class="headerlink" href="#o" title="Permanent link">&para;</a></h2>
 <p><strong>Output guardrail</strong>: A response-path control that inspects the model's completion before it is
-returned or cached, closing OWASP LLM02 (insecure output handling) and LLM06 (sensitive information
-disclosure); the input-side prompt secret detection cannot catch a secret the <em>model</em> emits. Modes are
+returned or cached, contributing controls for OWASP LLM02:2025 (sensitive information disclosure)
+and LLM05:2025 (improper output handling); the input-side prompt secret detection cannot catch a
+secret the <em>model</em> emits. Modes are
 <code>flag</code>, <code>redact</code> (default), and <code>block</code>; streaming responses are detected/flagged only. Configured
 under <code>guardrails.outputGuardrail</code>. See
 <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/guardrails.md">Guardrails</a>.</p>
@@ -1778,10 +1779,11 @@ For a tenant lab it equals the namespace sandbox id. See
 <p><strong>Strict release gate</strong>: The stricter form of the release gate, run with <code>make release-gate-strict</code>
 for customer demos, release reviews, restore-drill reviews, and production-readiness handoff. It fails
 when a required gate falls back to checked-in <code>sample-*</code> evidence or when selected evidence is older
-than <code>RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS</code> (default 24h), so the report proves the <em>current</em> build is
-ready, not just that the report shape is valid. See
+than <code>RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS</code> (default 24h), so the report is based on the current build
+rather than only validating sample report shapes. It does not establish production readiness by
+itself. See
 <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/release-gates.md">Release gates</a>
-and <a href="../proof/">Proof</a>.</p>
+and <a href="../proof/">Evidence and validation</a>.</p>
 <h2 id="t">T<a class="headerlink" href="#t" title="Permanent link">&para;</a></h2>
 <p><strong>Tamper-evident audit chain</strong>: A per-process SHA-256 hash chain linking the gateway's redacted audit
 events (<code>h_i = SHA-256(h_{i-1} || canonical(record_i))</code>) so any edit, insertion, deletion, or reordering
