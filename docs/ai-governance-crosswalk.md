@@ -1,10 +1,13 @@
-# AI Governance Crosswalk
+# AI governance crosswalk
 
-This document maps the controls that already exist in the Private AI Platform Kit to three external
-AI-governance frameworks: the [NIST AI Risk Management Framework 1.0](https://www.nist.gov/itl/ai-risk-management-framework),
+This document maps controls in the repository to three external AI-governance frameworks: the
+[NIST AI Risk Management Framework 1.0](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10),
 the [EU AI Act](https://eur-lex.europa.eu/eli/reg/2024/1689/oj) (Regulation (EU) 2024/1689), and
 [ISO/IEC 42001:2023](https://www.iso.org/standard/81230.html). It also defines the `riskTier`
 semantics used across the model catalog and provenance records.
+
+The NIST mapping is explicitly versioned to AI RMF 1.0. It should be reviewed rather than carried
+forward unchanged when NIST publishes a later revision.
 
 The machine-readable companion is
 [`platform/governance/control-framework-map.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/control-framework-map.yaml).
@@ -135,7 +138,7 @@ The four NIST AI RMF functions map to the kit as follows.
   (`C-AUDIT`), admission/budget measurement (`C-ADMIT`), and SLOs (`C-SLO`).
 - **Manage.** Containment and response: approved-only serving (`C-ALLOW`), egress governance
   (`C-EGRESS`), prompt secret detection (`C-SECRET`), budgets (`C-ADMIT`), kernel-isolated agent
-  workspaces (`C-ISOLATE`), and signed-image admission (`C-SUPPLY`).
+  hardened agent workspaces (`C-ISOLATE`), and signed-image admission (`C-SUPPLY`).
 
 ## EU AI Act technical-obligation coverage
 
@@ -198,6 +201,5 @@ obligations under one or more of the frameworks:
 
 When you add or change a control, update both this document and
 [`platform/governance/control-framework-map.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/control-framework-map.yaml)
-so the kit-implementation file references stay accurate. The framework citations are stable references
-to published functions, articles, and clauses; revisit them when a framework is revised (for example,
-a NIST AI RMF profile update or an EU AI Act implementing act).
+so the implementation references stay accurate. The citations refer to the named framework
+versions; revisit them when a framework or relevant implementing guidance changes.

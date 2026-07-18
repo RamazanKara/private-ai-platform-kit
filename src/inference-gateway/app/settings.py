@@ -5,332 +5,67 @@ from __future__ import annotations
 import json
 import os
 import re
-from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-SANDBOX_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
-BUILT_IN_SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
-    "private_key": re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----"),
-    "github_token": re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
-    "slack_token": re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
-    # Canonical AWS access-key-id shape (as used by GitHub secret scanning). A 20-char
-    # all-caps/digit token beginning AKIA/ASIA can false-positive; that is the accepted
-    # trade for catching leaked keys, and redact mode makes it non-fatal for coding traffic.
-    "aws_access_key_id": re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
-    "google_api_key": re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b"),
-    "bearer_token": re.compile(
-        r"\b(?:authorization|bearer)\s*[:=]\s*bearer\s+[A-Za-z0-9._~+/=-]{20,}\b",
-        re.IGNORECASE,
-    ),
-    "generic_api_key_assignment": re.compile(
-        r"\b(?:api[_-]?key|secret|token|password)\s*[:=]\s*['\"]?[A-Za-z0-9._~+/=-]{20,}['\"]?",
-        re.IGNORECASE,
-    ),
-    # PII patterns. Not enabled by default (see DEFAULT_SECRET_PATTERNS) because emails
-    # are common in legitimate prompts; opt in via PROMPT_SECRET_PATTERNS / the chart.
-    "email": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
-    "us_ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
-    "credit_card": re.compile(r"\b(?:\d[ -]?){13,19}\b"),
-}
-
-# Patterns enabled by default: credential detectors only. PII detectors are built in
-# but opt-in so existing prompt behavior is unchanged unless an operator enables them.
-DEFAULT_SECRET_PATTERNS: tuple[str, ...] = (
-    "private_key",
-    "github_token",
-    "slack_token",
-    "aws_access_key_id",
-    "google_api_key",
-    "bearer_token",
-    "generic_api_key_assignment",
+from app.admission import (
+    BUILT_IN_SECRET_PATTERNS as BUILT_IN_SECRET_PATTERNS,
 )
-CREDENTIAL_PATTERN_NAMES = frozenset(DEFAULT_SECRET_PATTERNS)
-# Modes for prompt secret handling: reject the request, redact the matched spans before
-# forwarding, or allow-and-record. ``block`` preserves the historical fail-closed default.
-PROMPT_SECRET_MODES = frozenset({"block", "redact", "flag"})
-PII_PATTERN_NAMES = frozenset({"email", "us_ssn", "credit_card"})
-
-# Patterns scanned on the model's *output* (the response path) when the output guardrail
-# is enabled: every credential detector plus the PII detectors. Unlike prompt admission
-# (credentials only by default), output inspection defaults to scanning PII too because a
-# completion that leaks an SSN/card/email back to the caller is the exact OWASP LLM06
-# "sensitive information disclosure" failure the output guardrail exists to catch.
-OUTPUT_DEFAULT_PATTERNS: tuple[str, ...] = (
-    "private_key",
-    "github_token",
-    "slack_token",
-    "aws_access_key_id",
-    "google_api_key",
-    "bearer_token",
-    "generic_api_key_assignment",
-    "email",
-    "us_ssn",
-    "credit_card",
+from app.admission import (
+    CREDENTIAL_PATTERN_NAMES as CREDENTIAL_PATTERN_NAMES,
 )
-OUTPUT_GUARDRAIL_MODES = frozenset({"flag", "redact", "block"})
-
-# Batch endpoints a /v1/batches job may target (ADR 0011); mirrors OpenAI's allowed set,
-# scoped to the inference routes this gateway governs.
-BATCH_ALLOWED_ENDPOINTS = frozenset({"/v1/chat/completions", "/v1/completions", "/v1/embeddings"})
-
-
-def _float_from_env(name: str, default: float) -> float:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    try:
-        return float(raw)
-    except ValueError as exc:
-        raise ValueError(f"{name} must be a number") from exc
-
-
-def _int_from_env(name: str, default: int) -> int:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    try:
-        value = int(raw)
-    except ValueError as exc:
-        raise ValueError(f"{name} must be an integer") from exc
-    if value < 0:
-        raise ValueError(f"{name} must be zero or greater")
-    return value
-
-
-def _positive_int_from_env(name: str, default: int) -> int:
-    value = _int_from_env(name, default)
-    if value <= 0:
-        raise ValueError(f"{name} must be greater than zero")
-    return value
-
-
-def _positive_float_from_env(name: str, default: float) -> float:
-    value = _float_from_env(name, default)
-    if value <= 0:
-        raise ValueError(f"{name} must be greater than zero")
-    return value
-
-
-def _bool_from_env(name: str, default: bool) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    normalized = raw.strip().lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError(f"{name} must be a boolean")
-
-
-def parse_completion_window(value: str) -> int:
-    """Return the batch completion window in seconds, or raise ValueError on a bad format.
-
-    Accepts a positive integer with an ``h`` (hours), ``m`` (minutes), or ``s`` (seconds)
-    suffix, e.g. ``24h``. OpenAI only documents ``24h``; the wider grammar lets local test
-    windows be short without a special case. The window is honored as an expiry bound.
-    """
-    normalized = value.strip()
-    # Bound and parse directly: this value is caller controlled on the Batch API,
-    # so it must not enter a repetition-bearing regular expression or an
-    # unbounded integer conversion.
-    if len(normalized) < 2 or len(normalized) > 13:
-        raise ValueError("batch_completion_window must look like '24h', '30m', or '90s'")
-    amount_text, suffix = normalized[:-1], normalized[-1]
-    if suffix not in {"h", "m", "s"} or not amount_text.isascii() or not amount_text.isdigit():
-        raise ValueError("batch_completion_window must look like '24h', '30m', or '90s'")
-    amount = int(amount_text)
-    if amount <= 0:
-        raise ValueError("batch_completion_window must be greater than zero")
-    return amount * {"h": 3600, "m": 60, "s": 1}[suffix]
-
-
-def iter_payload_strings(value: Any) -> Iterator[str]:
-    """Yield every string leaf in caller-controlled JSON.
-
-    Tool definitions, tool-call arguments, legacy function calls, and provider
-    extension fields are forwarded to a model and can carry the same secrets or
-    blocked content as ``message.content``. Recursion keeps admission aligned with
-    the complete forwarded payload instead of an incomplete field allowlist.
-    """
-    if isinstance(value, str):
-        yield value
-    elif isinstance(value, list):
-        for item in value:
-            yield from iter_payload_strings(item)
-    elif isinstance(value, dict):
-        for item in value.values():
-            yield from iter_payload_strings(item)
-
-
-def payload_string_chars(value: Any) -> int:
-    """Return aggregate characters across every string leaf in a JSON value."""
-    return sum(len(text) for text in iter_payload_strings(value))
-
-
-def message_prompt_chars(messages: list[Any]) -> int:
-    """Count chat content plus model-visible tool/function-call arguments."""
-    total = 0
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-        total += len(extract_text_content(message.get("content")))
-        total += payload_string_chars(message.get("tool_calls"))
-        total += payload_string_chars(message.get("function_call"))
-    return total
-
-
-def extract_text_content(content: Any) -> str:
-    """Return the plain text of a chat message ``content`` field.
-
-    Accepts a string, ``None``, or an OpenAI-style content-part array (each part a
-    mapping with a ``text`` field, e.g. ``{"type": "text", "text": "..."}``); non-text
-    parts such as ``image_url`` contribute no characters. Used by admission sizing,
-    secret scanning, and audit fingerprinting so multimodal requests are handled
-    without assuming ``content`` is a bare string.
-    """
-    if content is None:
-        return ""
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts: list[str] = []
-        for part in content:
-            if isinstance(part, dict):
-                text = part.get("text")
-                if isinstance(text, str):
-                    parts.append(text)
-            elif isinstance(part, str):
-                parts.append(part)
-        return "".join(parts)
-    return str(content)
-
-
-def completion_prompt_texts(prompt: Any) -> list[str]:
-    """Return the legacy-completion ``prompt`` as a list of non-empty strings.
-
-    Accepts a bare string or a list of strings (the two forms OpenAI's ``/v1/completions``
-    ``prompt`` takes); token-array prompts and other shapes contribute no text. Empty
-    strings are dropped so an all-empty prompt reads as missing.
-    """
-    if isinstance(prompt, str):
-        return [prompt] if prompt else []
-    if isinstance(prompt, list):
-        return [item for item in prompt if isinstance(item, str) and item]
-    return []
-
-
-def max_requested_completion_tokens(payload: dict[str, Any]) -> int | None:
-    """Return the largest valid completion-token cap the caller requested, or None.
-
-    OpenAI's modern ``max_completion_tokens`` and the legacy ``max_tokens`` may both be
-    present and both are forwarded to the runtime; budget estimation charges the larger so
-    it upper-bounds whatever field the backend actually honors. An explicit ``0`` (the
-    embeddings path passes ``max_tokens=0`` to mean "no completion cost") is honored;
-    non-integer values are ignored. Returns None when no valid integer field is present.
-    """
-    values = [
-        value
-        for field in ("max_completion_tokens", "max_tokens")
-        if isinstance((value := payload.get(field)), int) and not isinstance(value, bool) and value >= 0
-    ]
-    return max(values) if values else None
-
-
-def requested_completion_count(payload: dict[str, Any]) -> Any:
-    """Return the caller's requested number of completions (``n``), defaulting to 1.
-
-    Returns the raw value (possibly a non-int, for the validator to reject).
-    """
-    value = payload.get("n")
-    return 1 if value is None else value
-
-
-def _image_part_bytes(part: dict[str, Any]) -> int:
-    """Estimate the decoded byte size of an OpenAI ``image_url`` part (data URLs only).
-
-    Remote (http/https) image URLs carry no local bytes and count as zero; a
-    ``data:`` URL is measured from its base64 payload (3 bytes per 4 chars).
-    """
-    image = part.get("image_url")
-    url = image.get("url") if isinstance(image, dict) else image
-    if not isinstance(url, str) or not url.startswith("data:"):
-        return 0
-    _, _, b64 = url.partition(",")
-    return (len(b64) * 3) // 4
-
-
-def _iter_image_parts(messages: list[Any]) -> Any:
-    """Yield every OpenAI ``image_url`` content part across the given messages."""
-    for message in messages:
-        content = message.get("content") if isinstance(message, dict) else None
-        if isinstance(content, list):
-            for part in content:
-                if isinstance(part, dict) and part.get("type") == "image_url":
-                    yield part
-
-
-def count_image_parts(messages: list[Any]) -> int:
-    """Count OpenAI ``image_url`` content parts across all messages."""
-    return sum(1 for _ in _iter_image_parts(messages))
-
-
-def largest_image_bytes(messages: list[Any]) -> int:
-    """Return the largest decoded data-URL image byte size across all messages."""
-    return max((_image_part_bytes(part) for part in _iter_image_parts(messages)), default=0)
-
-
-def validate_sandbox_id(value: str) -> str:
-    """Normalize and validate a sandbox id, raising ValueError when malformed."""
-    sandbox_id = value.strip().lower()
-    if not SANDBOX_ID_PATTERN.fullmatch(sandbox_id):
-        raise ValueError("sandbox id must be 1-63 characters of lowercase letters, numbers, or hyphens")
-    return sandbox_id
-
-
-def _csv_from_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return tuple(item.strip() for item in raw.split(",") if item.strip())
-
-
-def _sha256s_from_env(name: str) -> tuple[str, ...]:
-    hashes = _csv_from_env(name, ())
-    for item in hashes:
-        if not re.fullmatch(r"[\da-fA-F]{64}", item):
-            raise ValueError(f"{name} must contain comma-separated SHA-256 hex digests")
-    return tuple(item.lower() for item in hashes)
-
-
-def _secret_pattern_names_from_env(name: str) -> tuple[str, ...]:
-    names = _csv_from_env(name, DEFAULT_SECRET_PATTERNS)
-    unknown = sorted(set(names) - set(BUILT_IN_SECRET_PATTERNS))
-    if unknown:
-        raise ValueError(f"{name} contains unknown built-in secret patterns: {unknown}")
-    return names
-
-
-def _output_pattern_names_from_env(name: str) -> tuple[str, ...]:
-    names = _csv_from_env(name, OUTPUT_DEFAULT_PATTERNS)
-    unknown = sorted(set(names) - set(BUILT_IN_SECRET_PATTERNS))
-    if unknown:
-        raise ValueError(f"{name} contains unknown built-in secret patterns: {unknown}")
-    return names
-
-
-class AdmissionPolicyError(ValueError):
-    """Raised when a request violates an admission policy, carrying a machine reason."""
-
-    def __init__(self, reason: str, message: str) -> None:
-        super().__init__(message)
-        self.reason = reason
-
-
-class ModelPolicyError(AdmissionPolicyError):
-    """Raised when a requested model is not approved by policy."""
+from app.admission import (
+    DEFAULT_SECRET_PATTERNS as DEFAULT_SECRET_PATTERNS,
+)
+from app.admission import (
+    OUTPUT_DEFAULT_PATTERNS as OUTPUT_DEFAULT_PATTERNS,
+)
+from app.admission import (
+    OUTPUT_GUARDRAIL_MODES as OUTPUT_GUARDRAIL_MODES,
+)
+from app.admission import (
+    PII_PATTERN_NAMES as PII_PATTERN_NAMES,
+)
+from app.admission import (
+    PROMPT_SECRET_MODES as PROMPT_SECRET_MODES,
+)
+from app.admission import (
+    AdmissionPolicyError as AdmissionPolicyError,
+)
+from app.admission import (
+    ModelPolicyError as ModelPolicyError,
+)
+from app.admission import (
+    completion_prompt_texts as completion_prompt_texts,
+)
+from app.admission import (
+    iter_payload_strings as iter_payload_strings,
+)
+from app.admission import (
+    largest_image_bytes as largest_image_bytes,
+)
+from app.admission import (
+    message_prompt_chars as message_prompt_chars,
+)
+from app.admission import (
+    validate_sandbox_id as validate_sandbox_id,
+)
+from app.env_config import (
+    _bool_from_env,
+    _csv_from_env,
+    _float_from_env,
+    _int_from_env,
+    _output_pattern_names_from_env,
+    _path_from_env,
+    _positive_float_from_env,
+    _positive_int_from_env,
+    _secret_pattern_names_from_env,
+    _sha256s_from_env,
+)
+from app.env_config import (
+    parse_completion_window as parse_completion_window,
+)
 
 
 @dataclass(frozen=True)
@@ -961,7 +696,7 @@ class Settings:
         """Return (matched secret/PII pattern names, matched blocked terms) found in output.
 
         Scans the model's completion against the configured output-guardrail patterns and
-        the blocked-term denylist. Used by the response-path guardrail (OWASP LLM02/LLM06)
+        the blocked-term denylist. Used by the response-path guardrail (OWASP LLM02:2025/LLM05:2025)
         to detect credentials, PII, or denied content the model emitted back to the caller.
         """
         patterns = [name for name in self.output_guardrail_patterns if BUILT_IN_SECRET_PATTERNS[name].search(text)]
@@ -1014,13 +749,6 @@ class Settings:
                     "tools_too_large",
                     f"{field} serialize to {serialized_chars} characters; limit is {self.max_tool_chars}",
                 )
-
-
-def _path_from_env(name: str) -> Path | None:
-    raw = os.getenv(name)
-    if raw is None or not raw.strip():
-        return None
-    return Path(raw.strip())
 
 
 def moderate_text(text: str, settings: Settings) -> dict[str, Any]:

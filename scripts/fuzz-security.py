@@ -8,7 +8,8 @@ import random
 import string
 from typing import Any
 
-from app.settings import iter_payload_strings, parse_completion_window, payload_string_chars, validate_sandbox_id
+from app.admission import iter_payload_strings, payload_string_chars, validate_sandbox_id
+from app.env_config import parse_completion_window
 
 ALPHABET = string.ascii_letters + string.digits + string.punctuation + " \t\n\x00é中"
 

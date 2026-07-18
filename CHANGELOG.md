@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.27.1 - 2026-07-18
+
+### Changed
+
+- Reworked the operator documentation around the commands and manifests that ship today. The
+  quickstart, customer handoff, offline profile, capacity, cost, security, and release pages now
+  separate demonstrated controls from work that still belongs to the operator.
+- Kept the staged terminal walkthrough as the README presentation asset and removed redundant
+  frozen captures and their recording scripts.
+- Split the production-readiness checker into focused chart, platform, release, and governance
+  modules. Checks now validate files and configuration instead of depending on exact prose.
+- Split gateway request models, metrics, HTTP context, runtime routing, streaming, guardrails,
+  admission helpers, and environment parsing into named modules. The gateway tests are organized
+  by behavior instead of living in one file.
+
+### Fixed
+
+- Corrected stale documentation about bootstrap side effects, customer prerequisites, audit-chain
+  durability, mock load testing, External Secrets, and the implemented agent-sandbox contract.
+- Updated the OWASP mapping to the 2025 identifiers and made the NIST AI RMF 1.0 scope explicit.
+- Removed an order-dependent Prometheus assertion from the streaming test suite.
+
 ## v0.27.0 - 2026-07-10
 
 ### Added

@@ -5,7 +5,7 @@ Use this checklist before trusting a public release in a customer-owned cluster.
 Set the release and repository once:
 
 ```bash
-export RELEASE=v0.27.0
+export RELEASE=v0.27.1
 export IMAGE_REPO=ghcr.io/ramazankara/private-ai-platform-kit
 ```
 
@@ -118,7 +118,7 @@ make evidence
 make release-gate-strict
 ```
 
-For a live customer-style proof path, run the local cluster checks and generate live evidence:
+For a live customer-style validation path, run the local cluster checks and generate live evidence:
 
 ```bash
 QUICKSTART_DIRECT_APPLY=1 make quickstart

@@ -372,13 +372,11 @@ def code_segments(path: Path) -> list[tuple[int, str]]:
 
 
 def check_make_target_references(errors: list[str]) -> None:
-    # `make <target>` in code spans, code blocks, and the committed quickstart
-    # captures must name a real Makefile target so renamed or removed targets
-    # cannot linger in operator-facing docs. docs/adr/ and CHANGELOG.md record
-    # intentional history and are exempt.
+    # `make <target>` in code spans and code blocks must name a real Makefile
+    # target so renamed or removed targets cannot linger in operator-facing
+    # docs. docs/adr/ and CHANGELOG.md record intentional history and are exempt.
     targets = makefile_targets()
-    captures = sorted((ROOT / "docs/assets/quickstart-screenshots").glob("*.txt"))
-    for path in markdown_files() + captures:
+    for path in markdown_files():
         relative = rel(path)
         if relative == "CHANGELOG.md" or relative.startswith("docs/adr/"):
             continue

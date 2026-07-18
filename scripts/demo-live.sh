@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# A scripted terminal cut for the README demo GIF (recorded via
-# scripts/demo.tape). Every line mirrors real output from
-# `make agent-sandbox-demo` on the local lab; run that target for the
-# genuine end-to-end flow.
+# Staged terminal cut for the README GIF, recorded via scripts/demo.tape.
+# It illustrates the live workflow without claiming to be current evidence.
+# Run `make agent-sandbox-demo` for the end-to-end result from a real cluster.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

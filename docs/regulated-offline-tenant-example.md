@@ -1,76 +1,52 @@
-# Regulated Offline Tenant Example
+# Restricted-egress tenant example
 
-This walkthrough onboards a coding-agent tenant for a regulated, air-gapped team: confidential data
-classification, **no external egress**, a private registry, and long evidence retention. It renders
-from the reviewed spec
-[tenants/onboarding/regulated-offline-coding-agents.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/tenants/onboarding/regulated-offline-coding-agents.yaml)
-using the same onboarding flow as [Tenant labs](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/tenant-labs.md).
+The file `tenants/onboarding/regulated-offline-coding-agents.yaml` defines a tenant named `regulated-offline`. The name describes its intended use; the generated manifests enforce a narrower fact: pods in that tenant namespace receive no external CIDR egress rule.
 
-## What This Profile Enforces
+This is not an air-gap configuration for the cluster. Image pulls, model downloads, GitOps, identity, and services outside the tenant namespace need separate offline controls.
 
-| Control | Value | Effect |
-| --- | --- | --- |
-| `compliance.profile` | `regulated-offline` | Marks the namespace and contract as regulated/offline. |
-| `compliance.dataClassification` | `confidential` | Stamped on the namespace and trace contract. |
-| `compliance.externalEgressAllowed` | `false` | No external CIDR egress is rendered. |
-| `network.allowedEgressCidrs` | `[]` | Egress is limited to in-cluster gateway, RAG, and DNS only. |
-| `compliance.requirePrivateRegistry` | `true` | Images must come from the customer's private registry. |
-| `compliance.evidenceRetentionDays` | `730` | Two-year evidence retention. |
-| `agentWorkspace.rbac.allowJobManagement` | `false` | Agents cannot create or manage Jobs. |
-
-The key difference from the default coding-agent profile is that `allowedEgressCidrs` is empty, so
-the rendered NetworkPolicy permits only DNS and the in-cluster inference gateway and RAG service.
-
-## Render The Tenant Artifacts
-
-Validate the spec, then render namespace, quota, limit range, default-deny + allowlist
-NetworkPolicies, the trace-contract ConfigMap, RBAC, and the agent workspace:
+## Render the manifests
 
 ```bash
 make tenant-onboard-regulated TENANT_OUTPUT=.out/tenants
 ```
 
-This is equivalent to:
+The renderer writes namespace, quota, limit range, NetworkPolicy, RBAC, trace-contract, and agent-workspace values under `.out/tenants`. Review the output before applying it.
+
+The checked-in spec requests:
+
+| Setting | Value |
+| --- | --- |
+| Data classification | `confidential` |
+| External CIDR egress | disabled |
+| Allowed in-cluster services | DNS, inference gateway, RAG service |
+| Private registry required | `true` metadata flag |
+| Evidence retention | 730 days metadata value |
+| Job-management RBAC | disabled |
+
+`requirePrivateRegistry` and `evidenceRetentionDays` are contract fields. They do not configure a registry, storage lifecycle, or retention job by themselves.
+
+## Review before apply
+
+Confirm that:
+
+- the target namespace and sandbox ID are correct;
+- the CNI actually enforces Kubernetes NetworkPolicy;
+- no generated rule contains an external CIDR;
+- the gateway and RAG namespace selectors match the target cluster;
+- the workspace image is available from an internal registry;
+- storage class, quota, and PVC size are appropriate;
+- identity and API-key material are supplied without being written to Git.
+
+Apply the reviewed files through the customer's GitOps process. A direct `kubectl apply` can be used in a disposable lab, but it is not the documented customer handoff path.
+
+## Test the boundary
+
+Use an image that is already present or available from the internal registry. From a pod in the tenant namespace, test both an allowed in-cluster destination and a destination that is otherwise reachable from the cluster. A timeout to an unroutable address does not prove that NetworkPolicy is working.
+
+The repository's agent-sandbox smoke test uses the Kubernetes API as the deny target for this reason:
 
 ```bash
-python3 scripts/tenant-onboard.py \
-  --spec tenants/onboarding/regulated-offline-coding-agents.yaml \
-  --output-dir .out/tenants
+make agent-sandbox-smoke
 ```
 
-Review the generated manifests under `.out/tenants/` before applying. Confirm:
-
-- the namespace carries `platform.ai/tenant`, `platform.ai/sandbox-id`, `pod-security.kubernetes.io/enforce=restricted`, and the confidential data-classification label;
-- a default-deny NetworkPolicy exists with **no** egress allow rules beyond DNS, gateway, and RAG;
-- the workspace `ServiceAccount` has a viewer-only Role (no job management).
-
-## Apply And Verify
-
-Apply through GitOps or `kubectl apply -f .out/tenants/`, then:
-
-```bash
-make tenant-smoke
-```
-
-Verify offline posture explicitly:
-
-```bash
-# From a pod in the tenant namespace, external egress must fail:
-kubectl -n ai-regulated-agents run egress-test --rm -it --image=curlimages/curl --restart=Never -- \
-  curl -m 5 https://example.com   # expected: timeout / blocked
-
-# In-cluster gateway access must succeed:
-kubectl -n ai-regulated-agents run gw-test --rm -it --image=curlimages/curl --restart=Never -- \
-  curl -sS http://inference-gateway-inference-gateway.inference.svc.cluster.local:8080/healthz
-```
-
-## Customizing
-
-- Tighten quotas (`spec.quotas`) and the limit range to the team's footprint.
-- Set `storageClassName` on the agent workspace PVC to a customer-approved encrypted class.
-- Keep `allowedEgressCidrs` empty for true offline; if a private mirror is unavoidable, add a single
-  reviewed CIDR and record the approval, then re-render.
-- Adjust `evidenceRetentionDays` to the customer's compliance requirement.
-
-For the egress-allowed counterpart, see the
-[GPU coding-agent tenant example](gpu-coding-agent-tenant-example.md).
+To make the entire deployment offline, add private image/chart mirrors, preloaded model weights, internal Git and identity endpoints, DNS policy, cluster-wide egress rules, and an offline release-verification process.

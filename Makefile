@@ -10,7 +10,7 @@ TENANT_OUTPUT ?= .out/tenants
 TOOLCHAIN_PROFILE ?= validate
 RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS ?= 24
 CUSTOMER_REPO_URL ?= https://github.com/RamazanKara/private-ai-platform-kit.git
-CUSTOMER_REVISION ?= v0.27.0
+CUSTOMER_REVISION ?= v0.27.1
 CUSTOMER_GPU_PROFILE ?= nvidia
 TOOLCHAIN_BIN_DIR ?= $(CURDIR)/.tools/bin
 PYTHONDONTWRITEBYTECODE ?= 1
@@ -60,6 +60,8 @@ help:
 		'  make api-contract          Check service OpenAPI contracts' \
 		'  make config-contract       Check service runtime config contracts' \
 		'  make loadtest-local        Run k6 against an ephemeral local gateway' \
+		'  make clean                 Remove generated output and service test environments' \
+		'  make clean-all             Also remove downloaded tools and tooling environments' \
 		'' \
 		'Evidence and governance:' \
 		'  make evidence              Generate customer evidence pack' \
@@ -80,7 +82,8 @@ help:
 		'  make tenant-onboard-gpu    Generate GPU coding-agent tenant artifacts'
 
 clean:
-	rm -rf .coverage htmlcov .pytest_cache
+	rm -rf .coverage coverage.xml htmlcov .pytest_cache .ruff_cache .mypy_cache
+	rm -rf .out site docs/runbooks dist build
 	rm -rf src/inference-gateway/.venv src/rag-service/.venv
 	find . -path ./.git -prune -o -type d -name __pycache__ -prune -exec rm -rf {} +
 	find . -path ./.git -prune -o -type d -name .pytest_cache -prune -exec rm -rf {} +
@@ -89,7 +92,7 @@ clean:
 	find results -mindepth 1 -type d -empty -delete
 
 clean-all: clean
-	rm -rf .tools
+	rm -rf .tools .venv-docs .venv-quality
 
 python-env:
 	./scripts/bootstrap-python.sh

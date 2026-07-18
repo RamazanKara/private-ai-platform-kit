@@ -8,14 +8,14 @@ from threading import Lock
 from time import time
 from typing import Any, Protocol
 
-from app.settings import (
+from app.admission import (
     AdmissionPolicyError,
-    Settings,
     count_image_parts,
     max_requested_completion_tokens,
     message_prompt_chars,
     requested_completion_count,
 )
+from app.settings import Settings
 
 try:  # redis is an optional dependency; only present when the redis backend is used.
     from redis.exceptions import RedisError as _RedisError

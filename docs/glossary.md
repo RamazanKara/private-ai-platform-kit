@@ -154,8 +154,9 @@ artifact cannot drift. See
 ## O
 
 **Output guardrail**: A response-path control that inspects the model's completion before it is
-returned or cached, closing OWASP LLM02 (insecure output handling) and LLM06 (sensitive information
-disclosure); the input-side prompt secret detection cannot catch a secret the *model* emits. Modes are
+returned or cached, contributing controls for OWASP LLM02:2025 (sensitive information disclosure)
+and LLM05:2025 (improper output handling); the input-side prompt secret detection cannot catch a
+secret the *model* emits. Modes are
 `flag`, `redact` (default), and `block`; streaming responses are detected/flagged only. Configured
 under `guardrails.outputGuardrail`. See
 [Guardrails](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/guardrails.md).
@@ -241,10 +242,11 @@ For a tenant lab it equals the namespace sandbox id. See
 **Strict release gate**: The stricter form of the release gate, run with `make release-gate-strict`
 for customer demos, release reviews, restore-drill reviews, and production-readiness handoff. It fails
 when a required gate falls back to checked-in `sample-*` evidence or when selected evidence is older
-than `RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS` (default 24h), so the report proves the *current* build is
-ready, not just that the report shape is valid. See
+than `RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS` (default 24h), so the report is based on the current build
+rather than only validating sample report shapes. It does not establish production readiness by
+itself. See
 [Release gates](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/release-gates.md)
-and [Proof](proof.md).
+and [Evidence and validation](proof.md).
 
 ## T
 

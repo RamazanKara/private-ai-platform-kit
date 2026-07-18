@@ -1,15 +1,17 @@
-# Client API Examples
+# Client API examples
 
-The gateway is OpenAI-compatible, so any OpenAI client library works by pointing its
-base URL at the gateway and sending the platform headers. These examples use the local
-port-forward address (`make local-up` then port-forward the gateway service); replace it
-with your Ingress host in a customer cluster.
+The gateway implements a documented subset of the OpenAI API. Clients that use those
+routes can point their base URL at the gateway and send the platform headers. Check the
+[OpenAPI contract](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json)
+and [scope](scope-and-non-goals.md) before assuming that an SDK feature is supported.
+These examples use the local port-forward address (`make local-up` then port-forward the
+gateway service); replace it with your ingress host in a customer cluster.
 
 The `model` id must be on the active profile's allowlist: the local lab allows
 `qwen2.5:0.5b`, while the customer profiles default to `qwen3.5:0.8b` (Ollama) and
 `Qwen/Qwen3-Coder-Next` (vLLM). Streaming is admitted by default in every shipped
-profile (`admission.allowStreaming: true`); an air-gapped/regulated deployment that
-requires end-of-stream-only guardrail enforcement sets it `false`. Examples below that
+profile (`admission.allowStreaming: true`); a deployment that requires end-of-stream-only
+guardrail enforcement sets it `false`. Examples below that
 use a customer model are marked accordingly.
 
 All business endpoints accept:

@@ -25,3 +25,7 @@ This project is implemented from the platform behavior described in the README, 
 - OpenCost: https://www.opencost.io/docs/
 - redis-py package release history: https://pypi.org/project/redis/
 - restore-drill: https://github.com/RamazanKara/restore-drill
+- OWASP Top 10 for LLM Applications 2025: https://genai.owasp.org/llm-top-10/
+- NIST AI Risk Management Framework 1.0: https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10
+- NIST Generative AI Profile (NIST AI 600-1): https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence
+- EU Artificial Intelligence Act (Regulation (EU) 2024/1689): https://eur-lex.europa.eu/eli/reg/2024/1689/oj

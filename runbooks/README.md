@@ -8,7 +8,7 @@ Operational procedures, incident playbooks, and governance runbooks for Private 
 | --- | --- |
 | [Validation toolchain](validation-toolchain.md) | Install and verify the local/strict validation CLIs |
 | [Upgrade & rollback](upgrade.md) | Promote a new release tag, test before promote, and roll back |
-| [GPU capacity](gpu-capacity.md) | GPU scheduling, sizing estimates, and tensor-parallel tuning |
+| [GPU capacity](gpu-capacity.md) | GPU scheduling diagnostics and capacity validation |
 | [Policy-blocked deploy](policy-blocked-deploy.md) | Diagnose and resolve Kyverno-blocked deployments |
 | [Agent workspaces](agent-workspaces.md) | Design and operate locked-down coding-agent workspaces |
 | [Tenant labs](tenant-labs.md) | Onboard a tenant lab with quotas, egress, and isolation |
