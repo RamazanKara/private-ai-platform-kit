@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Reproducible terminal cut for the README audit-verify GIF (recorded via
-# scripts/demo-audit-verify.tape). Unlike a scripted mock, this runs the REAL
-# scripts/audit-verify.py against the committed sample gateway log, so every line
-# is genuine tool output: a clean chain verifies, a tampered receipt is caught, and
-# a head anchor catches a rolled-back (truncated) log. Run it yourself with
+# Reproducible audit-verification demo. It runs scripts/audit-verify.py against the
+# committed sample gateway log: a clean chain verifies, a tampered receipt is caught,
+# and a head anchor catches a rolled-back (truncated) log. Run it yourself with
 # `make audit-verify-demo`; point `make audit-verify AUDIT_LOG=...` at real pod logs.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

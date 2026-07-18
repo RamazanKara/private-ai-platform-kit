@@ -27,7 +27,7 @@ Contents: namespace `agent-sandbox-system`, controller Deployment
 2. Record SHA-256 checksums in this file; update the pin in
    `docs/version-matrix.md`.
 3. Re-verify the CRD spec fields the kit depends on (see the
-   [integration design](../../../docs/agent-sandbox-integration.md),
-   "Upstream summary"); the API is `v1beta1` and may still change.
+   [integration contract](../../../docs/agent-sandbox-integration.md)); the API is
+   `v1beta1` and may still change.
 4. Follow `runbooks/release-verification.md` before promoting to customer
    profiles.

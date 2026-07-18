@@ -1,8 +1,9 @@
-# Project Proof
+# Evidence and validation
 
-This page records what the project can prove from the repository and what must be regenerated for a real release or customer handoff.
+This page separates repository checks and sample report shapes from evidence that must be regenerated
+for a release or customer handoff.
 
-## Current Proof Sources
+## Current checks
 
 - `make validate` checks service tests, Helm rendering, contracts, governance, evidence inputs, release gates with sample fallback, and repo hygiene.
 - `make validate-full` requires the strict validation toolchain: kubeconform, Kyverno CLI, restore-drill, k6, Syft, Argo CD CLI, Cosign, and Trivy.
@@ -12,7 +13,7 @@ This page records what the project can prove from the repository and what must b
 - `make release-gate-strict` rejects checked-in sample evidence and stale evidence.
 - GitHub Actions publish Cosign signatures, SLSA build provenance attestations, SBOM attestations, and OpenSSF Scorecard SARIF for public release review.
 
-## Release Evidence
+## Release evidence
 
 For release reviews, attach or link:
 
@@ -21,7 +22,7 @@ For release reviews, attach or link:
 - Current eval, load, restore, toolchain, SLO, quota, egress, retention, model-provenance, evidence-pack, and supply-chain reports under `results/`
 - SBOMs, SARIF files, checksums, signed image digests, provenance attestations, SBOM attestations, and Scorecard findings from GitHub Actions
 
-## Supported Tool Versions
+## Supported tool versions
 
 The source of truth is [platform/tools/validation-toolchain.yaml](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml). Run:
 
@@ -29,8 +30,9 @@ The source of truth is [platform/tools/validation-toolchain.yaml](https://github
 make toolchain-report TOOLCHAIN_PROFILE=strict
 ```
 
-The generated JSON and Markdown reports show which tools were present, missing, and used for proof.
+The generated JSON and Markdown reports show which tools were present, missing, and used for the
+validation run.
 
-## What Sample Evidence Means
+## What sample evidence means
 
 Checked-in files named `sample-*` prove report shape and gate behavior. They do not prove the current release. Strict gates must use freshly generated non-sample artifacts.

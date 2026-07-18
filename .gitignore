@@ -1,8 +1,10 @@
 .env
 .env.local
 __pycache__/
+*.py[cod]
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 .venv/
 **/.venv/
 .venv-quality/
@@ -30,6 +32,7 @@ results/**/*.log
 /site/
 /docs/runbooks/
 /.venv-docs/
+.DS_Store
 
 # Vendored Helm subchart dependencies (umbrella chart, built at package time)
 /deploy/charts/*/charts/

@@ -289,7 +289,7 @@ def test_invalid_guardrail_and_cache_settings_raise(overrides):
 
 def test_output_guardrail_applies_to_batch_items():
     # The guardrail is endpoint-independent: /v1/batch-inference must not be a bypass around
-    # the redact policy that /v1/chat/completions enforces (OWASP LLM02/LLM06).
+    # the redact policy that /v1/chat/completions enforces (OWASP LLM02:2025/LLM05:2025).
     client, _ = _client(
         _settings(output_guardrail_enabled=True, output_guardrail_mode="redact"),
         response=_chat_response(f"batch leak {GITHUB_TOKEN} end"),

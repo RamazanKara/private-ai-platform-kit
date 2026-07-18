@@ -35,7 +35,7 @@ This threat model covers the local lab and customer-owned Kubernetes deployment 
 - Prompt and query audit redaction with length and SHA-256 fingerprints.
 - Model allowlists, admission limits, prompt secret detection, and sandbox budgets.
 - Output-side guardrail: model completions are inspected for leaked credentials/PII/blocked
-  content and flagged, redacted, or blocked before return (OWASP LLM02/LLM06).
+  content and flagged, redacted, or blocked before return (OWASP LLM02:2025/LLM05:2025).
 - Default-deny NetworkPolicies and catalog-backed external egress.
 - Hardened agent-sandbox workspace runtime, the standard and only workspace runtime (ADR 0009,
   ADR 0010): controller-managed sandbox pods with no service-account token, read-only root

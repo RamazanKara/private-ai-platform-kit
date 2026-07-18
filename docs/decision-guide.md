@@ -1,59 +1,42 @@
-# Decision Guide
+# Decision guide
 
-Private AI Platform Kit is for teams that want a private AI operating model on Kubernetes, not only a model runtime.
+This project is a reasonable fit when the team already owns Kubernetes and wants the gateway, retrieval, workspace, policy, and validation pieces kept in one repository.
 
-## Best Fit
+## Good fit
 
-Use this project when you need:
+Consider it when all of these are true:
 
-- Local-first validation that can graduate to customer-owned Kubernetes.
-- OpenAI-compatible private chat-completion traffic through a controlled gateway.
-- Ollama for local labs and vLLM profiles for NVIDIA or AMD GPU clusters.
-- RAG, coding-agent workspaces, sandbox tracing, budgets, egress approvals, model governance, SLOs, restore drills, and release evidence in one repo.
-- Provider-neutral GitOps and Helm surfaces instead of cloud-specific Terraform.
+- model traffic must run through a customer-controlled Kubernetes environment;
+- a platform team can own Helm, Argo CD, networking, storage, secrets, and on-call work;
+- Ollama is useful for the local path and vLLM matches the intended GPU runtime;
+- coding-agent workspaces need namespace, RBAC, quota, and egress controls;
+- API/config contracts and repeatable validation reports are useful handoff artifacts;
+- the team is willing to adapt the reference values rather than deploy them unchanged.
 
-## Poor Fit
+## Poor fit
 
-Choose another path when you need:
+Use a smaller or managed solution when the main need is:
 
-- A hosted AI gateway with managed identity, billing, and support.
-- A single-machine personal Ollama setup.
-- A general-purpose distributed training or batch inference platform.
-- Cloud infrastructure provisioning as the primary deliverable.
-- Production support without owning Kubernetes operations.
+- one model on one machine;
+- a hosted API with managed identity, billing, and support;
+- cloud infrastructure provisioning;
+- distributed training;
+- broad provider routing or full upstream API compatibility;
+- a production platform without a Kubernetes operations team.
 
-## Comparison
+If you only need model serving, deploy the chosen runtime directly. If you only need an API gateway, use a gateway product. This repository is useful when the integration and operating model are the point.
 
-The kit is not the best tool for every job. Several mature open-source projects do parts of this better, and you should reach for them when their focus matches your need.
+## Questions to answer before a trial
 
-| Option | Does better than this kit | Tradeoff versus this kit |
-| --- | --- | --- |
-| Private AI Platform Kit | End-to-end operating model: gateway, RAG, coding-agent tenancy, governance, and release evidence in one repo. | Requires Kubernetes, Helm, and platform ownership; opinionated rather than a drop-in library. |
-| Plain Ollama or vLLM chart | Fastest way to serve a single model with the least moving parts. | Leaves auth, budgets, evidence, tenant isolation, RAG, and operations to you. |
-| [LiteLLM](https://github.com/BerriAI/litellm) | Far broader provider/model routing, a polished proxy, and richer per-key spend tracking and rate limiting out of the box. | Is a gateway/proxy, not a full Kubernetes operating model: no bundled RAG, tenant isolation manifests, or release-evidence pipeline. |
-| [BentoML / OpenLLM](https://github.com/bentoml/OpenLLM) | Smoother model packaging and serving developer experience, with flexible Python service composition and autoscaling. | Centered on serving and packaging, not locked-down multi-tenant cluster operations, egress governance, or customer-handoff evidence. |
-| [KServe](https://github.com/kserve/kserve) | More general, standards-based model serving (multi-framework, canary, payload logging) at large scale on Kubernetes. | Heavier and lower-level; you still assemble the gateway policy, RAG, budgets, and evidence story yourself. |
-| [KubeAI](https://github.com/substratusai/kubeai) | Simpler, more turnkey Kubernetes model serving with built-in OpenAI-compatible endpoints and autoscaling, including scale-from-zero. | Focuses on serving and scaling, so it does not include the same governance, evidence, tenant-isolation, and customer-handoff controls. |
-| [Ray Serve](https://github.com/ray-project/ray) | Strong distributed serving and Python-native scaling for custom multi-model pipelines. | Less focused on locked-down Kubernetes tenant operations and evidence packs. |
-| Hosted gateway (managed SaaS) | Low operational burden, managed identity, billing, and support. | Data, control plane, and model-routing policy usually leave the customer-owned boundary. |
+1. Which models and exact artifact revisions will be served?
+2. Does the target cluster have enough GPU memory, storage, and a NetworkPolicy-capable CNI?
+3. Who supplies ingress, identity, secrets, TLS, observability, backups, and incident response?
+4. How will tenant identity be bound to `X-Sandbox-ID` at both the gateway and RAG service?
+5. Which egress destinations are required by agents, image pulls, model downloads, Git, and package mirrors?
+6. Which current eval, load, restore, and security evidence is required before handoff?
 
-## Architecture Support
+The [capacity worksheet](capacity-sizing.md), [customer deployment guide](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/README.md), and [production readiness matrix](production-readiness.md) cover those decisions.
 
-Container images are published multi-arch (`linux/amd64` and `linux/arm64`), so the kit runs unchanged on Apple Silicon developer laptops and on arm64 nodes (AWS Graviton, Azure/GCP Ampere) as well as x86_64 clusters.
+## Maturity
 
-## Agent Workspace Isolation
-
-Coding-agent workspaces run on the hardened kubernetes-sigs/agent-sandbox runtime, which is the
-standard and only runtime (ADR 0010). The controller is a platform prerequisite (installed by the
-`agent-sandbox-controller` Application or `make agent-sandbox-install`); workspaces get a
-controller-managed sandbox pod with no ambient credentials and a short-lived, audience-bound
-platform token instead of long-lived secrets. The one environment-dependent choice left is the
-kernel-isolation runtime class: set `sandbox.runtimeClassName` (e.g. gVisor) where the cluster
-provides one, which is expected at the `high` risk tier (`C-ISOLATE`). NetworkPolicy enforcement requires
-a policy-capable CNI; the local lab defaults to pinned Calico, and
-`make agent-sandbox-smoke` rejects non-enforcing kindnet instead of recording a vacuous pass. See [agent-sandbox-integration.md](agent-sandbox-integration.md), ADR 0009,
-and ADR 0010.
-
-## Maturity Position
-
-The project is usable as a reference implementation and local/customer lab. Treat production use as a controlled handoff: replace sample evidence with current evidence, wire customer identity and secrets, size runtime capacity, move the bundled single-node stateful stores (budget Redis, Qdrant, Loki) to their external/HA path ([production readiness matrix](production-readiness.md)), validate backups, and run strict release gates.
+The local path is an executable lab. The customer path is a template. The bundled Redis, Qdrant, and Loki footprints are not HA services, transport encryption is off by default, and the checked-in customer values contain integration placeholders. Treat a production deployment as its own engineering and acceptance project.

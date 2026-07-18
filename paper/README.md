@@ -1,7 +1,10 @@
-# Artifact
+# Paper reproducibility artifact
 
 Harness and tools that produce the paper's measurable claims. All of it drives the
 runnable `private-ai-platform-kit` gateway as an external process.
+
+The recorded results belong to the `v1.1.0-paper` tag. Use that tag when reproducing the
+published numbers; the current release may have different code and performance.
 
 ## cost-of-compliance/
 

@@ -1,24 +1,20 @@
 """OpenAI-compatible inference gateway with auth, admission, budgets, and runtime routing."""
 
 import asyncio
-import hashlib
-import hmac
 import json
 import logging
 import os
 import random
-import re
 from dataclasses import replace
 from time import perf_counter, time
-from typing import Any, Literal
+from typing import Any
 from uuid import uuid4
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
-from pydantic import BaseModel, ConfigDict
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.audit import AUDIT_GENESIS, chain_audit_event, payload_fingerprint
@@ -32,23 +28,71 @@ from app.budget import (
     build_sandbox_budget_tracker,
 )
 from app.cache import build_response_cache, cache_key
-from app.jwt_auth import JwksUnavailableError, JwtAuthError, JwtVerifier
-from app.key_records import KeyRecord, KeyRecordSet, key_record_effective_budget_updates
+from app.guardrails import _apply_output_guardrail, _apply_prompt_secret_mode
+from app.jwt_auth import JwksUnavailableError, JwtVerifier
+from app.key_records import KeyRecordSet, key_record_effective_budget_updates
 from app.messages import (
     MessagesRequest,
     anthropic_to_chat_payload,
     chat_completion_to_anthropic,
 )
+from app.metrics import (
+    ADMISSION_REJECTIONS,
+    CACHE_LOOKUPS,
+    CANARY_ROUTED,
+    ESTIMATED_COST,
+    INFLIGHT,
+    LATENCY,
+    OUTPUT_GUARDRAIL,
+    RATE_LIMIT_FAIL_OPEN,
+    REQUESTS,
+    RUNTIME_FALLBACKS,
+    SANDBOX_BUDGET_LIMIT,
+    SANDBOX_BUDGET_USAGE,
+    SANDBOX_REQUESTS,
+    TOKEN_USAGE,
+)
+from app.metrics import (
+    sandbox_label as _sandbox_label,
+)
 from app.objectstore import build_object_store
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
+from app.request_context import (
+    ApiKeyOutcome,
+    _api_key_principal,
+    _auth_failure_response,
+    _auth_required,
+    _bound_sandbox_id,
+    _error_envelope,
+    _install_openapi_contract,
+    _jwks_unavailable_response,
+    _jwt_principal,
+    _overloaded_response,
+    _rate_limit_backend_unavailable_response,
+    _rate_limited_response,
+    _request_id_from_header,
+    _resolve_api_key,
+    _runtime_headers,
+    _sandbox_binding_response,
+    _traceparent_from_header,
+    _valid_jwt,
+)
 from app.response_store import StoredResponse, build_response_store
 from app.responses import (
     ResponsesRequest,
     chat_completion_to_responses,
     responses_to_chat_payload,
 )
-from app.runtime_client import REDACTED_MESSAGE_FIELDS, RuntimeClient
+from app.runtime_client import RuntimeClient
+from app.runtime_routing import _is_failover_worthy, _open_stream_with_fallback, _schedule_shadow
+from app.schemas import (
+    BatchRequest,
+    ChatCompletionRequest,
+    CompletionRequest,
+    EmbeddingsRequest,
+    ModerationRequest,
+)
 from app.settings import (
     AdmissionPolicyError,
     Settings,
@@ -56,14 +100,18 @@ from app.settings import (
     moderate_text,
     validate_sandbox_id,
 )
+from app.streaming import (
+    _rewrite_stream_segment,
+    _terminal_stream_error_event,
+    _usage_from_sse_chunk,
+)
 from app.tracing import configure_tracing, trace_request
 
 _chain_audit_event = chain_audit_event
 _payload_fingerprint = payload_fingerprint
 
 AUDIT_LOGGER = logging.getLogger("ai_platform_ops_lab.audit")
-TRACEPARENT_PATTERN = re.compile(r"^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$")
-SERVICE_VERSION = "0.27.0"
+SERVICE_VERSION = "0.27.1"
 OPENAPI_DESCRIPTION = (
     "OpenAI-compatible private inference gateway with sandbox traceability, "
     "admission controls, budget enforcement, redacted audit events, and "
@@ -76,705 +124,9 @@ OPENAPI_TAGS = [
     {"name": "inference", "description": "OpenAI-compatible inference endpoints."},
 ]
 
-REQUESTS = Counter(
-    "inference_gateway_requests_total",
-    "Total inference gateway requests by route, backend, and status.",
-    ["route", "backend", "status"],
-)
-LATENCY = Histogram(
-    "inference_gateway_request_duration_seconds",
-    "Inference gateway request latency by route and backend.",
-    ["route", "backend"],
-    buckets=(0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120),
-)
-SANDBOX_REQUESTS = Counter(
-    "inference_gateway_sandbox_requests_total",
-    "Total inference gateway requests by sandbox, backend, and status.",
-    ["sandbox", "backend", "status"],
-)
-TOKEN_USAGE = Counter(
-    "inference_gateway_tokens_total",
-    "Runtime-reported token usage by backend and token type.",
-    ["backend", "token_type"],
-)
-ADMISSION_REJECTIONS = Counter(
-    "inference_gateway_admission_rejections_total",
-    "Inference requests rejected by gateway admission policy.",
-    ["reason", "backend", "sandbox"],
-)
-SANDBOX_BUDGET_USAGE = Gauge(
-    "inference_gateway_sandbox_budget_usage",
-    "Current sandbox budget usage by budget type.",
-    ["sandbox", "budget_type"],
-)
-SANDBOX_BUDGET_LIMIT = Gauge(
-    "inference_gateway_sandbox_budget_limit",
-    "Configured sandbox budget limit by budget type. Zero means unlimited.",
-    ["sandbox", "budget_type"],
-)
-AUTH_FAILURES = Counter(
-    "inference_gateway_auth_failures_total",
-    "Total gateway authentication failures by route and reason.",
-    ["route", "reason"],
-)
-RATE_LIMITED = Counter(
-    "inference_gateway_rate_limited_total",
-    "Total gateway requests rejected by the per-sandbox rate limiter.",
-    ["sandbox"],
-)
-RATE_LIMIT_FAIL_OPEN = Counter(
-    "inference_gateway_rate_limit_fail_open_total",
-    "Requests admitted without a rate-limit check because the backend was down and "
-    "RATE_LIMIT_FAIL_OPEN is enabled (deliberate availability-over-enforcement fallback).",
-    ["sandbox"],
-)
-RUNTIME_FALLBACKS = Counter(
-    "inference_gateway_runtime_fallbacks_total",
-    "Total times a request failed over from one runtime route to a fallback.",
-    ["from_backend", "to_backend"],
-)
-LOAD_SHED = Counter(
-    "inference_gateway_load_shed_total",
-    "Total requests rejected by the gateway concurrency limit (load shedding).",
-    ["route"],
-)
-INFLIGHT = Gauge(
-    "inference_gateway_inflight_requests",
-    "Current number of in-flight gateway requests subject to the concurrency limit.",
-)
-CACHE_LOOKUPS = Counter(
-    "inference_gateway_response_cache_total",
-    "Response cache lookups by result.",
-    ["result"],
-)
-CANARY_ROUTED = Counter(
-    "inference_gateway_canary_routed_total",
-    "Requests routed to a canary model by weighted progressive delivery.",
-    ["from_model", "to_model"],
-)
-SHADOW_REQUESTS = Counter(
-    "inference_gateway_shadow_requests_total",
-    "Shadow (mirrored) requests sent fire-and-forget to a shadow model.",
-    ["backend", "result"],
-)
-OUTPUT_GUARDRAIL = Counter(
-    "inference_gateway_output_guardrail_total",
-    "Model completions acted on by the output guardrail, by action and surface.",
-    ["action", "route"],
-)
-PROMPT_GUARDRAIL = Counter(
-    "inference_gateway_prompt_guardrail_total",
-    "Prompts acted on by the input secret guardrail in redact/flag mode, by action and surface.",
-    ["action", "route"],
-)
-ESTIMATED_COST = Counter(
-    "inference_gateway_estimated_cost_usd_total",
-    "Estimated monetary cost of runtime usage by sandbox and backend (USD_PER_1K_TOKENS model).",
-    ["sandbox", "backend"],
-)
-
-# Bound the distinct sandbox label values this process will emit. Sandbox ids are
-# client-asserted (up to 63 free-form chars) unless JWT tenant binding is enabled, so
-# without a bound a scripted client cycling X-Sandbox-ID values could mint unbounded
-# Prometheus series. The cap comfortably exceeds a real tenant fleet; ids past it are
-# still served and audited under their real id but collapse into one overflow label.
-_MAX_SANDBOX_LABEL_VALUES = 2000
-_SANDBOX_LABEL_VALUES: set[str] = set()
-_SANDBOX_LABEL_OVERFLOW = "__other__"
-
-
-def _sandbox_label(sandbox_id: str) -> str:
-    """Return the sandbox metric label, collapsing past the cardinality bound."""
-    if sandbox_id in _SANDBOX_LABEL_VALUES:
-        return sandbox_id
-    if len(_SANDBOX_LABEL_VALUES) < _MAX_SANDBOX_LABEL_VALUES:
-        _SANDBOX_LABEL_VALUES.add(sandbox_id)
-        return sandbox_id
-    return _SANDBOX_LABEL_OVERFLOW
-
 
 # OpenAI-shaped error taxonomy: map the HTTP status the gateway returns to the
 # ``error.type`` string OpenAI SDKs branch on (e.g. ``openai.RateLimitError`` keys off
-# ``rate_limit_error``). Statuses absent here fall back in ``_error_type``.
-_ERROR_TYPE_BY_STATUS = {
-    400: "invalid_request_error",
-    401: "authentication_error",
-    403: "permission_error",
-    404: "not_found_error",
-    409: "conflict_error",
-    413: "invalid_request_error",
-    422: "invalid_request_error",
-    429: "rate_limit_error",
-}
-
-
-def _error_type(status: int) -> str:
-    """Return the OpenAI ``error.type`` for a status: mapped, else 5xx→api_error/4xx-ish."""
-    mapped = _ERROR_TYPE_BY_STATUS.get(status)
-    if mapped is not None:
-        return mapped
-    return "api_error" if status >= 500 else "invalid_request_error"
-
-
-def _error_envelope(status_code: int, detail: Any) -> dict[str, Any]:
-    """Reshape a gateway error body into an OpenAI-style envelope, preserving ``detail``.
-
-    Returns ``{"error": {message, type, code?, request_id?, sandbox_id?}, "detail": <detail>}``.
-    The original ``detail`` payload is kept alongside for one release so existing consumers
-    that read ``detail.reason`` keep working while callers migrate to the ``error`` object.
-    When ``detail`` is a mapping the machine ``reason`` becomes ``error.code`` and the
-    request/sandbox identifiers are copied up so an SDK sees them without reaching into
-    ``detail``.
-    """
-    if isinstance(detail, dict):
-        message = detail.get("message") or detail.get("reason") or "request failed"
-        error: dict[str, Any] = {"message": str(message), "type": _error_type(status_code)}
-        reason = detail.get("reason")
-        if reason:
-            error["code"] = reason
-        for field in ("request_id", "sandbox_id"):
-            value = detail.get(field)
-            if value is not None:
-                error[field] = value
-    else:
-        error = {"message": str(detail), "type": _error_type(status_code)}
-    return {"error": error, "detail": detail}
-
-
-def _schedule_shadow(client: RuntimeClient, shadow_route: Any, payload_dict: dict[str, Any], request: Request) -> None:
-    """Fire a mirrored request to the shadow model, discarding its response and errors.
-
-    Runs as a detached task so it never adds latency to or fails the caller's request;
-    used to evaluate a candidate model on real traffic before promotion.
-    """
-    shadow_payload = dict(payload_dict)
-    shadow_payload["model"] = shadow_route.model_id
-    shadow_payload.pop("stream", None)
-    headers = _runtime_headers(request)
-
-    async def _run() -> None:
-        try:
-            await client.chat_completions(shadow_payload, headers=headers, backend=shadow_route.backend)
-            SHADOW_REQUESTS.labels(shadow_route.backend, "ok").inc()
-        except Exception:
-            SHADOW_REQUESTS.labels(shadow_route.backend, "error").inc()
-
-    # Hold a strong reference until completion so the detached task is not GC'd mid-flight.
-    tasks: set[asyncio.Task[None]] = request.app.state.background_tasks
-    task = asyncio.ensure_future(_run())
-    tasks.add(task)
-    task.add_done_callback(tasks.discard)
-
-
-def _is_failover_worthy(exc: Exception) -> bool:
-    """Return whether an upstream failure should trigger a fallback to the next route.
-
-    Connection/transport errors and an open circuit always fail over; an HTTP status
-    error fails over only for retryable server-side statuses (5xx/429), never a client
-    error like 400/404 that the next runtime would also reject.
-    """
-    if isinstance(exc, httpx.HTTPStatusError):
-        return exc.response.status_code >= 500 or exc.response.status_code == 429
-    return isinstance(exc, httpx.HTTPError)
-
-
-async def _open_stream_with_fallback(
-    client: RuntimeClient,
-    chain: list[Any],
-    payload_dict: dict[str, Any],
-    request: Request,
-) -> tuple[Any, str, str, bytes | None]:
-    """Open a chat stream, failing over to the next route on a pre-first-byte error.
-
-    Returns the live stream generator, the backend and model id that served it, and the
-    primed first chunk (``None`` for an empty stream). Once the first chunk is returned
-    the response is committed; later failures are handled by the stream body itself.
-    """
-    last_exc: httpx.HTTPError | None = None
-    for index, candidate in enumerate(chain):
-        attempt = dict(payload_dict)
-        attempt["model"] = candidate.model_id
-        candidate_stream = client.stream_chat_completions(
-            attempt,
-            headers=_runtime_headers(request),
-            backend=candidate.backend,
-        )
-        try:
-            first_chunk = await candidate_stream.__anext__()
-        except StopAsyncIteration:
-            return candidate_stream, candidate.backend, candidate.model_id, None
-        except httpx.HTTPError as exc:
-            await candidate_stream.aclose()
-            last_exc = exc
-            if _is_failover_worthy(exc) and index + 1 < len(chain):
-                RUNTIME_FALLBACKS.labels(candidate.backend, chain[index + 1].backend).inc()
-                continue
-            raise
-        return candidate_stream, candidate.backend, candidate.model_id, first_chunk
-    raise last_exc or RuntimeError("no runtime route available")
-
-
-class Message(BaseModel):
-    """A single chat message with an OpenAI-style role and content.
-
-    ``content`` accepts a plain string, an OpenAI-style content-part array (text
-    and ``image_url`` parts, enabling vision-capable runtimes), or ``null`` for an
-    assistant turn that only carries ``tool_calls``. ``extra="allow"`` lets any
-    additional OpenAI message fields pass through to the runtime unchanged.
-    """
-
-    model_config = ConfigDict(extra="allow")
-
-    role: Literal["system", "developer", "user", "assistant", "tool", "function"]
-    content: str | list[dict[str, Any]] | None = None
-    name: str | None = None
-    tool_calls: list[dict[str, Any]] | None = None
-    tool_call_id: str | None = None
-
-
-class ChatCompletionRequest(BaseModel):
-    """Request body for an OpenAI-compatible chat completion call.
-
-    Tool/function-calling and structured-output fields are modelled explicitly so
-    they survive ``model_dump`` to the runtime (the flagship coding-agent path),
-    and ``extra="allow"`` forwards any other OpenAI sampling parameter (``top_p``,
-    ``stop``, ``seed``, ``stream_options``, ...) verbatim instead of silently
-    dropping it.
-    """
-
-    model_config = ConfigDict(extra="allow")
-
-    model: str | None = None
-    messages: list[Message]
-    temperature: float | None = None
-    max_tokens: int | None = None
-    stream: bool | None = False
-    tools: list[dict[str, Any]] | None = None
-    tool_choice: str | dict[str, Any] | None = None
-    functions: list[dict[str, Any]] | None = None
-    function_call: str | dict[str, Any] | None = None
-    response_format: dict[str, Any] | None = None
-
-
-class EmbeddingsRequest(BaseModel):
-    """Request body for an OpenAI-compatible embeddings call.
-
-    Routing embeddings through the gateway (rather than calling a separate embedding
-    service directly) subjects them to the same auth, model allowlist, budget, and
-    audit controls as chat completions. ``extra="allow"`` forwards provider params
-    such as ``dimensions`` or ``encoding_format`` unchanged.
-    """
-
-    model_config = ConfigDict(extra="allow")
-
-    model: str | None = None
-    input: str | list[str]
-
-
-class CompletionRequest(BaseModel):
-    """Request body for an OpenAI-compatible legacy text completion call.
-
-    The pre-chat ``/v1/completions`` API takes a ``prompt`` (a string or list of strings)
-    rather than ``messages``. Routing it through the gateway subjects legacy-completion
-    traffic to the same auth, allowlist, admission, budget, and audit controls as chat.
-    ``extra="allow"`` forwards any other OpenAI sampling parameter to the runtime verbatim.
-    """
-
-    model_config = ConfigDict(extra="allow")
-
-    model: str | None = None
-    prompt: str | list[str]
-    max_tokens: int | None = None
-    stream: bool | None = False
-
-
-class ModerationRequest(BaseModel):
-    """Request body for an OpenAI-compatible moderations call."""
-
-    model_config = ConfigDict(extra="allow")
-
-    input: str | list[str]
-    model: str | None = None
-
-
-class BatchRequest(BaseModel):
-    """A batch of chat-completion requests processed in one call.
-
-    Each item runs through the same auth (the batch is one authenticated request), model
-    allowlist, admission, and budget controls; items are processed concurrently and the
-    response reports per-item success or error so one bad item does not fail the batch.
-    """
-
-    model_config = ConfigDict(extra="allow")
-
-    requests: list[ChatCompletionRequest]
-
-
-def _request_id_from_header(request: Request) -> str:
-    """Return a validated X-Request-ID header value, generating a UUID when absent."""
-    request_id = request.headers.get("x-request-id", "").strip()
-    if not request_id:
-        return str(uuid4())
-    # Visible ASCII only: the value is echoed into the X-Request-ID response header,
-    # where control bytes would be rejected at write time (an unhandled 500).
-    if len(request_id) > 128 or any(not (33 <= ord(char) <= 126) for char in request_id):
-        raise ValueError("X-Request-ID must be 1-128 visible ASCII characters without spaces")
-    return request_id
-
-
-def _traceparent_from_header(request: Request) -> str | None:
-    """Return the validated W3C ``traceparent`` header, or None when not provided."""
-    traceparent = request.headers.get("traceparent")
-    if traceparent is None:
-        return None
-    traceparent = traceparent.strip().lower()
-    if not TRACEPARENT_PATTERN.fullmatch(traceparent):
-        raise ValueError("traceparent must use W3C trace context format")
-    return traceparent
-
-
-def _runtime_headers(request: Request) -> dict[str, str]:
-    """Build the trace-propagation headers forwarded to the runtime backend."""
-    headers = {
-        "X-Request-ID": request.state.request_id,
-        "X-Sandbox-ID": request.state.sandbox_id,
-    }
-    if request.state.traceparent:
-        headers["traceparent"] = request.state.traceparent
-    baggage = request.headers.get("baggage")
-    if baggage:
-        headers["baggage"] = baggage
-    return headers
-
-
-def _auth_required(path: str) -> bool:
-    """Return whether the given request path requires authentication."""
-    # /readyz must stay unauthenticated alongside /healthz: it is the Kubernetes
-    # readiness probe, and the kubelet cannot present an API key, so requiring
-    # auth here makes the pod never become Ready when API-key auth is enabled.
-    # /console/* is the static admin console (ADR 0013): the page is public HTML/JS; the API
-    # calls it makes to /v1/* carry the operator's key and are governed like any other request.
-    return path not in {"/healthz", "/readyz", "/metrics", "/docs", "/openapi.json"} and not path.startswith("/console")
-
-
-def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
-    """Attach bearer/API-key security schemes to the app's generated OpenAPI schema."""
-    default_openapi = app.openapi
-
-    def custom_openapi() -> dict[str, Any]:
-        if app.openapi_schema:
-            return app.openapi_schema
-        schema = default_openapi()
-        components = schema.setdefault("components", {})
-        security_schemes = components.setdefault("securitySchemes", {})
-        security_schemes["BearerAuth"] = {
-            "type": "http",
-            "scheme": "bearer",
-            "description": "Bearer token accepted by gateway middleware when API key authentication is enabled.",
-        }
-        security_schemes["ApiKeyAuth"] = {
-            "type": "apiKey",
-            "in": "header",
-            "name": settings.api_key_header,
-            "description": "API key header accepted by gateway middleware when API key authentication is enabled.",
-        }
-        for path, operations in schema.get("paths", {}).items():
-            if not _auth_required(path):
-                continue
-            for method, operation in operations.items():
-                if method.lower() in {"get", "post", "put", "patch", "delete"}:
-                    operation["security"] = [{"BearerAuth": []}, {"ApiKeyAuth": []}]
-        app.openapi_schema = schema
-        return app.openapi_schema
-
-    app.openapi = custom_openapi  # type: ignore[method-assign]
-
-
-def _api_key_from_request(request: Request, settings: Settings) -> str | None:
-    """Extract the API key from the bearer token or configured API-key header."""
-    authorization = request.headers.get("authorization", "").strip()
-    if authorization.lower().startswith("bearer "):
-        token = authorization[7:].strip()
-        if token:
-            return token
-    api_key = request.headers.get(settings.api_key_header)
-    if api_key:
-        return api_key.strip()
-    return None
-
-
-def _api_key_digest(request: Request, settings: Settings) -> str | None:
-    """Return the lowercase hex SHA-256 of the presented API key, or None when absent."""
-    api_key = _api_key_from_request(request, settings)
-    if not api_key:
-        return None
-    return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
-
-
-def _matches_flat_key(digest: str, settings: Settings) -> bool:
-    """Return whether the digest matches a flat ``api_key_sha256s`` hash (constant time)."""
-    matched = False
-    for expected in settings.api_key_sha256s:
-        # Compare every entry (no early return) so the match does not leak, via timing,
-        # which flat hash matched or how many precede it.
-        if hmac.compare_digest(digest, expected):
-            matched = True
-    return matched
-
-
-class ApiKeyOutcome:
-    """Result of resolving a presented API key against flat hashes and key records.
-
-    ``valid`` is True when the key matched either a flat hash or a non-expired record.
-    ``record`` is the matched :class:`KeyRecord` (records carry binding/scope/budget),
-    or None for a flat-hash match. ``expired`` is True when the key matched a record
-    whose expiry has passed - a distinct 401 reason from an unrecognized key.
-    """
-
-    __slots__ = ("expired", "record", "valid")
-
-    def __init__(self, valid: bool, record: KeyRecord | None, expired: bool) -> None:
-        self.valid = valid
-        self.record = record
-        self.expired = expired
-
-
-def _resolve_api_key(request: Request, settings: Settings, record_set: KeyRecordSet) -> ApiKeyOutcome:
-    """Resolve the presented API key against key records and flat hashes.
-
-    Records take precedence over the flat allowlist: a digest that matches a record is
-    always governed by that record's binding/scopes/expiry, even if the same digest is
-    also flat-listed - so hardening a flat key by adding a binding record can never be
-    silently voided by leaving the flat entry in place. A flat-only match authenticates
-    as an unbound principal. An expired record is rejected (never fails open to unbound).
-    The digest is computed once and compared in constant time by each source.
-    """
-    digest = _api_key_digest(request, settings)
-    if digest is None:
-        return ApiKeyOutcome(valid=False, record=None, expired=False)
-    record = record_set.match(digest)
-    if record is not None:
-        if record.is_expired(time()):
-            return ApiKeyOutcome(valid=False, record=record, expired=True)
-        return ApiKeyOutcome(valid=True, record=record, expired=False)
-    if _matches_flat_key(digest, settings):
-        return ApiKeyOutcome(valid=True, record=None, expired=False)
-    return ApiKeyOutcome(valid=False, record=None, expired=False)
-
-
-async def _valid_jwt(request: Request, verifier: JwtVerifier) -> dict[str, Any] | None:
-    """Return the verified JWT claims, or ``None`` when the token is absent/invalid.
-
-    Returning the claims (rather than a bool) lets the caller propagate the
-    authenticated principal into request state and the audit trail. Propagates
-    :class:`JwksUnavailableError` so the caller can distinguish an unreachable
-    issuer (503) from a rejected token (401).
-    """
-    authorization = request.headers.get("authorization", "").strip()
-    if not authorization.lower().startswith("bearer "):
-        return None
-    token = authorization[7:].strip()
-    if not token or token.count(".") != 2:
-        return None
-    try:
-        return await verifier.verify(token)
-    except (JwtAuthError, httpx.HTTPError):
-        return None
-
-
-def _api_key_principal(request: Request, settings: Settings, record: KeyRecord | None = None) -> dict[str, Any]:
-    """Build a non-reversible audit principal for an API-key caller.
-
-    The key itself is never logged. For a flat-hash key ``key_id`` is a stable digest
-    prefix; for a matched :class:`KeyRecord` it is the record's ``name`` (else its own
-    12-char digest prefix) and the record's scopes and sandbox binding are recorded so
-    audit consumers can attribute the request to the specific issued key.
-    """
-    if record is not None:
-        principal: dict[str, Any] = {"auth": "api_key", "key_id": record.key_id}
-        if record.scopes:
-            principal["scopes"] = sorted(record.scopes)
-        if record.sandbox is not None:
-            principal["bound_sandbox"] = record.sandbox
-        return principal
-    api_key = _api_key_from_request(request, settings) or ""
-    # Non-reversible attribution identifier, not a security control and not password
-    # storage: API keys are high-entropy random tokens, so a digest prefix is a stable
-    # audit handle (usedforsecurity=False marks this a non-cryptographic-control use).
-    digest = hashlib.sha256(api_key.encode("utf-8"), usedforsecurity=False).hexdigest()
-    return {"auth": "api_key", "key_id": digest[:12]}
-
-
-def _jwt_principal(claims: dict[str, Any]) -> dict[str, Any]:
-    """Summarize verified JWT claims into the audit principal (no raw token data)."""
-    principal: dict[str, Any] = {"auth": "jwt"}
-    subject = claims.get("sub")
-    if subject is not None:
-        principal["sub"] = str(subject)
-    client_id = claims.get("azp") or claims.get("client_id")
-    if client_id is not None:
-        principal["client_id"] = str(client_id)
-    issuer = claims.get("iss")
-    if issuer is not None:
-        principal["issuer"] = str(issuer)
-    scopes = JwtVerifier._claim_scopes(claims)
-    if scopes:
-        principal["scopes"] = sorted(scopes)
-    return principal
-
-
-def _bound_sandbox_id(claims: dict[str, Any], claim_name: str) -> str:
-    """Return the sandbox id bound to a JWT tenant claim, raising on missing/invalid.
-
-    Raising surfaces as a 403: when an operator opts into claim binding, a token
-    that lacks the claim or carries a malformed value is not authorized for any
-    sandbox rather than silently falling back to the client-supplied header.
-    """
-    raw = claims.get(claim_name)
-    if raw is None or not str(raw).strip():
-        raise ValueError(f"jwt is missing the tenant claim '{claim_name}'")
-    return validate_sandbox_id(str(raw))
-
-
-def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
-    """Record the failure metric and build the 401 response with trace headers."""
-    AUTH_FAILURES.labels(request.url.path, reason).inc()
-    response = JSONResponse(
-        status_code=401,
-        content=_error_envelope(
-            401,
-            {
-                "message": "authentication required",
-                "reason": reason,
-                "request_id": request.state.request_id,
-                "sandbox_id": request.state.sandbox_id,
-            },
-        ),
-    )
-    response.headers["WWW-Authenticate"] = "Bearer"
-    response.headers["X-Request-ID"] = request.state.request_id
-    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
-    if request.state.traceparent:
-        response.headers["traceparent"] = request.state.traceparent
-    return response
-
-
-def _jwks_unavailable_response(request: Request) -> JSONResponse:
-    """Build a 503 response when the JWKS issuer is unreachable (not a token rejection)."""
-    AUTH_FAILURES.labels(request.url.path, "jwks_unavailable").inc()
-    response = JSONResponse(
-        status_code=503,
-        content=_error_envelope(
-            503,
-            {
-                "message": "authentication is temporarily unavailable",
-                "reason": "jwks_unavailable",
-                "request_id": request.state.request_id,
-                "sandbox_id": request.state.sandbox_id,
-            },
-        ),
-        headers={"Retry-After": "5"},
-    )
-    response.headers["X-Request-ID"] = request.state.request_id
-    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
-    if request.state.traceparent:
-        response.headers["traceparent"] = request.state.traceparent
-    return response
-
-
-def _overloaded_response(request: Request) -> JSONResponse:
-    """Build a 503 response when the gateway concurrency limit is exceeded (load shed)."""
-    LOAD_SHED.labels(request.url.path).inc()
-    response = JSONResponse(
-        status_code=503,
-        content=_error_envelope(
-            503,
-            {
-                "message": "gateway is at capacity; retry shortly",
-                "reason": "concurrency_limit",
-                "request_id": request.state.request_id,
-                "sandbox_id": request.state.sandbox_id,
-            },
-        ),
-        headers={"Retry-After": "1"},
-    )
-    response.headers["X-Request-ID"] = request.state.request_id
-    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
-    if request.state.traceparent:
-        response.headers["traceparent"] = request.state.traceparent
-    return response
-
-
-def _rate_limit_backend_unavailable_response(request: Request) -> JSONResponse:
-    """Build a 503 when the shared rate-limit backend (Redis) is unreachable.
-
-    Mirrors the budget tracker's backend-outage contract: a governance-store outage
-    is a retryable 503, never a silent fail-open or an unhandled 500.
-    """
-    response = JSONResponse(
-        status_code=503,
-        content=_error_envelope(
-            503,
-            {
-                "message": "rate limit backend is unavailable; retry shortly",
-                "reason": "rate_limit_backend_unavailable",
-                "request_id": request.state.request_id,
-                "sandbox_id": request.state.sandbox_id,
-            },
-        ),
-        headers={"Retry-After": "5"},
-    )
-    response.headers["X-Request-ID"] = request.state.request_id
-    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
-    if request.state.traceparent:
-        response.headers["traceparent"] = request.state.traceparent
-    return response
-
-
-def _rate_limited_response(request: Request, retry_after: int) -> JSONResponse:
-    """Build a 429 response with Retry-After when the per-sandbox rate limit is hit."""
-    RATE_LIMITED.labels(_sandbox_label(request.state.sandbox_id)).inc()
-    response = JSONResponse(
-        status_code=429,
-        content=_error_envelope(
-            429,
-            {
-                "message": "rate limit exceeded for this sandbox",
-                "reason": "rate_limited",
-                "request_id": request.state.request_id,
-                "sandbox_id": request.state.sandbox_id,
-            },
-        ),
-    )
-    if retry_after > 0:
-        response.headers["Retry-After"] = str(retry_after)
-    response.headers["X-Request-ID"] = request.state.request_id
-    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
-    if request.state.traceparent:
-        response.headers["traceparent"] = request.state.traceparent
-    return response
-
-
-def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
-    """Build a 403 when a JWT tenant claim is missing/invalid or contradicts the header."""
-    AUTH_FAILURES.labels(request.url.path, reason).inc()
-    response = JSONResponse(
-        status_code=403,
-        content=_error_envelope(
-            403,
-            {
-                "message": "sandbox identity is not authorized for this caller",
-                "reason": reason,
-                "request_id": request.state.request_id,
-                "sandbox_id": request.state.sandbox_id,
-            },
-        ),
-    )
-    response.headers["X-Request-ID"] = request.state.request_id
-    response.headers["X-Sandbox-ID"] = request.state.sandbox_id
-    if request.state.traceparent:
-        response.headers["traceparent"] = request.state.traceparent
-    return response
 
 
 def _record_token_usage(backend: str, runtime_response: dict[str, Any] | None) -> None:
@@ -802,231 +154,6 @@ def _record_estimated_cost(settings: Settings, sandbox_id: str, backend: str, us
     cost = (total_tokens / 1000.0) * settings.usd_per_1k_tokens
     if cost > 0:
         ESTIMATED_COST.labels(_sandbox_label(sandbox_id), backend).inc(cost)
-
-
-def _guardrail_targets(choice: dict[str, Any], legacy_completion: bool) -> list[tuple[str, dict[str, Any], str]]:
-    """Return writable generated-text fields subject to the output policy.
-
-    In addition to visible assistant content, model-generated tool and legacy
-    function arguments are executable output. Scanning those fields closes the
-    path where a credential or denied value could bypass the response guardrail
-    and be handed directly to a tool runner.
-    """
-    if legacy_completion:
-        text = choice.get("text")
-        if not isinstance(text, str) or not text:
-            return []
-        return [(text, choice, "text")]
-    message = choice.get("message")
-    if not isinstance(message, dict):
-        return []
-    targets: list[tuple[str, dict[str, Any], str]] = []
-    content = message.get("content")
-    if isinstance(content, str) and content:
-        targets.append((content, message, "content"))
-    function_call = message.get("function_call")
-    if isinstance(function_call, dict):
-        arguments = function_call.get("arguments")
-        if isinstance(arguments, str) and arguments:
-            targets.append((arguments, function_call, "arguments"))
-    tool_calls = message.get("tool_calls")
-    if isinstance(tool_calls, list):
-        for tool_call in tool_calls:
-            if not isinstance(tool_call, dict):
-                continue
-            function = tool_call.get("function")
-            if not isinstance(function, dict):
-                continue
-            arguments = function.get("arguments")
-            if isinstance(arguments, str) and arguments:
-                targets.append((arguments, function, "arguments"))
-    return targets
-
-
-def _apply_output_guardrail(
-    response: dict[str, Any] | None,
-    settings: Settings,
-    route: str,
-    request: Request,
-    *,
-    legacy_completion: bool = False,
-) -> None:
-    """Inspect the runtime completion and flag/redact/block per the output guardrail.
-
-    Runs the configured credential/PII/blocked-term detectors on each choice's generated
-    text (OWASP LLM02 insecure output handling / LLM06 sensitive-information disclosure).
-    ``flag`` records only; ``redact`` rewrites matched spans in place; ``block`` withholds
-    the content and sets ``finish_reason=content_filter``. Mutates ``response`` in place so
-    the redacted/blocked body is what gets cached, audited, and returned. ``legacy_completion``
-    scans/rewrites the completion ``choice.text`` field instead of chat ``message.content``.
-    """
-    if not settings.output_guardrail_enabled or not isinstance(response, dict):
-        return
-    choices = response.get("choices")
-    if not isinstance(choices, list):
-        return
-    action: str | None = None
-    for choice in choices:
-        if not isinstance(choice, dict):
-            continue
-        for text, container, key in _guardrail_targets(choice, legacy_completion):
-            if settings.output_guardrail_mode == "redact":
-                redacted, matched = settings.redact_output_text(text)
-                if matched:
-                    container[key] = redacted
-                    action = "redacted"
-            else:
-                patterns, terms = settings.output_findings(text)
-                if patterns or terms:
-                    if settings.output_guardrail_mode == "block":
-                        container[key] = "[response withheld by output policy]"
-                        choice["finish_reason"] = "content_filter"
-                        action = "blocked"
-                    else:
-                        action = action or "flagged"
-    if action:
-        OUTPUT_GUARDRAIL.labels(action, route).inc()
-        request.state.output_guardrail_action = action
-
-
-def _apply_prompt_secret_mode(settings: Settings, payload: dict[str, Any], route: str) -> str | None:
-    """Redact or flag prompt secrets (redact/flag modes); return the action taken or None.
-
-    Block mode is enforced earlier in admission; this handles the non-rejecting modes so
-    an agent reading a ``.env`` or a lockfile does not kill its own conversation while the
-    credential is still kept out of the runtime call (redact) or recorded (flag). Returning
-    the action (rather than writing request state directly) lets the batch path attribute it
-    to the individual item instead of clobbering one shared per-request field.
-    """
-    matched = settings.apply_prompt_secret_mode(payload)
-    if not matched:
-        return None
-    action = "redacted" if settings.prompt_secret_mode == "redact" else "flagged"
-    PROMPT_GUARDRAIL.labels(action, route).inc()
-    return action
-
-
-def _usage_from_sse_chunk(chunk: bytes) -> dict[str, Any] | None:
-    """Return the ``usage`` object from a terminal SSE chunk, or None when absent.
-
-    OpenAI-compatible streams emit a final ``data:`` event carrying a ``usage``
-    object (when usage reporting is enabled) before ``data: [DONE]``. Each chunk may
-    contain several SSE events; scan them and return the last usage object found.
-
-    Any JSON object with a ``usage`` member necessarily contains the literal bytes
-    ``"usage"``, so chunks and lines without them are skipped without parsing rather
-    than json-decoding every delta event on the event loop.
-    """
-    if b'"usage"' not in chunk:
-        return None
-    found: dict[str, Any] | None = None
-    for line in chunk.split(b"\n"):
-        line = line.strip()
-        if not line.startswith(b"data:"):
-            continue
-        data = line[5:].strip()
-        if not data or data == b"[DONE]" or b'"usage"' not in data:
-            continue
-        try:
-            parsed = json.loads(data)
-        except (ValueError, UnicodeDecodeError):
-            continue
-        if isinstance(parsed, dict) and isinstance(parsed.get("usage"), dict):
-            found = parsed["usage"]
-    return found
-
-
-_STREAM_REASONING_MARKERS: tuple[bytes, ...] = tuple(f'"{field}"'.encode() for field in REDACTED_MESSAGE_FIELDS)
-
-
-def _is_usage_only_event(obj: dict[str, Any]) -> bool:
-    """True when an SSE chunk object carries a usage object but no completion choices.
-
-    This is the shape of the terminal usage event vLLM emits under
-    ``stream_options.include_usage``; a normal content chunk that also carries usage
-    keeps its choices and is not matched, so real content is never dropped.
-    """
-    return isinstance(obj.get("usage"), dict) and not obj.get("choices")
-
-
-def _strip_reasoning_delta(obj: dict[str, Any]) -> bool:
-    """Remove reasoning/thinking fields from each choice's delta/message in place.
-
-    Returns True when anything was removed. Mirrors the non-streaming
-    ``sanitize_chat_completion`` redaction so chain-of-thought cannot leak through
-    the streaming path that a caller reaches by setting ``stream: true``.
-    """
-    choices = obj.get("choices")
-    if not isinstance(choices, list):
-        return False
-    changed = False
-    for choice in choices:
-        if not isinstance(choice, dict):
-            continue
-        for container_key in ("delta", "message"):
-            container = choice.get(container_key)
-            if isinstance(container, dict):
-                for field in REDACTED_MESSAGE_FIELDS:
-                    if field in container:
-                        del container[field]
-                        changed = True
-    return changed
-
-
-def _rewrite_stream_segment(segment: bytes, *, drop_usage_only: bool, strip_reasoning: bool) -> bytes:
-    """Filter a complete run of SSE text before it is forwarded to the client.
-
-    ``drop_usage_only`` removes the synthetic usage-only event induced by injecting
-    ``stream_options.include_usage`` when the caller did not request usage, so the
-    client-facing stream matches what it asked for. ``strip_reasoning`` removes
-    reasoning/thinking fields from streamed deltas. Lines triggering neither transform
-    are passed through byte-for-byte, keeping the common delta path cheap and lossless.
-    """
-    need_usage = drop_usage_only and b'"usage"' in segment
-    need_reasoning = strip_reasoning and any(marker in segment for marker in _STREAM_REASONING_MARKERS)
-    if not need_usage and not need_reasoning:
-        return segment
-    out: list[bytes] = []
-    # When a usage-only event is dropped, also swallow the blank line that terminated it so
-    # removing the event does not leave a stray extra separator in the client stream.
-    skip_blank = False
-    for line in segment.split(b"\n"):
-        stripped = line.strip()
-        if skip_blank and not stripped:
-            skip_blank = False
-            continue
-        skip_blank = False
-        if stripped.startswith(b"data:"):
-            data = stripped[5:].strip()
-            if data and data != b"[DONE]":
-                try:
-                    obj = json.loads(data)
-                except (ValueError, UnicodeDecodeError):
-                    out.append(line)
-                    continue
-                if isinstance(obj, dict):
-                    if need_usage and _is_usage_only_event(obj):
-                        skip_blank = True
-                        continue
-                    if need_reasoning and _strip_reasoning_delta(obj):
-                        out.append(b"data: " + json.dumps(obj, separators=(",", ":")).encode("utf-8"))
-                        continue
-        out.append(line)
-    return b"\n".join(out)
-
-
-def _terminal_stream_error_event(backend: str, request: Request) -> bytes:
-    """Build a terminal SSE error event emitted when the upstream fails mid-stream."""
-    payload = {
-        "error": {
-            "message": "runtime stream failed",
-            "type": "upstream_error",
-            "backend": backend,
-            "request_id": request.state.request_id,
-            "sandbox_id": request.state.sandbox_id,
-        }
-    }
-    return b"data: " + json.dumps(payload).encode("utf-8") + b"\n\n"
 
 
 def _record_budget_reservation(reservation: BudgetReservation | None, settings: Settings) -> None:
@@ -1855,7 +982,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if runtime_response is None:
                 raise last_exc or RuntimeError("no runtime route available")
             # Inspect the completion before it is cached or returned: redact/block leaked
-            # credentials, PII, or denied content (OWASP LLM02/LLM06). Applied pre-cache so
+            # credentials, PII, or denied content (OWASP LLM02:2025/LLM05:2025). Applied pre-cache so
             # a secret is never persisted in the response cache.
             _apply_output_guardrail(runtime_response, resolved, route, request)
             if cache_enabled:
@@ -1998,9 +1125,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
             backend = model_route.backend
             payload_dict["model"] = model_route.model_id
-            # Streaming for legacy completions is not wired through the SSE usage/guardrail
-            # machinery yet; reject it explicitly rather than silently forwarding an
-            # unmetered stream. TODO(v0.19+): reuse the chat stream_body path for /v1/completions.
+            # Legacy completions do not use the chat SSE usage/guardrail machinery. Reject
+            # streaming explicitly rather than forwarding an unmetered stream.
             if payload_dict.get("stream"):
                 raise AdmissionPolicyError(
                     "streaming_not_supported",
@@ -2195,7 +1321,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 backend=backend,
             )
             # The output guardrail is endpoint-independent: /v1/messages must not be a bypass
-            # around the redact/block policy the chat path enforces (OWASP LLM02/LLM06). It
+            # around the redact/block policy the chat path enforces (OWASP LLM02:2025/LLM05:2025). It
             # runs on the OpenAI-shaped completion before translation back to Anthropic.
             _apply_output_guardrail(runtime_response, resolved, route, request)
             # Translate the governed OpenAI completion back into an Anthropic Message. The
@@ -2386,7 +1512,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 backend=backend,
             )
             # The output guardrail is endpoint-independent: /v1/responses must not be a bypass
-            # around the redact/block policy the chat path enforces (OWASP LLM02/LLM06). It
+            # around the redact/block policy the chat path enforces (OWASP LLM02:2025/LLM05:2025). It
             # runs on the OpenAI-shaped completion before translation to the Responses shape.
             _apply_output_guardrail(runtime_response, resolved, route, request)
             # Translate the governed OpenAI completion into a Responses object. The finally
@@ -2785,7 +1911,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         )
                         # The output guardrail is an endpoint-independent control: a batch
                         # item must not be a bypass around the redact/block policy that the
-                        # single-request path enforces (OWASP LLM02/LLM06).
+                        # single-request path enforces (OWASP LLM02:2025/LLM05:2025).
                         _apply_output_guardrail(response, resolved, route, request)
                         _record_token_usage(model_route.backend, response)
                         _record_estimated_cost(

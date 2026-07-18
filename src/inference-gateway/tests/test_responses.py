@@ -8,8 +8,7 @@ shape (output[].content[].output_text / usage.input_tokens/output_tokens), promp
 modes, auth/tenant binding, streaming rejection, and the stateless-subset rejection of
 store / previous_response_id. Plus direct unit tests of the responses.py pure functions.
 
-The FakeRuntimeClient / _tool_settings / JWT helpers mirror those in test_gateway.py and
-test_messages.py; they are replicated here so this suite is self-contained.
+The small runtime fake and JWT helpers stay local so this endpoint suite can run by itself.
 """
 
 import base64
@@ -79,8 +78,8 @@ def _signed_hs256_jwt(secret: bytes, claims: dict, kid: str = "test-key") -> str
 
 def _hs256_jwt_settings(secret, **overrides):
     # The HS256 secret is provided to verification via the JwksCache.keys() mock (the ``k``
-    # JWK field), not a settings field - mirroring test_gateway.py's helper. ``secret`` is
-    # accepted for symmetry with that helper's signature.
+    # JWK field), not a settings field. ``secret`` stays in the helper signature because
+    # callers also use it to build the matching token and cache entry.
     base = {
         "runtime_backend": "vllm",
         "ollama_base_url": "http://ollama:11434",

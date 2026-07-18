@@ -642,7 +642,7 @@
       "app_default": false,
       "chart_default": false,
       "chart_value": "guardrails.outputGuardrail.enabled",
-      "description": "Whether the response-path output guardrail inspects model completions (OWASP LLM02/LLM06).",
+      "description": "Whether the response-path output guardrail inspects model completions (OWASP LLM02:2025/LLM05:2025).",
       "field": "output_guardrail_enabled",
       "name": "OUTPUT_GUARDRAIL_ENABLED",
       "sensitive": false,

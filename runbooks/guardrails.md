@@ -56,8 +56,8 @@ changing callers.
 
 Input moderation cannot catch a credential or PII value that the *model* emits: a successful
 prompt injection or a hallucinated secret leaves the gateway in the completion. The output
-guardrail inspects the model response before it is returned or cached, closing OWASP LLM02
-(insecure output handling) and LLM06 (sensitive information disclosure).
+guardrail inspects the model response before it is returned or cached, contributing controls for
+OWASP LLM02:2025 (sensitive information disclosure) and LLM05:2025 (improper output handling).
 
 Configure it in Helm values:
 
