@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- A developer workflow, repository map, and gateway, RAG, and automation code guides.
+- Repository-tooling regression tests through `make test-scripts`, included in
+  `make test` and the validation gate.
+
+### Fixed
+
+- Documentation checks now include service READMEs and new, unignored Markdown
+  while excluding ignored environments and generated site output. Local image
+  links, URL-encoded paths, and angle-bracket paths are checked as well.
+- Documentation CI now runs when the MkDocs hook changes.
+
 ## v0.28.1 - 2026-08-05
 
 Internal reorganization of the gateway with zero behavior change, verified by byte-identical

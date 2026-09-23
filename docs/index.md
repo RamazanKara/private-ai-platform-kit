@@ -18,6 +18,11 @@ The repository contains service code, Helm charts, Argo CD applications, policy,
 - [Decision guide](decision-guide.md) covers fit, poor-fit cases, and the work a customer still owns.
 - [Production readiness](production-readiness.md) maps platform controls to their validation commands.
 
+## Developing the project
+
+- [Developer workflow](development.md) covers setup without a cluster, focused tests, contract updates, and documentation previews.
+- [Repository map](repository-map.md) explains component boundaries, code entry points, and generated files.
+
 ## Operating and reviewing the project
 
 - [Getting started](getting-started.md) collects the validation, local-cluster, eval, and evidence commands.

@@ -62,7 +62,9 @@ See [the quickstart guide](docs/quickstart.md) for the commands it runs, expecte
 
 ## Repository validation
 
-The default gate does not create a cluster, but it does require Python and Helm. On a fresh checkout it creates local virtual environments and installs hashed Python dependencies.
+For service or tooling development, start with `make test` and `make quality`; neither needs a cluster. The [developer workflow](docs/development.md) covers setup, focused tests, and documentation changes.
+
+The default repository gate does not create a cluster, but it does require Python and Helm. On a fresh checkout it creates local virtual environments and installs hashed Python dependencies.
 
 ```bash
 make validate
@@ -117,20 +119,28 @@ The hash chain makes edits or reordering within an exported audit stream detecta
 | Review security boundaries | [Security overview](docs/security-overview.md) and [threat model](docs/threat-model.md) |
 | Operate the platform | [Runbooks](runbooks/README.md) |
 | Verify a release | [Release verification](docs/release-verification.md) |
+| Develop and test a change | [Developer workflow](docs/development.md) |
+| Find code and its contracts | [Repository map](docs/repository-map.md) |
 | Contribute | [Contributing](CONTRIBUTING.md) |
 
 ## Repository layout
 
 | Path | Contents |
 | --- | --- |
-| `src/` | Inference gateway and RAG service |
+| `src/` | [Inference gateway](src/inference-gateway/README.md) and [RAG service](src/rag-service/README.md) |
+| `sdk/` | [First-party client](sdk/README.md), package metadata, and tests |
 | `deploy/charts/` | Helm charts |
 | `deploy/clusters/` | Local and customer values and Argo CD applications |
 | `platform/` | API/config contracts, policies, model catalog, evals, and SLO inputs |
-| `tenants/` | Tenant onboarding specifications |
+| `tenants/` | Tenant onboarding specifications, policies, and deployment examples |
 | `runbooks/` | Operational procedures |
-| `scripts/` | Validation, setup, and evidence tooling |
+| `scripts/` | [Validation, setup, and evidence tooling](scripts/README.md) |
+| `docs/` | Documentation site source and architecture decisions |
+| `chaos/` and `loadtest/` | Resilience drills and performance scenarios |
+| `paper/` | Research sources, experiments, and recorded results |
 | `results/` | Checked-in sample report shapes; current generated reports are ignored |
+
+See the [repository map](docs/repository-map.md) for component boundaries and the sources of generated contracts, reports, and documentation.
 
 Sample files under `results/` demonstrate report formats and gate behavior. They are not evidence for the current checkout or a customer deployment. Strict release checks require newly generated, non-sample artifacts.
 

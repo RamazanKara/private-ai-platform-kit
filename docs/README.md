@@ -12,6 +12,16 @@ The published site is at [ramazankara.github.io/private-ai-platform-kit](https:/
 | Client and SDK examples | [Client examples](client-examples.md) |
 | Helm charts | [Chart index](../deploy/charts/README.md) |
 
+## Development
+
+| Need | Document |
+| --- | --- |
+| Set up a checkout and run focused tests | [Developer workflow](development.md) |
+| Find code, ownership boundaries, and generated files | [Repository map](repository-map.md) |
+| Understand the service modules | [Gateway code map](../src/inference-gateway/README.md), [RAG code map](../src/rag-service/README.md) |
+| Add or test automation | [Automation guide](../scripts/README.md) |
+| Prepare a contribution | [Contributing](../CONTRIBUTING.md) |
+
 ## Design and scope
 
 | Need | Document |

@@ -1,6 +1,6 @@
 # Getting started
 
-Use the [local quickstart](quickstart.md) for the first cluster run. This page is the command reference for development, validation, and customer handoff.
+Use the [local quickstart](quickstart.md) for the first cluster run and the [developer workflow](development.md) to change code or documentation without a cluster. This page is the command reference for validation, operations, and customer handoff.
 
 ## Tool requirements
 
