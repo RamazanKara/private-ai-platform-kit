@@ -1183,6 +1183,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Python package">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#optional-pypi-publishing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional PyPI publishing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1699,6 +1716,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Python package">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#optional-pypi-publishing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional PyPI publishing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1751,7 +1785,7 @@
 <h1 id="distribution-and-discovery">Distribution and discovery<a class="headerlink" href="#distribution-and-discovery" title="Permanent link">&para;</a></h1>
 <p>Release tags publish one tested source revision through four channels. Images are promoted
 from the already-tested commit digest, Helm charts embed those immutable image digests, the
-Python client is built separately and published with PyPI Trusted Publishing, and versioned
+Python client is built separately and attached to the GitHub release, and versioned
 documentation is retained by <code>mike</code>.</p>
 <h2 id="helm-oci">Helm OCI<a class="headerlink" href="#helm-oci" title="Permanent link">&para;</a></h2>
 <p>The umbrella chart is the recommended public entry point:</p>
@@ -1765,24 +1799,34 @@ documentation is retained by <code>mike</code>.</p>
 control panel, copy the assigned <code>repositoryID</code> into <code>artifacthub-repo.yml</code>, and cut the next
 release. This external registration cannot be completed from repository code.</p>
 <h2 id="python-package">Python package<a class="headerlink" href="#python-package" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>private-ai-platform-kit-client<span class="o">==</span><span class="m">0</span>.29.0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>https://github.com/RamazanKara/private-ai-platform-kit/releases/download/v0.29.0/private_ai_platform_kit_client-0.29.0-py3-none-any.whl
 </code></pre></div>
-<p>Before the first publish, register a pending PyPI Trusted Publisher with owner
+<p>The wheel, source archive, and <code>sdk-checksums.txt</code> are attached to each GitHub release.
+Follow <a href="../release-verification/">release verification</a> to verify the files before installing.
+Version 0.29.0 uses GitHub downloads only; it is not published to PyPI.</p>
+<h3 id="optional-pypi-publishing">Optional PyPI publishing<a class="headerlink" href="#optional-pypi-publishing" title="Permanent link">&para;</a></h3>
+<p>PyPI is disabled unless the repository Actions variable <code>PYPI_PUBLISH_ENABLED</code> is exactly
+<code>true</code>. GitHub downloads complete independently of this setting and PyPI environment approval.</p>
+<p>Before enabling it, register a pending PyPI Trusted Publisher with owner
 <code>RamazanKara</code>, repository <code>private-ai-platform-kit</code>, workflow <code>ci.yml</code>, environment <code>pypi</code>,
 and project <code>private-ai-platform-kit-client</code>. Protect the GitHub <code>pypi</code> environment with
 required reviewer approval and tag-only deployment rules. CI keeps package building in an
 unprivileged job; only the prebuilt artifact reaches the OIDC-enabled publish job. PyPI
-attestations remain enabled.</p>
+attestations remain enabled. After completing this setup, set the repository variable to
+<code>true</code> to publish subsequent release tags to PyPI as well.</p>
 <h2 id="versioned-documentation">Versioned documentation<a class="headerlink" href="#versioned-documentation" title="Permanent link">&para;</a></h2>
 <p>Main publishes the <code>development</code> documentation alias. A <code>v*</code> release tag publishes its exact
-version, moves <code>latest</code>, and makes <code>latest</code> the site root. Older generated versions remain on
-the <code>gh-pages</code> branch and in the version selector.</p>
+version, moves <code>latest</code>, and makes <code>latest</code> the site root. The tag build retains its generated
+content on <code>gh-pages</code>, then dispatches a run on main to publish that tree. This avoids GitHub
+Pages retaining the earlier main artifact when main and the tag share a commit. Older
+generated versions remain on the <code>gh-pages</code> branch and in the version selector.</p>
 <h2 id="operator-owned-one-time-setup">Operator-owned one-time setup<a class="headerlink" href="#operator-owned-one-time-setup" title="Permanent link">&para;</a></h2>
 <p>The code and workflows are complete, but these account-level actions require repository-owner
 authority:</p>
 <ol>
 <li>Set GitHub Pages source to <strong>GitHub Actions</strong>.</li>
-<li>Create and protect the <code>pypi</code> environment, then register its PyPI Trusted Publisher.</li>
+<li>For optional PyPI publishing, configure its protected environment and trusted publisher,
+   then enable <code>PYPI_PUBLISH_ENABLED</code> at repository level.</li>
 <li>Register the platform OCI chart in Artifact Hub and record its assigned repository ID.</li>
 <li>Keep GHCR packages public so anonymous Helm pulls and Artifact Hub indexing work.</li>
 </ol>
