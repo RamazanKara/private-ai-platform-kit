@@ -38,6 +38,8 @@ artifacts reproducible. Existing lab defaults and gateway API behavior are retai
   runtime, development, and SDK test locks to address image-scan findings.
 - Remove pip and its vendored tooling from the final service images after installing
   locked dependencies. Dependency changes now require rebuilding the service image.
+- Update Material for MkDocs and PyMdown Extensions to patched versions, addressing
+  the documentation toolchain's open dependency advisories.
 - The AWQ profile now explicitly requires a customer-provided approved checkpoint
   and revision instead of naming an unverified upstream repository.
 - Documentation checks now include service READMEs and new, unignored Markdown
