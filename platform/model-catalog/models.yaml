@@ -64,7 +64,7 @@ spec:
     # matches the RAG default vector dimensions; serve via vLLM embedding mode (--task embed)
     # or a TEI sidecar, and point the RAG service at it (retrieval.embedding.provider=
     # openai-compatible). Approved with a promotion request; the provenance entry uses a
-    # source-reference digest that customers replace with their pinned model-store checksum.
+    # pinned upstream commit and safetensors checksum inventory.
     - id: BAAI/bge-small-en-v1.5
       runtime: vllm
       owner: platform-team
@@ -85,9 +85,7 @@ spec:
       promotionRequest: platform/model-catalog/promotion-requests/bge-small-embedding-approved.yaml
       modelCard: platform/model-catalog/model-cards/bge-small-en.md
       notes: Approved reference embedding model (384-dim) for governed RAG retrieval; replaces the demo hashed-vector default. maxCompletionTokens is nominal (embeddings produce vectors, not completions).
-    # Proposed newer models. Promote to `approved` only after capturing a real provenance
-    # digest (platform/governance/model-provenance.yaml) and a promotion request, then add to the
-    # relevant runtime.allowedModels. See runbooks/model-governance.md.
+    # Upstream metadata reviewed 2026-09-23. Candidates are not approved or allowlisted.
     - id: Qwen/Qwen3.6-35B-A3B
       runtime: vllm
       owner: platform-team
@@ -104,24 +102,56 @@ spec:
       maxPromptChars: 131072
       maxCompletionTokens: 8192
       estimatedCharsPerToken: 3
-      notes: Proposed Qwen3.6 MoE (35B total / 3B active) general+coding alternative. Confirm context window before promotion.
-    - id: zai-org/GLM-5.2
+      upstream:
+        modelCard: https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/995ad96eacd98c81ed38be0c5b274b04031597b0/README.md
+        revision: 995ad96eacd98c81ed38be0c5b274b04031597b0
+        reviewedAt: '2026-09-23'
+      notes: Existing 35B/3B-active comparison candidate. Upstream context is confirmed; requires model-specific
+        runtime and hardware evaluation.
+    - id: Qwen/Qwen3.8-27B
       runtime: vllm
       owner: platform-team
       status: proposed
       stage: customer-lab
       riskTier: medium
       dataClassification: internal
-      license: mit
+      license: apache-2.0
       source: huggingface
       accelerators:
         - nvidia
-      contextWindow: 200000
+        - amd
+      contextWindow: 262144
       maxPromptChars: 131072
       maxCompletionTokens: 8192
       estimatedCharsPerToken: 3
-      notes: Proposed GLM-5.2 MoE agentic-coding alternative (multi-GPU). Verify license and context window before promotion.
-    - id: deepseek-ai/DeepSeek-V4-Flash
+      upstream:
+        modelCard: https://huggingface.co/Qwen/Qwen3.8-27B/blob/1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0/README.md
+        revision: 1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0
+        reviewedAt: '2026-09-23'
+      notes: Current dense Qwen candidate for text and coding evaluation. Upstream supports vision; the kit
+        does not claim that modality or real-model evaluation.
+    - id: Qwen/Qwen3.8-Flash-Next
+      runtime: vllm
+      owner: platform-team
+      status: proposed
+      stage: customer-lab
+      riskTier: medium
+      dataClassification: internal
+      license: LicenseRef-Qwen-Community-1.0
+      source: huggingface
+      accelerators:
+        - nvidia
+      contextWindow: 262144
+      maxPromptChars: 131072
+      maxCompletionTokens: 8192
+      estimatedCharsPerToken: 3
+      upstream:
+        modelCard: https://huggingface.co/Qwen/Qwen3.8-Flash-Next/blob/de4b8e4d43b917e7706784d8bb445c9af86a3540/README.md
+        revision: de4b8e4d43b917e7706784d8bb445c9af86a3540
+        reviewedAt: '2026-09-23'
+      notes: Architecture-specific large MoE candidate. Custom Qwen Community 1.0 license, not Apache-2.0;
+        runtime compatibility, license review, and GPU evaluation remain required.
+    - id: zai-org/GLM-5.3-Flash
       runtime: vllm
       owner: platform-team
       status: proposed
@@ -136,4 +166,30 @@ spec:
       maxPromptChars: 131072
       maxCompletionTokens: 8192
       estimatedCharsPerToken: 3
-      notes: Proposed DeepSeek-V4-Flash MoE (284B total / 13B active, 1M context) alternative (multi-GPU). Verify license before promotion.
+      upstream:
+        modelCard: https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/README.md
+        revision: eb9eb208eb0d988989d07a6a12d0fdeb5f52574a
+        reviewedAt: '2026-09-23'
+      notes: Current GLM Flash candidate, 320B total/18B active. Requires the upstream serving recipe and
+        multi-GPU evaluation; not enabled in gateway allowlists.
+    - id: deepseek-ai/DeepSeek-V4.1-Flash
+      runtime: vllm
+      owner: platform-team
+      status: proposed
+      stage: customer-lab
+      riskTier: medium
+      dataClassification: internal
+      license: mit
+      source: huggingface
+      accelerators:
+        - nvidia
+      contextWindow: 1048576
+      maxPromptChars: 131072
+      maxCompletionTokens: 8192
+      estimatedCharsPerToken: 3
+      upstream:
+        modelCard: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/dba1be0a40aa45a94ad051997016db3960a90277/README.md
+        revision: dba1be0a40aa45a94ad051997016db3960a90277
+        reviewedAt: '2026-09-23'
+      notes: Current DeepSeek Flash candidate with a 552B backbone and specialized serving requirements. Context
+        records upstream configuration, not validated capacity in this kit.

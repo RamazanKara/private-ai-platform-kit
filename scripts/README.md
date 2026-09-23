@@ -17,6 +17,7 @@ The Makefile provides defaults and puts managed tools from `.tools/bin` on
 | Evaluation and load tests | [eval-local.sh](eval-local.sh), [eval-suite.py](eval-suite.py), [rag-eval.py](rag-eval.py), [loadtest-local.sh](loadtest-local.sh) |
 | Evidence and releases | [evidence-pack.py](evidence-pack.py), [release-gate.py](release-gate.py), [supply-chain-evidence.py](supply-chain-evidence.py) |
 | Audit verification | [audit-verify.py](audit-verify.py), [audit-anchor.py](audit-anchor.py) |
+| Model inventories and provenance | [model_artifacts.py](model_artifacts.py), [model-provenance.py](model-provenance.py), [model-catalog.py](model-catalog.py) |
 | Tool installation and diagnosis | [install-validation-tools.sh](install-validation-tools.sh), [toolchain-doctor.py](toolchain-doctor.py) |
 
 The [runbook index](../runbooks/README.md) covers operation-specific commands.

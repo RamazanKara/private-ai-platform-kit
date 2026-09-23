@@ -10,6 +10,7 @@ image:
   pullPolicy: IfNotPresent
 model:
   name: Qwen/Qwen3-Coder-Next
+  revision: a7fbcb5c0e12d62a448eaa0e260346bf5dcc0feb
   dtype: auto
   maxModelLen: "262144"
 accelerator:

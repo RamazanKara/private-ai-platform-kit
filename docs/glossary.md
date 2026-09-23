@@ -145,10 +145,10 @@ fails if an approved model is missing one.
 **Model provenance / immutableRef / digest**: The attested origin of a served model artifact, recorded
 in `platform/governance/model-provenance.yaml`. Each approved model carries a `sourceUri`, an
 `immutableRef` (an immutable reference pinned by a SHA-256 `digest`), a digest scope and verification
-command, and license/risk/classification metadata matching the catalog. The bundled lab uses
-source-reference digests; customer production replaces them with real registry/object-store artifact
-digests, and the vLLM `model.revision` should be pinned to the attested `immutableRef` so the runtime
-artifact cannot drift. See
+command, and license/risk/classification metadata matching the catalog. Ollama entries record
+registry weight-layer digests. Hugging Face entries pin a commit and an inventory of safetensors
+checksums; vLLM profiles use that same commit in `model.revision`. Customers verify downloaded
+files against the inventory before production. See
 [Model provenance](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/model-provenance.md).
 
 ## O
@@ -197,8 +197,9 @@ names the pattern without echoing the matched text. See
 to fit a model onto fewer GPUs, exposed via `server.quantization`, `server.kvCacheDtype`, and
 `server.gpuMemoryUtilization` in the vLLM chart. FP8 (Hopper/Ada) gives ~2x memory saving at small
 quality cost; AWQ is 4-bit weights for Ampere (point `model.name` at a pre-quantized `…-AWQ`
-checkpoint). Ready profiles ship at `deploy/clusters/customer/values/vllm-nvidia-fp8.yaml` and
-`vllm-nvidia-awq.yaml`; re-validate quality with `make eval` after changing it. See
+checkpoint). Profiles ship at `deploy/clusters/customer/values/vllm-nvidia-fp8.yaml` and
+`vllm-nvidia-awq.yaml`; the AWQ template requires an operator-supplied approved checkpoint and
+revision. Re-validate quality with `make eval` after changing quantization. See
 [GPU capacity](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/gpu-capacity.md).
 
 ## R

@@ -78,8 +78,10 @@ spec:
         examples:
           - Qwen/Qwen3-Coder-Next
           - Qwen/Qwen3.6-35B-A3B
-          - zai-org/GLM-5.2
-          - deepseek-ai/DeepSeek-V4-Flash
+          - Qwen/Qwen3.8-27B
+          - Qwen/Qwen3.8-Flash-Next
+          - zai-org/GLM-5.3-Flash
+          - deepseek-ai/DeepSeek-V4.1-Flash
         mandatedControls:
           - C-PROV
           - C-PROMO
@@ -91,7 +93,7 @@ spec:
           - C-EVAL     # eval suite must exercise the promoted model (or justified proxy)
           - C-ISOLATE
         additionalRequirements:
-          - Customer replaces the source-reference digest with a pinned model-store digest before production.
+          - Customer verifies downloaded weights against the pinned inventory or registry digest before production.
           - Coding-agent eval suite includes forbiddenAny secret-leak checks (platform/evals/coding-agent-suite.yaml).
         evidence:
           - results/evals/sample-summary.md

@@ -2,6 +2,7 @@ fullnameOverride: vllm
 replicaCount: 2
 model:
   name: Qwen/Qwen3-Coder-Next
+  revision: a7fbcb5c0e12d62a448eaa0e260346bf5dcc0feb
 accelerator:
   enabled: true
   vendor: nvidia

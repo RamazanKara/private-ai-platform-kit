@@ -38,24 +38,25 @@ governance as generation models.
 - Accelerators: nvidia, cpu
 - Context window: 512 tokens
 - Gateway admission: maxPromptChars 2048, maxCompletionTokens 1 (nominal)
-- Serving profile values: `deploy/clusters/customer/values/inference-gateway.yaml`
+- Serving profile values: `deploy/clusters/customer/values/vllm-embeddings.yaml`,
+  `deploy/clusters/customer/values/inference-gateway.yaml`
 - Gateway allowlist: customer
 
 ## Provenance
 
 - Source: huggingface (`https://huggingface.co/BAAI/bge-small-en-v1.5`)
-- Revision: `main` (pin to a specific Hugging Face commit before production)
+- Revision: `5c38ec7c405ec4b44b94cc5a9bb96e735b38267a`
 - Immutable reference:
-  `huggingface://BAAI/bge-small-en-v1.5@sha256:99aab2ead8654ba801d2a01b188b13cc119e5d2d10880e8d1ee4a1315aa99e72`
-- Digest: `sha256:99aab2ead8654ba801d2a01b188b13cc119e5d2d10880e8d1ee4a1315aa99e72`
-  (scope: source-reference)
-- Verification: `customer-model-store` via `huggingface-cli scan-cache --dir /models`
+  `huggingface://BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a#sha256:a9b5338e6e96683e2eb17c4aa028b30b42f2b30a0cf7081e3fd80f864fefc421`
+- Digest: `sha256:a9b5338e6e96683e2eb17c4aa028b30b42f2b30a0cf7081e3fd80f864fefc421`
+  (scope: artifact-manifest)
+- Weight inventory: [bge-small-en-v1.5.json](../artifacts/bge-small-en-v1.5.json)
+- Verification: `huggingface-safetensors-manifest` via `make model-provenance-verify`
 - License: mit
 
-The bundled digest is a deterministic source-reference over the model reference string
-(`printf 'huggingface://BAAI/bge-small-en-v1.5' | sha256sum`), not a model-artifact checksum.
-Replace it with the customer's pinned model-store artifact revision and checksum before production
-use.
+The inventory records each safetensors file's upstream SHA-256 and size at the pinned
+commit. Verification reproduces this inventory from upstream metadata without downloading
+weights. Verify the actual downloaded files against the inventory before production use.
 
 ## Data classification and risk
 
@@ -71,8 +72,8 @@ use.
 - Short 512-token context window; inputs must be chunked accordingly for retrieval.
 - 384-dimensional output is fixed and must match the configured Qdrant collection dimensions or
   retrieval will fail.
-- Bundled provenance is a source-reference digest, not an artifact checksum; pin and re-verify
-  against a private model store before production.
+- Upstream metadata verification does not inspect the customer's model cache; verify downloaded
+  files against the inventory before production.
 
 ## Evaluation evidence
 

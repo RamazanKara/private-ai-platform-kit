@@ -103,6 +103,7 @@ nav:
   - Reference:
       - Repository map: repository-map.md
       - Feature inventory: feature-inventory.md
+      - Model selection and updates: model-selection.md
       - Production readiness matrix: production-readiness.md
       - Benchmarks and evals: benchmarks-and-evals.md
       - Capacity and sizing: capacity-sizing.md

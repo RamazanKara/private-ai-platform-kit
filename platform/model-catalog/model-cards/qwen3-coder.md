@@ -38,30 +38,34 @@ vLLM profiles and is intended for coding-agent workspace validation, not the loc
 - Accelerators: nvidia, amd
 - Context window: 262144 tokens
 - Gateway admission: maxPromptChars 131072, maxCompletionTokens 8192
-- Serving profile values: `deploy/clusters/customer/values/vllm.yaml`,
+- Serving profile values: `deploy/charts/vllm/values.yaml`,
+  `deploy/clusters/customer/values/vllm.yaml`,
   `deploy/clusters/customer/values/vllm-nvidia.yaml`,
   `deploy/clusters/customer/values/vllm-amd.yaml`,
+  `deploy/clusters/customer/values/vllm-nvidia-fp8.yaml`,
   `deploy/clusters/customer/values/inference-gateway.yaml`
 - Gateway allowlist: customer
 
 The default NVIDIA profile (`vllm.yaml`) requests 4 GPUs per replica and scales on request-queue
-depth via KEDA; it persists weights on a shared `ReadWriteMany` volume. Pin the served revision to
-the attested provenance commit via `model.revision` before production
+depth via KEDA; it persists weights on a shared `ReadWriteMany` volume. The profiles pin
+`model.revision` to the attested provenance commit
 (see `runbooks/model-provenance.md`).
 
 ## Provenance
 
 - Source: huggingface (`https://huggingface.co/Qwen/Qwen3-Coder-Next`)
-- Revision: `main` (pin to a specific Hugging Face commit before production)
+- Revision: `a7fbcb5c0e12d62a448eaa0e260346bf5dcc0feb`
 - Immutable reference:
-  `huggingface://Qwen/Qwen3-Coder-Next@sha256:71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06`
-- Digest: `sha256:71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06`
-  (scope: source-reference)
-- Verification: `customer-model-store` via `huggingface-cli scan-cache --dir /models`
+  `huggingface://Qwen/Qwen3-Coder-Next@a7fbcb5c0e12d62a448eaa0e260346bf5dcc0feb#sha256:e7d0301d6c9d34d3e5452535959d5472f09d0df0baa2efc24f8cdd1bb470d5ac`
+- Digest: `sha256:e7d0301d6c9d34d3e5452535959d5472f09d0df0baa2efc24f8cdd1bb470d5ac`
+  (scope: artifact-manifest)
+- Weight inventory: [qwen3-coder-next.json](../artifacts/qwen3-coder-next.json)
+- Verification: `huggingface-safetensors-manifest` via `make model-provenance-verify`
 - License: apache-2.0
 
-The bundled digest is a source-reference pointer, not a model-artifact checksum. Replace it with
-the customer's pinned model-store artifact revision and checksum before production use.
+The inventory records every safetensors shard's upstream SHA-256 and size at the pinned
+commit. Verification reproduces this inventory from upstream metadata without downloading
+weights. Verify the actual downloaded files against the inventory before production use.
 
 ## Data classification and risk
 
@@ -78,7 +82,7 @@ the customer's pinned model-store artifact revision and checksum before producti
   prerequisite for production sign-off.
 - Requires external network to fetch weights unless they are pre-staged into a private model
   store.
-- Served weights can drift from the attested revision if `model.revision` is left unpinned.
+- Customer overrides must keep `model.revision`, the inventory, and provenance in sync.
 
 ## Evaluation evidence
 

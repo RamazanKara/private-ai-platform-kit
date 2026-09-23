@@ -32,6 +32,7 @@ The published site is at [ramazankara.github.io/private-ai-platform-kit](https:/
 | Supported boundary | [Scope and non-goals](scope-and-non-goals.md) |
 | Design decisions | [Architecture decision records](adr/README.md) |
 | Versions tested and pinned | [Version matrix](version-matrix.md) |
+| Model defaults, candidates, and revision updates | [Model selection](model-selection.md) |
 
 ## Production and security review
 
