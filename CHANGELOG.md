@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Publish SDK wheels, source archives, and checksums to GitHub independently of
+  optional PyPI account setup and environment approval. PyPI publishing now requires
+  the repository Actions variable `PYPI_PUBLISH_ENABLED=true`.
+- Publish retained release documentation through a dispatched main-branch run so
+  GitHub Pages does not silently keep the earlier main artifact for a shared commit.
+
 ## v0.29.0 - 2026-09-23
 
 This release refreshes model selection and makes the approved Hugging Face model

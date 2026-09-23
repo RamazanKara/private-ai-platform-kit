@@ -287,8 +287,11 @@ The kit ships a minimal, retry-aware first-party client (`sdk/python`, packaged 
 `private-ai-platform-kit-client`) for scripts that do not want the full `openai` dependency:
 
 ```bash
-python -m pip install private-ai-platform-kit-client
+python -m pip install https://github.com/RamazanKara/private-ai-platform-kit/releases/download/v0.29.0/private_ai_platform_kit_client-0.29.0-py3-none-any.whl
 ```
+
+The wheel and checksums are attached to each [GitHub release](https://github.com/RamazanKara/private-ai-platform-kit/releases).
+See [release verification](release-verification.md) before installing.
 
 ```python
 from ai_platform_client import GatewayClient

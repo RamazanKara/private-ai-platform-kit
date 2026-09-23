@@ -445,17 +445,15 @@ jobs:
               --verify-tag
           fi
 
-  sdk-publish:
+  # GitHub downloads are the default distribution channel. They must not wait
+  # for a PyPI account, trusted publisher, or environment approval.
+  sdk-release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [image, sdk-build]
     if: github.ref_type == 'tag'
-    environment:
-      name: pypi
-      url: https://pypi.org/p/private-ai-platform-kit-client
     permissions:
       contents: write
-      id-token: write
     steps:
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53  # v6.0.0
         with:
@@ -464,6 +462,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$GITHUB_REF_NAME" sdk-dist/* sdk-checksums.txt --repo "$GITHUB_REPOSITORY" --clobber
+
+  # Enable only after registering the trusted publisher described in docs/distribution.md.
+  sdk-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: sdk-release
+    if: github.ref_type == 'tag' && vars.PYPI_PUBLISH_ENABLED == 'true'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/private-ai-platform-kit-client
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53  # v6.0.0
+        with:
+          name: python-sdk-${{ github.sha }}
       - name: Publish SDK with PyPI Trusted Publishing and attestations
         # Pin the peeled v1.14.0 commit, not its annotated tag-object SHA: the
         # action's runtime container is published under the commit SHA only.
