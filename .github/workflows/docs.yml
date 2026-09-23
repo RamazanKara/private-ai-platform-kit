@@ -85,9 +85,26 @@ jobs:
         with:
           path: versioned-site
 
+  # Pages can retain the earlier main artifact when a tag shares its SHA.
+  # Keep the tag's generated version above, then publish the retained tree from
+  # main through workflow_dispatch. This preserves the release's source content.
+  # https://github.com/actions/deploy-pages/issues/383
+  release-dispatch:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch publication of the retained documentation tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run docs.yml --repo "$GITHUB_REPOSITORY" --ref main
+
   deploy:
     needs: build
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref_type != 'tag'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

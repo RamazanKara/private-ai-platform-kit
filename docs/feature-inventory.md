@@ -16,7 +16,7 @@ configured.
 | Responses server-side state | Shipped | Off | Tenant-scoped memory/Redis store with TTL and delete |
 | Synchronous batch fan-out | Shipped | On | Per-item admission/budget/guardrail tests |
 | Files + asynchronous Batch API | Shipped | Off | Bounded streaming upload, durable Redis queue, object-store blobs |
-| Python client SDK | Shipped | Published on release tags | Isolated build/test matrix, PyPI Trusted Publishing, checksums, and GitHub release artifact |
+| Python client SDK | Shipped | GitHub release downloads | Isolated build/test matrix, checksums, and release artifacts; PyPI Trusted Publishing is optional |
 | API-key authentication | Shipped | Local on; chart base off | Hashed keys or scoped/expiring key records |
 | JWT/JWKS authentication | Shipped | Customer template on | Issuer/audience/time/algorithm validation and tenant binding |
 | Model allowlist and routing | Shipped | On | Per-model primary/fallback/canary/shadow routes |

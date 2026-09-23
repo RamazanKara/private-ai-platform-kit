@@ -4,10 +4,10 @@ First-party, dependency-light clients for the Private AI Platform Kit inference 
 
 ## Python
 
-Install the released client from PyPI:
+Install the released client from the GitHub release wheel:
 
 ```bash
-python -m pip install private-ai-platform-kit-client
+python -m pip install https://github.com/RamazanKara/private-ai-platform-kit/releases/download/v0.29.0/private_ai_platform_kit_client-0.29.0-py3-none-any.whl
 ```
 
 [`python/ai_platform_client.py`](python/ai_platform_client.py) is a single-module `GatewayClient`
@@ -38,6 +38,8 @@ OpenAI parameter surface, point the official
 [`openai` SDK](https://github.com/openai/openai-python) at the gateway base URL instead. See
 [docs/client-examples.md](../docs/client-examples.md).
 
-Release tags are built in an unprivileged CI job and published through PyPI Trusted
-Publishing with Sigstore attestations. The package version must exactly match the Git tag;
-the release workflow rejects mismatches before publishing.
+Release tags are built in an unprivileged CI job and attached to the GitHub release with
+`sdk-checksums.txt`. The package version must exactly match the Git tag; the release workflow
+rejects mismatches before publishing. Follow the [release verification guide](../docs/release-verification.md)
+to check downloaded files. PyPI publishing is optional and disabled by default; see
+[distribution setup](../docs/distribution.md#optional-pypi-publishing).
