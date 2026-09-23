@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""Check repository structure, dependency pins, and source documentation.
+
+Markdown discovery follows Git's tracked and unignored files so generated sites,
+virtual environments, and mirrored runbooks cannot affect the result.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -9,7 +15,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
-LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
 MAKE_TARGET_PATTERN = re.compile(r"^([A-Za-z0-9_-]+):", re.MULTILINE)
 MAKE_INVOCATION_PATTERN = re.compile(r"\bmake[ \t]+([a-z0-9][a-z0-9_-]*)")
@@ -48,12 +54,14 @@ REQUIRED_FILES = (
     "docs/benchmarks-and-evals.md",
     "docs/customer-handoff-example.md",
     "docs/decision-guide.md",
+    "docs/development.md",
     "docs/distribution.md",
     "docs/feature-inventory.md",
     "docs/getting-started.md",
     "docs/proof.md",
     "docs/production-readiness.md",
     "docs/quickstart.md",
+    "docs/repository-map.md",
     "docs/threat-model.md",
     "runbooks/evidence-pack.md",
     "runbooks/release-gates.md",
@@ -63,7 +71,10 @@ REQUIRED_FILES = (
     "scripts/image-scan.sh",
     "scripts/production-check.py",
     "scripts/quickstart.sh",
+    "scripts/README.md",
     "scripts/validate.sh",
+    "src/inference-gateway/README.md",
+    "src/rag-service/README.md",
     "requirements-docs.txt",
     "requirements-sdk-build.lock",
     "requirements-sdk-test.lock",
@@ -82,6 +93,7 @@ REQUIRED_MAKE_TARGETS = (
     "validate-full",
     "production-check",
     "repo-hygiene",
+    "test-scripts",
     "api-contract",
     "api-contract-update",
     "config-contract",
@@ -97,15 +109,6 @@ REQUIRED_MAKE_TARGETS = (
     "loadtest-local",
     "tenant-onboard",
 )
-
-IGNORED_MARKDOWN_PARTS = {
-    ".git",
-    ".pytest_cache",
-    ".tools",
-    ".venv",
-    "src",
-    ".out",
-}
 
 
 def rel(path: Path) -> str:
@@ -305,32 +308,44 @@ def check_runtime_dependencies(errors: list[str]) -> None:
             require_lock_contains_pins(errors, source, lock, requirement_pins(source))
 
 
-def markdown_files() -> list[Path]:
-    files: list[Path] = []
-    for path in ROOT.rglob("*.md"):
-        parts = set(path.relative_to(ROOT).parts)
-        if parts & IGNORED_MARKDOWN_PARTS:
-            continue
-        files.append(path)
-    return sorted(files)
+def markdown_files(errors: list[str]) -> list[Path]:
+    """Include new contributor docs while excluding Git-ignored build output.
+
+    Keep tracked files even if a later ignore rule matches them. NUL-delimited
+    output preserves filenames containing spaces, Unicode, or newlines.
+    """
+    try:
+        completed = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "*.md"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        errors.append(f"failed to discover source documentation with git: {exc}")
+        return []
+    files = {ROOT / os.fsdecode(name) for name in completed.stdout.split(b"\0") if name}
+    return sorted(path for path in files if path.is_file())
 
 
 def link_target(raw_target: str) -> str:
+    """Return an inline link's local path without its title, query, or fragment.
+
+    This checks file existence, not remote URLs or page anchors. Angle brackets
+    allow spaces in paths.
+    """
     target = raw_target.strip()
-    if not target or target.startswith("#"):
+    if not target:
         return ""
-    if " " in target:
-        target = target.split()[0]
+    target = target[1:].split(">", 1)[0] if target.startswith("<") else target.split()[0]
     parsed = urlparse(target)
-    if parsed.scheme in {"http", "https", "mailto"}:
+    if parsed.scheme or parsed.netloc:
         return ""
-    if target.startswith("mailto:"):
-        return ""
-    return unquote(target.split("#", 1)[0])
+    return unquote(parsed.path)
 
 
-def check_markdown_links(errors: list[str]) -> None:
-    for path in markdown_files():
+def check_markdown_links(errors: list[str], files: list[Path]) -> None:
+    for path in files:
         for match in LINK_PATTERN.finditer(path.read_text()):
             target = link_target(match.group(1))
             if not target:
@@ -371,12 +386,12 @@ def code_segments(path: Path) -> list[tuple[int, str]]:
     return segments
 
 
-def check_make_target_references(errors: list[str]) -> None:
+def check_make_target_references(errors: list[str], files: list[Path]) -> None:
     # `make <target>` in code spans and code blocks must name a real Makefile
     # target so renamed or removed targets cannot linger in operator-facing
     # docs. docs/adr/ and CHANGELOG.md record intentional history and are exempt.
     targets = makefile_targets()
-    for path in markdown_files():
+    for path in files:
         relative = rel(path)
         if relative == "CHANGELOG.md" or relative.startswith("docs/adr/"):
             continue
@@ -393,8 +408,9 @@ def run_checks() -> list[str]:
     check_python_bytecode_policy(errors)
     check_toolchain_lookup_policy(errors)
     check_runtime_dependencies(errors)
-    check_markdown_links(errors)
-    check_make_target_references(errors)
+    files = markdown_files(errors)
+    check_markdown_links(errors, files)
+    check_make_target_references(errors, files)
     return errors
 
 

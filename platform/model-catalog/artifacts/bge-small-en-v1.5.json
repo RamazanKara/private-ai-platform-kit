@@ -1,0 +1,12 @@
+{
+  "files": [
+    {
+      "path": "model.safetensors",
+      "sha256": "3c9f31665447c8911517620762200d2245a2518d6e7208acc78cd9db317e21ad",
+      "size": 133466304
+    }
+  ],
+  "modelId": "BAAI/bge-small-en-v1.5",
+  "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "schemaVersion": 1
+}

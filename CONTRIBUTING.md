@@ -1,70 +1,88 @@
 # Contributing
 
-Private AI Platform Kit is maintained as an operational platform, not a collection of examples. Changes should keep local, customer, and release-review paths aligned.
+Changes should keep service behavior, local and customer deployments, documentation,
+and release checks aligned. Use the [repository map](docs/repository-map.md) to find
+the right component and the [developer workflow](docs/development.md) for setup,
+focused tests, generated files, and troubleshooting.
 
-## Working Locally
+## Start locally
 
-For a first local run, use the guided quickstart:
-
-```bash
-make quickstart
-```
-
-Start normal development with the default validation gate:
+Service and tooling development does not require a Kubernetes cluster. From the
+repository root in Linux or WSL:
 
 ```bash
 make help
-make validate
+make test
+make quality
 ```
 
-Use focused targets while iterating:
+Use `make test-gateway`, `make test-rag`, or `make test-scripts` while iterating.
+Run the gateway and RAG tests in separate interpreter processes because both
+services use a package named `app`.
+
+For documentation changes:
 
 ```bash
-make quality        # Ruff lint, Ruff format check, and mypy (also run by make validate)
-make lint
-make typecheck
-make format         # apply Ruff format and safe autofixes
-make coverage       # pytest coverage with enforced floors
-make test-gateway
-make test-rag
-make production-check
-make repo-security-scan
-make dependency-lock-check
+make docs-install
 make repo-hygiene
-make api-contract
-make config-contract
+make docs-build
 ```
 
-Lint, format, and type-check tools run from an isolated, hash-pinned `.venv-quality`
-(see [requirements-quality.lock](requirements-quality.lock)) so they never touch the
-runtime or dev dependency locks. Configuration lives in [pyproject.toml](pyproject.toml).
-The optional [pre-commit](.pre-commit-config.yaml) hooks mirror `make quality`.
+Run `make validate` before submitting code or deployment changes. It requires
+Python and Helm; the [developer workflow](docs/development.md) explains the
+additional checks CI runs. Use the [quickstart](docs/quickstart.md) when your change
+needs a running cluster.
 
-Run image scanning before changing Dockerfiles, dependencies, or release workflows:
+Ruff and mypy use an isolated, hash-pinned `.venv-quality`; their configuration is
+in [pyproject.toml](pyproject.toml). `make format` formats service code and applies
+Ruff's safe lint fixes across the repository. Optional
+[pre-commit hooks](.pre-commit-config.yaml) run the same tools.
 
-```bash
-make dependency-lock-check
-make image-scan
-make repo-security-scan
-```
+## Change standards
 
-## Change Standards
+- Keep runtime and test dependencies separate. Regenerate the associated hashed
+  locks whenever requirement pins change, including tooling locks.
+- Keep Docker base images pinned by digest. Run `make image-scan` and
+  `make repo-security-scan` for changes to images or runtime dependencies.
+- Put HTTP regression tests beside the service and repository-tooling tests under
+  `scripts/tests/`. Use fake backends and temporary data for local tests.
+- Keep `make quality` passing. Test the behavior affected by the change, including
+  failure paths for authentication, policy, budgets, and tenant isolation.
+- Regenerate API contracts with `make api-contract-update` after changing public
+  routes or schemas, and configuration contracts with `make config-contract-update`
+  after changing settings, Helm environment variables, or chart defaults.
+- Update chart value tables with `make chart-docs-update` when values change.
+  Review generated diffs along with their source changes.
+- Keep new commands discoverable through `make help` and the relevant guide or
+  runbook. Add site pages to `mkdocs.yml` and the appropriate documentation index.
+- Keep root-level `scripts/*.py` and `scripts/*.sh` executable in Git; use
+  `git update-index --chmod=+x <path>` for a mode-only fix.
+- Keep generated evidence under `results/` ignored unless it is an intentional
+  `sample-*` artifact. Do not commit secrets, raw prompts, customer data, local
+  kubeconfigs, or generated tenant output.
+- Record significant architectural decisions in an [ADR](docs/adr/README.md).
+  Add a validation check when introducing a new operational invariant.
 
-- Keep runtime dependencies separate from test-only dependencies.
-- Keep `requirements.lock` and `requirements-dev.lock` regenerated with hashes whenever Python requirements change.
-- Keep `make quality` green: Ruff lint and `ruff format`-clean services, and mypy passing for both services. Regenerate `requirements-quality.lock` with hashes when tool versions change.
-- Keep Docker base images pinned by digest.
-- Keep generated evidence under `results/` ignored unless it is an intentional `sample-*` artifact.
-- Keep every tracked `scripts/*.py` and `scripts/*.sh` file executable in git; use `git update-index --chmod=+x <path>` when a mode-only fix is needed.
-- Update `platform/api-contracts/` with `make api-contract-update` when changing customer-facing service routes or request schemas.
-- Update `platform/config-contracts/` with `make config-contract-update` when changing service settings, Helm env vars, or chart defaults.
-- Keep customer-facing commands documented in README, docs, or runbooks.
-- Add or update a validation check when adding a new operational invariant.
-- Do not commit secrets, raw prompts, private customer context, local kubeconfigs, or generated tenant output.
+## Prepare a review
 
-## Release Readiness
+Explain the problem, resulting behavior, and validation performed. Use the
+[pull request template](.github/PULL_REQUEST_TEMPLATE.md), and record user-visible
+changes under an unreleased entry in [CHANGELOG.md](CHANGELOG.md).
 
-Use the strict path before demos, releases, restore reviews, or production-readiness handoff:
+Reviewers should check that:
+
+- API, chart, and GitOps behavior stay compatible across local and customer profiles,
+  or include migration instructions.
+- Security controls remain enforceable through tests, policy, or validation scripts.
+- New runbooks identify the operator action, validation command, and rollback or
+  escalation path.
+- Customer-facing values avoid cloud-specific assumptions unless a named profile
+  makes the dependency explicit.
+
+## Release readiness
+
+Before a release or a production-readiness handoff, use the strict path with a
+running target environment:
 
 ```bash
 make validate-full
@@ -74,20 +92,14 @@ make release-gate-strict
 make release-report-strict
 ```
 
-The non-strict `make release-gate` target can use checked-in sample evidence and is only for local configuration checks.
+The non-strict `make release-gate` target can use sample evidence for local
+configuration checks. It does not establish readiness for a current deployment.
+See [release gates](runbooks/release-gates.md) for required evidence.
 
-## Review Focus
+## Community workflow
 
-Reviewers should check:
-
-- API, chart, and GitOps behavior stay compatible across local and customer profiles.
-- Security controls remain enforceable by tests, policy, or validation scripts.
-- New runbooks name the owner action, validation command, and rollback or escalation path.
-- Customer-facing values avoid cloud-specific assumptions unless they are behind a named profile.
-
-## Community Workflow
-
-- Use the issue templates for bugs, feature requests, and questions.
-- Open larger design changes as issues before implementing them.
-- Follow [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [GOVERNANCE.md](GOVERNANCE.md), and [ROADMAP.md](ROADMAP.md).
-- Keep public issues free of secrets, raw prompts, customer data, and private context.
+Use the issue templates for bugs, feature requests, and questions. Discuss larger
+design changes in an issue before implementing them. Follow
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [GOVERNANCE.md](GOVERNANCE.md), and
+[ROADMAP.md](ROADMAP.md). Report vulnerabilities through [SECURITY.md](SECURITY.md)
+and keep public issues free of private data.

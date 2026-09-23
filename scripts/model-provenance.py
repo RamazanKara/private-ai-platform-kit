@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import urllib.request
@@ -11,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from model_artifacts import COMMIT, check_manifest, fetch_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POLICY = ROOT / "platform/governance/model-provenance.yaml"
@@ -96,9 +98,15 @@ def check_policy_shape(policy: dict[str, Any], errors: list[str]) -> list[dict[s
         digest_value = str(nested(digest, "value", default=""))
         require(errors, bool(HEX_SHA256.match(digest_value)), f"{model_id}: digest.value must be a 64-character lowercase sha256 hex string")
         require(errors, f"sha256:{digest_value}" in str(artifact.get("immutableRef", "")), f"{model_id}: immutableRef must include digest value")
-        require(errors, nested(digest, "scope") in {"source-reference", "model-artifact"}, f"{model_id}: digest.scope must be source-reference or model-artifact")
+        require(errors, nested(digest, "scope") in {"source-reference", "model-artifact", "artifact-manifest"}, f"{model_id}: digest.scope must be source-reference, model-artifact, or artifact-manifest")
         if nested(digest, "scope") == "source-reference":
             require(errors, bool(artifact.get("revision")), f"{model_id}: source-reference provenance must pin an explicit source revision (revision: <git tag or model commit>); a source-reference digest is a pointer the customer replaces, not a CI-reproducible artifact hash")
+        if nested(digest, "scope") == "artifact-manifest":
+            require(errors, bool(COMMIT.fullmatch(str(artifact.get("revision", "")))), f"{model_id}: artifact-manifest provenance requires an immutable model commit SHA")
+            require(errors, artifact.get("immutableRef") == f"huggingface://{model_id}@{artifact.get('revision')}#sha256:{digest_value}", f"{model_id}: immutableRef must bind the pinned model revision and manifest digest")
+            require(errors, nested(digest, "verificationMode") == "huggingface-safetensors-manifest", f"{model_id}: artifact-manifest requires huggingface-safetensors-manifest verification")
+            require(errors, artifact.get("source") == "huggingface" and artifact.get("sourceUri") == f"https://huggingface.co/{model_id}", f"{model_id}: artifact-manifest must identify the official Hugging Face repository")
+            require(errors, bool(artifact.get("artifactManifest")), f"{model_id}: artifactManifest is required")
         require(errors, bool(nested(digest, "verificationMode")), f"{model_id}: digest.verificationMode is required")
         require(errors, bool(nested(digest, "verificationCommand")), f"{model_id}: digest.verificationCommand is required")
         serving_profiles = artifact.get("servingProfiles")
@@ -139,6 +147,21 @@ def validate_refs(artifact: dict[str, Any], errors: list[str]) -> None:
         require(errors, path.exists(), f"{model_id}: serving profile does not exist: {path_text}")
         if path.exists() and path.suffix in {".yaml", ".yml"}:
             require(errors, values_references_model(path, model_id), f"{model_id}: serving profile {path_text} must reference the model")
+            values = load_yaml(path)
+            if artifact.get("source") == "huggingface" and nested(values, "model", "name") == model_id:
+                require(errors, nested(values, "model", "revision") == artifact.get("revision"), f"{model_id}: serving profile {path_text} model.revision must match provenance")
+
+
+def validate_artifact_manifest(artifact: dict[str, Any], errors: list[str]) -> None:
+    if nested(artifact, "digest", "scope") != "artifact-manifest":
+        return
+    model_id = str(artifact.get("modelId"))
+    path = (ROOT / str(artifact.get("artifactManifest", ""))).resolve()
+    try:
+        path.relative_to(ROOT)
+        check_manifest(path.read_bytes(), model_id, str(artifact.get("revision", "")), str(nested(artifact, "digest", "value", default="")))
+    except (OSError, ValueError) as exc:
+        errors.append(f"{model_id}: invalid artifact manifest: {exc}")
 
 
 def run_check(policy_path: Path) -> ProvenanceReport:
@@ -152,6 +175,7 @@ def run_check(policy_path: Path) -> ProvenanceReport:
     for artifact in artifacts:
         validate_artifact_against_catalog(artifact, catalog, errors)
         validate_refs(artifact, errors)
+        validate_artifact_manifest(artifact, errors)
     return ProvenanceReport(
         generated_at=datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         policy=rel(policy_path),
@@ -198,12 +222,18 @@ def _ollama_manifest_url(source_uri: str) -> str | None:
 
 
 def verify_reproducible_digests(policy_path: Path) -> int:
-    """Opt-in: fetch each model-artifact digest from its source and assert it reproduces.
+    """Opt-in: reproduce weight inventories and registry digests from upstream metadata.
 
-    Network is required. Only auto-reproducible scopes (currently the Ollama registry
-    model-weights layer) are checked end to end; source-reference pointers are reported
-    as manual-verification and never counted as artifact-verified.
+    Network is required, but weights are not downloaded. Hugging Face inventories
+    include every safetensors filename, size, and upstream SHA-256 at the pinned
+    revision. Source-reference pointers remain explicitly unverified.
     """
+    report = run_check(policy_path)
+    if report.errors:
+        print("model provenance verification FAILED: local provenance checks must pass first")
+        for error in report.errors:
+            print(f"- {error}")
+        return 1
     policy = load_yaml(policy_path)
     artifacts = nested(policy, "spec", "artifacts", default=[])
     checked = 0
@@ -211,6 +241,18 @@ def verify_reproducible_digests(policy_path: Path) -> int:
     for artifact in artifacts if isinstance(artifacts, list) else []:
         digest = artifact.get("digest", {}) or {}
         model_id = str(artifact.get("modelId"))
+        if nested(digest, "scope") == "artifact-manifest":
+            try:
+                payload = fetch_manifest(model_id, str(artifact.get("revision", "")))
+                produced = hashlib.sha256(payload).hexdigest()
+                checked += 1
+                if produced != str(nested(digest, "value", default="")):
+                    failures.append(f"{model_id}: upstream weight manifest digest differs from provenance")
+                else:
+                    print(f"  ok   {model_id}: pinned upstream weight manifest reproduces sha256:{produced[:12]}...")
+            except (OSError, ValueError) as exc:
+                failures.append(f"{model_id}: upstream weight manifest verification failed: {exc}")
+            continue
         if nested(digest, "scope") != "model-artifact":
             print(f"  skip {model_id}: scope '{nested(digest, 'scope')}' is a source pointer; verify manually with the documented command")
             continue
@@ -242,7 +284,7 @@ def verify_reproducible_digests(policy_path: Path) -> int:
         for failure in failures:
             print(f"- {failure}")
         return 1
-    print(f"model provenance verification OK: {checked} model-artifact digest(s) reproduced from source")
+    print(f"model provenance verification OK: {checked} registry digest(s) or weight manifest(s) reproduced from source; model weights were not downloaded")
     return 0
 
 

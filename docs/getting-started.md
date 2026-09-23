@@ -1,6 +1,6 @@
 # Getting started
 
-Use the [local quickstart](quickstart.md) for the first cluster run. This page is the command reference for development, validation, and customer handoff.
+Use the [local quickstart](quickstart.md) for the first cluster run and the [developer workflow](development.md) to change code or documentation without a cluster. This page is the command reference for validation, operations, and customer handoff.
 
 ## Tool requirements
 
@@ -128,7 +128,7 @@ The customer path assumes an existing cluster and Argo CD installation. Work in 
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.28.1 \
+  CUSTOMER_REVISION=v0.29.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 

@@ -119,8 +119,9 @@ threat go away, so treat them as defense in depth, not a guarantee.
   `platform/model-catalog/models.yaml`); approved entries require a promotion request and
   governed provenance (`platform/governance/model-provenance.yaml` requires `sourceUri`,
   `immutableRef`, `digest`, `license`, `dataClassification`, and `riskTier`),
-  verified by `scripts/model-provenance.py` in the strict release gate. Customers
-  replace source-reference digests with their own model-store digests before
+  verified by `scripts/model-provenance.py` in the strict release gate. Hugging Face
+  models pin a commit and safetensors checksum inventory; Ollama entries record
+  registry weight-layer digests. Customers verify downloaded bytes before
   production. vLLM/Ollama model caches are isolated per the sandbox and runtime
   security context. Residual risk: provenance proves *what* was pulled, not that
   the upstream training was clean -- weight-level backdoors are out of scope for
@@ -159,7 +160,7 @@ and confirming the deployment region meets their residency obligations.
 - Enable in-cluster encryption in transit (service-mesh mTLS, Cilium WireGuard/IPsec, or
   cert-manager TLS). The data plane is plaintext HTTP by default. See
   [deploy/clusters/customer/mtls/README.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md).
-- Replace source-reference model digests with customer model-store digests.
+- Verify downloaded weights against the pinned inventory or registry digest and record customer model-store changes in provenance.
 - Run strict gates with current evidence before production handoff.
 - Review RAG document ingestion, retention class, and vector collection access; enable per-tenant
   RAG retrieval isolation (`retrieval.tenantIsolation`) for multi-tenant corpora.

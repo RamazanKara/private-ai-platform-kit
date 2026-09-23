@@ -5,7 +5,7 @@ This example uses a fake customer organization, `acme-ai`, to show the expected 
 ## Inputs
 
 - Customer Git mirror: `https://github.com/acme-ai/private-ai-platform-kit.git`
-- Target revision: `v0.28.1`
+- Target revision: `v0.29.0`
 - GPU profile: `nvidia`
 - Runtime model: `Qwen/Qwen3-Coder-Next`
 - Secret integration: customer-operated External Secrets or an equivalent mechanism. The
@@ -17,7 +17,7 @@ This example uses a fake customer organization, `acme-ai`, to show the expected 
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/acme-ai/private-ai-platform-kit.git \
-  CUSTOMER_REVISION=v0.28.1 \
+  CUSTOMER_REVISION=v0.29.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
@@ -39,7 +39,7 @@ Review the generated changes in:
 - Confirm GPU nodes expose `nvidia.com/gpu` and have `platform.ai/node-pool=gpu`.
 - Confirm API-key hashes are sourced from the customer secret backend; do not apply the example
   secret manifest unchanged.
-- Replace model provenance source-reference digests with customer model-store artifact digests.
+- Verify downloaded weights against the pinned inventory or registry digest, and record customer model-store changes in provenance.
 - Replace sample RAG knowledge with approved customer documents and matching Qdrant dimensions.
 - Review agent workspace egress against `platform/network/egress-catalog.yaml`.
 

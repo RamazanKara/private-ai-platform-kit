@@ -8,7 +8,7 @@ This project is a Kubernetes reference implementation for a governed LLM gateway
 The repository contains service code, Helm charts, Argo CD applications, policy, tests, and runbooks. It does not provision a cluster or replace the operator's identity, secrets, ingress, observability, or backup systems.
 
 !!! note "Maturity"
-    Current release `v0.28.1`: reference implementation and customer lab. Treat the customer values as a template. Production use requires customer integration, capacity tests, backup and restore evidence, and the strict validation gate.
+    Current release `v0.29.0`: reference implementation and customer lab. Treat the customer values as a template. Production use requires customer integration, capacity tests, backup and restore evidence, and the strict validation gate.
 
 ## Start here
 
@@ -17,6 +17,11 @@ The repository contains service code, Helm charts, Argo CD applications, policy,
 - [Architecture](architecture.md) describes the local and customer profiles and the restricted-egress tenant example.
 - [Decision guide](decision-guide.md) covers fit, poor-fit cases, and the work a customer still owns.
 - [Production readiness](production-readiness.md) maps platform controls to their validation commands.
+
+## Developing the project
+
+- [Developer workflow](development.md) covers setup without a cluster, focused tests, contract updates, and documentation previews.
+- [Repository map](repository-map.md) explains component boundaries, code entry points, and generated files.
 
 ## Operating and reviewing the project
 

@@ -70,48 +70,48 @@ spec:
       status: approved
       source: huggingface
       sourceUri: https://huggingface.co/Qwen/Qwen3-Coder-Next
-      # Pin to a specific Hugging Face commit before production; this scope is a source
-      # pointer the customer replaces with their own pinned model-store revision + checksum.
-      revision: main
-      immutableRef: huggingface://Qwen/Qwen3-Coder-Next@sha256:71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06
+      # Immutable upstream commit; the inventory records every safetensors checksum.
+      revision: a7fbcb5c0e12d62a448eaa0e260346bf5dcc0feb
+      immutableRef: huggingface://Qwen/Qwen3-Coder-Next@a7fbcb5c0e12d62a448eaa0e260346bf5dcc0feb#sha256:e7d0301d6c9d34d3e5452535959d5472f09d0df0baa2efc24f8cdd1bb470d5ac
+      artifactManifest: platform/model-catalog/artifacts/qwen3-coder-next.json
       digest:
         algorithm: sha256
-        value: 71b3fd269cc80811780298417132e23cc6272e7fea40c36733c6caffa6e1ee06
-        scope: source-reference
-        verificationMode: customer-model-store
-        verificationCommand: huggingface-cli scan-cache --dir /models
+        value: e7d0301d6c9d34d3e5452535959d5472f09d0df0baa2efc24f8cdd1bb470d5ac
+        scope: artifact-manifest
+        verificationMode: huggingface-safetensors-manifest
+        verificationCommand: make model-provenance-verify
       license: apache-2.0
       dataClassification: internal
       riskTier: medium
       promotionRequest: platform/model-catalog/promotion-requests/qwen3-coder-customer-lab-approved.yaml
       catalogRef: platform/model-catalog/models.yaml
       servingProfiles:
+        - deploy/charts/vllm/values.yaml
         - deploy/clusters/customer/values/vllm.yaml
         - deploy/clusters/customer/values/vllm-nvidia.yaml
         - deploy/clusters/customer/values/vllm-amd.yaml
         - deploy/clusters/customer/values/inference-gateway.yaml
+        - deploy/clusters/customer/values/vllm-nvidia-fp8.yaml
       evidenceRefs:
         evalSummary: results/evals/sample-summary.md
         loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
-      notes: Customer lab vLLM coding-agent model. Replace source-reference digest with the customer's pinned model-store artifact revision and checksum.
+      notes: >-
+        The digest identifies a complete safetensors inventory at the pinned upstream commit. Each entry records the upstream weight-file SHA-256 and byte size. Metadata verification does not download or validate locally installed weights; verify those bytes in the customer model store.
     - modelId: BAAI/bge-small-en-v1.5
       status: approved
       source: huggingface
       sourceUri: https://huggingface.co/BAAI/bge-small-en-v1.5
-      # Pin to a specific Hugging Face commit before production; this scope is a source
-      # pointer the customer replaces with their own pinned model-store revision + checksum.
-      revision: main
-      immutableRef: huggingface://BAAI/bge-small-en-v1.5@sha256:99aab2ead8654ba801d2a01b188b13cc119e5d2d10880e8d1ee4a1315aa99e72
+      # Immutable upstream commit; the inventory records every safetensors checksum.
+      revision: 5c38ec7c405ec4b44b94cc5a9bb96e735b38267a
+      immutableRef: huggingface://BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a#sha256:a9b5338e6e96683e2eb17c4aa028b30b42f2b30a0cf7081e3fd80f864fefc421
+      artifactManifest: platform/model-catalog/artifacts/bge-small-en-v1.5.json
       digest:
         algorithm: sha256
-        # Deterministic source-reference over the model reference string
-        # (printf 'huggingface://BAAI/bge-small-en-v1.5' | sha256sum); the customer replaces
-        # this with the pinned model-store artifact checksum before production.
-        value: 99aab2ead8654ba801d2a01b188b13cc119e5d2d10880e8d1ee4a1315aa99e72
-        scope: source-reference
-        verificationMode: customer-model-store
-        verificationCommand: huggingface-cli scan-cache --dir /models
+        value: a9b5338e6e96683e2eb17c4aa028b30b42f2b30a0cf7081e3fd80f864fefc421
+        scope: artifact-manifest
+        verificationMode: huggingface-safetensors-manifest
+        verificationCommand: make model-provenance-verify
       license: mit
       dataClassification: internal
       riskTier: low
@@ -119,8 +119,10 @@ spec:
       catalogRef: platform/model-catalog/models.yaml
       servingProfiles:
         - deploy/clusters/customer/values/inference-gateway.yaml
+        - deploy/clusters/customer/values/vllm-embeddings.yaml
       evidenceRefs:
         evalSummary: results/evals/sample-summary.md
         loadTestSummary: results/loadtest/sample-summary.md
         securityWorkflow: .github/workflows/ci.yml
-      notes: Reference embedding model for governed RAG retrieval, proxied through the gateway /v1/embeddings route. Replace source-reference digest with the customer's pinned model-store artifact revision and checksum.
+      notes: >-
+        The digest identifies a complete safetensors inventory at the pinned upstream commit. Each entry records the upstream weight-file SHA-256 and byte size. Metadata verification does not download or validate locally installed weights; verify those bytes in the customer model store.

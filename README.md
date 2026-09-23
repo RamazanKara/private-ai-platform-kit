@@ -11,7 +11,7 @@ and validation code kept in the same repository.
 
 Private AI Platform Kit is a reference implementation for running an LLM gateway, retrieval, and coding-agent workspaces on Kubernetes. It includes a local `kind` profile and a template for customer-owned clusters built from the same service code and Helm charts.
 
-Current release: `v0.28.1`. The project is suitable for evaluation and platform engineering work. It is not a managed service or a ready-made production environment. A production deployment still needs customer identity, secrets, storage, ingress, observability, backup, capacity planning, and current validation evidence.
+Current release: `v0.29.0`. The project is suitable for evaluation and platform engineering work. It is not a managed service or a ready-made production environment. A production deployment still needs customer identity, secrets, storage, ingress, observability, backup, capacity planning, and current validation evidence.
 
 [Documentation](https://ramazankara.github.io/private-ai-platform-kit/) · [Quickstart](docs/quickstart.md) · [Feature inventory](docs/feature-inventory.md) · [Production readiness](docs/production-readiness.md) · [Security](docs/security-overview.md)
 
@@ -62,7 +62,9 @@ See [the quickstart guide](docs/quickstart.md) for the commands it runs, expecte
 
 ## Repository validation
 
-The default gate does not create a cluster, but it does require Python and Helm. On a fresh checkout it creates local virtual environments and installs hashed Python dependencies.
+For service or tooling development, start with `make test` and `make quality`; neither needs a cluster. The [developer workflow](docs/development.md) covers setup, focused tests, and documentation changes.
+
+The default repository gate does not create a cluster, but it does require Python and Helm. On a fresh checkout it creates local virtual environments and installs hashed Python dependencies.
 
 ```bash
 make validate
@@ -88,7 +90,7 @@ The customer profile assumes that Kubernetes and Argo CD already exist. Configur
 ```bash
 make customer-overlay \
   CUSTOMER_REPO_URL=https://github.com/<customer>/<repo>.git \
-  CUSTOMER_REVISION=v0.28.1 \
+  CUSTOMER_REVISION=v0.29.0 \
   CUSTOMER_GPU_PROFILE=nvidia
 ```
 
@@ -112,25 +114,34 @@ The hash chain makes edits or reordering within an exported audit stream detecta
 | Work through validation and operations | [Getting started](docs/getting-started.md) |
 | Understand the deployed components | [Architecture](docs/architecture.md) |
 | Check implemented features and defaults | [Feature inventory](docs/feature-inventory.md) |
+| Review model defaults and current candidates | [Model selection](docs/model-selection.md) |
 | Decide whether the project fits | [Decision guide](docs/decision-guide.md) |
 | Prepare a customer cluster | [Customer deployment](deploy/clusters/customer/README.md) |
 | Review security boundaries | [Security overview](docs/security-overview.md) and [threat model](docs/threat-model.md) |
 | Operate the platform | [Runbooks](runbooks/README.md) |
 | Verify a release | [Release verification](docs/release-verification.md) |
+| Develop and test a change | [Developer workflow](docs/development.md) |
+| Find code and its contracts | [Repository map](docs/repository-map.md) |
 | Contribute | [Contributing](CONTRIBUTING.md) |
 
 ## Repository layout
 
 | Path | Contents |
 | --- | --- |
-| `src/` | Inference gateway and RAG service |
+| `src/` | [Inference gateway](src/inference-gateway/README.md) and [RAG service](src/rag-service/README.md) |
+| `sdk/` | [First-party client](sdk/README.md), package metadata, and tests |
 | `deploy/charts/` | Helm charts |
 | `deploy/clusters/` | Local and customer values and Argo CD applications |
 | `platform/` | API/config contracts, policies, model catalog, evals, and SLO inputs |
-| `tenants/` | Tenant onboarding specifications |
+| `tenants/` | Tenant onboarding specifications, policies, and deployment examples |
 | `runbooks/` | Operational procedures |
-| `scripts/` | Validation, setup, and evidence tooling |
+| `scripts/` | [Validation, setup, and evidence tooling](scripts/README.md) |
+| `docs/` | Documentation site source and architecture decisions |
+| `chaos/` and `loadtest/` | Resilience drills and performance scenarios |
+| `paper/` | Research sources, experiments, and recorded results |
 | `results/` | Checked-in sample report shapes; current generated reports are ignored |
+
+See the [repository map](docs/repository-map.md) for component boundaries and the sources of generated contracts, reports, and documentation.
 
 Sample files under `results/` demonstrate report formats and gate behavior. They are not evidence for the current checkout or a customer deployment. Strict release checks require newly generated, non-sample artifacts.
 

@@ -68,13 +68,14 @@ Mandated controls: governed provenance (`C-PROV`), promotion request with separa
 Capable generation or coding-agent models that influence developer or analyst output and may drive
 tool use inside a sandboxed workspace. A failure or injection can produce wrong code, leak context
 within the sandbox, or waste capacity. This is the default tier for coding-agent serving models. The
-shipped catalog rates `Qwen/Qwen3-Coder-Next` (approved) and the proposed `Qwen/Qwen3.6-35B-A3B`,
-`zai-org/GLM-5.2`, and `deepseek-ai/DeepSeek-V4-Flash` as medium.
+shipped catalog rates `Qwen/Qwen3-Coder-Next` (approved) and the proposed Qwen3.6, Qwen3.8,
+GLM-5.3-Flash, and DeepSeek-V4.1-Flash candidates as medium. See
+[model selection](model-selection.md) for exact model IDs and review status.
 
 Mandated controls: everything in low, plus egress governance on the serving namespace (`C-EGRESS`),
 prompt secret detection enabled (`C-SECRET`), and an eval suite that exercises the promoted model or
-a declared, justified proxy (`C-EVAL`). The customer also replaces the source-reference digest with a
-pinned model-store digest before production, and the coding-agent eval suite
+a declared, justified proxy (`C-EVAL`). The customer also verifies downloaded weights against the
+pinned inventory or registry digest before production, and the coding-agent eval suite
 ([`platform/evals/coding-agent-suite.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/evals/coding-agent-suite.yaml)) includes
 `forbiddenAny` secret-leak checks.
 
@@ -191,7 +192,7 @@ obligations under one or more of the frameworks:
 - Wiring authentication to the enterprise identity boundary, backing API-key hashes or OIDC/JWT
   validation with the customer secret manager, and rotating keys (see
   [docs/threat-model.md](threat-model.md), Required Customer Hardening).
-- Replacing source-reference model digests with pinned model-store digests before production.
+- Verifying downloaded model weights against pinned inventories or registry digests before production.
 - Setting `riskTier` and `dataClassification` to reflect the actual use case, and applying the
   high-tier requirements above when a deployment warrants them.
 - Organizational AI policy, training, supplier agreements, and the management-review cadence that an

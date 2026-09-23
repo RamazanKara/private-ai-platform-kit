@@ -9,7 +9,10 @@ image:
 # AWQ compresses weights ~4x so the model fits on fewer/smaller GPUs. KV cache stays in the
 # model dtype (Ampere has no FP8 KV cache). Validate quality with `make eval` before promoting.
 model:
-  name: Qwen/Qwen3-Coder-Next-AWQ
+  # Operator template: replace both fields with an approved AWQ checkpoint.
+  # No verified upstream AWQ checkpoint is selected by this kit.
+  name: customer-model-store/qwen3-coder-next-awq
+  revision: ""
   dtype: auto
   maxModelLen: "262144"
 server:

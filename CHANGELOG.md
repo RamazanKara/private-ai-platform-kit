@@ -4,6 +4,49 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.29.0 - 2026-09-23
+
+This release refreshes model selection and makes the approved Hugging Face model
+artifacts reproducible. Existing lab defaults and gateway API behavior are retained.
+
+### Added
+
+- Verified catalog candidates for Qwen3.8-27B, Qwen3.8-Flash-Next,
+  GLM-5.3-Flash, and DeepSeek-V4.1-Flash, with immutable upstream card links,
+  context sizes, review dates, and individual licenses. They remain proposed until
+  customer hardware, quality, and governance checks are complete.
+- Deterministic safetensors weight inventories for the approved coding and embedding
+  models, plus a metadata-only inventory generator and regression tests.
+- A developer workflow, repository map, and gateway, RAG, and automation code guides.
+- Repository-tooling regression tests through `make test-scripts`, included in
+  `make test` and the validation gate.
+
+### Changed
+
+- Pin Qwen3-Coder-Next and BGE-small-en-v1.5 to immutable upstream commits in the
+  vLLM profiles. Provenance checks bind the revision, inventory checksum, and serving
+  configuration; `make model-provenance-verify` now reproduces both Hugging Face
+  inventories as well as the two approved Ollama weight-layer digests.
+- Replace older GLM and DeepSeek proposals with their current Flash candidates.
+  Retain Qwen3.6 as a comparison candidate and the small local CPU smoke model.
+- Document model selection, license differences, upgrade steps, and the distinction
+  between checking upstream metadata and verifying downloaded weight files.
+
+### Fixed
+
+- Refresh the Python 3.14 Alpine base-image digest and pin AnyIO 4.14.2 in the
+  runtime, development, and SDK test locks to address image-scan findings.
+- Remove pip and its vendored tooling from the final service images after installing
+  locked dependencies. Dependency changes now require rebuilding the service image.
+- Update Material for MkDocs and PyMdown Extensions to patched versions, addressing
+  the documentation toolchain's open dependency advisories.
+- The AWQ profile now explicitly requires a customer-provided approved checkpoint
+  and revision instead of naming an unverified upstream repository.
+- Documentation checks now include service READMEs and new, unignored Markdown
+  while excluding ignored environments and generated site output. Local image
+  links, URL-encoded paths, and angle-bracket paths are checked as well.
+- Documentation CI now runs when the MkDocs hook changes.
+
 ## v0.28.1 - 2026-08-05
 
 Internal reorganization of the gateway with zero behavior change, verified by byte-identical

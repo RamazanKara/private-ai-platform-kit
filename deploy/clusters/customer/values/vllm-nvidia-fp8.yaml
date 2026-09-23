@@ -6,6 +6,7 @@ image:
   pullPolicy: IfNotPresent
 model:
   name: Qwen/Qwen3-Coder-Next
+  revision: a7fbcb5c0e12d62a448eaa0e260346bf5dcc0feb
   dtype: auto
   maxModelLen: "262144"
 # FP8 quantization profile for Hopper/Ada (H100/H200/L40S) GPUs. FP8 weights plus an FP8

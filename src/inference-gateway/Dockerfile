@@ -1,4 +1,4 @@
-FROM python:3.14-alpine@sha256:26730869004e2b9c4b9ad09cab8625e81d256d1ce97e72df5520e806b1709f92 AS runtime
+FROM python:3.14-alpine@sha256:9e9fde4d32eedce0b661d9ab91e826b62dddf28e928c230ec55f1866cac66b01 AS runtime
 
 # OCI image metadata. VCS_REF/IMAGE_SOURCE are wired from CI build-args; the
 # defaults keep labels meaningful for local/standalone builds.
@@ -14,7 +14,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 COPY requirements.lock .
+# The final service needs only the locked runtime dependencies, not pip or its
+# vendored build tooling. Remove the installer after dependency installation.
 RUN python -m pip install --no-cache-dir --disable-pip-version-check --require-hashes -r requirements.lock \
+    && python -m pip uninstall --yes pip \
     && adduser -D -H -u 10001 appuser
 
 COPY app ./app

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Canonical repository directory layout -- the single source of truth.
 
-Governance gates and tooling resolve the repository's top-level directories from
-here, so relocating a directory is a one-line change instead of hundreds of
-scattered path literals. Shell consumers can ``eval "$(paths.py --dump-sh)"``.
+This registry describes the supported layout and detects unexpected top-level
+directories. It does not rewrite paths in charts, scripts, CI, or documentation;
+relocations still require updating those consumers. Shell consumers can use
+``eval "$(paths.py --dump-sh)"``.
 
 CLI:
   paths.py --dump      Emit the layout as JSON (root + directory purposes).
@@ -28,7 +29,7 @@ DIRECTORIES: dict[str, str] = {
     "deploy": "Deployable Kubernetes surface: charts, clusters, gitops, policies, sandbox, backup, observability.",
     "chaos": "Chaos and resilience drill definitions.",
     "platform": "Governance and contract inputs: governance, network, slo, model-catalog, evals, rag, api-contracts, config-contracts, tools.",
-    "tenants": "Tenant onboarding specs and generated artifacts.",
+    "tenants": "Tenant onboarding specs, examples, and sandbox policies; generated output goes in .out/tenants.",
     "loadtest": "k6 load tests and the mock runtime.",
     "scripts": "Automation, governance gates, and tooling.",
     "runbooks": "Operational runbooks (also shipped as Prometheus runbook_url targets).",
@@ -46,7 +47,7 @@ DIRECTORIES: dict[str, str] = {
 # must not be flagged as undeclared by --check (mkdocs output, etc.).
 NON_INVENTORY = frozenset({"site"})
 
-# Path objects for programmatic use: PATHS["charts"] -> ROOT/charts.
+# Path objects for programmatic use: PATHS["deploy"] -> ROOT/deploy.
 PATHS: dict[str, Path] = {name: ROOT / name for name in DIRECTORIES}
 
 
@@ -73,7 +74,7 @@ def shell_var(name: str) -> str:
 
 
 def discovered_top_level() -> set[str]:
-    """Tracked top-level directories on disk, excluding dotdirs and build output."""
+    """Top-level directories on disk, excluding dotdirs and known build output."""
     found: set[str] = set()
     for child in ROOT.iterdir():
         if not child.is_dir():

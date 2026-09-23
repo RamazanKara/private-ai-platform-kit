@@ -5,8 +5,10 @@ Use this checklist before trusting a public release in a customer-owned cluster.
 Set the release and repository once:
 
 ```bash
-export RELEASE=v0.28.1
+export RELEASE=v0.29.0
+export REPOSITORY=RamazanKara/private-ai-platform-kit
 export IMAGE_REPO=ghcr.io/ramazankara/private-ai-platform-kit
+export RELEASE_IDENTITY="https://github.com/$REPOSITORY/.github/workflows/ci.yml@refs/tags/$RELEASE"
 ```
 
 ## Helm OCI Charts
@@ -32,11 +34,11 @@ Release images are signed by digest with Cosign in GitHub Actions.
 
 ```bash
 cosign verify "$IMAGE_REPO/inference-gateway:$RELEASE" \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
+  --certificate-identity "$RELEASE_IDENTITY" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 cosign verify "$IMAGE_REPO/rag-service:$RELEASE" \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
+  --certificate-identity "$RELEASE_IDENTITY" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
@@ -48,15 +50,15 @@ Helm chart OCI artifacts are cosign-signed by digest in the same release workflo
 
 ```bash
 cosign verify "$IMAGE_REPO/charts/inference-gateway:${RELEASE#v}" \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
+  --certificate-identity "$RELEASE_IDENTITY" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 cosign verify "$IMAGE_REPO/charts/rag-service:${RELEASE#v}" \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
+  --certificate-identity "$RELEASE_IDENTITY" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 cosign verify "$IMAGE_REPO/charts/agent-workspace:${RELEASE#v}" \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
+  --certificate-identity "$RELEASE_IDENTITY" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
@@ -64,46 +66,58 @@ Chart OCI tags drop the leading `v` (`${RELEASE#v}`) to match the chart `version
 
 ## Provenance And SBOM Attestations
 
-Tag builds publish SLSA provenance and SPDX SBOM attestations to GHCR for each runtime image.
+The main-branch image build publishes SLSA provenance and SPDX SBOM attestations.
+The tag workflow promotes those same image digests and signs them for the release;
+it does not rebuild them. Verify build attestations against `refs/heads/main` and
+the release's exact source commit, using the authenticated GitHub CLI.
+
+Run from a checkout containing the release tag:
 
 ```bash
-cosign verify-attestation "$IMAGE_REPO/inference-gateway:$RELEASE" \
-  --type slsaprovenance \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+SOURCE_REVISION="$(git rev-parse "${RELEASE}^{commit}")"
+for service in inference-gateway rag-service; do
+  gh attestation verify "oci://$IMAGE_REPO/$service:$RELEASE" \
+    --repo "$REPOSITORY" \
+    --signer-workflow "$REPOSITORY/.github/workflows/ci.yml" \
+    --source-ref refs/heads/main \
+    --source-digest "$SOURCE_REVISION"
 
-cosign verify-attestation "$IMAGE_REPO/rag-service:$RELEASE" \
-  --type slsaprovenance \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
-
-cosign verify-attestation "$IMAGE_REPO/inference-gateway:$RELEASE" \
-  --type https://spdx.dev/Document \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
-
-cosign verify-attestation "$IMAGE_REPO/rag-service:$RELEASE" \
-  --type https://spdx.dev/Document \
-  --certificate-identity-regexp 'https://github.com/.+/.github/workflows/ci.yml@refs/tags/.+' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+  gh attestation verify "oci://$IMAGE_REPO/$service:$RELEASE" \
+    --repo "$REPOSITORY" \
+    --signer-workflow "$REPOSITORY/.github/workflows/ci.yml" \
+    --source-ref refs/heads/main \
+    --source-digest "$SOURCE_REVISION" \
+    --predicate-type https://spdx.dev/Document/v2.3
+done
 ```
+
+See [GitHub artifact attestation verification](https://cli.github.com/manual/gh_attestation_verify)
+for authentication and offline bundle options.
 
 ## SBOM And Scan Checksums
 
-Download the release assets and verify the checksum manifest:
+Download all release assets into a new directory. GitHub flattens asset paths, so
+restore the chart and SDK directories recorded in the checksum manifests:
 
 ```bash
-gh release download "$RELEASE" \
-  --pattern 'inference-gateway.spdx.json' \
-  --pattern 'rag-service.spdx.json' \
-  --pattern 'trivy-results.sarif' \
-  --pattern 'trivy-rag-results.sarif' \
-  --pattern 'supply-chain-checksums.txt'
-
-sha256sum --check supply-chain-checksums.txt
+mkdir -p "release-evidence/$RELEASE/chart-packages" "release-evidence/$RELEASE/sdk-dist"
+gh release download "$RELEASE" --repo "$REPOSITORY" --dir "release-evidence/$RELEASE"
+(
+  cd "release-evidence/$RELEASE"
+  mv ./*.tgz chart-release-manifest.json chart-release-manifest.sigstore.json chart-packages/
+  mv ./*.whl ./*.tar.gz sdk-dist/
+  cosign verify-blob supply-chain-checksums.txt \
+    --bundle supply-chain-checksums.sigstore.json \
+    --certificate-identity "$RELEASE_IDENTITY" \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+  sha256sum --check supply-chain-checksums.txt
+  sha256sum --check sdk-checksums.txt
+)
 ```
 
-Review the SBOMs and SARIF files before promotion. The Trivy release gate is configured to fail on HIGH or CRITICAL image vulnerabilities.
+Review the SBOMs and SARIF files before promotion. The Trivy release gate fails on
+HIGH or CRITICAL image vulnerabilities. The signed checksum manifest covers the
+chart packages and release image evidence; SDK checksums are published separately.
 
 ## Strict Evidence
 

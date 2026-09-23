@@ -48,7 +48,7 @@ GPU-backed OpenAI-compatible LLM runtime.
 | `model.dtype` | `auto` |
 | `model.maxModelLen` | `262144` |
 | `model.name` | `Qwen/Qwen3-Coder-Next` |
-| `model.revision` | `""` |
+| `model.revision` | `a7fbcb5c0e12d62a448eaa0e260346bf5dcc0feb` |
 | `model.task` | `generate` |
 | `namespace.create` | `true` |
 | `namespace.name` | `""` |

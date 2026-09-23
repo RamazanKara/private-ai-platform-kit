@@ -94,13 +94,16 @@ nav:
       - First private AI platform: quickstart.md
   - How-to guides:
       - Local lab and operations: getting-started.md
+      - Developer workflow: development.md
       - Client API examples: client-examples.md
       - Customer cluster handoff: customer-handoff-example.md
       - Regulated offline tenant: regulated-offline-tenant-example.md
       - GPU coding-agent tenant: gpu-coding-agent-tenant-example.md
       - Runbooks: runbooks/README.md
   - Reference:
+      - Repository map: repository-map.md
       - Feature inventory: feature-inventory.md
+      - Model selection and updates: model-selection.md
       - Production readiness matrix: production-readiness.md
       - Benchmarks and evals: benchmarks-and-evals.md
       - Capacity and sizing: capacity-sizing.md
