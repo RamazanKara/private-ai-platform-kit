@@ -2284,8 +2284,10 @@ errors (HTTP 422) keep FastAPI's default <code>{"detail": [...]}</code> shape.</
 <h2 id="python-first-party-client">Python (first-party client)<a class="headerlink" href="#python-first-party-client" title="Permanent link">&para;</a></h2>
 <p>The kit ships a minimal, retry-aware first-party client (<code>sdk/python</code>, packaged as
 <code>private-ai-platform-kit-client</code>) for scripts that do not want the full <code>openai</code> dependency:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>private-ai-platform-kit-client
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>https://github.com/RamazanKara/private-ai-platform-kit/releases/download/v0.29.0/private_ai_platform_kit_client-0.29.0-py3-none-any.whl
 </code></pre></div>
+<p>The wheel and checksums are attached to each <a href="https://github.com/RamazanKara/private-ai-platform-kit/releases">GitHub release</a>.
+See <a href="../release-verification/">release verification</a> before installing.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ai_platform_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">GatewayClient</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">with</span> <span class="n">GatewayClient</span><span class="p">(</span><span class="s2">&quot;http://127.0.0.1:8080&quot;</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;local-development-only&quot;</span><span class="p">,</span> <span class="n">sandbox_id</span><span class="o">=</span><span class="s2">&quot;demo&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">gw</span><span class="p">:</span>
