@@ -229,7 +229,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d  # v2.0.1
+      - uses: oras-project/setup-oras@005458ad77f1c8facd38a094e4af2e69e5607ff4  # v2.0.2
         if: github.ref_type == 'tag'
         with:
           # setup-oras v2.0.0 ships a signed static release catalog whose newest
@@ -372,13 +372,13 @@ jobs:
           exit-code: "1"
           format: sarif
           output: trivy-rag-results.sarif
-      - uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd  # v4.38.1
+      - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4.38.2
         # Upload findings even when the scan gate fails; that is when they matter most.
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: trivy-results.sarif
           category: trivy-inference-gateway
-      - uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd  # v4.38.1
+      - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4.38.2
         if: always() && hashFiles('trivy-rag-results.sarif') != ''
         with:
           sarif_file: trivy-rag-results.sarif
