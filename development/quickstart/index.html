@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A runnable, vendor-neutral Kubernetes platform for private LLMs, RAG, and coding-agent workspaces.">
+        <meta name="description" content="Self-hosted LLM gateway, retrieval, and coding-agent workspaces for Kubernetes, with a verifiable record of every model call and agent action.">
       
       
       
         <link rel="canonical" href="https://ramazankara.github.io/private-ai-platform-kit/development/quickstart/">
       
       
-        <link rel="prev" href="../tutorials/">
+        <link rel="prev" href="..">
       
       
-        <link rel="next" href="../getting-started/">
+        <link rel="next" href="../client-examples/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>First private AI platform - Private AI Platform Kit</title>
+        <title>Quickstart - Private AI Platform Kit</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#local-quickstart" class="md-skip">
+        <a href="#quickstart" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              First private AI platform
+              Quickstart
             
           </span>
         </div>
@@ -252,13 +252,13 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../tutorials/" class="md-tabs__link">
+        <a href="./" class="md-tabs__link">
           
   
   
     
   
-  Tutorials
+  Get started
 
         </a>
       </li>
@@ -280,7 +280,7 @@
   
     
   
-  How-to guides
+  Guides
 
         </a>
       </li>
@@ -296,35 +296,35 @@
     
     
       <li class="md-tabs__item">
-        <a href="../repository-map/" class="md-tabs__link">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../feature-inventory/" class="md-tabs__link">
           
   
   
     
   
   Reference
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../decision-guide/" class="md-tabs__link">
-          
-  
-  
-    
-  
-  Explanation
 
         </a>
       </li>
@@ -416,7 +416,9 @@
     
       
         
-          
+      
+        
+      
         
       
         
@@ -440,15 +442,14 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <div class="md-nav__link md-nav__container">
-            <a href="../tutorials/" class="md-nav__link ">
-              
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
   
   
   <span class="md-ellipsis">
     
   
-    Tutorials
+    Get started
   
 
     
@@ -456,27 +457,19 @@
   
   
 
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
+            <span class="md-nav__icon md-icon"></span>
+          </label>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Tutorials
+    Get started
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
             
               
                 
@@ -501,7 +494,7 @@
   <span class="md-ellipsis">
     
   
-    First private AI platform
+    Quickstart
   
 
     
@@ -519,7 +512,7 @@
   <span class="md-ellipsis">
     
   
-    First private AI platform
+    Quickstart
   
 
     
@@ -545,6 +538,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Compose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-kubernetes-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Kubernetes lab
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local Kubernetes lab">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -554,8 +570,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#run-it" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -565,8 +581,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#check-the-result" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -576,8 +592,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -587,8 +603,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#remove-the-lab" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -598,11 +614,100 @@
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Call the API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decision-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Is it a fit?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -623,8 +728,6 @@
   
     
     
-      
-        
       
         
       
@@ -664,7 +767,7 @@
   <span class="md-ellipsis">
     
   
-    How-to guides
+    Guides
   
 
     
@@ -686,7 +789,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    How-to guides
+    Guides
   
 
           </label>
@@ -707,62 +810,6 @@
     
   
     Local lab and operations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../development/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Developer workflow
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../client-examples/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Client API examples
   
 
     
@@ -818,7 +865,7 @@
   <span class="md-ellipsis">
     
   
-    Regulated offline tenant
+    Restricted-egress tenant
   
 
     
@@ -847,6 +894,318 @@
     
   
     GPU coding-agent tenant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../adr/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../threat-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Threat model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-sandbox-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent-sandbox integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../owasp-llm-top-10-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OWASP LLM Top 10 mapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-governance-crosswalk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI governance crosswalk
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scope-and-non-goals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scope and non-goals
   
 
     
@@ -902,6 +1261,8 @@
       
         
       
+        
+      
     
     
     
@@ -915,10 +1276,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -936,8 +1297,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -946,34 +1307,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../repository-map/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Repository map
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -1010,6 +1343,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../repository-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Repository map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../model-selection/" class="md-nav__link">
         
   
@@ -1017,7 +1378,7 @@
   <span class="md-ellipsis">
     
   
-    Model selection and updates
+    Model selection
   
 
     
@@ -1045,7 +1406,35 @@
   <span class="md-ellipsis">
     
   
-    Production readiness matrix
+    Production readiness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../proof/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evidence and strict validation
   
 
     
@@ -1129,7 +1518,7 @@
   <span class="md-ellipsis">
     
   
-    Cost model and TCO
+    Cost model
   
 
     
@@ -1157,7 +1546,7 @@
   <span class="md-ellipsis">
     
   
-    Version and compatibility matrix
+    Version matrix
   
 
     
@@ -1213,7 +1602,7 @@
   <span class="md-ellipsis">
     
   
-    Distribution and discovery
+    Distribution
   
 
     
@@ -1290,380 +1679,6 @@
   
 
     
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-          
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../adr/" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Explanation
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Explanation
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../decision-guide/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Is this for you (decision guide)
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    FAQ
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture profiles
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../security-overview/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Security overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../threat-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture and threat model
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../owasp-llm-top-10-mapping/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    OWASP LLM Top 10 2025
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ai-governance-crosswalk/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    AI governance crosswalk
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Scope and non-goals
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../agent-sandbox-integration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent-sandbox integration
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../proof/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Evidence and strict validation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
   </ul>
 </nav>
                   </div>
@@ -1691,6 +1706,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Compose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-kubernetes-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Kubernetes lab
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local Kubernetes lab">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1700,8 +1738,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#run-it" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1711,8 +1749,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#check-the-result" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1722,8 +1760,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1733,8 +1771,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#remove-the-lab" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1742,6 +1780,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1770,26 +1813,106 @@
   
 
 
-<h1 id="local-quickstart">Local quickstart<a class="headerlink" href="#local-quickstart" title="Permanent link">&para;</a></h1>
-<p>The quickstart creates a single-node <code>kind</code> cluster, builds the two first-party service images, deploys the local charts, and runs gateway and RAG smoke tests. The default model is <code>qwen2.5:0.5b</code> served by Ollama on the local machine.</p>
-<p>This is a development environment. It uses a public demo API key, plaintext in-cluster HTTP, single-node data stores, and workstation storage.</p>
-<h2 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
+<h1 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h1>
+<p>There are two ways to run the kit on one machine. Both use the same service images and the
+same configuration contract as a production cluster.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Docker Compose</th>
+<th>Local Kubernetes lab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Needs</td>
+<td>Docker with Compose</td>
+<td>Linux or WSL, Docker, Python 3.12+, Bash, <code>curl</code></td>
+</tr>
+<tr>
+<td>Time to first request</td>
+<td>About two minutes</td>
+<td>15 to 30 minutes on the first run, mostly downloads</td>
+</tr>
+<tr>
+<td>Runs</td>
+<td>Gateway, Ollama, RAG, optional Open WebUI</td>
+<td>The full platform on <code>kind</code>: Argo CD, Kyverno, Calico, gateway, Ollama, RAG, Redis, agent workspaces, observability</td>
+</tr>
+<tr>
+<td>Good for</td>
+<td>Trying the API and the audit trail</td>
+<td>Evaluating the Kubernetes deployment, policies, and agent sandboxes</td>
+</tr>
+</tbody>
+</table>
+<p>Both are development environments with a public demo API key, <code>local-development-only</code>.
+Never reuse it outside them.</p>
+<h2 id="docker-compose">Docker Compose<a class="headerlink" href="#docker-compose" title="Permanent link">&para;</a></h2>
+<p>From the repository root:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>compose-up
+</code></pre></div>
+<p>This builds the gateway and RAG images, starts Ollama, pulls <code>qwen2.5:0.5b</code> (about 400 MB, cached
+in a Docker volume), and waits until every service reports ready. Ports bind to <code>127.0.0.1</code>
+only: the gateway on <code>8080</code> and the RAG service on <code>8090</code>.</p>
+<p>Walk through the governed request path:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>compose-smoke
+</code></pre></div>
+<p>The script sends real requests and exits non-zero at the first one that misbehaves. A passing
+run ends with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>== 9. Export the audit log and verify its hash chain
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>chain 7f3c...: OK (21 record(s), head 6865...)
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>   ok  21 receipt lines verified (.out/compose/gateway-audit.jsonl)
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>== 10. Rewrite history: turn the blocked request's 400 into a 200 and verify again
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>   ok  edit detected: BROKEN at position 3 (record_hash_mismatch)
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>All checks passed. Open the read-only console at http://127.0.0.1:8080/console
+</code></pre></div>
+<p>Call the gateway from any OpenAI or Anthropic client with base URL <code>http://127.0.0.1:8080/v1</code>
+(OpenAI) or <code>http://127.0.0.1:8080</code> (Anthropic) and API key <code>local-development-only</code>; see
+<a href="../client-examples/">client examples</a>. The key is a record in
+<code>deploy/compose/key-records.yaml</code> bound to sandbox <code>demo</code>, so requests run as that sandbox
+whatever <code>X-Sandbox-ID</code> they send.</p>
+<p>Add a chat UI:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>deploy/compose/compose.yaml<span class="w"> </span>--profile<span class="w"> </span>ui<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<p>Open WebUI then serves <a href="http://127.0.0.1:3000">http://127.0.0.1:3000</a>. It runs in offline mode and talks only to the
+gateway, so its chats appear in the same audit trail.</p>
+<p>Settings you can override in the environment: <code>PAK_MODEL</code> (any Ollama model tag),
+<code>PAK_GATEWAY_PORT</code>, <code>PAK_RAG_PORT</code>, and <code>PAK_UI_PORT</code>.</p>
+<p>Stop and delete the stack, including the model volume:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>compose-down
+</code></pre></div>
+<p>The Compose stack deliberately leaves out what needs Kubernetes: network policy, the hardened
+agent workspaces, GitOps, Redis-backed shared state, and the observability stack. Use the lab
+below for those.</p>
+<h2 id="local-kubernetes-lab">Local Kubernetes lab<a class="headerlink" href="#local-kubernetes-lab" title="Permanent link">&para;</a></h2>
+<p>The lab creates a single-node <code>kind</code> cluster, builds the two first-party images, deploys the
+platform through Argo CD, and runs gateway and RAG smoke tests against <code>qwen2.5:0.5b</code> on Ollama.
+It uses plaintext in-cluster HTTP, single-node data stores, and workstation storage.</p>
+<h3 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h3>
 <p>The managed bootstrap supports Linux and WSL and requires:</p>
 <ul>
 <li>Docker with a working daemon;</li>
 <li>Python 3.12 or newer;</li>
 <li>Bash, <code>curl</code>, <code>tar</code>, <code>sha256sum</code>, and <code>install</code>;</li>
-<li>enough disk for the <code>kind</code> node, platform images, and Ollama model.</li>
+<li>enough disk for the <code>kind</code> node, platform images, and the Ollama model.</li>
 </ul>
-<p>The bootstrap downloads pinned copies of <code>kind</code>, <code>kubectl</code>, Helm, kubeconform, the Kyverno CLI, k6, Syft, the Argo CD CLI, Cosign, and Trivy into <code>.tools/bin</code>.</p>
-<p>The first run also downloads container base images, the Kubernetes node image, Calico and Argo CD manifests, third-party charts and images, Python packages, and the Ollama model. It creates Docker state, writes a <code>kind</code> context to your kubeconfig, and binds host port <code>8080</code> unless overridden. Do not use the quickstart on a workstation where those changes are unacceptable.</p>
-<p>On macOS or a managed workstation, install <code>kind</code>, <code>kubectl</code>, and Helm separately and run <code>make quickstart</code>; the repository's tool installer is Linux-only.</p>
-<h2 id="run-it">Run it<a class="headerlink" href="#run-it" title="Permanent link">&para;</a></h2>
-<p>From the repository root:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>bootstrap
+<p>The bootstrap downloads pinned copies of <code>kind</code>, <code>kubectl</code>, Helm, kubeconform, the Kyverno CLI,
+k6, Syft, the Argo CD CLI, Cosign, and Trivy into <code>.tools/bin</code>.</p>
+<p>The first run also downloads container base images, the Kubernetes node image, Calico and Argo
+CD manifests, third-party charts and images, Python packages, and the Ollama model. It creates
+Docker state, writes a <code>kind</code> context to your kubeconfig, and reserves host port <code>8080</code> for the
+cluster unless overridden. Stop the Compose stack first (<code>make compose-down</code>) if it is running.</p>
+<p>On macOS or a managed workstation, install <code>kind</code>, <code>kubectl</code>, and Helm separately and run
+<code>make quickstart</code>; the repository's tool installer is Linux-only.</p>
+<h3 id="run-it">Run it<a class="headerlink" href="#run-it" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>bootstrap
 </code></pre></div>
 <p>If the required cluster tools are already installed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>quickstart
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>quickstart
 </code></pre></div>
 <p>The command runs, in order:</p>
 <ol>
@@ -1801,51 +1924,65 @@
 <li>the gateway smoke test against Ollama;</li>
 <li>the RAG smoke test against the local lexical corpus.</li>
 </ol>
-<p>The Argo CD path needs the configured Git repository to be reachable from the cluster. For a reduced workstation check that applies the core charts directly, use:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">QUICKSTART_DIRECT_APPLY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart
+<p>The Argo CD path needs the configured Git repository to be reachable from the cluster. For a
+reduced workstation check that applies the core charts directly, use:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">QUICKSTART_DIRECT_APPLY</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart
 </code></pre></div>
-<p>Direct apply skips the Argo CD application set, including the full observability, policy, cost, and backup add-ons. It is useful for the gateway/RAG smoke path, not as a GitOps or production-readiness test.</p>
+<p>Direct apply skips the Argo CD application set, including the full observability, policy,
+cost, and backup add-ons. It is useful for the gateway and RAG smoke path, not as a GitOps or
+production-readiness test.</p>
 <p>Other switches:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">QUICKSTART_INSTALL_TOOLS</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">  </span><span class="c1"># install the pinned CLI set first</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">QUICKSTART_SKIP_VALIDATE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">  </span><span class="c1"># skip static validation</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">QUICKSTART_SKIP_RAG</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">       </span><span class="c1"># skip the RAG smoke test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">QUICKSTART_INSTALL_TOOLS</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">  </span><span class="c1"># install the pinned CLI set first</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nv">QUICKSTART_SKIP_VALIDATE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">  </span><span class="c1"># skip static validation</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nv">QUICKSTART_SKIP_RAG</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>make<span class="w"> </span>quickstart<span class="w">       </span><span class="c1"># skip the RAG smoke test</span>
 </code></pre></div>
-<h2 id="check-the-result">Check the result<a class="headerlink" href="#check-the-result" title="Permanent link">&para;</a></h2>
+<h3 id="check-the-result">Check the result<a class="headerlink" href="#check-the-result" title="Permanent link">&para;</a></h3>
 <p>A complete default run ends with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[private-ai-platform-kit] smoke test completed for ollama
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>[private-ai-platform-kit] RAG smoke completed for agent-lab
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>[private-ai-platform-kit] quickstart completed
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>[private-ai-platform-kit] smoke test completed for ollama
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>[private-ai-platform-kit] RAG smoke completed for agent-lab
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>[private-ai-platform-kit] quickstart completed
 </code></pre></div>
-<p>These lines confirm that the local gateway reached Ollama and that the RAG service returned results. They do not validate a customer identity provider, GPU runtime, production storage, backup, or external observability system.</p>
-<p>Inspect the cluster with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>status
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A
+<p>These lines confirm that the gateway reached Ollama and that the RAG service returned results.
+They do not validate a customer identity provider, GPU runtime, production storage, backup, or
+external observability system.</p>
+<p>The lab gateway is a ClusterIP service behind a default-deny network policy. Reach it from
+your workstation with a port-forward:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>inference<span class="w"> </span>port-forward<span class="w"> </span>svc/inference-gateway-inference-gateway<span class="w"> </span><span class="m">18080</span>:8080
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>curl<span class="w"> </span>-s<span class="w"> </span>http://127.0.0.1:18080/v1/models<span class="w"> </span>-H<span class="w"> </span><span class="s1">'X-API-Key: local-development-only'</span>
 </code></pre></div>
-<p>Then run any focused checks you need:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>trace-smoke
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>make<span class="w"> </span>tenant-smoke
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>make<span class="w"> </span>agent-smoke
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>make<span class="w"> </span>agent-sandbox-smoke
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>make<span class="w"> </span>evidence<span class="w"> </span><span class="nv">LIVE</span><span class="o">=</span><span class="m">1</span>
+<p>Then run the hardened agent workspace demo and any focused checks you need:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>make<span class="w"> </span>agent-sandbox-demo
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>make<span class="w"> </span>status
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>make<span class="w"> </span>trace-smoke
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>make<span class="w"> </span>tenant-smoke
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>make<span class="w"> </span>agent-smoke
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>make<span class="w"> </span>agent-sandbox-smoke
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>make<span class="w"> </span>evidence<span class="w"> </span><span class="nv">LIVE</span><span class="o">=</span><span class="m">1</span>
 </code></pre></div>
-<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<p>Docker must be reachable with <code>docker info</code>. If cluster creation stopped partway through, remove the cluster with <code>make local-down</code> before retrying.</p>
-<p>The default node image is set in <code>scripts/local-up.sh</code> and <code>deploy/clusters/local/kind-config.yaml</code>. Docker hosts using cgroup v1 automatically fall back to <code>kindest/node:v1.31.4</code>. To select a node image explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">LOCAL_KIND_NODE_IMAGE</span><span class="o">=</span>kindest/node:v1.31.4<span class="w"> </span>make<span class="w"> </span>quickstart
+<h3 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h3>
+<p>Docker must be reachable with <code>docker info</code>. If cluster creation stopped partway through,
+remove the cluster with <code>make local-down</code> before retrying.</p>
+<p>The default node image is set in <code>scripts/local-up.sh</code> and
+<code>deploy/clusters/local/kind-config.yaml</code>. Docker hosts using cgroup v1 automatically fall back
+to <code>kindest/node:v1.31.4</code>. To select a node image explicitly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">LOCAL_KIND_NODE_IMAGE</span><span class="o">=</span>kindest/node:v1.31.4<span class="w"> </span>make<span class="w"> </span>quickstart
 </code></pre></div>
-<p>The cluster maps gateway node port <code>30080</code> to host port <code>8080</code>. Choose another host port if it is in use:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">LOCAL_GATEWAY_HOST_PORT</span><span class="o">=</span><span class="m">18080</span><span class="w"> </span>make<span class="w"> </span>quickstart
+<p>If host port <code>8080</code> is taken, reserve another one for the cluster:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nv">LOCAL_GATEWAY_HOST_PORT</span><span class="o">=</span><span class="m">18081</span><span class="w"> </span>make<span class="w"> </span>quickstart
 </code></pre></div>
-<p>The smoke scripts also use temporary local port-forwards. Override <code>LOCAL_PORT</code> for an individual smoke command if its default port is occupied.</p>
+<p>The smoke scripts use temporary local port-forwards. Override <code>LOCAL_PORT</code> for an individual
+smoke command if its default port is occupied.</p>
 <p>For model-pull progress:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ollama<span class="w"> </span>logs<span class="w"> </span>statefulset/ollama
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ollama<span class="w"> </span>logs<span class="w"> </span>statefulset/ollama
 </code></pre></div>
-<p>The local smoke key is <code>local-development-only</code>. It is deliberately public and must not be reused outside the local profile.</p>
-<h2 id="remove-the-lab">Remove the lab<a class="headerlink" href="#remove-the-lab" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make<span class="w"> </span>local-down
+<h3 id="remove-the-lab">Remove the lab<a class="headerlink" href="#remove-the-lab" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>make<span class="w"> </span>local-down
 </code></pre></div>
-<p>This deletes the <code>kind</code> cluster. It does not remove downloaded tools, Docker images, or caches. <code>make clean-all</code> removes repository-local tool environments and generated files; Docker cleanup remains a Docker operation.</p>
-<p>Continue with <a href="../getting-started/">Getting started</a> for focused validation and customer-deployment commands.</p>
+<p>This deletes the <code>kind</code> cluster. It does not remove downloaded tools, Docker images, or caches.
+<code>make clean-all</code> removes repository-local tool environments and generated files; Docker cleanup
+remains a Docker operation.</p>
+<p>Continue with <a href="../getting-started/">Getting started</a> for focused validation and
+customer-deployment commands.</p>
 
 
 
@@ -1863,6 +2000,8 @@
             </div>
           
           
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
@@ -1875,6 +2014,46 @@
       </main>
       
         <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Home
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../client-examples/" class="md-footer__link md-footer__link--next" aria-label="Next: Call the API">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Call the API
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -1905,7 +2084,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "content.code.copy", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.footer", "content.code.copy", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>

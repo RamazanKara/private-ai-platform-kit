@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://ramazankara.github.io/private-ai-platform-kit/development/runbooks/restore-drill/">
+        <link rel="canonical" href="https://ramazankara.github.io/private-ai-platform-kit/development/adr/0015-shared-service-modules/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>Incident Runbook: Restore Drill Failure - Private AI Platform Kit</title>
+        <title>0015. Shared service modules are copied per image and kept identical - Private AI Platform Kit</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#incident-runbook-restore-drill-failure" class="md-skip">
+        <a href="#0015-shared-service-modules-are-copied-per-image-and-kept-identical" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Incident Runbook: Restore Drill Failure
+              0015. Shared service modules are copied per image and kept identical
             
           </span>
         </div>
@@ -619,7 +619,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../../runbooks/" class="md-nav__link ">
               
   
   
@@ -847,7 +847,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../adr/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -1565,10 +1565,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-the-restore-drills-prove-read-this-first" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What The Restore Drills Prove (read this first)
+        Context
       
     </span>
   </a>
@@ -1576,10 +1576,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#symptoms" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Symptoms
+        Decision
       
     </span>
   </a>
@@ -1587,10 +1587,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#inspect" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Inspect
+        Consequences
       
     </span>
   </a>
@@ -1598,43 +1598,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#real-data-recovery-drill-qdrant" class="md-nav__link">
+  <a href="#alternatives-considered" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Real Data-Recovery Drill (Qdrant)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#likely-causes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Likely Causes
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#mitigation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Mitigation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#evidence" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Evidence
+        Alternatives considered
       
     </span>
   </a>
@@ -1658,7 +1625,7 @@
 
 
   
-    <a href="https://github.com/RamazanKara/private-ai-platform-kit/edit/main/runbooks/restore-drill.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/RamazanKara/private-ai-platform-kit/edit/main/docs/adr/0015-shared-service-modules.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1666,65 +1633,55 @@
   
 
 
-<h1 id="incident-runbook-restore-drill-failure">Incident Runbook: Restore Drill Failure<a class="headerlink" href="#incident-runbook-restore-drill-failure" title="Permanent link">&para;</a></h1>
-<h2 id="what-the-restore-drills-prove-read-this-first">What The Restore Drills Prove (read this first)<a class="headerlink" href="#what-the-restore-drills-prove-read-this-first" title="Permanent link">&para;</a></h2>
-<p>There are two distinct drills, and they prove different things. Do not conflate
-them when reviewing evidence:</p>
+<h1 id="0015-shared-service-modules-are-copied-per-image-and-kept-identical">0015. Shared service modules are copied per image and kept identical<a class="headerlink" href="#0015-shared-service-modules-are-copied-per-image-and-kept-identical" title="Permanent link">&para;</a></h1>
 <ul>
-<li><strong>Restore-tooling smoke (Redis AOF fixture).</strong> The default <code>make restore-drill</code>
-  replays a <em>synthetic 2-key Redis AOF fixture</em> into a disposable container and
-  runs data checks. This proves the restore <em>pipeline/tooling</em> works -- it can
-  stand up a target, replay a backup, and validate it. It does <strong>not</strong> prove
-  that any production data store is recoverable. Treat a green
-  <code>restore-pass-rate</code> from this path as "the restore tooling runs," nothing more.</li>
-<li><strong>Real data-recovery drill (Qdrant).</strong> <code>RUNTIME=local RESTORE_DRILL_QDRANT_DATA=1
-  make restore-drill</code> runs an end-to-end recovery of real vectors: it seeds a
-  known set of points into a throwaway probe collection, exports a Qdrant
-  snapshot, deletes the collection, restores it from the snapshot, and asserts
-  the recovered point count matches. This is the drill that actually proves
-  stored vector data is recoverable. The spec lives at
-  <code>chaos/drills/qdrant-data-restore.yaml</code>.</li>
+<li>Status: Accepted</li>
+<li>Date: 2026-10-04</li>
+<li>Deciders: Platform maintainer</li>
 </ul>
-<h2 id="symptoms">Symptoms<a class="headerlink" href="#symptoms" title="Permanent link">&para;</a></h2>
-<p><code>make restore-drill</code> exits non-zero, the restore-drill CronJob fails, or Prometheus fires <code>RestoreDrillFailed</code>.</p>
-<h2 id="inspect">Inspect<a class="headerlink" href="#inspect" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>kubectl get jobs,pods -n restore-drill
-kubectl logs -n restore-drill job/&lt;job-name&gt;
-kubectl get pods -n restore-drill -l restore-drill/ephemeral=true
-</code></pre></div>
-<p>For the local Docker runtime (restore-tooling smoke):</p>
-<div class="highlight"><pre><span></span><code>restore-drill run --config deploy/backup/restore-drill/drills/local-redis-aof.yaml --runtime docker --no-cleanup --format json
-</code></pre></div>
-<h2 id="real-data-recovery-drill-qdrant">Real Data-Recovery Drill (Qdrant)<a class="headerlink" href="#real-data-recovery-drill-qdrant" title="Permanent link">&para;</a></h2>
-<p>Run against a live local cluster with a reachable Qdrant (port-forward or
-in-cluster). It is guarded behind <code>RUNTIME=local</code> and <code>RESTORE_DRILL_QDRANT_DATA=1</code>
-so it never runs by accident, and it only touches its own ephemeral probe
-collection (never the production <code>customer-platform-knowledge</code> collection).</p>
-<div class="highlight"><pre><span></span><code># Make Qdrant reachable (example: port-forward the vector service)
-kubectl -n vector port-forward svc/qdrant-vector-store 6333:6333 &amp;
-
-RUNTIME=local RESTORE_DRILL_QDRANT_DATA=1 make restore-drill
-</code></pre></div>
-<p>Procedure executed by the drill:</p>
-<ol>
-<li>Seed N known vectors into a throwaway probe collection.</li>
-<li>Export a Qdrant snapshot of that collection.</li>
-<li>Delete the collection (simulate data loss).</li>
-<li>Restore the collection from the snapshot.</li>
-<li>Assert the recovered point count equals N and is non-trivially <code>&gt; 0</code>.</li>
-</ol>
-<p>Tunables: <code>RESTORE_DRILL_QDRANT_URL</code> (default <code>http://127.0.0.1:6333</code>),
-<code>RESTORE_DRILL_QDRANT_COLLECTION</code>, <code>RESTORE_DRILL_QDRANT_DIMENSIONS</code>,
-<code>RESTORE_DRILL_QDRANT_POINTS</code>. The report is written to
-<code>results/restore-drill/qdrant-data-restore-&lt;stamp&gt;.json</code>. A failed assertion or
-an unreachable Qdrant produces a <code>validation_passed: false</code> record -- results
-are never faked.</p>
-<h2 id="likely-causes">Likely Causes<a class="headerlink" href="#likely-causes" title="Permanent link">&para;</a></h2>
-<p>The backup artifact is missing, object-storage credentials are wrong, the restore image lacks Redis/PostgreSQL/MySQL tools, or a validation check no longer matches the restored data. For the Qdrant drill: Qdrant is unreachable, snapshots are disabled, or the snapshot volume is not writable.</p>
-<h2 id="mitigation">Mitigation<a class="headerlink" href="#mitigation" title="Permanent link">&para;</a></h2>
-<p>Rerun with <code>--no-cleanup</code>, inspect the retained target pod or container, fix credentials or backup source paths, and only then update checks if the data contract intentionally changed.</p>
-<h2 id="evidence">Evidence<a class="headerlink" href="#evidence" title="Permanent link">&para;</a></h2>
-<p>Save the run JSON, compliance report, retained pod name, relevant logs, and backup artifact timestamp. For the Qdrant drill, save the <code>qdrant-data-restore-&lt;stamp&gt;.json</code> report showing seeded vs recovered point counts.</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>The inference gateway and the RAG service need the same request body limit, the same tracing
+setup, and the same JWKS cache and JWT signature verification. Each service builds its image
+from its own directory (<code>context: src/&lt;service&gt;</code> in <code>.github/workflows/ci.yml</code> and in both
+Dockerfiles), so neither can import code that lives outside that directory.</p>
+<p>The repository had dealt with this by copying the modules, and the copies drifted. The JWKS
+cache gained a fix in one service and not the other, the RAG copy compared API keys with an
+early-exit <code>any()</code> where the gateway compared in constant time, and the audit helpers diverged
+until the RAG service lost a persistence metric. Each drift was a correctness or security gap
+found only by reading both files side by side.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>Shared code stays copied into each service, and the copies must be byte-identical:</p>
+<ul>
+<li><code>app/body_limit.py</code>, <code>app/tracing.py</code>, and <code>app/jwks.py</code> exist in both services with the same
+  bytes. <code>make repo-hygiene</code> (part of <code>make validate</code>) fails when any pair differs, naming the
+  file, so a change to one copy cannot merge without the other.</li>
+<li>A shared module takes its configuration as an explicit value, not a service's <code>Settings</code>
+  class. <code>app/jwks.py</code> defines <code>JwtConfig</code>; each service's <code>app/jwt_auth.py</code> maps its own
+  settings onto it and adds what only that service needs (the gateway's required scopes, the RAG
+  service's tenant claim). Service-specific code never lives in a shared file.</li>
+<li>To share another module, move its service-independent part into a file listed in
+  <code>SHARED_SERVICE_MODULES</code> in <code>scripts/repo-hygiene.py</code>, and keep the service-specific
+  remainder in the service.</li>
+</ul>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li>A fix to shared code is one edit applied to two files, and CI refuses a partial application.</li>
+<li>Images stay self-contained: each build context holds everything its image needs, and no
+  packaging step or second build context is introduced.</li>
+<li>The audit chain helpers remain separate implementations that share the hash primitives and
+  the verifier (<code>scripts/audit-verify.py</code>) rather than code. Their record shapes differ by design
+  (<code>inference_request</code> and <code>rag_query</code>); unifying them is not worth the coupling.</li>
+</ul>
+<h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>A shared Python package under <code>src/common/</code>, installed into both images.</strong> The cleanest
+  long-term layout. Rejected for now because it changes both Docker build contexts, the image
+  CI jobs, the Dependabot directories, coverage, and the locks, for three small modules. If the
+  shared surface grows past a handful of files, revisit this.</li>
+<li><strong>A git submodule or vendored wheel.</strong> Adds a release step and version skew between the
+  services for code that changes together. Rejected.</li>
+<li><strong>Accept the duplication and review it.</strong> This is what produced the drift above. Rejected.</li>
+</ul>
 
 
 
