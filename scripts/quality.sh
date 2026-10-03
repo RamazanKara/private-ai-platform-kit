@@ -56,6 +56,8 @@ run_typecheck() {
       MYPYPATH="$PWD" "$PYBIN" -m mypy app --config-file "$ROOT/pyproject.toml"
     )
   done
+  echo "[quality] mypy (python SDK)"
+  "$PYBIN" -m mypy sdk/python/ai_platform_client --config-file "$ROOT/pyproject.toml"
 }
 
 ensure_tools

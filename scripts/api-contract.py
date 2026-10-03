@@ -225,6 +225,8 @@ CONTRACTS = {
 SDK_METHOD_ROUTES = {
     "chat": "/v1/chat/completions",
     "chat_stream": "/v1/chat/completions",
+    "completions": "/v1/completions",
+    "messages": "/v1/messages",
     "embeddings": "/v1/embeddings",
     "moderations": "/v1/moderations",
     "batch": "/v1/batch-inference",
@@ -241,6 +243,7 @@ SDK_METHOD_ROUTES = {
     "get_response": "/v1/responses/",
     "delete_response": "/v1/responses/",
     "response_input_items": "/v1/responses/",
+    "record_receipt": "/v1/receipts",
     "models": "/v1/models",
     "usage": "/v1/usage",
     "sandbox_budget": "/v1/sandbox/budget",
@@ -471,7 +474,7 @@ def canonical_json(schema: dict[str, Any]) -> str:
 def validate_python_sdk() -> list[str]:
     """Keep the first-party client's method surface aligned with gateway paths."""
     errors: list[str] = []
-    sdk_path = ROOT / "sdk/python/ai_platform_client.py"
+    sdk_path = ROOT / "sdk/python/ai_platform_client/__init__.py"
     tree = ast.parse(sdk_path.read_text(encoding="utf-8"), filename=str(sdk_path))
     gateway_class = next(
         (node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "GatewayClient"),

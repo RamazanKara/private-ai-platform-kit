@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file. The format is b
 
 ## Unreleased
 
+### Added
+
+- Python SDK: `completions`, Anthropic `messages`, `record_receipt` for agent-action
+  receipts, and `ready`; constructor options for a custom `transport`, a CA bundle
+  (`verify`), and `default_headers` such as `traceparent`. Error responses raise
+  `GatewayError` (still an `httpx.HTTPStatusError`) carrying the gateway's `reason` and
+  `request_id`. The SDK is now a typed package (`py.typed`) with its own PyPI README and
+  classifiers; the import name is unchanged.
+
 ### Security
 
 - Update PyJWT to 2.15.1 (CRITICAL CVE-2026-102268 and five HIGH advisories fixed in
@@ -106,6 +115,13 @@ All notable changes to this project are documented in this file. The format is b
   setup-kubectl, kind-action, and the Pages actions), and the remaining pins were
   refreshed. Dependabot groups both services into one PR per ecosystem.
 - `.gitattributes` keeps shell scripts and manifests LF-only on every platform.
+- **Python SDK: `sandbox_id` defaults to unset** and `X-Sandbox-ID` is sent only when
+  given. The old default, `"default"`, was rejected with `403 sandbox_identity_mismatch`
+  for every credential bound to a sandbox. Pass `sandbox_id=` to keep the old behavior.
+- Python SDK: calls that create server-side state (file uploads, batches, stored
+  responses, receipts) are retried only after a connection failure or a 429/503, where the
+  gateway provably did not act, so a retry can no longer create a duplicate batch.
+  Streaming errors now raise with the gateway's reason instead of a bare status.
 
 ## v0.29.0 - 2026-09-23
 
