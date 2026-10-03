@@ -1,5 +1,5 @@
 # Documentation site toolchain (mkdocs-material). Hash-pinned lock.
 # Regenerate with `make relock` (scripts/relock.sh).
 mkdocs-material==9.7.7
-pymdown-extensions==11.0.1
+pymdown-extensions==12.1
 mike==2.2.0
