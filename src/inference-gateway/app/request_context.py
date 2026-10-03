@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import re
@@ -14,6 +15,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from starlette.routing import Match
 
+from app.batchstore import BATCH_IN_PROGRESS
 from app.jwt_auth import JwtAuthError, JwtVerifier
 from app.key_records import KeyRecord, KeyRecordSet
 from app.metrics import AUTH_FAILURES, LOAD_SHED, RATE_LIMITED
@@ -116,6 +118,41 @@ def _route_label(request: Request) -> str:
         if match is Match.FULL:
             return getattr(route, "path", "unmatched")
     return "unmatched"
+
+
+# Scope that marks an API-key record as the batch worker's replay credential.
+BATCH_REPLAY_SCOPE = "batch_replay"
+_BATCH_ID_PATTERN = re.compile(r"^batch-[0-9a-f]{32}$")
+
+
+async def _bind_batch_replay(request: Request) -> JSONResponse | None:
+    """Bind a batch-replay request to the tenant and submitter of a running batch.
+
+    The worker's key is not bound to one sandbox; it must replay items for every tenant. A
+    key that could name any sandbox would be a master key, so a key carrying the
+    `batch_replay` scope may act only as follows: the request names a batch in
+    `X-Batch-ID`, that batch exists for the `X-Sandbox-ID` it names, and it is currently
+    `in_progress`. The sandbox is then treated as bound, and the audit principal records
+    the batch's submitter, so each item's receipt shows who asked for the work and which
+    service performed it. Returns a 403 response when any condition fails, else None.
+    """
+    batch_id = (request.headers.get("x-batch-id") or "").strip()
+    explicit = request.headers.get("x-sandbox-id")
+    store = getattr(request.app.state, "batch_store", None)
+    if not _BATCH_ID_PATTERN.fullmatch(batch_id) or explicit is None or store is None:
+        return _sandbox_binding_response(request, "batch_replay_not_authorized")
+    tenant = validate_sandbox_id(explicit)
+    record = await asyncio.to_thread(store.get_batch, tenant, batch_id)
+    if record is None or record.status != BATCH_IN_PROGRESS:
+        return _sandbox_binding_response(request, "batch_replay_not_authorized")
+    request.state.sandbox_id = tenant
+    request.state.sandbox_bound = True
+    principal = dict(getattr(request.state, "principal", None) or {})
+    principal["batch_id"] = batch_id
+    if record.submitted_by:
+        principal["on_behalf_of"] = record.submitted_by
+    request.state.principal = principal
+    return None
 
 
 def require_bound_tenant(request: Request, feature: str) -> str:

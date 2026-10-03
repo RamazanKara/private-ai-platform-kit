@@ -192,10 +192,15 @@ batch:
     pollSeconds: "2"
     reclaimSeconds: "300"
     requestTimeoutSeconds: "120"
+    # Results are written to the object store in parts of this many items, and progress is
+    # checkpointed after each part, so a restart replays at most one part.
+    partLines: "1000"
     # Empty defaults to the in-cluster gateway service URL.
     gatewayUrl: ""
     # Service API key the worker presents to the gateway when auth is enabled; sourced from a
-    # Secret. Leave name empty when the gateway does not require auth.
+    # Secret. Leave name empty when the gateway does not require auth. Register it as an
+    # API-key record with the batch_replay scope so it can act for a tenant only while that
+    # tenant has a running batch (runbooks/batch-api.md).
     apiKey:
       existingSecret:
         name: ""

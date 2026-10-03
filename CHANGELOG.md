@@ -95,6 +95,18 @@ All notable changes to this project are documented in this file. The format is b
   than the reclaim interval is no longer processed again by a second replica. A worker
   whose claim was reclaimed stops without acknowledging the re-queued batch, and a
   request line that is valid JSON but not an object fails that item, not the whole batch.
+- **Batch claims have owners, progress is checkpointed, and memory is bounded.** Claims
+  carry a random token, so a stalled worker can neither refresh nor release a claim another
+  replica now holds. The worker streams its input file and writes results in parts
+  (`batch.worker.partLines`, default 1000), recording progress after each part; a restarted
+  or reclaimed batch resumes from its checkpoint instead of replaying and re-charging every
+  finished item. Results finished before a cancellation or expiry are kept, and the expiry
+  is enforced between chunks as documented.
+- **Batch items are replayed on the submitter's behalf.** A worker key that is an API-key
+  record with the `batch_replay` scope may assert a tenant only with `X-Batch-ID` naming
+  that tenant's batch while it is running; otherwise `403 batch_replay_not_authorized`.
+  Batches record who submitted them, and each item's receipt names that submitter as
+  `principal.on_behalf_of`. A worker key without the scope keeps working as before.
 - A canary or fallback route outside the sandbox's model allowlist is skipped instead of
   turning its traffic share into `model_not_allowed` errors or serving a forbidden model.
   `/v1/models` lists only the models the caller may call.

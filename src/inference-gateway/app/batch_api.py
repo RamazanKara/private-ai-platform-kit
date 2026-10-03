@@ -51,6 +51,22 @@ def _tenant(request: Request) -> str:
     return require_bound_tenant(request, "the Files and Batch API")
 
 
+def _submitter(request: Request) -> str | None:
+    """Return a stable, non-secret id for who created the batch (from the audit principal).
+
+    The worker replays each item on the submitter's behalf; recording who that is lets every
+    per-item receipt name the person or service that asked for the work.
+    """
+    principal = getattr(request.state, "principal", None)
+    if not isinstance(principal, dict):
+        return None
+    for field_name in ("key_id", "sub", "client_id"):
+        value = principal.get(field_name)
+        if value:
+            return f"{principal.get('auth', 'unknown')}:{value}"
+    return None
+
+
 def _error(status: int, reason: str, message: str) -> HTTPException:
     return HTTPException(status_code=status, detail={"reason": reason, "message": message})
 
@@ -213,6 +229,7 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
             expires_at=now + window_seconds,
             metadata=metadata,
             total=file_record.line_count,
+            submitted_by=_submitter(request),
         )
         await asyncio.to_thread(request.app.state.batch_store.create_and_enqueue, record)
         return JSONResponse(status_code=200, content=record.to_public())

@@ -40,7 +40,8 @@ batch:
     redisUrl: redis://budget-redis.budget.svc.cluster.local:6379/2
   worker:
     enabled: true
-    # When gateway auth is on, give the worker a service key the gateway allowlists:
+    # When gateway auth is on, give the worker a service key the gateway allowlists. Make it an
+# API-key record with the batch_replay scope (see "Worker credential" below):
     apiKey: { existingSecret: { name: batch-worker, key: batch-worker-api-key } }
 ```
 
@@ -69,12 +70,44 @@ Status lifecycle: `validating → in_progress → finalizing → completed`, or 
 or `cancelling → cancelled`. Successful (2xx) items land in the `output_file_id` file; everything
 else lands in the `error_file_id` file. Partial completion is normal.
 
+## Worker credential
+
+The worker replays every tenant's items, so its key cannot be bound to one sandbox. Give it an
+API-key record with the `batch_replay` scope and no `sandbox`:
+
+```yaml
+records:
+  - name: batch-worker
+    sha256: <sha256 of the worker key>
+    scopes: [batch_replay]
+```
+
+With that scope, the gateway accepts the key's `X-Sandbox-ID` only when the request also names,
+in `X-Batch-ID`, a batch that exists for that tenant and is `in_progress`. A leaked worker key
+therefore cannot act for a tenant with no running batch. Each item's receipt records the worker
+key, the batch id, and the batch's submitter as `principal.on_behalf_of`. A worker key without
+the scope still works but is an unrestricted service key; the tenant-scoped Files and Batch
+routes refuse it.
+
+## Progress, restarts, and memory
+
+The worker streams the input file line by line and writes results in parts of
+`BATCH_WORKER_PART_LINES` items (default 1000) under `<tenant>/parts/<batch>/` in the object
+store. After each part it records `processed_lines` and the part counts on the batch. A worker
+that crashes, or whose claim the reaper hands to another replica, resumes from that checkpoint,
+so at most one part of items is replayed and charged again. Parts are combined into the output
+and error files when the batch finishes, then deleted.
+
+Claims carry an owner token. A worker that stalls past `BATCH_WORKER_RECLAIM_SECONDS` loses its
+claim at the next heartbeat and stops without touching the replica that took over.
+
 ## Cancellation and expiry
 
 - `POST /v1/batches/{id}/cancel` flips the batch to `cancelling`; the worker finalizes it to
-  `cancelled` at its next item boundary (best-effort; in-flight items may still complete).
+  `cancelled` at its next chunk boundary (best-effort; in-flight items may still complete).
 - A batch not finished within its `completion_window` (default `24h`, honored as an expiry
-  bound) is swept to `expired` by the worker's reaper.
+  bound) becomes `expired` at the next chunk boundary or when a worker next picks it up.
+  Results finished before cancellation or expiry are kept in the output and error files.
 
 ## Troubleshooting
 
@@ -82,6 +115,7 @@ else lands in the `error_file_id` file. Partial completion is normal.
 | --- | --- |
 | Batches stay `validating`, never `in_progress` | The `batch-processor` Deployment is running (`kubectl get deploy -l app.kubernetes.io/component=batch-processor`) and `batch.worker.enabled` is true. Its logs (`kubectl logs`) show `batch-processor started`. |
 | Worker logs "BATCH_API_ENABLED is false" | The worker Deployment did not get `BATCH_API_ENABLED=true`; it is set by the chart when `batch.enabled` is true. |
+| Items fail with `batch_replay_not_authorized` | The worker key has the `batch_replay` scope but the batch was not `in_progress` when the item ran (for example, it was cancelled), or the worker and gateway use different batch stores. |
 | Items all fail with 401/403 in the error file | The worker's service key (`batch.worker.apiKey`) is missing or not allowlisted by the gateway; or a JWT tenant mismatch. |
 | Batch fails with "input file content is missing" | The gateway and worker are not pointed at the same object store, or the input file was deleted. Use `s3` (shared) in-cluster, not `filesystem`. |
 | A batch is stuck `in_progress` after a worker crash | The reaper re-queues it after `BATCH_WORKER_RECLAIM_SECONDS` (default 300s); another worker replica picks it up. Re-delivery is idempotent. |

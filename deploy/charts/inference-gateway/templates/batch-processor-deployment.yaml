@@ -101,6 +101,8 @@ spec:
               value: {{ .Values.batch.worker.reclaimSeconds | quote }}
             - name: BATCH_WORKER_REQUEST_TIMEOUT_SECONDS
               value: {{ .Values.batch.worker.requestTimeoutSeconds | quote }}
+            - name: BATCH_WORKER_PART_LINES
+              value: {{ .Values.batch.worker.partLines | quote }}
             {{- if .Values.batch.worker.apiKey.existingSecret.name }}
             - name: BATCH_WORKER_API_KEY
               valueFrom:
@@ -114,6 +116,15 @@ spec:
               drop:
                 - ALL
             readOnlyRootFilesystem: true
+          volumeMounts:
+            # Result parts are combined through a spooled temporary file before upload.
+            - name: tmp
+              mountPath: /tmp
           resources:
             {{- toYaml .Values.batch.worker.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            # Holds one assembled output or error file at a time.
+            sizeLimit: {{ printf "%dMi" (add (mul (div (int64 .Values.batch.maxFileBytes) 1048576) 2) 64) }}
 {{- end }}

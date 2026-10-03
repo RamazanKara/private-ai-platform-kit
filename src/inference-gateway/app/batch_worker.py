@@ -6,7 +6,21 @@ restarts freely. For each claimed batch it replays every input line against the 
 governed endpoint, so the model allowlist, admission caps, prompt-secret policy, budget, output
 guardrail, tenant isolation, and audit chain all apply per item exactly as for live traffic.
 Successful (2xx) items land in the output file; everything else lands in the error file.
-Cancellation and the completion-window expiry are honored at item boundaries.
+
+Three properties keep a large or interrupted batch cheap and correct:
+
+- **Bounded memory.** The input file is read line by line from the object store, and results
+  are written in parts of ``part_lines`` items, so memory does not grow with the file.
+- **Checkpointed progress.** After each part the batch record stores how many input lines
+  are done and which parts exist. A restarted or reclaimed batch resumes there, so a crash
+  replays (and re-charges) at most one part, not the whole file.
+- **Owned claims.** Each claim carries a token. The worker refreshes it between chunks and
+  stops, without finalizing or acknowledging, when another worker has taken the batch over.
+
+Items are replayed on the submitter's behalf: the worker sends ``X-Batch-ID``, and a worker
+key holding the ``batch_replay`` scope may act for a tenant only while that tenant's batch is
+running, with each receipt naming the submitter. Cancellation and the completion-window expiry
+are honored at chunk boundaries.
 """
 
 from __future__ import annotations
@@ -18,6 +32,8 @@ import logging
 import os
 import secrets
 import signal
+import tempfile
+from collections.abc import Iterator
 from dataclasses import dataclass
 from time import time
 from typing import Any
@@ -34,6 +50,7 @@ from app.batchstore import (
     BATCH_IN_PROGRESS,
     BatchRecord,
     BatchStore,
+    Claim,
     FileRecord,
     build_batch_store,
 )
@@ -55,6 +72,7 @@ class WorkerConfig:
     poll_seconds: float
     reclaim_seconds: float
     request_timeout: float
+    part_lines: int = 1000
 
     @classmethod
     def from_env(cls) -> WorkerConfig:
@@ -68,6 +86,7 @@ class WorkerConfig:
             poll_seconds=max(0.1, float(os.getenv("BATCH_WORKER_POLL_SECONDS", "2"))),
             reclaim_seconds=max(1.0, float(os.getenv("BATCH_WORKER_RECLAIM_SECONDS", "300"))),
             request_timeout=max(1.0, float(os.getenv("BATCH_WORKER_REQUEST_TIMEOUT_SECONDS", "120"))),
+            part_lines=max(1, int(os.getenv("BATCH_WORKER_PART_LINES", "1000"))),
         )
 
 
@@ -108,7 +127,7 @@ async def _replay_line(
         return _error_item(custom_id, "endpoint_mismatch", f"line url '{url}' does not match batch endpoint")
     if not isinstance(body, dict):
         return _error_item(custom_id, "invalid_body", "request line 'body' must be a JSON object")
-    headers = {"X-Sandbox-ID": record.tenant, "Content-Type": "application/json"}
+    headers = {"X-Sandbox-ID": record.tenant, "X-Batch-ID": record.id, "Content-Type": "application/json"}
     if config.api_key:
         headers[config.api_key_header] = config.api_key
     try:
@@ -144,6 +163,22 @@ def _jsonl(items: list[dict[str, Any]]) -> bytes:
     return (body + "\n").encode("utf-8") if body else b""
 
 
+def _part_key(tenant: str, batch_id: str, kind: str, index: int) -> str:
+    return f"{tenant}/parts/{batch_id}/{kind}-{index:05d}.jsonl"
+
+
+def _input_lines(object_store: ObjectStore, object_key: str, skip: int) -> Iterator[str]:
+    """Yield the non-blank input lines after the first ``skip`` of them, streaming the object."""
+    seen = 0
+    for raw in object_store.open_lines(object_key):
+        line = raw.decode("utf-8", errors="replace").strip()
+        if not line:
+            continue
+        seen += 1
+        if seen > skip:
+            yield line
+
+
 async def process_batch(
     config: WorkerConfig,
     object_store: ObjectStore,
@@ -152,12 +187,12 @@ async def process_batch(
     batch_id: str,
     client: httpx.AsyncClient,
     *,
-    claimed: bool = False,
+    claim: Claim | None = None,
 ) -> None:
-    """Process one batch to a terminal state (idempotent: safe to re-run).
+    """Process one batch to a terminal state, resuming from its last checkpoint.
 
-    `claimed` means this worker holds the queue claim: it then refreshes the claim
-    between chunks and stops, without finalizing, if another replica reclaimed the batch.
+    With a ``claim`` the worker refreshes it between chunks and raises :class:`ClaimLost`,
+    without finalizing, if another worker has taken the batch over.
     """
     record = batch_store.get_batch(tenant, batch_id)
     if record is None or record.status in _TERMINAL:
@@ -170,34 +205,102 @@ async def process_batch(
         batch_store.update_batch(tenant, batch_id, {"status": BATCH_EXPIRED, "expired_at": now})
         return
 
-    batch_store.update_batch(tenant, batch_id, {"status": BATCH_IN_PROGRESS, "in_progress_at": now})
+    in_progress: dict[str, Any] = {"status": BATCH_IN_PROGRESS}
+    if record.in_progress_at is None:
+        in_progress["in_progress_at"] = now
+    record = batch_store.update_batch(tenant, batch_id, in_progress) or record
     file_record = batch_store.get_file(tenant, record.input_file_id)
     if file_record is None:
         _fail(batch_store, tenant, batch_id, "input file record is missing")
         return
+
+    progress = _Progress.from_record(record)
+    outputs: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    cancelled = expired = False
     try:
-        data = object_store.get(file_record.object_key)
+        lines = _input_lines(object_store, file_record.object_key, record.processed_lines)
+        chunk: list[str] = []
+        exhausted = False
+        while not exhausted:
+            chunk.clear()
+            for line in lines:
+                chunk.append(line)
+                if len(chunk) >= config.concurrency:
+                    break
+            exhausted = len(chunk) < config.concurrency
+            if not chunk:
+                break
+            if claim is not None and not batch_store.heartbeat(claim):
+                raise ClaimLost(batch_id)
+            current = batch_store.get_batch(tenant, batch_id)
+            if current is not None and current.status == BATCH_CANCELLING:
+                cancelled = True
+                break
+            if int(time()) > record.expires_at:
+                expired = True
+                break
+            for item in await asyncio.gather(*(_replay_line(client, config, record, line) for line in chunk)):
+                (errors if item.pop("__error__", False) else outputs).append(item)
+            progress.processed += len(chunk)
+            if len(outputs) + len(errors) >= config.part_lines:
+                _checkpoint(object_store, batch_store, tenant, batch_id, progress, outputs, errors)
     except ObjectNotFound:
         _fail(batch_store, tenant, batch_id, "input file content is missing")
         return
-    lines = [line for line in data.decode("utf-8", errors="replace").splitlines() if line.strip()]
+    # Results gathered before a cancel or expiry are kept, as in OpenAI's batch semantics.
+    _checkpoint(object_store, batch_store, tenant, batch_id, progress, outputs, errors)
+    _finalize(object_store, batch_store, record, tenant, batch_id, progress, cancelled, expired)
 
-    outputs: list[dict[str, Any]] = []
-    errors: list[dict[str, Any]] = []
-    cancelled = False
-    for start in range(0, len(lines), config.concurrency):
-        if claimed and not batch_store.heartbeat(tenant, batch_id):
-            raise ClaimLost(batch_id)
-        current = batch_store.get_batch(tenant, batch_id)
-        if current is not None and current.status == BATCH_CANCELLING:
-            cancelled = True
-            break
-        chunk = lines[start : start + config.concurrency]
-        for item in await asyncio.gather(*(_replay_line(client, config, record, line) for line in chunk)):
-            (errors if item.pop("__error__", False) else outputs).append(item)
-        batch_store.update_batch(tenant, batch_id, {"completed": len(outputs), "failed": len(errors)})
 
-    _finalize(object_store, batch_store, record, tenant, batch_id, outputs, errors, cancelled)
+@dataclass
+class _Progress:
+    processed: int
+    completed: int
+    failed: int
+    output_parts: int
+    error_parts: int
+
+    @classmethod
+    def from_record(cls, record: BatchRecord) -> _Progress:
+        return cls(record.processed_lines, record.completed, record.failed, record.output_parts, record.error_parts)
+
+
+def _checkpoint(
+    object_store: ObjectStore,
+    batch_store: BatchStore,
+    tenant: str,
+    batch_id: str,
+    progress: _Progress,
+    outputs: list[dict[str, Any]],
+    errors: list[dict[str, Any]],
+) -> None:
+    """Write buffered results as new parts, then record the progress that covers them.
+
+    The part objects are written before the record moves forward: a crash in between leaves
+    an orphaned part that the resume overwrites, never a record pointing at a missing part.
+    """
+    if outputs:
+        object_store.put(_part_key(tenant, batch_id, "output", progress.output_parts), _jsonl(outputs))
+        progress.output_parts += 1
+        progress.completed += len(outputs)
+    if errors:
+        object_store.put(_part_key(tenant, batch_id, "error", progress.error_parts), _jsonl(errors))
+        progress.error_parts += 1
+        progress.failed += len(errors)
+    outputs.clear()
+    errors.clear()
+    batch_store.update_batch(
+        tenant,
+        batch_id,
+        {
+            "processed_lines": progress.processed,
+            "completed": progress.completed,
+            "failed": progress.failed,
+            "output_parts": progress.output_parts,
+            "error_parts": progress.error_parts,
+        },
+    )
 
 
 def _finalize(
@@ -206,54 +309,65 @@ def _finalize(
     record: BatchRecord,
     tenant: str,
     batch_id: str,
-    outputs: list[dict[str, Any]],
-    errors: list[dict[str, Any]],
+    progress: _Progress,
     cancelled: bool,
+    expired: bool,
 ) -> None:
     now = int(time())
     batch_store.update_batch(tenant, batch_id, {"status": BATCH_FINALIZING, "finalizing_at": now})
-    updates: dict[str, Any] = {"completed": len(outputs), "failed": len(errors)}
-    # Deterministic file ids keyed by batch id keep re-processing idempotent (overwrite, not append).
-    if outputs:
-        updates["output_file_id"] = _write_result_file(
-            object_store, batch_store, tenant, batch_id, "output", "batch_output", outputs
+    updates: dict[str, Any] = {"completed": progress.completed, "failed": progress.failed}
+    # Deterministic file ids keyed by batch id keep re-finalizing idempotent (overwrite, not append).
+    if progress.output_parts:
+        updates["output_file_id"] = _assemble_result_file(
+            object_store, batch_store, tenant, batch_id, "output", "batch_output", progress.output_parts
         )
-    if errors:
-        updates["error_file_id"] = _write_result_file(
-            object_store, batch_store, tenant, batch_id, "error", "batch_error", errors
+    if progress.error_parts:
+        updates["error_file_id"] = _assemble_result_file(
+            object_store, batch_store, tenant, batch_id, "error", "batch_error", progress.error_parts
         )
     if cancelled:
         updates.update({"status": BATCH_CANCELLED, "cancelled_at": now})
+    elif expired:
+        updates.update({"status": BATCH_EXPIRED, "expired_at": now})
     else:
         updates.update({"status": BATCH_COMPLETED, "completed_at": now})
     batch_store.update_batch(tenant, batch_id, updates)
 
 
-def _write_result_file(
+def _assemble_result_file(
     object_store: ObjectStore,
     batch_store: BatchStore,
     tenant: str,
     batch_id: str,
     kind: str,
     purpose: str,
-    items: list[dict[str, Any]],
+    parts: int,
 ) -> str:
+    """Concatenate result parts into the downloadable file through a spooled temp file."""
     file_id = f"file-{kind}-{batch_id}"
     object_key = f"{tenant}/{file_id}"
-    blob = _jsonl(items)
-    object_store.put(object_key, blob)
+    lines = 0
+    with tempfile.TemporaryFile() as spool:
+        for index in range(parts):
+            for line in object_store.open_lines(_part_key(tenant, batch_id, kind, index)):
+                spool.write(line)
+                lines += 1
+        size = spool.tell()
+        object_store.put_stream(object_key, spool, size)
     batch_store.create_file(
         FileRecord(
             id=file_id,
             tenant=tenant,
-            bytes=len(blob),
+            bytes=size,
             created_at=int(time()),
             filename=f"{batch_id}-{kind}.jsonl",
             purpose=purpose,
             object_key=object_key,
-            line_count=len(items),
+            line_count=lines,
         )
     )
+    for index in range(parts):
+        object_store.delete(_part_key(tenant, batch_id, kind, index))
     return file_id
 
 
@@ -265,23 +379,22 @@ async def run_once(
     config: WorkerConfig, object_store: ObjectStore, batch_store: BatchStore, client: httpx.AsyncClient
 ) -> bool:
     """Claim and process one batch; return False when the queue was empty."""
-    claimed = batch_store.claim()
-    if claimed is None:
+    claim = batch_store.claim()
+    if claim is None:
         return False
-    tenant, batch_id = claimed
     try:
-        await process_batch(config, object_store, batch_store, tenant, batch_id, client, claimed=True)
+        await process_batch(config, object_store, batch_store, claim.tenant, claim.batch_id, client, claim=claim)
     except ClaimLost:
-        # The claim now belongs to the replica that reclaimed the batch. Acking would
-        # delete that replica's claim, stop its heartbeat, and strand the batch unfinished.
-        _LOGGER.warning("batch %s was reclaimed by another worker; stopping without finalizing", batch_id)
+        # The batch now belongs to another worker. The token-checked ack below would be a
+        # no-op anyway; returning early just avoids the misleading attempt.
+        _LOGGER.warning("batch %s was taken over by another worker; stopping without finalizing", claim.batch_id)
         return True
     except Exception as exc:
-        _LOGGER.exception("batch %s processing failed", batch_id)
-        _fail(batch_store, tenant, batch_id, f"worker error: {type(exc).__name__}")
+        _LOGGER.exception("batch %s processing failed", claim.batch_id)
+        _fail(batch_store, claim.tenant, claim.batch_id, f"worker error: {type(exc).__name__}")
     # Not in a finally: a worker cancelled mid-batch must leave its claim behind so the
     # reaper re-queues the batch instead of it sitting in_progress forever.
-    batch_store.ack(tenant, batch_id)
+    batch_store.ack(claim)
     return True
 
 

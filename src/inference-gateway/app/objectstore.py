@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import os
 import shutil
+from collections.abc import Iterator
+from io import BytesIO
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol, runtime_checkable
 
@@ -40,6 +42,10 @@ class ObjectStore(Protocol):
         raise NotImplementedError
 
     def get(self, key: str) -> bytes: ...
+
+    def open_lines(self, key: str) -> Iterator[bytes]:
+        """Yield an object's lines (newline included) without loading it into memory."""
+        raise NotImplementedError
 
     def delete(self, key: str) -> None: ...
 
@@ -71,6 +77,9 @@ class MemoryObjectStore:
             return self._store[key]
         except KeyError as exc:
             raise ObjectNotFound(key) from exc
+
+    def open_lines(self, key: str) -> Iterator[bytes]:
+        yield from BytesIO(self.get(key))
 
     def delete(self, key: str) -> None:
         self._store.pop(key, None)
@@ -128,6 +137,14 @@ class FilesystemObjectStore:
             return self._path(key).read_bytes()
         except FileNotFoundError as exc:
             raise ObjectNotFound(key) from exc
+
+    def open_lines(self, key: str) -> Iterator[bytes]:
+        try:
+            handle = self._path(key).open("rb")
+        except FileNotFoundError as exc:
+            raise ObjectNotFound(key) from exc
+        with handle:
+            yield from handle
 
     def delete(self, key: str) -> None:
         self._path(key).unlink(missing_ok=True)

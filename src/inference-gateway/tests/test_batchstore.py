@@ -115,23 +115,27 @@ class FakeRedis:
             if self.hget(keys[0], "status") in {"validating", "in_progress", "finalizing"}:
                 self.hset(keys[0], mapping={"status": "cancelling", "cancelling_at": args[0]})
             return 1
-        if "batch-claim-v1" in script:
+        if "batch-claim-v2" in script:
             message = self.rpoplpush(keys[0], keys[1])
             if message is not None:
-                self.hset(keys[2], message, args[0])
+                self.hset(keys[2], message, f"{args[0]}|{args[1]}")
             return message
-        if "batch-heartbeat-v1" in script:
-            if self.hget(keys[0], args[0]) is None:
+        if "batch-heartbeat-v2" in script:
+            held = self.hget(keys[0], args[0])
+            if held is None or not held.startswith(f"{args[1]}|"):
                 return 0
-            self.hset(keys[0], args[0], args[1])
+            self.hset(keys[0], args[0], f"{args[1]}|{args[2]}")
             return 1
-        if "batch-ack-v1" in script:
+        if "batch-ack-v2" in script:
+            held = self.hget(keys[1], args[0])
+            if held is None or not held.startswith(f"{args[1]}|"):
+                return 0
             self.lrem(keys[0], 0, args[0])
             self.hdel(keys[1], args[0])
             return 1
-        if "batch-reclaim-v1" in script:
+        if "batch-reclaim-v2" in script:
             claimed = self.hget(keys[1], args[0])
-            if claimed is not None and float(claimed) > float(args[1]):
+            if claimed is not None and float(claimed.rpartition("|")[2]) > float(args[1]):
                 return 0
             removed = self.lrem(keys[0], 1, args[0])
             self.hdel(keys[1], args[0])
@@ -196,11 +200,16 @@ def test_batch_create_get_and_public_shape(store):
     assert public["endpoint"] == "/v1/chat/completions"
 
 
+def _claimed(store):
+    claim = store.claim()
+    return None if claim is None else (claim.tenant, claim.batch_id)
+
+
 def test_create_and_enqueue_publishes_record_and_queue_together(store):
     store.create_and_enqueue(_batch())
 
     assert store.get_batch("tA", "batch-1") is not None
-    assert store.claim() == ("tA", "batch-1")
+    assert _claimed(store) == ("tA", "batch-1")
 
 
 def test_update_batch_sets_fields_and_types(store):
@@ -254,15 +263,17 @@ def test_list_batches_orders_desc_and_paginates(store):
 def test_queue_fifo_claim_ack_and_reclaim(store):
     store.enqueue("tA", "batch-1")
     store.enqueue("tA", "batch-2")
-    assert store.claim() == ("tA", "batch-1")  # FIFO
-    assert store.claim() == ("tA", "batch-2")
+    assert _claimed(store) == ("tA", "batch-1")  # FIFO
+    assert _claimed(store) == ("tA", "batch-2")
     assert store.claim() is None  # nothing pending; both in flight
     # A stale in-flight item is re-queued and can be claimed again (crash recovery).
     assert store.reclaim(min_idle_seconds=0) == 2
-    assert store.claim() in (("tA", "batch-1"), ("tA", "batch-2"))
+    first = store.claim()
+    second = store.claim()
+    assert {(first.tenant, first.batch_id), (second.tenant, second.batch_id)} == {("tA", "batch-1"), ("tA", "batch-2")}
     # Acking removes it from the in-flight set so reclaim won't resurface it.
-    store.ack("tA", "batch-1")
-    store.ack("tA", "batch-2")
+    assert store.ack(first) is True
+    assert store.ack(second) is True
     assert store.reclaim(min_idle_seconds=0) == 0
 
 
@@ -286,11 +297,36 @@ def test_build_batch_store_selects_backend():
 
 def test_heartbeat_refreshes_a_live_claim_and_reports_a_lost_one(store):
     store.enqueue("tA", "batch-1")
-    assert store.claim() == ("tA", "batch-1")
-    assert store.heartbeat("tA", "batch-1") is True
+    claim = store.claim()
+    assert store.heartbeat(claim) is True
     # A refreshed claim is not stale, so the reaper leaves it with its worker.
     assert store.reclaim(min_idle_seconds=3600) == 0
     # Once the reaper re-queues it, the old worker's heartbeat reports the claim is gone.
     assert store.reclaim(min_idle_seconds=0) == 1
-    assert store.heartbeat("tA", "batch-1") is False
-    assert store.heartbeat("tA", "never-claimed") is False
+    assert store.heartbeat(claim) is False
+
+
+def test_a_stale_token_cannot_touch_the_new_owners_claim(store):
+    # Worker A stalls, the reaper re-queues the batch, worker B claims it. A's heartbeat and
+    # ack must fail, and must leave B's claim intact.
+    store.enqueue("tA", "batch-1")
+    claim_a = store.claim()
+    store.reclaim(min_idle_seconds=0)
+    claim_b = store.claim()
+    assert (claim_b.tenant, claim_b.batch_id) == ("tA", "batch-1")
+    assert claim_a.token != claim_b.token
+
+    assert store.heartbeat(claim_a) is False
+    assert store.ack(claim_a) is False
+    assert store.heartbeat(claim_b) is True
+    assert store.ack(claim_b) is True
+
+
+def test_checkpoint_fields_and_submitter_round_trip(store):
+    record = _batch()
+    record.submitted_by = "api_key:alice"
+    store.create_batch(record)
+    store.update_batch("tA", "batch-1", {"processed_lines": 2000, "output_parts": 2, "error_parts": 1})
+    reread = store.get_batch("tA", "batch-1")
+    assert reread.submitted_by == "api_key:alice"
+    assert (reread.processed_lines, reread.output_parts, reread.error_parts) == (2000, 2, 1)

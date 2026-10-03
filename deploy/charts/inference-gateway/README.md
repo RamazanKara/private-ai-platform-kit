@@ -79,6 +79,7 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `batch.worker.concurrency` | `4` |
 | `batch.worker.enabled` | `true` |
 | `batch.worker.gatewayUrl` | `""` |
+| `batch.worker.partLines` | `1000` |
 | `batch.worker.pollSeconds` | `2` |
 | `batch.worker.reclaimSeconds` | `300` |
 | `batch.worker.replicaCount` | `1` |

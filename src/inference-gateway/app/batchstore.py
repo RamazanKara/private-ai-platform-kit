@@ -17,6 +17,7 @@ finalizes to ``cancelled`` at its next item boundary.
 from __future__ import annotations
 
 import json
+import secrets
 from dataclasses import dataclass, field
 from threading import Lock
 from time import time
@@ -98,6 +99,14 @@ class BatchRecord:
     completed: int = 0
     failed: int = 0
     error: str | None = None
+    # Who created the batch (an audit principal key id) and through which binding, so the
+    # worker replays items as that submitter rather than as an anonymous service key.
+    submitted_by: str | None = None
+    # Checkpoint: input lines processed so far and the result parts already written, so a
+    # restarted or reclaimed batch resumes instead of replaying (and re-charging) items.
+    processed_lines: int = 0
+    output_parts: int = 0
+    error_parts: int = 0
 
     def to_public(self) -> dict[str, Any]:
         """Return the OpenAI batch-object shape (internal tenant omitted)."""
@@ -144,8 +153,25 @@ _MUTABLE_BATCH_FIELDS = frozenset(
         "completed",
         "failed",
         "error",
+        "processed_lines",
+        "output_parts",
+        "error_parts",
     }
 )
+
+
+@dataclass(frozen=True)
+class Claim:
+    """A worker's hold on one queued batch.
+
+    ``token`` is unique to this claim. Heartbeats and acknowledgements carry it, so a worker
+    whose claim was reaped and handed to another worker can neither refresh nor release the
+    new owner's claim.
+    """
+
+    tenant: str
+    batch_id: str
+    token: str
 
 
 class BatchStore(Protocol):
@@ -176,12 +202,13 @@ class BatchStore(Protocol):
 
     def enqueue(self, tenant: str, batch_id: str) -> None: ...
 
-    def claim(self) -> tuple[str, str] | None: ...
+    def claim(self) -> Claim | None: ...
 
-    def ack(self, tenant: str, batch_id: str) -> None: ...
+    def ack(self, claim: Claim) -> bool:
+        """Release a claim; False (and no change) when the token no longer owns it."""
 
-    def heartbeat(self, tenant: str, batch_id: str) -> bool:
-        """Refresh an in-flight claim; return False when the claim is no longer held."""
+    def heartbeat(self, claim: Claim) -> bool:
+        """Refresh an in-flight claim; return False when this token no longer holds it."""
 
     def reclaim(self, min_idle_seconds: float) -> int: ...
 
@@ -203,7 +230,7 @@ class MemoryBatchStore:
         self._files: dict[str, FileRecord] = {}
         self._batches: dict[str, BatchRecord] = {}
         self._pending: list[tuple[str, str]] = []
-        self._inflight: dict[tuple[str, str], float] = {}
+        self._inflight: dict[tuple[str, str], tuple[str, float]] = {}
 
     @staticmethod
     def _fkey(tenant: str, file_id: str) -> str:
@@ -272,30 +299,36 @@ class MemoryBatchStore:
         with self._lock:
             self._pending.append((tenant, batch_id))
 
-    def claim(self) -> tuple[str, str] | None:
+    def claim(self) -> Claim | None:
         with self._lock:
             if not self._pending:
                 return None
-            message = self._pending.pop(0)
-            self._inflight[message] = time()
-            return message
+            tenant, batch_id = self._pending.pop(0)
+            token = secrets.token_hex(16)
+            self._inflight[(tenant, batch_id)] = (token, time())
+            return Claim(tenant, batch_id, token)
 
-    def ack(self, tenant: str, batch_id: str) -> None:
+    def ack(self, claim: Claim) -> bool:
         with self._lock:
-            self._inflight.pop((tenant, batch_id), None)
-
-    def heartbeat(self, tenant: str, batch_id: str) -> bool:
-        with self._lock:
-            if (tenant, batch_id) not in self._inflight:
+            held = self._inflight.get((claim.tenant, claim.batch_id))
+            if held is None or held[0] != claim.token:
                 return False
-            self._inflight[(tenant, batch_id)] = time()
+            del self._inflight[(claim.tenant, claim.batch_id)]
+            return True
+
+    def heartbeat(self, claim: Claim) -> bool:
+        with self._lock:
+            held = self._inflight.get((claim.tenant, claim.batch_id))
+            if held is None or held[0] != claim.token:
+                return False
+            self._inflight[(claim.tenant, claim.batch_id)] = (claim.token, time())
             return True
 
     def reclaim(self, min_idle_seconds: float) -> int:
         cutoff = time() - min_idle_seconds
         requeued = 0
         with self._lock:
-            for message, claimed_at in list(self._inflight.items()):
+            for message, (_token, claimed_at) in list(self._inflight.items()):
                 if claimed_at <= cutoff:
                     del self._inflight[message]
                     self._pending.append(message)
@@ -348,32 +381,40 @@ end
 return 1
 """
 
+# Claim values are "<token>|<claimed_at>". The token makes a claim ownable: heartbeat and ack
+# only act when the caller presents the token of the claim currently held.
 REDIS_CLAIM_SCRIPT = """
--- batch-claim-v1
+-- batch-claim-v2
 local message = redis.call('RPOPLPUSH', KEYS[1], KEYS[2])
 if not message then return nil end
-redis.call('HSET', KEYS[3], message, ARGV[1])
+redis.call('HSET', KEYS[3], message, ARGV[1] .. '|' .. ARGV[2])
 return message
 """
 
 REDIS_ACK_SCRIPT = """
--- batch-ack-v1
+-- batch-ack-v2
+local held = redis.call('HGET', KEYS[2], ARGV[1])
+if not held or string.sub(held, 1, string.len(ARGV[2]) + 1) ~= ARGV[2] .. '|' then return 0 end
 redis.call('LREM', KEYS[1], 0, ARGV[1])
 redis.call('HDEL', KEYS[2], ARGV[1])
 return 1
 """
 
 REDIS_HEARTBEAT_SCRIPT = """
--- batch-heartbeat-v1
-if redis.call('HEXISTS', KEYS[1], ARGV[1]) == 0 then return 0 end
-redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+-- batch-heartbeat-v2
+local held = redis.call('HGET', KEYS[1], ARGV[1])
+if not held or string.sub(held, 1, string.len(ARGV[2]) + 1) ~= ARGV[2] .. '|' then return 0 end
+redis.call('HSET', KEYS[1], ARGV[1], ARGV[2] .. '|' .. ARGV[3])
 return 1
 """
 
 REDIS_RECLAIM_SCRIPT = """
--- batch-reclaim-v1
+-- batch-reclaim-v2
 local claimed = redis.call('HGET', KEYS[2], ARGV[1])
-if claimed and tonumber(claimed) > tonumber(ARGV[2]) then return 0 end
+if claimed then
+  local stamp = string.match(claimed, '([^|]+)$')
+  if tonumber(stamp) > tonumber(ARGV[2]) then return 0 end
+end
 local removed = redis.call('LREM', KEYS[1], 1, ARGV[1])
 redis.call('HDEL', KEYS[2], ARGV[1])
 if removed > 0 then
@@ -561,7 +602,8 @@ class RedisBatchStore:
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
 
-    def claim(self) -> tuple[str, str] | None:
+    def claim(self) -> Claim | None:
+        token = secrets.token_hex(16)
         try:
             message = self.client.eval(
                 REDIS_CLAIM_SCRIPT,
@@ -569,34 +611,43 @@ class RedisBatchStore:
                 self._pending_key(),
                 self._processing_key(),
                 self._claims_key(),
+                token,
                 str(time()),
             )
             if message is None:
                 return None
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
-        return self._split(message)
+        tenant, batch_id = self._split(message)
+        return Claim(tenant, batch_id, token)
 
-    def ack(self, tenant: str, batch_id: str) -> None:
-        message = self._message(tenant, batch_id)
+    def ack(self, claim: Claim) -> bool:
+        message = self._message(claim.tenant, claim.batch_id)
         try:
-            self.client.eval(REDIS_ACK_SCRIPT, 2, self._processing_key(), self._claims_key(), message)
+            return bool(
+                self.client.eval(REDIS_ACK_SCRIPT, 2, self._processing_key(), self._claims_key(), message, claim.token)
+            )
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
 
-    def heartbeat(self, tenant: str, batch_id: str) -> bool:
-        """Refresh the claim time of an in-flight batch; False when the claim is gone.
+    def heartbeat(self, claim: Claim) -> bool:
+        """Refresh this worker's claim; False when the claim was reaped or now has another owner.
 
         A worker processing a long batch calls this between chunks. Without it the claim
         time is only written at claim, so any batch running longer than the reclaim
         interval is re-queued and processed again by another replica, double-charging
-        every item. Claims are keyed by message, not owner: this detects a reclaim the
-        reaper made while the worker stalled, not one that another worker re-claimed.
+        every item. The token makes the check exact: a stalled worker whose batch was
+        reaped and re-claimed by another replica sees False, not the other replica's claim.
         """
         try:
             return bool(
                 self.client.eval(
-                    REDIS_HEARTBEAT_SCRIPT, 1, self._claims_key(), self._message(tenant, batch_id), str(time())
+                    REDIS_HEARTBEAT_SCRIPT,
+                    1,
+                    self._claims_key(),
+                    self._message(claim.tenant, claim.batch_id),
+                    claim.token,
+                    str(time()),
                 )
             )
         except _BATCH_BACKEND_ERRORS as exc:
@@ -624,7 +675,7 @@ class RedisBatchStore:
 
 
 # --- (de)serialization helpers for the Redis backend ---
-_STATE_INT_FIELDS = ("total", "completed", "failed")
+_STATE_INT_FIELDS = ("total", "completed", "failed", "processed_lines", "output_parts", "error_parts")
 _STATE_OPTIONAL_INT_FIELDS = (
     "in_progress_at",
     "finalizing_at",
@@ -667,6 +718,7 @@ def _batch_meta_dict(record: BatchRecord) -> dict[str, Any]:
         "created_at": record.created_at,
         "expires_at": record.expires_at,
         "metadata": record.metadata,
+        "submitted_by": record.submitted_by,
     }
 
 
@@ -695,6 +747,7 @@ def _batch_from_parts(meta: dict[str, Any], state: dict[str, str]) -> BatchRecor
         created_at=meta["created_at"],
         expires_at=meta["expires_at"],
         metadata=meta.get("metadata") or {},
+        submitted_by=meta.get("submitted_by"),
         status=state.get("status", BATCH_VALIDATING),
     )
     for name in _STATE_INT_FIELDS:

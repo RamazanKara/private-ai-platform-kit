@@ -149,3 +149,26 @@ coverage` + `make production-check`):
 - **Postgres (or another RDBMS) for job state.** Robust and queryable, but adds a new stateful
   dependency when Redis, already present, covers small job records plus a durable list-based queue.
   Rejected to avoid new infrastructure; revisit if batch metadata grows relational query needs.
+
+## Amendment (v0.30): claims, checkpoints, and replay identity
+
+Review of the shipped worker found three places where the original text promised more than the
+code delivered. Each is now implemented:
+
+- **Owned claims.** Claims were keyed only by batch, so a worker that stalled past the reclaim
+  interval could keep processing, and acknowledge, a batch the reaper had already handed to
+  another replica. A claim now carries a random owner token. Heartbeats between chunks and the
+  final acknowledgement act only for the token that holds the claim, and a worker that loses it
+  stops without finalizing.
+- **Bounded memory and checkpointed progress.** The worker read the whole input file and held
+  every result in memory, and a redelivered batch replayed from the first line, charging every
+  finished item again. The worker now streams the input and writes results in parts
+  (`BATCH_WORKER_PART_LINES`), recording `processed_lines` and the part counts after each
+  part. A resumed batch starts at its checkpoint, so at most one part is replayed.
+- **Replay identity.** "The worker replays only within that tenant's identity" held only if the
+  worker's key was unbound, which made it a key able to act as any tenant. A worker key that is
+  an API-key record with the `batch_replay` scope may now assert a tenant only together with
+  `X-Batch-ID` naming that tenant's batch while it is `in_progress`. The batch records its
+  submitter, and each item's receipt names it as `principal.on_behalf_of`. Issuing per-request
+  credentials for the submitter was considered and rejected: the gateway would have to mint and
+  store tokens for every batch, and API-key submitters have no token to delegate.

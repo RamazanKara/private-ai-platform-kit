@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any, BinaryIO
 from urllib.parse import quote
@@ -70,6 +71,24 @@ class S3ObjectStore:
         if response.status_code >= 300:
             raise OSError(f"s3 get failed ({response.status_code}) for {key}")
         return response.content
+
+    def open_lines(self, key: str) -> Iterator[bytes]:
+        """Stream an object's lines from S3 without buffering the whole body."""
+        url = self._url(key)
+        headers = self._signed_headers("GET", url, b"")
+        with self._client.stream("GET", url, headers=headers) as response:
+            if response.status_code == 404:
+                raise ObjectNotFound(key)
+            if response.status_code >= 300:
+                raise OSError(f"s3 get failed ({response.status_code}) for {key}")
+            pending = b""
+            for chunk in response.iter_bytes():
+                pending += chunk
+                *lines, pending = pending.split(b"\n")
+                for line in lines:
+                    yield line + b"\n"
+            if pending:
+                yield pending
 
     def delete(self, key: str) -> None:
         response = self._request("DELETE", self._url(key))

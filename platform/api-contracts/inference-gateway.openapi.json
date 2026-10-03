@@ -644,7 +644,7 @@
       },
       "ResponsesRequest": {
         "additionalProperties": true,
-        "description": "Request body for a native OpenAI ``POST /v1/responses`` call (stateless subset).\n\nMirrors the OpenAI Responses API shape. ``input`` is required and accepts either a plain\nstring (translated to a single user message) or an array of input items / messages.\n``instructions`` is prepended as a system message. ``max_output_tokens`` becomes the\nOpenAI ``max_tokens`` cap that admission enforces. ``extra=\"allow\"`` forwards any other\nResponses field so nothing is silently dropped.\n\nThe stateful fields ``store`` and ``previous_response_id`` are modelled explicitly so the\nhandler can reject them (this subset is stateless) instead of forwarding them into the\nchat payload where they would be meaningless.",
+        "description": "Request body for a native OpenAI ``POST /v1/responses`` call.\n\nMirrors the OpenAI Responses API shape. ``input`` is required and accepts either a plain\nstring (translated to a single user message) or an array of input items / messages.\n``instructions`` is prepended as a system message. ``max_output_tokens`` becomes the\nOpenAI ``max_tokens`` cap that admission enforces. Fields with no chat equivalent are\naccepted (``extra=\"allow\"``) but not forwarded to the runtime.\n\nThe stateful fields ``store`` and ``previous_response_id`` are modelled explicitly so the\nhandler can serve them from the response store, or reject them when the store is off,\ninstead of forwarding them into the chat payload where they would be meaningless.",
         "properties": {
           "input": {
             "anyOf": [

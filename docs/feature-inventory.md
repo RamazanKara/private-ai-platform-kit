@@ -15,7 +15,7 @@ configured.
 | OpenAI Responses | Shipped | On, synchronous | Function tools with multi-turn tool calls and image inputs; optional state is off by default; background, streaming, and built-in tools remain out of scope |
 | Responses server-side state | Shipped | Off | Tenant-scoped memory/Redis store with TTL and delete |
 | Synchronous batch fan-out | Shipped | On | Per-item admission/budget/guardrail tests |
-| Files + asynchronous Batch API | Shipped | Off | Bounded streaming upload, durable Redis queue, object-store blobs |
+| Files + asynchronous Batch API | Shipped | Off | Bounded streaming upload, durable Redis queue with owner-token claims, object-store blobs, streamed and checkpointed processing, replay bound to the running batch and its submitter |
 | Python client SDK | Shipped (typed) | GitHub release downloads | Isolated build/test matrix, checksums, and release artifacts; PyPI Trusted Publishing is optional |
 | API-key authentication | Shipped | Local on; chart base off | Hashed keys or scoped/expiring key records |
 | JWT/JWKS authentication | Shipped | Customer template on | Issuer/audience/time/algorithm validation and tenant binding |

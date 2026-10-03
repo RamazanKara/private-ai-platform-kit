@@ -234,3 +234,108 @@ def test_metrics_move_to_their_own_port_when_configured():
 
     assert response.status == 200
     assert "inference_gateway_requests_total" in body
+
+
+# --- batch replay on behalf of the submitter -----------------------------------------------
+
+WORKER_KEY = "batch-worker-key"
+BATCH_ID = "batch-" + "a" * 32
+
+
+def _replay_app(tmp_path, *, worker_scopes=("batch_replay",), batch_status="in_progress"):
+    records = tmp_path / "records.json"
+    records.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {"sha256": _sha256(BOUND_KEY), "name": "alice-key", "sandbox": "team-a"},
+                    {"sha256": _sha256(WORKER_KEY), "name": "batch-worker", "scopes": list(worker_scopes)},
+                ]
+            }
+        )
+    )
+    settings = _tool_settings(
+        api_key_auth_enabled=True,
+        api_key_records_path=records,
+        batch_api_enabled=True,
+        batch_object_store_backend="memory",
+        batch_store_backend="memory",
+    )
+    app = create_app(settings)
+    app.state.runtime_client = FakeRuntimeClient(response=COMPLETION)
+    from app.batchstore import BatchRecord
+
+    app.state.batch_store.create_batch(
+        BatchRecord(
+            id=BATCH_ID,
+            tenant="team-a",
+            endpoint="/v1/chat/completions",
+            input_file_id="file-1",
+            completion_window="24h",
+            created_at=1,
+            expires_at=2**31,
+            status=batch_status,
+            submitted_by="api_key:alice-key",
+        )
+    )
+    return app
+
+
+def _replay(client, batch_id=BATCH_ID, sandbox="team-a"):
+    headers = {"X-API-Key": WORKER_KEY, "X-Sandbox-ID": sandbox, "X-Batch-ID": batch_id}
+    return client.post("/v1/chat/completions", headers=headers, json=CHAT)
+
+
+def test_replay_key_acts_for_a_running_batch_and_names_the_submitter(tmp_path, caplog):
+    caplog.set_level("INFO", logger="ai_platform_ops_lab.audit")
+    client = TestClient(_replay_app(tmp_path))
+
+    response = _replay(client)
+
+    assert response.status_code == 200
+    principal = _receipts(caplog)[-1]["principal"]
+    assert principal["key_id"] == "batch-worker"
+    assert principal["batch_id"] == BATCH_ID
+    assert principal["on_behalf_of"] == "api_key:alice-key"
+
+
+@pytest.mark.parametrize(
+    ("batch_id", "sandbox"),
+    [
+        ("batch-" + "b" * 32, "team-a"),  # no such batch
+        (BATCH_ID, "team-b"),  # batch exists, but for another tenant
+        ("not-a-batch-id", "team-a"),  # malformed id
+    ],
+)
+def test_replay_key_cannot_act_outside_a_running_batch(tmp_path, batch_id, sandbox):
+    client = TestClient(_replay_app(tmp_path))
+
+    response = _replay(client, batch_id=batch_id, sandbox=sandbox)
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["reason"] == "batch_replay_not_authorized"
+
+
+def test_replay_key_is_refused_once_the_batch_is_finished(tmp_path):
+    client = TestClient(_replay_app(tmp_path, batch_status="completed"))
+
+    assert _replay(client).status_code == 403
+
+
+def test_batches_record_their_submitter(tmp_path):
+    app = _replay_app(tmp_path)
+    client = TestClient(app)
+    upload = client.post(
+        "/v1/files",
+        headers={"X-API-Key": BOUND_KEY},
+        files={"file": ("in.jsonl", b'{"custom_id":"a","body":{}}\n', "application/jsonl")},
+        data={"purpose": "batch"},
+    )
+    created = client.post(
+        "/v1/batches",
+        headers={"X-API-Key": BOUND_KEY},
+        json={"input_file_id": upload.json()["id"], "endpoint": "/v1/chat/completions"},
+    )
+
+    record = app.state.batch_store.get_batch("team-a", created.json()["id"])
+    assert record.submitted_by == "api_key:alice-key"

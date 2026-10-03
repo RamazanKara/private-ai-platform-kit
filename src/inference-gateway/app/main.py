@@ -44,10 +44,12 @@ from app.objectstore import build_object_store
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.ratelimit import build_rate_limiter
 from app.request_context import (
+    BATCH_REPLAY_SCOPE,
     ApiKeyOutcome,
     _api_key_principal,
     _auth_failure_response,
     _auth_required,
+    _bind_batch_replay,
     _bound_sandbox_id,
     _error_envelope,
     _install_openapi_contract,
@@ -271,6 +273,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         # via the same mechanism the sandbox policy set uses.
                         if record.has_budget_override():
                             request.state.key_budget_updates = key_record_effective_budget_updates(record)
+                        # The batch worker's key: acts for a tenant only while that tenant
+                        # has a running batch, and the receipt names the batch's submitter.
+                        if BATCH_REPLAY_SCOPE in record.scopes:
+                            replay_error = await _bind_batch_replay(request)
+                            if replay_error is not None:
+                                return replay_error
                 elif jwt_claims is not None:
                     request.state.principal = _jwt_principal(jwt_claims)
                     # Bind the sandbox to the verified tenant claim when configured,
