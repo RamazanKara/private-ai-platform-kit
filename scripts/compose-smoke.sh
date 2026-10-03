@@ -55,9 +55,9 @@ done
 ok "gateway and runtime ready"
 
 step "1. Chat completion through the governed path"
-status="$(request POST /v1/chat/completions "{\"model\":\"$MODEL\",\"max_tokens\":48,\"messages\":[{\"role\":\"user\",\"content\":\"In one sentence, what is a hash chain?\"}]}" -D "$OUT/headers.txt")"
+status="$(request POST /v1/chat/completions "{\"model\":\"$MODEL\",\"max_tokens\":24,\"temperature\":0,\"messages\":[{\"role\":\"user\",\"content\":\"Repeat exactly: Hello from your own hardware.\"}]}" -D "$OUT/headers.txt")"
 [[ "$status" == "200" ]] || fail "chat returned $status: $(cat "$OUT/body.json")"
-ok "answer: $(json "d['choices'][0]['message']['content'].strip()[:160]")"
+ok "answer: $(json "repr(d['choices'][0]['message']['content'].strip()[:80])")"
 ok "request id $(grep -i '^x-request-id:' "$OUT/headers.txt" | tr -d '\r' | cut -d' ' -f2), sandbox $(grep -i '^x-sandbox-id:' "$OUT/headers.txt" | tr -d '\r' | cut -d' ' -f2), tokens left $(grep -i '^x-ratelimit-remaining-tokens:' "$OUT/headers.txt" | tr -d '\r' | cut -d' ' -f2)"
 
 step "2. Streaming (server-sent events)"
@@ -96,7 +96,7 @@ ok "top documents: $(json "', '.join(r['source'] for r in d['results'])")"
 step "8. Usage and estimated cost for the sandbox"
 status="$(request GET /v1/usage)"
 [[ "$status" == "200" ]] || fail "usage returned $status"
-ok "$(json "json.dumps({k: d[k] for k in ('sandbox_id', 'usage', 'estimated_cost') if k in d})")"
+ok "$(json "f\"sandbox {d['sandbox_id']}: {d['usage']['requests']} requests, {d['usage']['estimated_tokens']} estimated tokens, cost {d['estimated_cost']} {d.get('currency', '')}\"")"
 
 step "9. Export the audit log and verify its hash chain"
 "${COMPOSE[@]}" logs --no-color --no-log-prefix inference-gateway 2>/dev/null \
@@ -123,6 +123,6 @@ PY
 if python3 scripts/audit-verify.py "$OUT/gateway-audit-tampered.jsonl" >"$OUT/tampered-verify.txt"; then
   fail "the edited log still verified"
 fi
-ok "edit detected: $(head -n1 "$OUT/tampered-verify.txt")"
+ok "edit detected: $(head -n1 "$OUT/tampered-verify.txt" | sed -E 's/^chain [^ ]+ //; s/; [0-9]+ record\(s\)$//')"
 
 printf '\n\033[1mAll checks passed.\033[0m Open the read-only console at %s/console\n' "$GATEWAY"

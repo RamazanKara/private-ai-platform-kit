@@ -179,7 +179,9 @@ Run `make config-contract` after changing settings, env vars, Helm values, or ch
 | `sandboxPolicy.policy.enabled` | `false` |
 | `sandboxPolicy.policy.policies` | `[]` |
 | `sandboxPolicy.policyPath` | `""` |
+| `service.nodePort` | `null` |
 | `service.port` | `8080` |
+| `service.type` | `ClusterIP` |
 | `serviceAccount.automountServiceAccountToken` | `false` |
 | `serviceAccount.create` | `true` |
 | `serviceAccount.name` | `""` |

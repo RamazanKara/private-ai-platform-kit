@@ -1,5 +1,5 @@
 site_name: Private AI Platform Kit
-site_description: A runnable, vendor-neutral Kubernetes platform for private LLMs, RAG, and coding-agent workspaces.
+site_description: Self-hosted LLM gateway, retrieval, and coding-agent workspaces for Kubernetes, with a verifiable record of every model call and agent action.
 site_url: https://ramazankara.github.io/private-ai-platform-kit/
 repo_url: https://github.com/RamazanKara/private-ai-platform-kit
 repo_name: RamazanKara/private-ai-platform-kit
@@ -21,7 +21,9 @@ theme:
     - navigation.top
     - navigation.tracking
     - navigation.indexes
+    - navigation.footer
     - content.code.copy
+    - content.tabs.link
     - content.action.edit
     - search.suggest
     - search.highlight
@@ -69,8 +71,8 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
-  # Renders Material icon/emoji shortcodes like :material-rocket-launch: as inline SVG
-  # (required for the landing-page grid-card icons).
+  # Renders Material icon shortcodes like :material-link-lock: as inline SVG
+  # (the landing-page grid-card icons).
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
@@ -89,39 +91,38 @@ validation:
 
 nav:
   - Home: index.md
-  - Tutorials:
-      - tutorials/index.md
-      - First private AI platform: quickstart.md
-  - How-to guides:
-      - Local lab and operations: getting-started.md
-      - Developer workflow: development.md
-      - Client API examples: client-examples.md
-      - Customer cluster handoff: customer-handoff-example.md
-      - Regulated offline tenant: regulated-offline-tenant-example.md
-      - GPU coding-agent tenant: gpu-coding-agent-tenant-example.md
-      - Runbooks: runbooks/README.md
-  - Reference:
-      - Repository map: repository-map.md
-      - Feature inventory: feature-inventory.md
-      - Model selection and updates: model-selection.md
-      - Production readiness matrix: production-readiness.md
-      - Benchmarks and evals: benchmarks-and-evals.md
-      - Capacity and sizing: capacity-sizing.md
-      - Cost model and TCO: cost-model.md
-      - Version and compatibility matrix: version-matrix.md
-      - Release verification: release-verification.md
-      - Distribution and discovery: distribution.md
-      - Glossary: glossary.md
-      - Upstream references: references.md
-  - Explanation:
-      - Is this for you (decision guide): decision-guide.md
+  - Get started:
+      - Quickstart: quickstart.md
+      - Call the API: client-examples.md
+      - Is it a fit?: decision-guide.md
       - FAQ: faq.md
-      - Architecture profiles: architecture.md
+  - Guides:
+      - Local lab and operations: getting-started.md
+      - Customer cluster handoff: customer-handoff-example.md
+      - Restricted-egress tenant: regulated-offline-tenant-example.md
+      - GPU coding-agent tenant: gpu-coding-agent-tenant-example.md
+      - Developer workflow: development.md
+      - Runbooks: runbooks/README.md
+  - Concepts:
+      - Architecture: architecture.md
       - Security overview: security-overview.md
-      - Architecture and threat model: threat-model.md
-      - OWASP LLM Top 10 2025: owasp-llm-top-10-mapping.md
+      - Threat model: threat-model.md
+      - Agent-sandbox integration: agent-sandbox-integration.md
+      - OWASP LLM Top 10 mapping: owasp-llm-top-10-mapping.md
       - AI governance crosswalk: ai-governance-crosswalk.md
       - Scope and non-goals: scope-and-non-goals.md
-      - Agent-sandbox integration: agent-sandbox-integration.md
-      - Architecture decision records: adr/README.md
+      - Architecture decisions: adr/README.md
+  - Reference:
+      - Feature inventory: feature-inventory.md
+      - Repository map: repository-map.md
+      - Model selection: model-selection.md
+      - Production readiness: production-readiness.md
       - Evidence and strict validation: proof.md
+      - Benchmarks and evals: benchmarks-and-evals.md
+      - Capacity and sizing: capacity-sizing.md
+      - Cost model: cost-model.md
+      - Version matrix: version-matrix.md
+      - Release verification: release-verification.md
+      - Distribution: distribution.md
+      - Glossary: glossary.md
+      - Upstream references: references.md

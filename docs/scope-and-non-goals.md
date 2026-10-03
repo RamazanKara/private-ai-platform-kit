@@ -18,7 +18,7 @@ The gateway implements these protocol families:
 
 - OpenAI-style chat completions, legacy completions, embeddings, moderations, models, Files, Batch, and Responses;
 - the project-specific synchronous `/v1/batch-inference`, usage, and sandbox-budget endpoints;
-- a non-streaming Anthropic Messages translation endpoint.
+- an Anthropic Messages translation endpoint, with streaming.
 
 The generated [OpenAPI contract](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json) is the route-level reference.
 
@@ -26,7 +26,7 @@ The generated [OpenAPI contract](https://github.com/RamazanKara/private-ai-platf
 
 This is not a complete OpenAI or Anthropic API implementation.
 
-- Chat completions support streaming. Legacy completions, Anthropic Messages, and Responses do not.
+- Chat completions and Anthropic Messages support streaming. Legacy completions and Responses do not.
 - Responses supports the synchronous request shape. Optional stored state supports `store`, `previous_response_id`, retrieve, delete, and input-items routes. Background responses are not implemented.
 - The asynchronous Batch implementation accepts chat completions, completions, and embeddings. `completion_window` is treated as an expiry bound, not a scheduling or pricing commitment.
 - Audio, image generation, fine-tuning, and a general training API are not implemented.

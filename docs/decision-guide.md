@@ -26,6 +26,21 @@ Use a smaller or managed solution when the main need is:
 
 If you only need model serving, deploy the chosen runtime directly. If you only need an API gateway, use a gateway product. This repository is useful when the integration and operating model are the point.
 
+## Compared with other tools
+
+Most adjacent projects solve one layer of this stack well. Pick by the problem you mainly have:
+
+| If you mainly need | Look at | How it relates to this kit |
+| --- | --- | --- |
+| One API in front of many hosted model providers, with spend tracking | LiteLLM, Portkey | Broader provider coverage. This kit governs self-hosted runtimes and agent workspaces, and records each call on a verifiable hash chain. |
+| AI features for an API gateway you already operate | Kong AI Gateway, Envoy AI Gateway | Keep your edge gateway; place this kit's gateway behind it when you need sandbox budgets, agent receipts, and the audit chain. |
+| Model serving and autoscaling on Kubernetes | KServe, KubeAI, the vLLM production stack | Serving layers. This kit uses vLLM and Ollama directly and adds the governance, retrieval, and workspace layers around them. |
+| A chat interface for people | Open WebUI | Complementary: the Compose stack's `ui` profile runs Open WebUI against the governed gateway. |
+| Coding agents that execute generated code | agent-sandbox on its own | This kit runs agents in hardened agent-sandbox workspaces and adds egress catalogs, policy, and receipts. |
+
+The kit is the right choice when you need several of these layers together, on your own
+cluster, with one record that shows what every model call and agent action did.
+
 ## Questions to answer before a trial
 
 1. Which models and exact artifact revisions will be served?

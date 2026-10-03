@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
   <title id="title">Private AI Platform Kit architecture</title>
-  <desc id="desc">API clients and coding agents in hardened agent-sandbox workspace pods call an inference gateway that authenticates, applies admission, budgets, and input/output guardrails, routes to Ollama or vLLM, and grounds answers with the RAG service and Qdrant. A GitOps control plane (including the agent-sandbox controller) and governance inputs configure the platform; observability and evidence flow out. The same charts run on local kind and customer-owned Kubernetes.</desc>
+  <desc id="desc">API clients and coding agents in hardened agent-sandbox workspace pods call an inference gateway that authenticates, applies admission, budgets, and input/output guardrails, routes to Ollama or vLLM, and writes a hash-chained receipt for every call. Clients and agents query the RAG service and Qdrant for grounded context and send it to the gateway. A GitOps control plane (including the agent-sandbox controller) and governance inputs configure the platform; observability and evidence flow out. The same charts run on local kind and customer-owned Kubernetes.</desc>
 
   <defs>
     <marker id="arrow" markerWidth="13" markerHeight="13" refX="9" refY="6" orient="auto" markerUnits="userSpaceOnUse">
@@ -15,7 +15,7 @@
   <rect x="8" y="8" width="1264" height="704" rx="18" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
 
   <text x="48" y="56" font-size="30" font-weight="800" fill="#0f172a">Private AI Platform Kit</text>
-  <text x="48" y="84" font-size="16" fill="#475569">Local-first Kubernetes for private LLMs, RAG, and isolated coding-agent workspaces</text>
+  <text x="48" y="84" font-size="16" fill="#475569">Self-hosted LLM gateway, retrieval, and coding-agent workspaces, with a verifiable record of every call</text>
 
   <!-- Control plane band -->
   <rect x="48" y="112" width="574" height="86" rx="14" fill="#fffbeb" stroke="#f1cf7a" stroke-width="2"/>
@@ -30,7 +30,7 @@
   <text x="48" y="244" font-size="14" font-weight="700" fill="#64748b" letter-spacing="1">CLIENTS</text>
   <rect x="48" y="256" width="228" height="92" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
   <text x="72" y="294" font-size="19" font-weight="700" fill="#0f172a">API clients</text>
-  <text x="72" y="322" font-size="14" fill="#475569">OpenAI-compatible SDKs</text>
+  <text x="72" y="322" font-size="14" fill="#475569">OpenAI / Anthropic SDKs</text>
 
   <rect x="48" y="368" width="228" height="118" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
   <text x="72" y="406" font-size="19" font-weight="700" fill="#0f172a">Coding agents</text>
@@ -41,7 +41,7 @@
   <!-- Gateway -->
   <rect x="332" y="222" width="404" height="340" rx="16" fill="#eff4ff" stroke="#8fb0ee" stroke-width="2.5"/>
   <text x="356" y="260" font-size="22" font-weight="800" fill="#1e3a8a">Inference Gateway</text>
-  <text x="356" y="286" font-size="14" fill="#3b5bdb" font-family="'Courier New', monospace">POST /v1/chat/completions</text>
+  <text x="356" y="286" font-size="12" fill="#3b5bdb" font-family="'Courier New', monospace">/v1/chat/completions · /v1/messages · /v1/responses</text>
 
   <rect x="354" y="304" width="182" height="46" rx="11" fill="#dbeafe"/>
   <text x="368" y="332" font-size="13" font-weight="600" fill="#1e3a8a">Auth · API key / JWT</text>
@@ -94,7 +94,8 @@
   <path d="M276 427 L327 427" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
   <path d="M736 299 L757 299" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
   <path d="M736 401 L757 401" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M736 511 L757 511" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <!-- Retrieval is called by clients and agents directly, then grounded messages go to the gateway. -->
+  <path d="M162 486 L162 576 L744 576 L744 536 L757 536" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
 
   <!-- Control &amp; evidence (dashed): control plane -> gateway; gateway -> observability (routed below the cards) -->
   <path d="M430 198 L430 216" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowSoft)"/>

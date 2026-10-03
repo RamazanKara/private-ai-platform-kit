@@ -8,6 +8,16 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- **Try it in minutes without Kubernetes.** `make compose-up` starts the gateway, Ollama
+  with a small model, and the RAG service on `127.0.0.1` from the same images and
+  environment contract as the charts (about two minutes on a laptop, first run included).
+  `make compose-smoke` then walks the governed path as a guided demo: an authenticated
+  completion, streaming, a credential blocked in a prompt, a model outside the allowlist,
+  a missing key, an agent receipt for denied egress, tenant-scoped retrieval, usage and
+  cost, verification of the exported audit hash chain, and detection of an edited receipt.
+  The demo key is a sandbox-bound key record. An optional `ui` profile adds Open WebUI in
+  offline mode, talking only to the governed gateway. CI runs the same path on every pull
+  request.
 - Python SDK: `completions`, Anthropic `messages`, `record_receipt` for agent-action
   receipts, and `ready`; constructor options for a custom `transport`, a CA bundle
   (`verify`), and `default_headers` such as `traceparent`. Error responses raise
@@ -77,6 +87,9 @@ All notable changes to this project are documented in this file. The format is b
   above 1 MiB failed on the read-only root filesystem. The chart refuses to render the
   batch worker with a non-S3 object store, which it could never read.
 - The S3 secret key is excluded from the settings `repr`.
+- Documentation no longer claims that Anthropic Messages cannot stream (it has since
+  v0.28.0), that host port 8080 reaches the `kind` lab gateway (it never did; use the
+  documented port-forward), or that the streaming example's model is on the lab allowlist.
 - **RAG: API-key auth and required JWT no longer lock out every caller.** The service
   read the API key from `Authorization: Bearer` first, hashed the caller's JWT as if it
   were a key, and rejected it, so the multi-tenant customer profile (which enables both)
@@ -115,6 +128,16 @@ All notable changes to this project are documented in this file. The format is b
   setup-kubectl, kind-action, and the Pages actions), and the remaining pins were
   refreshed. Dependabot groups both services into one PR per ecosystem.
 - `.gitattributes` keeps shell scripts and manifests LF-only on every platform.
+- **README and documentation site rebuilt around a first visit.** The README leads with
+  what the kit is, who it is for, a three-command trial, and a recorded run of the real
+  Compose walkthrough in place of the staged animation. It adds a comparison with
+  LiteLLM, Portkey, Kong, Envoy AI Gateway, KServe, KubeAI, and Open WebUI, which the decision
+  guide expands. The docs landing page has feature cards; the navigation is reorganized
+  into Get started, Guides, Concepts, and Reference; and the quickstart covers Compose first,
+  then the `kind` lab with a working command to reach its gateway.
+- The architecture diagram shows clients calling the RAG service directly (it drew a
+  gateway-to-RAG call that does not exist) and lists the Anthropic and Responses routes.
+- The inference-gateway chart accepts `service.type` and `service.nodePort`.
 - **Python SDK: `sandbox_id` defaults to unset** and `X-Sandbox-ID` is sent only when
   given. The old default, `"default"`, was rejected with `403 sandbox_identity_mismatch`
   for every credential bound to a sandbox. Pass `sandbox_id=` to keep the old behavior.

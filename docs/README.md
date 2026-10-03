@@ -6,10 +6,10 @@ The published site is at [ramazankara.github.io/private-ai-platform-kit](https:/
 
 | Need | Document |
 | --- | --- |
-| First local run | [Local quickstart](quickstart.md) |
+| Try it with Docker Compose, then the local Kubernetes lab | [Quickstart](quickstart.md) |
 | Validation and common operator tasks | [Getting started](getting-started.md) |
 | Customer cluster template | [Customer deployment](../deploy/clusters/customer/README.md) |
-| Client and SDK examples | [Client examples](client-examples.md) |
+| Client and SDK examples | [Client examples](client-examples.md), [Python SDK](../sdk/python/README.md) |
 | Helm charts | [Chart index](../deploy/charts/README.md) |
 
 ## Development
@@ -28,7 +28,7 @@ The published site is at [ramazankara.github.io/private-ai-platform-kit](https:/
 | --- | --- |
 | Components and request flow | [Architecture](architecture.md) |
 | Implemented features and defaults | [Feature inventory](feature-inventory.md) |
-| Project fit | [Decision guide](decision-guide.md) |
+| Project fit and alternatives | [Decision guide](decision-guide.md) |
 | Supported boundary | [Scope and non-goals](scope-and-non-goals.md) |
 | Design decisions | [Architecture decision records](adr/README.md) |
 | Versions tested and pinned | [Version matrix](version-matrix.md) |
