@@ -31,6 +31,10 @@ All notable changes to this project are documented in this file. The format is b
 - After an identity-provider key rotation, a token with an unknown `kid` triggers one
   rate-limited JWKS refresh instead of failing until the cache TTL expires. During a cold
   issuer outage, requests fail fast inside the backoff window instead of each fetching.
+  Both services.
+- RAG JWT verification requires `auth.jwt.audience`, so a token minted for another
+  service cannot be replayed against the RAG service. RAG metric labels are bounded the
+  same way as the gateway's (route and sandbox).
 
 ### Fixed
 
@@ -64,6 +68,21 @@ All notable changes to this project are documented in this file. The format is b
   above 1 MiB failed on the read-only root filesystem. The chart refuses to render the
   batch worker with a non-S3 object store, which it could never read.
 - The S3 secret key is excluded from the settings `repr`.
+- **RAG: API-key auth and required JWT no longer lock out every caller.** The service
+  read the API key from `Authorization: Bearer` first, hashed the caller's JWT as if it
+  were a key, and rejected it, so the multi-tenant customer profile (which enables both)
+  refused all traffic. The key now comes from `X-API-Key`; a JWT-shaped bearer is only
+  ever the identity token.
+- RAG: an embedding-endpoint outage or malformed embedding returns `503` instead of an
+  unhandled 500, a malformed reranker response falls back to the first-stage ranking as
+  documented, and an unexpected failure is recorded on the retrieval receipt as `500`
+  instead of `200 allowed`.
+- RAG: buffered trace spans are flushed at shutdown. The hook was registered as an
+  `on_shutdown` handler, which FastAPI never runs when a lifespan is configured.
+- RAG: the Redis audit-chain head store works. The chart offered it, but the image did
+  not ship `redis`, so selecting it stopped the service at startup.
+- RAG: `build_context` counts section separators against `max_context_chars`, so the
+  context block can no longer exceed the requested size.
 - Publish SDK wheels, source archives, and checksums to GitHub independently of
   optional PyPI account setup and environment approval. PyPI publishing now requires
   the repository Actions variable `PYPI_PUBLISH_ENABLED=true`.

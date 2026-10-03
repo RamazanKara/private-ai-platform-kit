@@ -50,7 +50,7 @@ def _verifier(**overrides) -> JwtVerifier:
         document_dir=DOCS,
         jwt_enabled=True,
         jwt_jwks_url="https://idp.example/jwks",
-        **overrides,
+        **{"jwt_audience": "rag", **overrides},
     )
     return JwtVerifier(settings, jwks_cache=_FakeJwks([_oct_jwk()]))
 
@@ -145,6 +145,7 @@ def _jwks_settings(**overrides) -> Settings:
         "document_dir": DOCS,
         "jwt_enabled": True,
         "jwt_jwks_url": "https://idp.example/jwks",
+        "jwt_audience": "rag",
     }
     base.update(overrides)
     return Settings(**base)
@@ -276,7 +277,7 @@ def _asym_verifier(jwk: dict, **overrides) -> JwtVerifier:
         document_dir=DOCS,
         jwt_enabled=True,
         jwt_jwks_url="https://idp.example/jwks",
-        **overrides,
+        **{"jwt_audience": "rag", **overrides},
     )
     return JwtVerifier(settings, jwks_cache=_FakeJwks([jwk]))
 

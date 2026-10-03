@@ -90,6 +90,7 @@ class JwksCache:
         self.settings = settings
         self._expires_at = 0.0
         self._negative_until = 0.0
+        self._last_forced_refresh = 0.0
         self._keys: list[dict[str, Any]] = []
 
     def _negative_cache_seconds(self) -> float:
@@ -108,8 +109,31 @@ class JwksCache:
         now = time()
         if self._keys and now < self._expires_at:
             return self._keys
-        if now < self._negative_until and (self._keys or not self.settings.jwt_jwks_url):
+        if now < self._negative_until:
+            if self._keys or not self.settings.jwt_jwks_url:
+                return self._keys
+            # Cold-start outage: fail fast inside the backoff window instead of letting
+            # every request make its own fetch against an issuer that is down.
+            raise JwksUnavailableError("JWKS document could not be fetched (backing off)")
+        return await self._fetch()
+
+    async def refresh_for_unknown_kid(self) -> list[dict[str, Any]]:
+        """Re-fetch early because a token named a `kid` the cache does not hold.
+
+        Picks up an identity-provider key rotation before the cache TTL expires. Rate
+        limited to one refresh per backoff interval (timestamp taken before the await), so
+        tokens with made-up kids cannot turn the service into a JWKS request amplifier.
+        """
+        now = time()
+        if not self.settings.jwt_jwks_url or now - self._last_forced_refresh < self._negative_cache_seconds():
             return self._keys
+        self._last_forced_refresh = now
+        try:
+            return await self._fetch()
+        except JwksUnavailableError:
+            return self._keys
+
+    async def _fetch(self) -> list[dict[str, Any]]:
         try:
             async with httpx.AsyncClient(timeout=min(self.settings.jwt_request_timeout_seconds, 10.0)) as client:
                 response = await client.get(self.settings.jwt_jwks_url)
@@ -127,7 +151,11 @@ class JwksCache:
             raise JwksUnavailableError("JWKS document could not be fetched") from exc
         keys = payload.get("keys", []) if isinstance(payload, dict) else []
         if not isinstance(keys, list):
-            raise JwtAuthError("JWKS response must contain a keys list")
+            # An issuer misconfiguration (retry later), not a rejection of the caller's token.
+            self._negative_until = time() + self._negative_cache_seconds()
+            if self._keys:
+                return self._keys
+            raise JwksUnavailableError("JWKS response must contain a keys list")
         self._keys = [key for key in keys if isinstance(key, dict)]
         self._expires_at = time() + self.settings.jwt_cache_seconds
         self._negative_until = 0.0
@@ -165,8 +193,25 @@ class JwtVerifier:
         if algorithm not in _SUPPORTED_ALGORITHMS:
             raise JwtAuthError("unsupported jwt alg; supported algorithms: HS256, RS256, ES256")
         jwks_keys = await self.jwks_cache.keys()
-        key = self._verifying_key(algorithm, header, jwks_keys)
+        try:
+            key = self._verifying_key(algorithm, header, jwks_keys)
+        except JwtAuthError:
+            refreshed = await self._refresh_for_unknown_kid(header, jwks_keys)
+            if refreshed is None:
+                raise
+            key = self._verifying_key(algorithm, header, refreshed)
         return self._decode(token, key, algorithm)
+
+    async def _refresh_for_unknown_kid(
+        self, header: dict[str, Any], jwks_keys: list[dict[str, Any]]
+    ) -> list[dict[str, Any]] | None:
+        """Return freshly fetched keys when the token's kid is absent from the cache, else None."""
+        kid = header.get("kid")
+        refresh = getattr(self.jwks_cache, "refresh_for_unknown_kid", None)
+        if kid is None or refresh is None or any(key.get("kid") == kid for key in jwks_keys):
+            return None
+        refreshed: list[dict[str, Any]] = await refresh()
+        return refreshed
 
     def tenant_from_claims(self, claims: dict[str, Any]) -> str:
         """Return the tenant/sandbox id carried by the configured tenant claim.

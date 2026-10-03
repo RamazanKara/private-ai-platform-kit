@@ -1257,6 +1257,7 @@ def test_rag_jwt_returns_503_when_jwks_unreachable_no_cache(tmp_path, monkeypatc
         retrieval_tenant_isolation_enabled=True,
         jwt_enabled=True,
         jwt_jwks_url="https://idp.example/jwks",
+        jwt_audience="rag",
         jwt_tenant_claim="sandbox_id",
         jwt_required=True,
     )
@@ -1328,3 +1329,171 @@ def test_rag_jwt_not_required_but_present_invalid_token_is_rejected(tmp_path):
 
     assert response.status_code == 401
     assert response.json()["detail"]["reason"] == "invalid_or_missing_jwt"
+
+
+# --- Hardening regressions ----------------------------------------------------------------
+
+
+_SERVICE_KEY = "rag-service-key"
+
+
+def test_api_key_and_required_jwt_work_together(tmp_path):
+    # The multi-tenant customer profile enables both. The API key used to be read from the
+    # bearer first, so the JWT was hashed as a key and every caller got a 401.
+    app = _jwt_app(
+        tmp_path,
+        api_key_auth_enabled=True,
+        api_key_sha256s=(hashlib.sha256(_SERVICE_KEY.encode()).hexdigest(),),
+        jwt_required=True,
+    )
+    client = TestClient(app)
+    both = {"X-API-Key": _SERVICE_KEY, "Authorization": f"Bearer {_rag_jwt('team-a')}"}
+
+    accepted = client.post("/v1/rag/query", headers=both, json={"query": "gateway secret"})
+    assert accepted.status_code == 200
+    assert {result["id"] for result in accepted.json()["results"]} == {"team-a-doc"}
+
+    no_key = client.post(
+        "/v1/rag/query", headers={"Authorization": f"Bearer {_rag_jwt('team-a')}"}, json={"query": "gateway"}
+    )
+    assert no_key.status_code == 401
+    assert no_key.json()["detail"]["reason"] == "invalid_or_missing_api_key"
+
+    no_token = client.post("/v1/rag/query", headers={"X-API-Key": _SERVICE_KEY}, json={"query": "gateway"})
+    assert no_token.status_code == 401
+    assert no_token.json()["detail"]["reason"] == "invalid_or_missing_jwt"
+
+
+def test_jwt_requires_an_audience(tmp_path):
+    with pytest.raises(ValueError, match="jwt_audience must be set"):
+        Settings(document_dir=tmp_path, jwt_enabled=True, jwt_jwks_url="https://idp.example/jwks")
+
+
+class _FailingEmbedding:
+    name = "openai-compatible"
+    model = "m"
+    dimensions = 4
+
+    async def embed_async(self, text):
+        raise httpx.ConnectError("embedding endpoint down")
+
+
+def _qdrant_retriever(embedding, reranker=None):
+    from app.reranker import NoopReranker
+
+    return QdrantRetriever(
+        [],
+        "http://qdrant:6333",
+        "c",
+        "v1",
+        1.0,
+        4,
+        False,
+        embedding,
+        reranker_provider=reranker or NoopReranker(),
+    )
+
+
+def test_embedding_outage_is_a_503_and_recorded_as_one(tmp_path, caplog):
+    caplog.set_level("INFO", logger="ai_platform_ops_lab.rag.audit")
+    write_doc(tmp_path, "a.md", "# A\ngateway")
+    app = create_app(Settings(document_dir=tmp_path))
+    app.state.retriever = _qdrant_retriever(_FailingEmbedding())
+
+    response = TestClient(app).post("/v1/rag/query", json={"query": "gateway"})
+
+    assert response.status_code == 503
+    receipts = [json.loads(r.message) for r in caplog.records if r.name == "ai_platform_ops_lab.rag.audit"]
+    assert receipts[-1]["status_code"] == 503
+    assert receipts[-1]["decision"] == "denied"
+
+
+def test_unexpected_failure_is_recorded_as_500_not_allowed(tmp_path, caplog):
+    caplog.set_level("INFO", logger="ai_platform_ops_lab.rag.audit")
+    write_doc(tmp_path, "a.md", "# A\ngateway")
+    app = create_app(Settings(document_dir=tmp_path))
+
+    class _Broken:
+        documents = ()
+
+        async def query(self, *args, **kwargs):
+            raise RuntimeError("bug")
+
+    app.state.retriever = _Broken()
+    response = TestClient(app, raise_server_exceptions=False).post("/v1/rag/query", json={"query": "gateway"})
+
+    assert response.status_code == 500
+    receipts = [json.loads(r.message) for r in caplog.records if r.name == "ai_platform_ops_lab.rag.audit"]
+    assert receipts[-1]["status_code"] == 500
+    assert receipts[-1]["decision"] == "denied"
+
+
+def test_malformed_reranker_response_keeps_the_first_stage_ranking():
+    from app.retriever import KnowledgeDocument, RetrievalResult
+
+    class _GarbageReranker:
+        name = "openai-compatible"
+        model = "r"
+
+        async def rerank_async(self, query, documents):
+            raise ValueError("rerank response did not contain a results list")
+
+    retriever = _qdrant_retriever(HashEmbeddingProvider(4), _GarbageReranker())
+    matches = [
+        RetrievalResult(
+            document=KnowledgeDocument(id="d1", title="t", source="s", content="c", tokens={}),
+            score=0.9,
+            excerpt="c",
+        )
+    ]
+
+    assert asyncio.run(retriever._maybe_rerank("q", matches)) == matches
+
+
+def test_build_context_never_exceeds_its_budget():
+    from app.retriever import KnowledgeDocument, RetrievalResult, build_context
+
+    results = [
+        RetrievalResult(
+            document=KnowledgeDocument(id=f"d{i}", title="t", source="s", content="x" * 40, tokens={}),
+            score=1.0,
+            excerpt="x" * 40,
+        )
+        for i in range(5)
+    ]
+    for budget in (10, 57, 58, 120, 1000):
+        assert len(build_context(results, budget)) <= budget
+
+
+def test_tracer_provider_is_flushed_at_shutdown(tmp_path):
+    write_doc(tmp_path, "a.md", "# A\ngateway")
+    app = create_app(Settings(document_dir=tmp_path))
+    calls = []
+
+    class _Provider:
+        def shutdown(self):
+            calls.append("shutdown")
+
+    app.state.tracer_provider = _Provider()
+    with TestClient(app):
+        pass
+
+    assert calls == ["shutdown"]
+
+
+def test_metric_labels_stay_bounded_for_unknown_paths(tmp_path):
+    from app.main import AUTH_FAILURES
+
+    write_doc(tmp_path, "a.md", "# A\ngateway")
+    app = create_app(
+        Settings(
+            document_dir=tmp_path,
+            api_key_auth_enabled=True,
+            api_key_sha256s=(hashlib.sha256(b"k").hexdigest(),),
+        )
+    )
+    TestClient(app).get("/v1/random-path-123")
+
+    routes = {s.labels["route"] for m in AUTH_FAILURES.collect() for s in m.samples if "route" in s.labels}
+    assert "/v1/random-path-123" not in routes
+    assert "unmatched" in routes

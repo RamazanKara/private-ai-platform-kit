@@ -223,6 +223,10 @@ class Settings:
             raise ValueError("api_key_header must not be empty")
         if self.jwt_enabled and not self.jwt_jwks_url:
             raise ValueError("jwt_jwks_url must be set when JWT verification is enabled")
+        if self.jwt_enabled and not self.jwt_audience:
+            # Audience binding is what keeps a token minted for another service (for example
+            # the inference gateway) from being replayed here to read a tenant's corpus.
+            raise ValueError("jwt_audience must be set when JWT verification is enabled")
         if self.jwt_enabled and not self.jwt_tenant_claim.strip():
             raise ValueError("jwt_tenant_claim must be set when JWT verification is enabled")
         if self.jwt_cache_seconds <= 0:

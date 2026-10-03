@@ -131,7 +131,7 @@ class RedisChainStore:
         if client is None:
             try:
                 import redis
-            except ImportError as exc:  # pragma: no cover - redis ships in the gateway image
+            except ImportError as exc:  # pragma: no cover - redis ships in the RAG image
                 raise RuntimeError("redis package is required when RAG_AUDIT_CHAIN_STORE_BACKEND=redis") from exc
             client = redis.Redis.from_url(
                 settings.audit_chain_store_redis_url,

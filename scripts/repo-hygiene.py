@@ -413,9 +413,30 @@ def check_make_target_references(errors: list[str], files: list[Path]) -> None:
                 require(errors, name in targets, f"{relative}:{number} references unknown make target: make {name}")
 
 
+# Each service image is built from its own directory, so these modules are copied into both
+# services rather than imported from a shared package. They must stay byte-identical: a fix
+# applied to one copy only is exactly the kind of drift this repository has shipped before.
+SHARED_SERVICE_MODULES = ("app/body_limit.py", "app/tracing.py")
+
+
+def check_shared_service_modules(errors: list[str]) -> None:
+    for module in SHARED_SERVICE_MODULES:
+        gateway = ROOT / "src/inference-gateway" / module
+        rag = ROOT / "src/rag-service" / module
+        if not (gateway.exists() and rag.exists()):
+            errors.append(f"shared service module {module} must exist in both services")
+            continue
+        require(
+            errors,
+            gateway.read_bytes() == rag.read_bytes(),
+            f"src/inference-gateway/{module} and src/rag-service/{module} must stay identical; apply the change to both",
+        )
+
+
 def run_checks() -> list[str]:
     errors: list[str] = []
     check_required_paths(errors)
+    check_shared_service_modules(errors)
     check_makefile(errors)
     check_script_modes(errors)
     check_python_bytecode_policy(errors)

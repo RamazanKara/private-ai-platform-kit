@@ -190,5 +190,20 @@ class DependencyLockTests(RepositoryFixture):
         self.assertEqual(len(errors), 1)
 
 
+class SharedServiceModuleTests(RepositoryFixture):
+    def test_copies_that_drift_apart_are_reported(self) -> None:
+        for service in ("inference-gateway", "rag-service"):
+            self.write(f"src/{service}/app/tracing.py", "x = 1\n")
+            self.write(f"src/{service}/app/body_limit.py", "y = 1\n")
+        errors: list[str] = []
+        hygiene.check_shared_service_modules(errors)
+        self.assertEqual(errors, [])
+
+        self.write("src/rag-service/app/tracing.py", "x = 2\n")
+        hygiene.check_shared_service_modules(errors)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("app/tracing.py", errors[0])
+
+
 if __name__ == "__main__":
     unittest.main()
