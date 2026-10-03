@@ -195,6 +195,7 @@ class SharedServiceModuleTests(RepositoryFixture):
         for service in ("inference-gateway", "rag-service"):
             self.write(f"src/{service}/app/tracing.py", "x = 1\n")
             self.write(f"src/{service}/app/body_limit.py", "y = 1\n")
+            self.write(f"src/{service}/app/jwks.py", "z = 1\n")
         errors: list[str] = []
         hygiene.check_shared_service_modules(errors)
         self.assertEqual(errors, [])

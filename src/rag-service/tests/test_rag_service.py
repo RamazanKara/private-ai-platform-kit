@@ -1248,7 +1248,7 @@ def test_rag_jwt_not_required_without_token_falls_back_to_header_trust(tmp_path)
 def test_rag_jwt_returns_503_when_jwks_unreachable_no_cache(tmp_path, monkeypatch):
     # A live JwksCache whose issuer is unreachable with no cached keys -> 503 (retry), not a
     # 401 token rejection.
-    from app import jwt_auth
+    from app import jwks
     from app.jwt_auth import JwksCache
 
     write_doc(tmp_path, "team-a.md", "# Team A\nteam a gateway secret")
@@ -1268,7 +1268,7 @@ def test_rag_jwt_returns_503_when_jwks_unreachable_no_cache(tmp_path, monkeypatc
 
     real_async_client = httpx.AsyncClient
     monkeypatch.setattr(
-        jwt_auth.httpx,
+        jwks.httpx,
         "AsyncClient",
         lambda *args, **kwargs: real_async_client(transport=httpx.MockTransport(handler)),
     )

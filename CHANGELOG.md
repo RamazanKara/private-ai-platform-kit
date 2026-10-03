@@ -166,6 +166,10 @@ All notable changes to this project are documented in this file. The format is b
   setup-kubectl, kind-action, and the Pages actions), and the remaining pins were
   refreshed. Dependabot groups both services into one PR per ecosystem.
 - `.gitattributes` keeps shell scripts and manifests LF-only on every platform.
+- **The JWKS cache and JWT signature verification are one shared module** (`app/jwks.py`),
+  byte-identical in both services and checked by `make repo-hygiene`, as ADR 0015 records.
+  Each service keeps only its own additions: required scopes in the gateway, the tenant
+  claim in the RAG service. The two copies had already drifted twice.
 - **README and documentation site rebuilt around a first visit.** The README leads with
   what the kit is, who it is for, a three-command trial, and a recorded run of the real
   Compose walkthrough in place of the staged animation. It adds a comparison with

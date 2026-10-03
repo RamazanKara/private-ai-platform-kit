@@ -414,9 +414,9 @@ def check_make_target_references(errors: list[str], files: list[Path]) -> None:
 
 
 # Each service image is built from its own directory, so these modules are copied into both
-# services rather than imported from a shared package. They must stay byte-identical: a fix
-# applied to one copy only is exactly the kind of drift this repository has shipped before.
-SHARED_SERVICE_MODULES = ("app/body_limit.py", "app/tracing.py")
+# services rather than imported from a shared package (ADR 0015). They must stay
+# byte-identical: a fix applied to one copy only is the drift this repository has shipped before.
+SHARED_SERVICE_MODULES = ("app/body_limit.py", "app/jwks.py", "app/tracing.py")
 
 
 def check_shared_service_modules(errors: list[str]) -> None:

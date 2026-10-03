@@ -72,6 +72,8 @@ else lands in the `error_file_id` file. Partial completion is normal.
 
 ## Worker credential
 
+The design behind this section and the next is recorded in [ADR 0016](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/adr/0016-batch-claims-checkpoints-and-replay-identity.md).
+
 The worker replays every tenant's items, so its key cannot be bound to one sandbox. Give it an
 API-key record with the `batch_replay` scope and no `sandbox`:
 

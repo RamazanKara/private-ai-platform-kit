@@ -37,6 +37,8 @@ All ADRs in this set are `Accepted` and describe the current repository.
 | [0012](0012-stateful-responses-store.md) | Server-side response state for the Responses API | Accepted |
 | [0013](0013-bundled-admin-console.md) | Opt-in bundled read-only admin console | Accepted |
 | [0014](0014-agent-action-receipts.md) | Agent-action receipts on the audit chain | Accepted |
+| [0015](0015-shared-service-modules.md) | Shared service modules are copied per image and kept identical | Accepted |
+| [0016](0016-batch-claims-checkpoints-and-replay-identity.md) | Batch claims have owners, progress is checkpointed, items replay as the submitter | Accepted |
 
 ## Process
 

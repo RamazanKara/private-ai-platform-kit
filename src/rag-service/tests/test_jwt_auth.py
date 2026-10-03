@@ -8,7 +8,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from app import jwt_auth
+from app import jwks
 from app.jwt_auth import JwksCache, JwksUnavailableError, JwtAuthError, JwtVerifier
 from app.settings import Settings
 from cryptography.hazmat.primitives import serialization
@@ -154,7 +154,7 @@ def _jwks_settings(**overrides) -> Settings:
 def _mock_async_client(monkeypatch, handler):
     real_async_client = httpx.AsyncClient
     monkeypatch.setattr(
-        jwt_auth.httpx,
+        jwks.httpx,
         "AsyncClient",
         lambda *args, **kwargs: real_async_client(transport=httpx.MockTransport(handler)),
     )
