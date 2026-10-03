@@ -6,6 +6,35 @@ All notable changes to this project are documented in this file. The format is b
 
 ## Unreleased
 
+### Security
+
+- Update PyJWT to 2.15.1 (CRITICAL CVE-2026-102268 and five HIGH advisories fixed in
+  2.14.0) and urllib3 to 2.8.0 (HIGH CVE-2026-97687 and CVE-2026-97689) in both service
+  images. The nightly image scan had failed on these since 2026-09-30.
+- Refresh the Python 3.14 Alpine base-image digest (Python 3.14.8) and move FastAPI,
+  Starlette, cryptography, OpenTelemetry, uvicorn, redis, and pydantic to current
+  releases. OpenTelemetry 1.45 drops `requests` from the runtime images.
+- Pull requests now build both images and run the same HIGH/CRITICAL Trivy gate as the
+  nightly proof, so a vulnerable lock fails review instead of turning `main` red.
+
+### Changed
+
+- `make relock` regenerates every hash-pinned lock from an isolated, hash-pinned
+  pip-tools environment with the flags recorded in each lock header. Dependabot edits
+  only requirement inputs, so its PRs fail the lock check until relocked.
+- The dependency-lock check now covers pins with extras such as `PyJWT[crypto]` and
+  compares exact versions. Previously a Dependabot PR that bumped only
+  `requirements.txt` passed CI while the image kept the vulnerable version.
+- Service and quality virtual environments are rebuilt only when their lock changes,
+  instead of re-running `pip install` several times per `make validate`, and a tool
+  bump now reaches existing checkouts.
+- Ruff targets Python 3.12, the documented local minimum, so the formatter cannot emit
+  3.14-only syntax. Ruff 0.16.10 and mypy 2.4.0.
+- GitHub Actions moved off deprecated Node.js 20 runtimes (upload/download-artifact,
+  setup-kubectl, kind-action, and the Pages actions), and the remaining pins were
+  refreshed. Dependabot groups both services into one PR per ecosystem.
+- `.gitattributes` keeps shell scripts and manifests LF-only on every platform.
+
 ### Fixed
 
 - Publish SDK wheels, source archives, and checksums to GitHub independently of

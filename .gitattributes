@@ -1,0 +1,13 @@
+# Shell scripts, Makefiles, and YAML must reach Linux/WSL with LF endings no matter how a
+# contributor's Git is configured; a CRLF in a bash script fails with "$'\r': command not found".
+* text=auto eol=lf
+
+# Recorded evidence is kept byte-for-byte as generated so recorded checksums stay valid.
+paper/**/results/** -text
+results/**/sample-* -text
+
+*.gif binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.aof binary

@@ -1,4 +1,7 @@
 version: 2
+# Dependabot edits the requirement inputs (*.txt / *.in) but cannot regenerate the
+# hash-pinned locks. `make dependency-lock-check` fails such a PR on purpose; push
+# `make relock` output to the Dependabot branch before merging.
 updates:
   # GitHub Actions: keeps SHA-pinned `uses:` refs current via the trailing
   # version comment on each pin.
@@ -7,65 +10,58 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+    labels: [dependencies, github_actions]
     groups:
       actions-minor-patch:
         update-types:
           - minor
           - patch
 
-  # pip: one entry per directory that holds a pip-compiled lockfile.
+  # Repository tooling: quality, docs, and SDK build/test locks.
   - package-ecosystem: pip
     directory: "/"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build(deps)"
+    labels: [dependencies, python]
     groups:
-      pip-minor-patch:
+      tooling-minor-patch:
         update-types:
           - minor
           - patch
 
+  # Both services pin identical runtime versions; one grouped PR keeps them in step.
   - package-ecosystem: pip
-    directory: "/src/inference-gateway"
+    directories:
+      - "/src/inference-gateway"
+      - "/src/rag-service"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "fix(deps)"
+    labels: [dependencies, python]
     groups:
-      pip-minor-patch:
+      services-minor-patch:
         update-types:
           - minor
           - patch
 
-  - package-ecosystem: pip
-    directory: "/src/rag-service"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      pip-minor-patch:
-        update-types:
-          - minor
-          - patch
-
-  # docker: base-image digests for the two service Dockerfiles.
+  # Base-image digests for the two service Dockerfiles.
   - package-ecosystem: docker
-    directory: "/src/inference-gateway"
+    directories:
+      - "/src/inference-gateway"
+      - "/src/rag-service"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "fix(deps)"
+    labels: [dependencies, docker]
     groups:
-      docker-minor-patch:
-        update-types:
-          - minor
-          - patch
-
-  - package-ecosystem: docker
-    directory: "/src/rag-service"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      docker-minor-patch:
-        update-types:
-          - minor
-          - patch
+      base-images:
+        patterns: ["*"]

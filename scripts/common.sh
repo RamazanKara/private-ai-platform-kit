@@ -53,3 +53,21 @@ validate_k8s_name() {
     die "${label} must be a Kubernetes DNS label: lowercase letters, numbers, hyphens, max 63 chars"
   fi
 }
+
+# Create or refresh a service's .venv from its hashed dev lock (src/<service>/requirements-dev.lock).
+# The venv is rebuilt from scratch only when the lock changes, so packages a lock drops do
+# not linger, and repeated test/validate runs skip a redundant pip install.
+ensure_service_venv() {
+  local dir="$1"
+  local lock="${dir}/requirements-dev.lock"
+  local stamp="${dir}/.venv/.lock-sha256"
+  local digest
+  digest="$(sha256sum "$lock" | cut -d' ' -f1)"
+  if [[ -x "${dir}/.venv/bin/python" && "$(cat "$stamp" 2>/dev/null)" == "$digest" ]]; then
+    return 0
+  fi
+  log "installing $(basename "$dir") dependencies from requirements-dev.lock"
+  python3 -m venv --clear "${dir}/.venv"
+  "${dir}/.venv/bin/python" -m pip install --quiet --require-hashes -r "$lock"
+  echo "$digest" >"$stamp"
+}

@@ -42,7 +42,7 @@ and an immutable manifest-list digest in `values.yaml`.
 
 The first-party service container images are built on `python:3.14-alpine`
 (`src/inference-gateway/Dockerfile`, `src/rag-service/Dockerfile`), digest-pinned in the Dockerfiles.
-The v0.29.0 base resolves to Python 3.14.7 on Alpine 3.24.2. The final images remove
+The current base resolves to Python 3.14.8 on Alpine 3.24.2. The final images remove
 pip after installing locked dependencies; build a new image when changing dependencies.
 
 Model revisions and evaluation status are documented in [Model selection](model-selection.md).

@@ -575,8 +575,8 @@ class Settings:
         """
         self.validate_model(payload.get("model"))
         raw = payload.get("input")
-        texts = raw if isinstance(raw, list) else [raw]
-        texts = [str(item) for item in texts if item is not None and str(item) != ""]
+        items = raw if isinstance(raw, list) else [raw]
+        texts: list[str] = [str(item) for item in items if item is not None and str(item) != ""]
         if not texts:
             raise AdmissionPolicyError(
                 "missing_input",

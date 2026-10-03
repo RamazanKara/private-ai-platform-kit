@@ -12,7 +12,10 @@
 #   make coverage    pytest coverage report with enforced floors
 
 [tool.ruff]
-target-version = "py314"
+# Images run Python 3.14, but services and scripts must stay importable on the documented
+# local minimum (3.12). Targeting py314 lets the formatter emit 3.14-only syntax such as
+# unparenthesized `except A, B:` (PEP 758), which breaks local runs on 3.12 and 3.13.
+target-version = "py312"
 line-length = 120
 extend-exclude = [
     ".venv",

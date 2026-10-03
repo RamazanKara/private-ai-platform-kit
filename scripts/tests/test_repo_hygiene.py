@@ -168,5 +168,27 @@ class MakeReferenceTests(RepositoryFixture):
         self.assertEqual(errors, [])
 
 
+class DependencyLockTests(RepositoryFixture):
+    def test_pins_with_extras_are_checked_against_the_lock(self) -> None:
+        source = self.write("requirements.txt", "PyJWT[crypto]==2.15.1\nhttpx==0.28.1\n")
+        self.assertEqual(hygiene.requirement_pins(source), {"pyjwt": "2.15.1", "httpx": "0.28.1"})
+        stale = self.write(
+            "requirements.lock",
+            "httpx==0.28.1 \\\n    --hash=sha256:aa\npyjwt[crypto]==2.13.0 \\\n    --hash=sha256:bb\n",
+        )
+        errors: list[str] = []
+        hygiene.require_lock_contains_pins(errors, source, stale, hygiene.requirement_pins(source))
+        self.assertEqual(len(errors), 1)
+        self.assertIn("pyjwt==2.15.1", errors[0])
+        self.assertIn("found 2.13.0", errors[0])
+
+    def test_version_prefixes_do_not_satisfy_a_pin(self) -> None:
+        source = self.write("requirements.txt", "pytest==9.1.1\n")
+        lock = self.write("requirements.lock", "pytest==9.1.10 \\\n    --hash=sha256:aa\n")
+        errors: list[str] = []
+        hygiene.require_lock_contains_pins(errors, source, lock, hygiene.requirement_pins(source))
+        self.assertEqual(len(errors), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

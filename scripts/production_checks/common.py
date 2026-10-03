@@ -10,7 +10,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 CHANGELOG_VERSION_PATTERN = re.compile(r"^## v(?P<version>\d+\.\d+\.\d+) - \d{4}-\d{2}-\d{2}$")
-PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
+# Matches `name==1.2.3` and `name[extra,...]==1.2.3`; extras must not hide a pin from the lock check.
+PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)(?:\[[^\]]*\])?==([^\s\\;]+)")
 
 
 def load_yaml_documents(path: Path) -> list[dict[str, Any]]:
@@ -93,11 +94,11 @@ def requirement_pins(path: Path) -> dict[str, str]:
 def require_lock_contains_pins(errors: list[str], requirements: Path, lockfile: Path, expected: dict[str, str]) -> None:
     if not lockfile.exists():
         return
-    lock_text = lockfile.read_text().lower()
+    locked = requirement_pins(lockfile)
     for name, version in expected.items():
         require(
             errors,
-            f"{name}=={version}" in lock_text,
-            f"{lockfile.relative_to(ROOT)} must include pinned dependency {name}=={version} "
-            f"from {requirements.relative_to(ROOT)}",
+            locked.get(name) == version,
+            f"{lockfile.relative_to(ROOT)} must pin {name}=={version} "
+            f"from {requirements.relative_to(ROOT)} (found {locked.get(name) or 'nothing'})",
         )

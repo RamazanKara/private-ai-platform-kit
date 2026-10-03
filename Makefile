@@ -19,7 +19,7 @@ PYTHON := src/inference-gateway/.venv/bin/python
 export PATH := $(TOOLCHAIN_BIN_DIR):$(PATH)
 export PYTHONDONTWRITEBYTECODE
 
-.PHONY: help clean clean-all python-env bootstrap quickstart status local-up local-down bootstrap-argocd sync smoke rag-smoke trace-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu tenant-offboard customer-overlay customer-overlay-check agent-smoke chaos-drill eval eval-local rag-eval rag-eval-check loadtest loadtest-local benchmark-local docs-install docs-serve docs-build restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report policy-test sdk-conformance production-check validate validate-full test test-scripts test-gateway test-rag fuzz lint format format-check typecheck quality coverage dashboard-check dashboard-update paths paths-check audit-verify audit-verify-demo audit-anchor
+.PHONY: help clean clean-all python-env bootstrap quickstart status local-up local-down bootstrap-argocd sync smoke rag-smoke trace-smoke tenant-up tenant-smoke tenant-onboard tenant-onboard-regulated tenant-onboard-gpu tenant-offboard customer-overlay customer-overlay-check agent-smoke chaos-drill eval eval-local rag-eval rag-eval-check loadtest loadtest-local benchmark-local docs-install docs-serve docs-build restore-drill backup-drill evidence release-gate release-gate-strict release-report release-report-strict slo-check slo-report quota-check quota-report egress-check egress-report retention-check retention-report model-check model-report model-provenance-check model-provenance-report model-provenance-verify image-scan supply-chain-check repo-security-scan dependency-lock-check repo-hygiene chart-docs chart-docs-update api-contract api-contract-update config-contract config-contract-update toolchain-install toolchain-doctor toolchain-report relock policy-test sdk-conformance production-check validate validate-full test test-scripts test-gateway test-rag fuzz lint format format-check typecheck quality coverage dashboard-check dashboard-update paths paths-check audit-verify audit-verify-demo audit-anchor
 
 help:
 	@printf '%s\n' \
@@ -57,6 +57,7 @@ help:
 		'  make supply-chain-check    Validate local image scan evidence' \
 		'  make repo-security-scan    Fail on HIGH/CRITICAL repo security findings' \
 		'  make dependency-lock-check Check hashed Python dependency locks' \
+		'  make relock                Regenerate hashed Python locks after editing requirements' \
 		'  make repo-hygiene          Check contributor docs, links, and layout' \
 		'  make chart-docs            Check generated Helm chart value tables' \
 		'  make api-contract          Check service OpenAPI contracts' \
@@ -95,7 +96,7 @@ clean:
 	find results -mindepth 1 -type d -empty -delete
 
 clean-all: clean
-	rm -rf .tools .venv-docs .venv-quality
+	rm -rf .tools .venv-docs .venv-quality .venv-relock
 
 python-env:
 	./scripts/bootstrap-python.sh
@@ -288,6 +289,9 @@ repo-security-scan:
 
 dependency-lock-check:
 	python3 scripts/repo-hygiene.py --check
+
+relock:
+	./scripts/relock.sh
 
 repo-hygiene:
 	python3 scripts/repo-hygiene.py --check

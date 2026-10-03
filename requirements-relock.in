@@ -1,0 +1,3 @@
+# Lock-regeneration toolchain used by scripts/relock.sh (`make relock`). Hash-pinned lock.
+# Regenerate with `make relock`; bootstrap the first lock with the pip-compile command in its header.
+pip-tools==7.6.1
