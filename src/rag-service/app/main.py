@@ -198,6 +198,8 @@ def _valid_api_key(request: Request, settings: Settings) -> bool:
     api_key = _api_key_from_request(request, settings)
     if not api_key:
         return False
+    # API keys are high-entropy tokens and their SHA-256 digests are the configured
+    # identifiers used for constant-time allowlist matching, not password storage.
     digest = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
     # Compare every digest (no early exit) so timing does not reveal which entry matched.
     matched = False

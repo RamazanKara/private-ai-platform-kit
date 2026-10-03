@@ -180,7 +180,8 @@ class BatchStore(Protocol):
 
     def ack(self, tenant: str, batch_id: str) -> None: ...
 
-    def heartbeat(self, tenant: str, batch_id: str) -> bool: ...
+    def heartbeat(self, tenant: str, batch_id: str) -> bool:
+        """Refresh an in-flight claim; return False when the claim is no longer held."""
 
     def reclaim(self, min_idle_seconds: float) -> int: ...
 
