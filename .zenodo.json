@@ -3,7 +3,7 @@
   "access_right": "open",
   "license": "Apache-2.0",
   "title": "Private AI Platform Kit",
-  "description": "A reference implementation for an LLM gateway, RAG, and coding-agent workspaces on Kubernetes. It includes a local kind profile, a customer-cluster template, Helm and Argo CD manifests, policy examples, API contracts, validation tooling, and evidence report formats. The repository also contains the reproducibility artifact for the paper \"Auditable Private LLM Serving on Kubernetes: A Vendor-Neutral Architecture and Evidence Model for Regulated Environments.\"",
+  "description": "Self-hosted LLM gateway, retrieval, and coding-agent workspaces for Kubernetes, with a verifiable record of every model call and agent action. It includes a Docker Compose evaluation stack, a local kind profile, a customer-cluster template, Helm and Argo CD manifests, policy examples, API contracts, validation tooling, and evidence report formats. The repository also contains the reproducibility artifact for the paper \"Auditable Private LLM Serving on Kubernetes: A Vendor-Neutral Architecture and Evidence Model for Regulated Environments.\"",
   "creators": [
     {
       "name": "Kara, Ramazan",

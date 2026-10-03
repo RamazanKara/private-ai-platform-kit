@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Documentation
+    url: https://ramazankara.github.io/private-ai-platform-kit/
+    about: Quickstart, client examples, architecture, and runbooks. Most setup questions are answered here.
+  - name: Questions and ideas (Discussions)
+    url: https://github.com/RamazanKara/private-ai-platform-kit/discussions
+    about: Ask how to use or adapt the kit, or propose a direction before opening an issue.
   - name: Security report
     url: https://github.com/RamazanKara/private-ai-platform-kit/security
     about: Do not open public issues for secrets, exploit details, customer data, or private prompt content.

@@ -1,4 +1,7 @@
 {{- if and .Values.batch.enabled .Values.batch.worker.enabled }}
+{{- if ne .Values.batch.objectStore.backend "s3" }}
+{{- fail "batch.objectStore.backend must be s3 when the batch-processor worker is deployed: the filesystem and memory backends are local to one pod, so the worker could never read the gateway's uploads" }}
+{{- end }}
 {{- /* The batch-processor worker (ADR 0011): the same gateway image run with a different
        entrypoint (python -m app.batch_worker). Stateless (all state lives in the object store
        and the batch store), so it scales horizontally. It carries a distinct

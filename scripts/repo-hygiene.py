@@ -16,7 +16,8 @@ from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s\\]+)")
+# Matches `name==1.2.3` and `name[extra,...]==1.2.3`; extras must not hide a pin from the lock check.
+PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)(?:\[[^\]]*\])?==([^\s\\;]+)")
 MAKE_TARGET_PATTERN = re.compile(r"^([A-Za-z0-9_-]+):", re.MULTILINE)
 MAKE_INVOCATION_PATTERN = re.compile(r"\bmake[ \t]+([a-z0-9][a-z0-9_-]*)")
 INLINE_CODE_PATTERN = re.compile(r"`([^`]+)`")
@@ -164,8 +165,8 @@ def check_python_bytecode_policy(errors: list[str]) -> None:
         text = (ROOT / item).read_text()
         require(
             errors,
-            'PYTHONDONTWRITEBYTECODE="${PYTHONDONTWRITEBYTECODE:-1}"' in text,
-            f"{item} must suppress Python bytecode writes",
+            'PYTHONDONTWRITEBYTECODE="${PYTHONDONTWRITEBYTECODE:-1}"' in text or 'source "$ROOT/scripts/common.sh"' in text,
+            f"{item} must suppress Python bytecode writes (directly or by sourcing scripts/common.sh)",
         )
     common = (ROOT / "scripts/common.sh").read_text()
     require(errors, 'TOOLCHAIN_BIN_DIR="${TOOLCHAIN_BIN_DIR:-$(repo_root)/.tools/bin}"' in common, "scripts/common.sh must default TOOLCHAIN_BIN_DIR")
@@ -202,9 +203,13 @@ def requirement_pins(path: Path) -> dict[str, str]:
 def require_lock_contains_pins(errors: list[str], requirements: Path, lockfile: Path, expected: dict[str, str]) -> None:
     if not lockfile.exists():
         return
-    lock_text = lockfile.read_text()
+    locked = requirement_pins(lockfile)
     for name, version in expected.items():
-        require(errors, f"{name}=={version}" in lock_text.lower(), f"{rel(lockfile)} must include pinned dependency {name}=={version} from {rel(requirements)}")
+        require(
+            errors,
+            locked.get(name) == version,
+            f"{rel(lockfile)} must pin {name}=={version} from {rel(requirements)} (found {locked.get(name) or 'nothing'})",
+        )
 
 
 def tracked_file_modes(errors: list[str]) -> dict[str, str]:
@@ -267,13 +272,20 @@ def check_runtime_dependencies(errors: list[str]) -> None:
             require(errors, "COPY requirements.lock ." in dockerfile_text, f"{rel(dockerfile)} must copy the hashed runtime lockfile")
             require(errors, "--require-hashes -r requirements.lock" in dockerfile_text, f"{rel(dockerfile)} must install runtime dependencies with hash checking")
 
+    common_text = (ROOT / "scripts/common.sh").read_text()
+    require(
+        errors,
+        '--require-hashes -r "$lock"' in common_text and "requirements-dev.lock" in common_text,
+        "scripts/common.sh ensure_service_venv must install the hashed dev lock",
+    )
     for script, service in (
         ("scripts/bootstrap-python.sh", "inference-gateway"),
         ("scripts/test-gateway.sh", "inference-gateway"),
         ("scripts/test-rag.sh", "rag-service"),
+        ("scripts/coverage.sh", "both services"),
     ):
         text = (ROOT / script).read_text()
-        require(errors, "--require-hashes -r requirements-dev.lock" in text, f"{script} must install hashed dev dependencies for {service}")
+        require(errors, "ensure_service_venv" in text, f"{script} must install hashed dev dependencies for {service}")
         require(errors, "install --upgrade pip" not in text, f"{script} must not upgrade pip from an unpinned network dependency")
 
     # Ruff is pinned in two places dependabot cannot keep in sync: the quality
@@ -298,6 +310,7 @@ def check_runtime_dependencies(errors: list[str]) -> None:
         ("requirements-docs.in", "requirements-docs.txt"),
         ("requirements-sdk-build.in", "requirements-sdk-build.lock"),
         ("requirements-sdk-test.in", "requirements-sdk-test.lock"),
+        ("requirements-relock.in", "requirements-relock.lock"),
     ):
         source = ROOT / source_name
         lock = ROOT / lock_name
@@ -400,9 +413,30 @@ def check_make_target_references(errors: list[str], files: list[Path]) -> None:
                 require(errors, name in targets, f"{relative}:{number} references unknown make target: make {name}")
 
 
+# Each service image is built from its own directory, so these modules are copied into both
+# services rather than imported from a shared package. They must stay byte-identical: a fix
+# applied to one copy only is exactly the kind of drift this repository has shipped before.
+SHARED_SERVICE_MODULES = ("app/body_limit.py", "app/tracing.py")
+
+
+def check_shared_service_modules(errors: list[str]) -> None:
+    for module in SHARED_SERVICE_MODULES:
+        gateway = ROOT / "src/inference-gateway" / module
+        rag = ROOT / "src/rag-service" / module
+        if not (gateway.exists() and rag.exists()):
+            errors.append(f"shared service module {module} must exist in both services")
+            continue
+        require(
+            errors,
+            gateway.read_bytes() == rag.read_bytes(),
+            f"src/inference-gateway/{module} and src/rag-service/{module} must stay identical; apply the change to both",
+        )
+
+
 def run_checks() -> list[str]:
     errors: list[str] = []
     check_required_paths(errors)
+    check_shared_service_modules(errors)
     check_makefile(errors)
     check_script_modes(errors)
     check_python_bytecode_policy(errors)

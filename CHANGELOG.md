@@ -6,13 +6,145 @@ All notable changes to this project are documented in this file. The format is b
 
 ## Unreleased
 
+### Added
+
+- **Try it in minutes without Kubernetes.** `make compose-up` starts the gateway, Ollama
+  with a small model, and the RAG service on `127.0.0.1` from the same images and
+  environment contract as the charts (about two minutes on a laptop, first run included).
+  `make compose-smoke` then walks the governed path as a guided demo: an authenticated
+  completion, streaming, a credential blocked in a prompt, a model outside the allowlist,
+  a missing key, an agent receipt for denied egress, tenant-scoped retrieval, usage and
+  cost, verification of the exported audit hash chain, and detection of an edited receipt.
+  The demo key is a sandbox-bound key record. An optional `ui` profile adds Open WebUI in
+  offline mode, talking only to the governed gateway. CI runs the same path on every pull
+  request.
+- Python SDK: `completions`, Anthropic `messages`, `record_receipt` for agent-action
+  receipts, and `ready`; constructor options for a custom `transport`, a CA bundle
+  (`verify`), and `default_headers` such as `traceparent`. Error responses raise
+  `GatewayError` (still an `httpx.HTTPStatusError`) carrying the gateway's `reason` and
+  `request_id`. The SDK is now a typed package (`py.typed`) with its own PyPI README and
+  classifiers; the import name is unchanged.
+
+### Security
+
+- Update PyJWT to 2.15.1 (CRITICAL CVE-2026-102268 and five HIGH advisories fixed in
+  2.14.0) and urllib3 to 2.8.0 (HIGH CVE-2026-97687 and CVE-2026-97689) in both service
+  images. The nightly image scan had failed on these since 2026-09-30.
+- Refresh the Python 3.14 Alpine base-image digest (Python 3.14.8) and move FastAPI,
+  Starlette, cryptography, OpenTelemetry, uvicorn, redis, and pydantic to current
+  releases. OpenTelemetry 1.45 drops `requests` from the runtime images.
+- Pull requests now build both images and run the same HIGH/CRITICAL Trivy gate as the
+  nightly proof, so a vulnerable lock fails review instead of turning `main` red.
+- **Tenant-scoped state now requires a bound credential.** With authentication on, the
+  Files and Batch API and the Responses store (`store`, `previous_response_id`, and the
+  retrieval routes) answer only callers whose sandbox comes from an API-key record with
+  `sandbox` or a JWT tenant claim. A flat API key previously selected its tenant through
+  `X-Sandbox-ID`, so any key holder could list and download another tenant's raw batch
+  prompts. Unbound callers now get `403 sandbox_binding_required`; stateless use is
+  unchanged. Both features stay off by default.
+- An API-key record that sets a `budget` must also bind a `sandbox`. Budget counters are
+  per sandbox, so an unbound key could reset its budget by rotating `X-Sandbox-ID`.
+- Authentication-failure and load-shed metrics are labelled with the matched route
+  template (`/v1/files/{file_id}`) or `unmatched`, not the raw path, so unauthenticated
+  callers can no longer create unbounded Prometheus series.
+- After an identity-provider key rotation, a token with an unknown `kid` triggers one
+  rate-limited JWKS refresh instead of failing until the cache TTL expires. During a cold
+  issuer outage, requests fail fast inside the backoff window instead of each fetching.
+  Both services.
+- RAG JWT verification requires `auth.jwt.audience`, so a token minted for another
+  service cannot be replayed against the RAG service. RAG metric labels are bounded the
+  same way as the gateway's (route and sandbox).
+
 ### Fixed
 
+- A runtime stream that failed after its first chunk was retried, appending a second,
+  different completion to the partial one the client already had. Mid-stream failures
+  now end the stream with an error event; only pre-first-byte failures are retried.
+- Read timeouts on generation requests are no longer retried (the runtime already
+  accepted the work), and only runtime faults (5xx, 429, transport errors) count toward
+  the circuit breaker; one tenant's malformed requests can no longer open it for all.
+- The concurrency limiter could leak a slot when a client disconnected before a
+  streamed body started, eventually shedding every request with 503. It is now a pure
+  ASGI middleware that releases on every path.
+- A client disconnect during a stream cancelled the budget settlement and the audit
+  receipt for a call the runtime had already served, and left the upstream stream open.
+  Both are now shielded, and the upstream stream is closed.
+- An unexpected exception inside a governed request was recorded on the hash-chained
+  receipt as `200 allowed`. It is now recorded as the status the client received.
+- A Redis outage in the Responses or batch store surfaced as an unhandled 500, sometimes
+  after the runtime call was charged. It is now a retryable `503 state_backend_unavailable`.
+- The batch worker refreshes its queue claim between chunks, so a batch running longer
+  than the reclaim interval is no longer processed again by a second replica. A worker
+  whose claim was reclaimed stops without acknowledging the re-queued batch, and a
+  request line that is valid JSON but not an object fails that item, not the whole batch.
+- A canary or fallback route outside the sandbox's model allowlist is skipped instead of
+  turning its traffic share into `model_not_allowed` errors or serving a forbidden model.
+  `/v1/models` lists only the models the caller may call.
+- `/readyz` probes backends concurrently with a 3 s ceiling, inside the kubelet timeout.
+- The in-memory response cache is locked; concurrent worker threads could raise a
+  `KeyError` during eviction.
+- The gateway pod mounts a writable `/tmp` sized for the largest allowed upload; uploads
+  above 1 MiB failed on the read-only root filesystem. The chart refuses to render the
+  batch worker with a non-S3 object store, which it could never read.
+- The S3 secret key is excluded from the settings `repr`.
+- Documentation no longer claims that Anthropic Messages cannot stream (it has since
+  v0.28.0), that host port 8080 reaches the `kind` lab gateway (it never did; use the
+  documented port-forward), or that the streaming example's model is on the lab allowlist.
+- **RAG: API-key auth and required JWT no longer lock out every caller.** The service
+  read the API key from `Authorization: Bearer` first, hashed the caller's JWT as if it
+  were a key, and rejected it, so the multi-tenant customer profile (which enables both)
+  refused all traffic. The key now comes from `X-API-Key`; a JWT-shaped bearer is only
+  ever the identity token.
+- RAG: an embedding-endpoint outage or malformed embedding returns `503` instead of an
+  unhandled 500, a malformed reranker response falls back to the first-stage ranking as
+  documented, and an unexpected failure is recorded on the retrieval receipt as `500`
+  instead of `200 allowed`.
+- RAG: buffered trace spans are flushed at shutdown. The hook was registered as an
+  `on_shutdown` handler, which FastAPI never runs when a lifespan is configured.
+- RAG: the Redis audit-chain head store works. The chart offered it, but the image did
+  not ship `redis`, so selecting it stopped the service at startup.
+- RAG: `build_context` counts section separators against `max_context_chars`, so the
+  context block can no longer exceed the requested size.
 - Publish SDK wheels, source archives, and checksums to GitHub independently of
   optional PyPI account setup and environment approval. PyPI publishing now requires
   the repository Actions variable `PYPI_PUBLISH_ENABLED=true`.
 - Publish retained release documentation through a dispatched main-branch run so
   GitHub Pages does not silently keep the earlier main artifact for a shared commit.
+
+### Changed
+
+- `make relock` regenerates every hash-pinned lock from an isolated, hash-pinned
+  pip-tools environment with the flags recorded in each lock header. Dependabot edits
+  only requirement inputs, so its PRs fail the lock check until relocked.
+- The dependency-lock check now covers pins with extras such as `PyJWT[crypto]` and
+  compares exact versions. Previously a Dependabot PR that bumped only
+  `requirements.txt` passed CI while the image kept the vulnerable version.
+- Service and quality virtual environments are rebuilt only when their lock changes,
+  instead of re-running `pip install` several times per `make validate`, and a tool
+  bump now reaches existing checkouts.
+- Ruff targets Python 3.12, the documented local minimum, so the formatter cannot emit
+  3.14-only syntax. Ruff 0.16.10 and mypy 2.4.0.
+- GitHub Actions moved off deprecated Node.js 20 runtimes (upload/download-artifact,
+  setup-kubectl, kind-action, and the Pages actions), and the remaining pins were
+  refreshed. Dependabot groups both services into one PR per ecosystem.
+- `.gitattributes` keeps shell scripts and manifests LF-only on every platform.
+- **README and documentation site rebuilt around a first visit.** The README leads with
+  what the kit is, who it is for, a three-command trial, and a recorded run of the real
+  Compose walkthrough in place of the staged animation. It adds a comparison with
+  LiteLLM, Portkey, Kong, Envoy AI Gateway, KServe, KubeAI, and Open WebUI, which the decision
+  guide expands. The docs landing page has feature cards; the navigation is reorganized
+  into Get started, Guides, Concepts, and Reference; and the quickstart covers Compose first,
+  then the `kind` lab with a working command to reach its gateway.
+- The architecture diagram shows clients calling the RAG service directly (it drew a
+  gateway-to-RAG call that does not exist) and lists the Anthropic and Responses routes.
+- The inference-gateway chart accepts `service.type` and `service.nodePort`.
+- **Python SDK: `sandbox_id` defaults to unset** and `X-Sandbox-ID` is sent only when
+  given. The old default, `"default"`, was rejected with `403 sandbox_identity_mismatch`
+  for every credential bound to a sandbox. Pass `sandbox_id=` to keep the old behavior.
+- Python SDK: calls that create server-side state (file uploads, batches, stored
+  responses, receipts) are retried only after a connection failure or a 429/503, where the
+  gateway provably did not act, so a retry can no longer create a duplicate batch.
+  Streaming errors now raise with the gateway's reason instead of a bare status.
 
 ## v0.29.0 - 2026-09-23
 

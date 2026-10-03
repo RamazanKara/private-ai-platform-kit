@@ -10,6 +10,7 @@ set -euo pipefail
 export PYTHONDONTWRITEBYTECODE="${PYTHONDONTWRITEBYTECODE:-1}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/scripts/common.sh"
 
 GATEWAY_COVERAGE_MIN="${GATEWAY_COVERAGE_MIN:-85}"
 RAG_COVERAGE_MIN="${RAG_COVERAGE_MIN:-84}"
@@ -18,10 +19,9 @@ run_service_coverage() {
   local service="$1" floor="$2"
   local dir="$ROOT/src/${service}"
   echo "[coverage] ${service} (floor ${floor}%)"
+  ensure_service_venv "$dir"
   cd "$dir"
-  python3 -m venv .venv
-  .venv/bin/python -m pip install --require-hashes -r requirements-dev.lock >/dev/null
-  .venv/bin/python -m pip install --require-hashes --no-deps -r "$ROOT/requirements-coverage.lock" >/dev/null
+  .venv/bin/python -m pip install --quiet --require-hashes --no-deps -r "$ROOT/requirements-coverage.lock"
   # Use Python-level capture here. Some container/WSL filesystems can invalidate
   # pytest's fd-capture temporary file while the coverage plugin is finalizing,
   # producing an infrastructure FileNotFoundError after otherwise successful tests.

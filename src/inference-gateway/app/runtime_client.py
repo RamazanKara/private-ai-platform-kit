@@ -17,6 +17,25 @@ REDACTED_MESSAGE_FIELDS = {"reasoning", "reasoning_content", "thinking"}
 # than 429 is a client error and is never retried.
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
+
+def is_runtime_fault(status_code: int) -> bool:
+    """Whether an upstream status says the runtime is unhealthy, not the request.
+
+    Only these count toward the circuit breaker. A 400/422 is one caller's malformed
+    payload; counting it would let a single tenant open the circuit for everyone.
+    """
+    return status_code == 429 or status_code >= 500
+
+
+def is_retryable_transport_error(exc: httpx.HTTPError) -> bool:
+    """Whether a transport failure is safe to retry with the same generation request.
+
+    A read timeout means the runtime accepted the request and is still generating;
+    re-sending it multiplies GPU work and the caller's wait without improving the odds.
+    """
+    return isinstance(exc, httpx.TransportError) and not isinstance(exc, httpx.ReadTimeout)
+
+
 # Disable Nagle on the upstream sockets. The gateway proxies small JSON bodies over
 # keep-alive connections; Nagle plus delayed ACKs can otherwise add a per-request
 # stall on low-latency links. TCP_NODELAY keeps the upstream hop tight.
@@ -170,13 +189,14 @@ class RuntimeClient:
                 data = response.json()
                 self._record_success(resolved_backend)
                 break
-            except httpx.HTTPStatusError:
-                self._record_failure(resolved_backend)
+            except httpx.HTTPStatusError as exc:
+                if is_runtime_fault(exc.response.status_code):
+                    self._record_failure(resolved_backend)
                 raise
             except httpx.HTTPError as exc:
                 last_error = exc
                 self._record_failure(resolved_backend)
-                if attempt + 1 >= attempts:
+                if not is_retryable_transport_error(exc) or attempt + 1 >= attempts:
                     raise
                 await self._sleep_before_retry(attempt, None)
         else:
@@ -232,54 +252,6 @@ class RuntimeClient:
             self._completions_url(resolved_backend), body, headers, resolved_backend
         )
 
-    async def stream_completions(
-        self,
-        payload: dict[str, Any],
-        headers: dict[str, str] | None = None,
-        backend: str | None = None,
-    ):
-        """Yield raw streamed chunks from the runtime legacy ``/v1/completions`` endpoint.
-
-        Mirrors :meth:`stream_chat_completions` (bounded pre-first-byte retry, circuit
-        check) but targets ``/v1/completions``.
-        """
-        body = dict(payload)
-        body["model"] = body.get("model") or self.settings.model_id
-        resolved_backend = backend or self.settings.runtime_backend
-        attempts = self.settings.runtime_max_retries + 1
-        client = self._client_instance()
-        last_error: httpx.HTTPError | None = None
-        for attempt in range(attempts):
-            self._check_circuit(resolved_backend)
-            try:
-                async with client.stream(
-                    "POST",
-                    self._completions_url(resolved_backend),
-                    json=body,
-                    headers=headers,
-                ) as response:
-                    if response.status_code in RETRYABLE_STATUS and attempt + 1 < attempts:
-                        await response.aread()
-                        self._record_failure(resolved_backend)
-                        await self._sleep_before_retry(attempt, response)
-                        continue
-                    response.raise_for_status()
-                    self._record_success(resolved_backend)
-                    async for chunk in response.aiter_bytes():
-                        yield chunk
-                    return
-            except httpx.HTTPStatusError:
-                self._record_failure(resolved_backend)
-                raise
-            except httpx.HTTPError as exc:
-                last_error = exc
-                self._record_failure(resolved_backend)
-                if attempt + 1 >= attempts:
-                    raise
-                await self._sleep_before_retry(attempt, None)
-        if last_error is not None:
-            raise last_error
-
     async def stream_chat_completions(
         self,
         payload: dict[str, Any],
@@ -288,10 +260,10 @@ class RuntimeClient:
     ):
         """Yield raw streamed response chunks from the runtime chat-completions endpoint.
 
-        A bounded retry runs only *before the first byte* is yielded: once any chunk
-        has been sent to the caller the response is committed and cannot be retried,
-        so a transient connect error or retryable status on connection setup is the
-        only thing retried here.
+        A bounded retry runs only *before the first byte* is yielded. Once any chunk
+        has reached the caller the response is committed: a mid-stream failure is
+        re-raised, never retried, because a retry would append a second, different
+        completion to the partial one the client already received.
         """
         body = self._chat_completion_body(payload)
         resolved_backend = backend or self.settings.runtime_backend
@@ -300,6 +272,7 @@ class RuntimeClient:
         last_error: httpx.HTTPError | None = None
         for attempt in range(attempts):
             self._check_circuit(resolved_backend)
+            streamed = False
             try:
                 async with client.stream(
                     "POST",
@@ -316,15 +289,17 @@ class RuntimeClient:
                     response.raise_for_status()
                     self._record_success(resolved_backend)
                     async for chunk in response.aiter_bytes():
+                        streamed = True
                         yield chunk
                     return
-            except httpx.HTTPStatusError:
-                self._record_failure(resolved_backend)
+            except httpx.HTTPStatusError as exc:
+                if is_runtime_fault(exc.response.status_code):
+                    self._record_failure(resolved_backend)
                 raise
             except httpx.HTTPError as exc:
                 last_error = exc
                 self._record_failure(resolved_backend)
-                if attempt + 1 >= attempts:
+                if streamed or not is_retryable_transport_error(exc) or attempt + 1 >= attempts:
                     raise
                 await self._sleep_before_retry(attempt, None)
         if last_error is not None:
@@ -333,7 +308,9 @@ class RuntimeClient:
     async def health(self, backend: str | None = None) -> dict[str, Any]:
         """Probe the backend health endpoint and return its status payload."""
         resolved_backend = backend or self.settings.runtime_backend
-        timeout = httpx.Timeout(min(self.settings.request_timeout_seconds, 10.0))
+        # Short, fixed ceiling: this backs /readyz, whose kubelet probe times out after a
+        # few seconds. A health endpoint that needs longer is itself the answer.
+        timeout = httpx.Timeout(min(self.settings.request_timeout_seconds, 3.0))
         self._check_circuit(resolved_backend)
         client = self._client_instance()
         response = await client.get(f"{self._base_url(resolved_backend)}/healthz", timeout=timeout)

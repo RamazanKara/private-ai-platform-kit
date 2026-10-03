@@ -30,7 +30,7 @@ A sandbox-bound key record or verified JWT tenant claim can bind the gateway req
 
 ## Does the gateway implement the full OpenAI or Anthropic API?
 
-No. It implements the routes in the checked-in [OpenAPI contract](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json). Chat completions can stream; legacy completions, Anthropic Messages, and Responses cannot in this release. See [Scope and non-goals](scope-and-non-goals.md).
+No. It implements the routes in the checked-in [OpenAPI contract](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json). Chat completions and Anthropic Messages can stream; legacy completions and Responses cannot in this release. See [Scope and non-goals](scope-and-non-goals.md).
 
 ## What do the checked-in evidence files prove?
 

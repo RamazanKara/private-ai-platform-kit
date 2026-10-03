@@ -1,0 +1,14 @@
+# API-key records for the Compose evaluation stack (API_KEY_RECORDS_PATH).
+#
+# The gateway stores only SHA-256 digests. This one is the digest of the published demo key
+# "local-development-only"; it authenticates nothing outside this stack. To add a key:
+#   printf '%s' "$KEY" | sha256sum
+records:
+  - name: demo-key
+    sha256: ed20191044553dac8f9c45e62062dd18e7dc1f898a897240b4179fb84fea3db4
+    # Bound: requests run as sandbox `demo` whatever X-Sandbox-ID says, and naming another
+    # sandbox is rejected. Binding is also what unlocks the Responses store and Files API.
+    sandbox: demo
+    scopes: [inference, receipts]
+    budget:
+      estimatedTokenLimit: 200000

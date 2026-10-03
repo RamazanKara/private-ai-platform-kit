@@ -47,6 +47,19 @@ rather than blurred.
 - Generate version tables from pinned configuration where practical.
 - Ratchet type checking and coverage only when the checks stay useful and maintainable.
 - Keep sample evidence small and clearly separate from current release evidence.
+- Decide between a shared package for the code both services copy (`body_limit`, `tracing`, and most of `jwt_auth` and `audit`) and the current per-image copies, which a hygiene check now keeps identical.
+
+## 7. Hardening follow-ups from the v0.30 review
+
+Found while reviewing the gateway and RAG code; each needs a design decision or a change too large for a patch release.
+
+- Give batch queue claims an owner token, so a worker can tell its own claim from one another worker re-claimed after a reap.
+- Stream batch input and results instead of holding a whole file in memory, and checkpoint progress so a crashed batch does not replay items it already charged.
+- Replay batch items with the submitter's identity rather than one unbound worker key.
+- Allow only `data:` image URLs by default and add a host allowlist for remote images, which the runtime would otherwise fetch from inside the cluster.
+- Forward an explicit per-endpoint allowlist of runtime parameters instead of passing unknown request fields through.
+- Serve `/metrics` on a separate port so an Ingress for the API cannot expose per-sandbox series.
+- Translate Responses API tool-call items (`function_call`, `function_call_output`) so multi-turn tool use works on `/v1/responses`.
 
 ## Not planned
 

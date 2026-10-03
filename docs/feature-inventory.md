@@ -16,7 +16,7 @@ configured.
 | Responses server-side state | Shipped | Off | Tenant-scoped memory/Redis store with TTL and delete |
 | Synchronous batch fan-out | Shipped | On | Per-item admission/budget/guardrail tests |
 | Files + asynchronous Batch API | Shipped | Off | Bounded streaming upload, durable Redis queue, object-store blobs |
-| Python client SDK | Shipped | GitHub release downloads | Isolated build/test matrix, checksums, and release artifacts; PyPI Trusted Publishing is optional |
+| Python client SDK | Shipped (typed) | GitHub release downloads | Isolated build/test matrix, checksums, and release artifacts; PyPI Trusted Publishing is optional |
 | API-key authentication | Shipped | Local on; chart base off | Hashed keys or scoped/expiring key records |
 | JWT/JWKS authentication | Shipped | Customer template on | Issuer/audience/time/algorithm validation and tenant binding |
 | Model allowlist and routing | Shipped | On | Per-model primary/fallback/canary/shadow routes |
@@ -30,6 +30,7 @@ configured.
 | RAG retrieval receipts | Shipped | On | Own chain, same primitives and same verifier as the gateway |
 | Audit chain head persistence | Shipped | Memory (no continuity) | `file` or `redis` backend needed for cross-restart linkage; storage is operator-provided |
 | Read-only operator console | Shipped | Off | `/console`; health, models, usage, and budget only |
+| Docker Compose evaluation stack | Shipped | `make compose-up` | Gateway, Ollama, RAG, optional offline Open WebUI on 127.0.0.1; `make compose-smoke` runs in CI on every pull request; no network policy, agent workspaces, or shared state |
 | Ollama runtime | Shipped | Local profile | Pinned image; local-only model-pull egress exception |
 | vLLM generation runtime | Shipped | Customer profile | NVIDIA/AMD values, explicit task, queue-based autoscaling |
 | vLLM embedding runtime | Shipped | Customer profile | Dedicated `--task embed` release consumed by RAG |

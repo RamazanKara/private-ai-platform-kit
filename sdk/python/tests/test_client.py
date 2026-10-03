@@ -4,10 +4,12 @@ All HTTP traffic goes through ``httpx.MockTransport`` and ``_sleep`` is replaced
 with a recorder, so the suite is deterministic and never sleeps for real.
 """
 
+import json
+
 import ai_platform_client
 import httpx
 import pytest
-from ai_platform_client import GatewayClient, GatewayRetryAfterError, GatewayStreamError
+from ai_platform_client import GatewayClient, GatewayError, GatewayRetryAfterError, GatewayStreamError
 
 
 def _mock_transport(monkeypatch, handler):
@@ -266,3 +268,141 @@ def test_create_and_manage_responses(monkeypatch):
     assert client.get_response("resp_1")["status"] == "completed"
     assert client.response_input_items("resp_1")["object"] == "list"
     assert client.delete_response("resp_1")["deleted"] is True
+
+
+def test_sandbox_header_is_omitted_unless_set(monkeypatch):
+    # A bound credential must not be overridden by a client-side default sandbox: the
+    # gateway rejects a mismatching X-Sandbox-ID with 403.
+    seen = []
+
+    def handler(request):
+        seen.append(request.headers.get("X-Sandbox-ID"))
+        return httpx.Response(200, json={})
+
+    _mock_transport(monkeypatch, handler)
+    GatewayClient("http://gateway.test").usage()
+    GatewayClient("http://gateway.test", sandbox_id="team-a").usage()
+    assert seen == [None, "team-a"]
+
+
+def test_error_responses_carry_reason_and_request_id(monkeypatch):
+    def handler(request):
+        return httpx.Response(
+            400,
+            json={"detail": {"message": "model is not approved", "reason": "model_not_allowed", "request_id": "req-1"}},
+        )
+
+    _mock_transport(monkeypatch, handler)
+    with pytest.raises(GatewayError) as excinfo:
+        GatewayClient("http://gateway.test").chat([{"role": "user", "content": "hi"}], model="x")
+    error = excinfo.value
+    assert isinstance(error, httpx.HTTPStatusError)
+    assert (error.status_code, error.reason, error.request_id) == (400, "model_not_allowed", "req-1")
+    assert "model_not_allowed" in str(error)
+
+
+def test_stream_error_status_raises_with_the_gateway_reason(monkeypatch):
+    def handler(request):
+        return httpx.Response(400, json={"detail": {"message": "streaming disabled", "reason": "streaming_disabled"}})
+
+    _mock_transport(monkeypatch, handler)
+    with pytest.raises(GatewayError) as excinfo:
+        list(GatewayClient("http://gateway.test").chat_stream([{"role": "user", "content": "hi"}]))
+    assert excinfo.value.reason == "streaming_disabled"
+
+
+def test_state_creating_calls_are_not_retried_on_ambiguous_failures(monkeypatch):
+    # A 502 or a read timeout may mean the batch was created; retrying could create a second.
+    calls = []
+
+    def handler(request):
+        calls.append(request.url.path)
+        return httpx.Response(502, json={"detail": "runtime returned an error"})
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test")
+    sleeps = _record_sleeps(monkeypatch, client)
+    with pytest.raises(GatewayError):
+        client.create_batch("file-1")
+    assert calls == ["/v1/batches"]
+    assert sleeps == []
+
+
+def test_state_creating_calls_retry_when_the_gateway_did_not_act(monkeypatch):
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        if len(calls) == 1:
+            raise httpx.ConnectError("refused", request=request)
+        if len(calls) == 2:
+            return httpx.Response(503, json={"detail": "at capacity"})
+        return httpx.Response(200, json={"id": "batch-1"})
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test")
+    _record_sleeps(monkeypatch, client)
+    assert client.create_batch("file-1")["id"] == "batch-1"
+    assert len(calls) == 3
+
+
+def test_inference_calls_retry_transport_errors(monkeypatch):
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        if len(calls) == 1:
+            raise httpx.ReadError("reset", request=request)
+        return httpx.Response(200, json={"choices": []})
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test")
+    _record_sleeps(monkeypatch, client)
+    assert client.chat([{"role": "user", "content": "hi"}]) == {"choices": []}
+    assert len(calls) == 2
+
+
+def test_zero_retries_makes_exactly_one_attempt(monkeypatch):
+    calls = []
+    _mock_transport(monkeypatch, lambda request: calls.append(1) or httpx.Response(500, json={}))
+    with pytest.raises(GatewayError):
+        GatewayClient("http://gateway.test", max_retries=0).usage()
+    assert calls == [1]
+
+
+def test_messages_completions_and_receipts_hit_their_routes(monkeypatch):
+    bodies = {}
+
+    def handler(request):
+        bodies[request.url.path] = json.loads(request.content)
+        return httpx.Response(200, json={"ok": True})
+
+    _mock_transport(monkeypatch, handler)
+    client = GatewayClient("http://gateway.test")
+    client.messages([{"role": "user", "content": "hi"}], max_tokens=64, system="be brief")
+    client.completions("Once upon a time", max_tokens=8)
+    client.record_receipt("egress_denied", "denied", target="example.com:443")
+
+    assert bodies["/v1/messages"] == {
+        "messages": [{"role": "user", "content": "hi"}],
+        "max_tokens": 64,
+        "system": "be brief",
+    }
+    assert bodies["/v1/completions"] == {"prompt": "Once upon a time", "max_tokens": 8}
+    assert bodies["/v1/receipts"] == {"action_type": "egress_denied", "decision": "denied", "target": "example.com:443"}
+
+
+def test_custom_transport_and_default_headers():
+    seen = {}
+
+    def handler(request):
+        seen["traceparent"] = request.headers.get("traceparent")
+        return httpx.Response(200, json={"status": "ready"})
+
+    client = GatewayClient(
+        "http://gateway.test",
+        transport=httpx.MockTransport(handler),
+        default_headers={"traceparent": "00-" + "a" * 32 + "-" + "b" * 16 + "-01"},
+    )
+    assert client.ready() is True
+    assert seen["traceparent"].startswith("00-aaaa")

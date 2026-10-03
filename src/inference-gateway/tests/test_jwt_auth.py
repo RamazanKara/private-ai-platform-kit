@@ -219,6 +219,57 @@ def test_jwks_cache_raises_unavailable_when_no_keys_cached(monkeypatch):
         asyncio.run(cache.keys())
 
 
+def test_unknown_kid_triggers_one_early_refresh_so_rotation_is_picked_up(monkeypatch):
+    # The issuer rotated: the cache still holds kid-old (TTL not expired) while new tokens
+    # carry kid-new. One early refetch must pick it up instead of 401-ing until the TTL ends.
+    new_secret = b"rotated-new-signing-key-abcdef012345"
+    published = {"keys": [_oct_jwk("kid-old", SECRET)]}
+    fetches = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        fetches.append(1)
+        return httpx.Response(200, json=published)
+
+    _mock_async_client(monkeypatch, handler)
+    verifier = JwtVerifier(_jwks_settings(jwt_cache_seconds=3600))
+    assert _verify(verifier, _hs256(_claims(), kid="kid-old", secret=SECRET))
+    published["keys"] = [_oct_jwk("kid-new", new_secret)]
+
+    assert _verify(verifier, _hs256(_claims(), kid="kid-new", secret=new_secret))
+    assert len(fetches) == 2
+
+
+def test_unknown_kid_refresh_is_rate_limited(monkeypatch):
+    # Made-up kids must not turn every request into a JWKS fetch.
+    fetches = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        fetches.append(1)
+        return httpx.Response(200, json={"keys": [_oct_jwk()]})
+
+    _mock_async_client(monkeypatch, handler)
+    verifier = JwtVerifier(_jwks_settings(jwt_cache_seconds=3600))
+    for index in range(5):
+        with pytest.raises(JwtAuthError, match="key was not found"):
+            _verify(verifier, _hs256(_claims(), kid=f"made-up-{index}"))
+    assert len(fetches) == 2  # the initial fetch plus one early refresh
+
+
+def test_cold_jwks_outage_fails_fast_inside_the_backoff(monkeypatch):
+    fetches = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        fetches.append(1)
+        raise httpx.ConnectError("issuer down")
+
+    _mock_async_client(monkeypatch, handler)
+    cache = JwksCache(_jwks_settings())
+    for _ in range(3):
+        with pytest.raises(JwksUnavailableError):
+            asyncio.run(cache.keys())
+    assert len(fetches) == 1
+
+
 def test_jwks_cache_returns_empty_when_auth_disabled():
     cache = JwksCache(_jwks_settings(jwt_auth_enabled=False, jwt_jwks_url=""))
     assert asyncio.run(cache.keys()) == []

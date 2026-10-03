@@ -10,14 +10,16 @@ Install the released client from the GitHub release wheel:
 python -m pip install https://github.com/RamazanKara/private-ai-platform-kit/releases/download/v0.29.0/private_ai_platform_kit_client-0.29.0-py3-none-any.whl
 ```
 
-[`python/ai_platform_client.py`](python/ai_platform_client.py) is a single-module `GatewayClient`
-wrapping the OpenAI-compatible endpoints with the platform headers (`X-Sandbox-ID`, bearer auth).
-Its only dependency is `httpx`.
+[`python/ai_platform_client`](python/ai_platform_client/__init__.py) provides `GatewayClient`, which
+covers the gateway's OpenAI-compatible and Anthropic endpoints, Files/Batch, Responses, and
+agent-action receipts with the platform headers (`X-Sandbox-ID`, bearer auth). Its only
+dependency is `httpx`, and it ships inline type annotations. The
+[package README](python/README.md) lists the full surface and its retry and error behavior.
 
 ```python
 from ai_platform_client import GatewayClient
 
-with GatewayClient("http://127.0.0.1:8080", api_key="local-development-only", sandbox_id="demo") as gw:
+with GatewayClient("http://127.0.0.1:8080", api_key="local-development-only") as gw:
     print(gw.chat([{"role": "user", "content": "hello"}]))
     print(gw.embeddings("embed this text"))
     print(gw.moderations("classify this"))

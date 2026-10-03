@@ -429,9 +429,14 @@ class QdrantRetriever:
         if not terms:
             return []
         await self._ensure_bootstrapped()
-        vector = await self.embedding_provider.embed_async(query)
+        try:
+            vector = await self.embedding_provider.embed_async(query)
+        except (httpx.HTTPError, ValueError, IndexError) as exc:
+            # The embedding endpoint is a retrieval dependency like Qdrant: an outage or a
+            # malformed/wrong-dimension response is a retryable 503, not an unhandled 500.
+            raise VectorStoreError("query embedding failed") from exc
         # Over-fetch dense candidates so the lexical rerank has room to reorder.
-        candidate_limit = max(top_k, top_k * self.candidate_multiplier)
+        candidate_limit = top_k * self.candidate_multiplier
         try:
             response = await self._client().post(
                 f"{self.base_url}/collections/{self.collection}/points/query",
@@ -497,7 +502,8 @@ class QdrantRetriever:
             return matches
         try:
             scores = await self.reranker_provider.rerank_async(query, [match.document.content for match in matches])
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ValueError):
+            # ValueError covers a non-JSON body and a response without a results list.
             return matches
         if len(scores) != len(matches):
             return matches
@@ -508,18 +514,24 @@ class QdrantRetriever:
 
 
 def build_context(results: list[RetrievalResult], max_context_chars: int) -> str:
-    """Concatenate retrieval excerpts into a context block within the char budget."""
+    """Concatenate retrieval excerpts into a context block within the char budget.
+
+    The blank-line separators between sections count against the budget too, so the
+    returned block is never longer than `max_context_chars`.
+    """
+    separator = "\n\n"
     sections: list[str] = []
     used = 0
     for result in results:
         header = f"[{result.document.id}] {result.document.title} ({result.document.source})"
-        body = result.excerpt
-        section = f"{header}\n{body}"
-        remaining = max_context_chars - used
+        section = f"{header}\n{result.excerpt}"
+        remaining = max_context_chars - used - (len(separator) if sections else 0)
         if remaining <= 0:
             break
         if len(section) > remaining:
             section = section[:remaining].rstrip()
+        if not section:
+            break
+        used += len(section) + (len(separator) if sections else 0)
         sections.append(section)
-        used += len(section)
-    return "\n\n".join(sections)
+    return separator.join(sections)

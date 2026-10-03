@@ -120,6 +120,11 @@ class FakeRedis:
             if message is not None:
                 self.hset(keys[2], message, args[0])
             return message
+        if "batch-heartbeat-v1" in script:
+            if self.hget(keys[0], args[0]) is None:
+                return 0
+            self.hset(keys[0], args[0], args[1])
+            return 1
         if "batch-ack-v1" in script:
             self.lrem(keys[0], 0, args[0])
             self.hdel(keys[1], args[0])
@@ -277,3 +282,15 @@ def test_build_batch_store_selects_backend():
         batch_redis_timeout_seconds=0.5,
     )
     assert isinstance(build_batch_store(redis_settings), RedisBatchStore)
+
+
+def test_heartbeat_refreshes_a_live_claim_and_reports_a_lost_one(store):
+    store.enqueue("tA", "batch-1")
+    assert store.claim() == ("tA", "batch-1")
+    assert store.heartbeat("tA", "batch-1") is True
+    # A refreshed claim is not stale, so the reaper leaves it with its worker.
+    assert store.reclaim(min_idle_seconds=3600) == 0
+    # Once the reaper re-queues it, the old worker's heartbeat reports the claim is gone.
+    assert store.reclaim(min_idle_seconds=0) == 1
+    assert store.heartbeat("tA", "batch-1") is False
+    assert store.heartbeat("tA", "never-claimed") is False

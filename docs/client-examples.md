@@ -4,11 +4,12 @@ The gateway implements a documented subset of the OpenAI API. Clients that use t
 routes can point their base URL at the gateway and send the platform headers. Check the
 [OpenAPI contract](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json)
 and [scope](scope-and-non-goals.md) before assuming that an SDK feature is supported.
-These examples use the local port-forward address (`make local-up` then port-forward the
-gateway service); replace it with your ingress host in a customer cluster.
+These examples use `http://127.0.0.1:8080`, where the [Docker Compose stack](quickstart.md#docker-compose)
+serves the gateway with API key `local-development-only`. In the `kind` lab, port-forward the
+gateway service first; in a customer cluster, use your ingress host.
 
-The `model` id must be on the active profile's allowlist: the local lab allows
-`qwen2.5:0.5b`, while the customer profiles default to `qwen3.5:0.8b` (Ollama) and
+The `model` id must be on the active profile's allowlist: the Compose stack and the local lab
+allow `qwen2.5:0.5b`, while the customer profiles default to `qwen3.5:0.8b` (Ollama) and
 `Qwen/Qwen3-Coder-Next` (vLLM). Streaming is admitted by default in every shipped
 profile (`admission.allowStreaming: true`); a deployment that requires end-of-stream-only
 guardrail enforcement sets it `false`. Examples below that
@@ -17,7 +18,9 @@ use a customer model are marked accordingly.
 All business endpoints accept:
 
 - `Authorization: Bearer <api-key-or-jwt>` (or the `X-API-Key` header) when auth is enabled
-- `X-Sandbox-ID: <sandbox>`: the tenant/sandbox the request is attributed to
+- `X-Sandbox-ID: <sandbox>`: the tenant/sandbox the request is attributed to. A credential
+  bound to a sandbox (an API-key record or a JWT tenant claim) needs no header, and a
+  different value is rejected with `403`.
 - `X-Request-ID` and W3C `traceparent`: optional, echoed back for tracing
 
 Responses echo `X-Request-ID`, `X-Sandbox-ID`, and `traceparent` for correlation. When
@@ -58,7 +61,7 @@ curl -fsS "$GATEWAY/v1/completions" \
   -H 'Content-Type: application/json' \
   -d '{"prompt":"Write a haiku about the sea.","max_tokens":64}'
 
-# Native Anthropic Messages API (governed like chat, non-streaming). max_tokens is required.
+# Native Anthropic Messages API (governed like chat; add "stream":true for SSE). max_tokens is required.
 curl -fsS "$GATEWAY/v1/messages" \
   -H "Authorization: Bearer $KEY" -H "X-Sandbox-ID: demo" \
   -H 'Content-Type: application/json' \
@@ -256,7 +259,7 @@ print(resp.choices[0].message)
 
 # Streaming (admitted by default in every shipped profile)
 for chunk in client.chat.completions.create(
-    model="qwen3.5:0.8b",
+    model="qwen2.5:0.5b",
     messages=[{"role": "user", "content": "stream a haiku"}],
     stream=True,
 ):
@@ -296,7 +299,7 @@ See [release verification](release-verification.md) before installing.
 ```python
 from ai_platform_client import GatewayClient
 
-with GatewayClient("http://127.0.0.1:8080", api_key="local-development-only", sandbox_id="demo") as gw:
+with GatewayClient("http://127.0.0.1:8080", api_key="local-development-only") as gw:
     print(gw.chat([{"role": "user", "content": "hello"}])["choices"][0]["message"]["content"])
     for delta in gw.chat_stream([{"role": "user", "content": "stream a haiku"}]):
         print(delta, end="")
@@ -364,8 +367,8 @@ http://<gateway-host>/v1`, the API key, and a `requestOptions.headers` entry set
 
 The gateway now exposes a native Anthropic `/v1/messages` endpoint (see above), which is the
 preferred path for Anthropic-SDK and Claude-style agents. A translation **sidecar** remains a
-supported **alternative** for Anthropic-shaped features the native endpoint does not yet cover
-(most notably streaming, and content blocks with no OpenAI equivalent). For example, a
+supported **alternative** for Anthropic-shaped features the native endpoint does not yet cover,
+such as content blocks with no OpenAI equivalent. For example, a
 [LiteLLM](https://docs.litellm.ai/) proxy that exposes an Anthropic-shaped `/v1/messages`
 endpoint and forwards to the gateway's `/v1/chat/completions`. The sidecar does the
 Anthropic-to-OpenAI request/response translation; the gateway still applies auth, model

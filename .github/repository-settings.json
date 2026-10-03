@@ -19,7 +19,17 @@
       "vllm",
       "ollama",
       "platform-engineering",
-      "open-source"
+      "open-source",
+      "llm-gateway",
+      "ai-gateway",
+      "openai-compatible",
+      "anthropic",
+      "self-hosted",
+      "coding-agents",
+      "audit-log",
+      "ai-governance",
+      "helm",
+      "docker-compose"
     ]
   },
   "security": {

@@ -1743,7 +1743,7 @@
     },
     "/v1/responses": {
       "post": {
-        "description": "OpenAI Responses API endpoint (stateless subset). The request/response are translated to and from the internal OpenAI chat shape and routed through the SAME governance path as POST /v1/chat/completions: model allowlist, admission limits (including the max_output_tokens cap), prompt secret policy, sandbox budget, output guardrail, and audit. This subset is STATELESS: server-side conversation state is not implemented, so store=true or previous_response_id is rejected with stateful_not_supported rather than silently ignored. Streaming is not supported on this endpoint in this release; send stream=false or use POST /v1/chat/completions for OpenAI-shaped streaming.",
+        "description": "OpenAI Responses API endpoint. The request/response are translated to and from the internal OpenAI chat shape and routed through the SAME governance path as POST /v1/chat/completions: model allowlist, admission limits (including the max_output_tokens cap), prompt secret policy, sandbox budget, output guardrail, and audit. Server-side state (store=true, previous_response_id) is opt-in via RESPONSES_STORE_ENABLED and requires a sandbox-bound credential when authentication is on; without the store those fields are rejected with stateful_not_supported rather than silently ignored. Streaming is not supported on this endpoint in this release; send stream=false or use POST /v1/chat/completions for OpenAI-shaped streaming.",
         "operationId": "createResponse",
         "requestBody": {
           "content": {

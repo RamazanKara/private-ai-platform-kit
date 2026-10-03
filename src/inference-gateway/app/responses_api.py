@@ -8,6 +8,7 @@ routes that only answer when the store is enabled.
 
 from __future__ import annotations
 
+import asyncio
 from time import time
 from typing import Any
 from uuid import uuid4
@@ -16,7 +17,7 @@ from fastapi import FastAPI, HTTPException, Request
 
 from app.governance import governed, reserve_budget, resolve_single_route
 from app.guardrails import _apply_output_guardrail, _apply_prompt_secret_mode
-from app.request_context import _runtime_headers
+from app.request_context import _runtime_headers, require_bound_tenant
 from app.response_store import StoredResponse
 from app.responses import (
     ResponsesRequest,
@@ -102,12 +103,13 @@ def _response_not_found(response_id: str) -> HTTPException:
     )
 
 
-def _require_stored_response(request: Request, response_id: str) -> StoredResponse:
+async def _require_stored_response(request: Request, response_id: str) -> StoredResponse:
     """Return the tenant-scoped stored response, or raise 404 when disabled/absent."""
     store = getattr(request.app.state, "response_store", None)
     if store is None:
         raise _responses_disabled()
-    record = store.get(request.state.sandbox_id, response_id)
+    tenant = require_bound_tenant(request, "the Responses store")
+    record = await asyncio.to_thread(store.get, tenant, response_id)
     if record is None:
         raise _response_not_found(response_id)
     return record
@@ -121,14 +123,15 @@ def register_responses_routes(app: FastAPI, settings: Settings) -> None:
         tags=["inference"],
         summary="Create a private OpenAI Responses API response",
         description=(
-            "OpenAI Responses API endpoint (stateless subset). The request/response are "
-            "translated to and from the internal OpenAI chat shape and routed through the "
-            "SAME governance path as POST /v1/chat/completions: model allowlist, admission "
-            "limits (including the max_output_tokens cap), prompt secret policy, sandbox "
-            "budget, output guardrail, and audit. This subset is STATELESS: server-side "
-            "conversation state is not implemented, so store=true or previous_response_id is "
-            "rejected with stateful_not_supported rather than silently ignored. Streaming is "
-            "not supported on this endpoint in this release; send stream=false or use POST "
+            "OpenAI Responses API endpoint. The request/response are translated to and from "
+            "the internal OpenAI chat shape and routed through the SAME governance path as "
+            "POST /v1/chat/completions: model allowlist, admission limits (including the "
+            "max_output_tokens cap), prompt secret policy, sandbox budget, output guardrail, "
+            "and audit. Server-side state (store=true, previous_response_id) is opt-in via "
+            "RESPONSES_STORE_ENABLED and requires a sandbox-bound credential when "
+            "authentication is on; without the store those fields are rejected with "
+            "stateful_not_supported rather than silently ignored. Streaming is not supported "
+            "on this endpoint in this release; send stream=false or use POST "
             "/v1/chat/completions for OpenAI-shaped streaming."
         ),
         operation_id="createResponse",
@@ -150,8 +153,12 @@ def register_responses_routes(app: FastAPI, settings: Settings) -> None:
                     "server-side response state is not enabled on this gateway "
                     "(RESPONSES_STORE_ENABLED); store / previous_response_id are unavailable",
                 )
+            if (payload.store or payload.previous_response_id is not None) and response_store is not None:
+                require_bound_tenant(request, "the Responses store")
             if payload.previous_response_id is not None and response_store is not None:
-                prior = response_store.get(request.state.sandbox_id, payload.previous_response_id)
+                prior = await asyncio.to_thread(
+                    response_store.get, request.state.sandbox_id, payload.previous_response_id
+                )
                 if prior is None:
                     raise AdmissionPolicyError(
                         "previous_response_not_found",
@@ -198,8 +205,14 @@ def register_responses_routes(app: FastAPI, settings: Settings) -> None:
             # Persist when the caller asked to store it (and the store is enabled), so it can be
             # retrieved and chained via previous_response_id (ADR 0012).
             if payload.store and response_store is not None:
-                responses_body = _persist_response(
-                    response_store, request, payload, payload_dict, call.runtime_response, responses_body
+                responses_body = await asyncio.to_thread(
+                    _persist_response,
+                    response_store,
+                    request,
+                    payload,
+                    payload_dict,
+                    call.runtime_response,
+                    responses_body,
                 )
             return responses_body
 
@@ -210,7 +223,7 @@ def register_responses_routes(app: FastAPI, settings: Settings) -> None:
         operation_id="getResponse",
     )
     async def get_response(request: Request, response_id: str) -> dict[str, Any]:
-        return _require_stored_response(request, response_id).body
+        return (await _require_stored_response(request, response_id)).body
 
     @app.delete(
         "/v1/responses/{response_id}",
@@ -222,7 +235,8 @@ def register_responses_routes(app: FastAPI, settings: Settings) -> None:
         store = getattr(request.app.state, "response_store", None)
         if store is None:
             raise _responses_disabled()
-        if not store.delete(request.state.sandbox_id, response_id):
+        tenant = require_bound_tenant(request, "the Responses store")
+        if not await asyncio.to_thread(store.delete, tenant, response_id):
             raise _response_not_found(response_id)
         return {"id": response_id, "object": "response.deleted", "deleted": True}
 
@@ -233,4 +247,4 @@ def register_responses_routes(app: FastAPI, settings: Settings) -> None:
         operation_id="listResponseInputItems",
     )
     async def response_input_items(request: Request, response_id: str) -> dict[str, Any]:
-        return {"object": "list", "data": _require_stored_response(request, response_id).input_items}
+        return {"object": "list", "data": (await _require_stored_response(request, response_id)).input_items}

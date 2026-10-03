@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 from collections import OrderedDict
+from threading import Lock
 from time import time
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -53,31 +54,37 @@ class ResponseCache:
     Process-local: each gateway replica keeps its own store, so under horizontal
     scale-out the effective hit rate degrades. Use the Redis backend
     (RESPONSE_CACHE_BACKEND=redis) for a cache shared across replicas.
+
+    Handlers call it through `asyncio.to_thread`, so concurrent worker threads share
+    the store; the lock keeps an eviction from racing a `move_to_end` into a KeyError.
     """
 
     def __init__(self, max_entries: int, ttl_seconds: int) -> None:
         self.max_entries = max_entries
         self.ttl_seconds = ttl_seconds
         self._store: OrderedDict[str, tuple[float, dict[str, Any]]] = OrderedDict()
+        self._lock = Lock()
 
     def get(self, key: str) -> dict[str, Any] | None:
         """Return the cached response for the key, or None when absent/expired."""
-        item = self._store.get(key)
-        if item is None:
-            return None
-        expires_at, value = item
-        if expires_at < time():
-            self._store.pop(key, None)
-            return None
-        self._store.move_to_end(key)
-        return value
+        with self._lock:
+            item = self._store.get(key)
+            if item is None:
+                return None
+            expires_at, value = item
+            if expires_at < time():
+                self._store.pop(key, None)
+                return None
+            self._store.move_to_end(key)
+            return value
 
     def set(self, key: str, value: dict[str, Any]) -> None:
         """Store a response under the key, evicting the oldest entry past the bound."""
-        self._store[key] = (time() + self.ttl_seconds, value)
-        self._store.move_to_end(key)
-        while len(self._store) > self.max_entries:
-            self._store.popitem(last=False)
+        with self._lock:
+            self._store[key] = (time() + self.ttl_seconds, value)
+            self._store.move_to_end(key)
+            while len(self._store) > self.max_entries:
+                self._store.popitem(last=False)
 
 
 class RedisResponseCache:

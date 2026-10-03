@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 **/.venv/
 .venv-quality/
+.venv-relock/
 # Throwaway venv holding the vendor client SDKs for paper/conformance/sdk_conformance.py.
 # They are test-time clients of the gateway, not dependencies of it, so they stay out of
 # the service locks and out of the repository.

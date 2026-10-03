@@ -174,3 +174,95 @@ def test_stream_chat_completions_can_be_cancelled_mid_stream(monkeypatch):
         return first
 
     assert asyncio.run(cancel_after_first_chunk())
+
+
+class _BreaksMidStream(httpx.AsyncByteStream):
+    """A response body that yields one SSE event and then drops the connection."""
+
+    async def __aiter__(self):
+        yield b'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n'
+        raise httpx.ReadError("upstream dropped mid-stream")
+
+
+def test_stream_is_not_retried_after_the_first_chunk(monkeypatch):
+    # Retrying here would append a second, different completion to the partial one the
+    # client already holds. The failure must surface instead, after exactly one POST.
+    posts = []
+
+    def handler(request):
+        posts.append(request.url.path)
+        return httpx.Response(200, stream=_BreaksMidStream())
+
+    _mock_async_client(monkeypatch, handler)
+    client = RuntimeClient(_settings(runtime_max_retries=2, runtime_retry_backoff_seconds=0.001))
+    received = []
+
+    async def drain():
+        async for chunk in client.stream_chat_completions({"messages": []}, backend="ollama"):
+            received.append(chunk)
+
+    with pytest.raises(httpx.ReadError):
+        asyncio.run(drain())
+    assert posts == ["/v1/chat/completions"]
+    assert b"".join(received).count(b"partial") == 1
+
+
+def test_stream_retries_connect_errors_before_the_first_chunk(monkeypatch):
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        if len(calls) == 1:
+            raise httpx.ConnectError("not yet listening", request=request)
+        return httpx.Response(200, content=b"data: [DONE]\n\n")
+
+    _mock_async_client(monkeypatch, handler)
+    client = RuntimeClient(_settings(runtime_max_retries=2, runtime_retry_backoff_seconds=0.001))
+
+    async def collect():
+        return b"".join([chunk async for chunk in client.stream_chat_completions({"messages": []}, backend="ollama")])
+
+    assert asyncio.run(collect()) == b"data: [DONE]\n\n"
+    assert len(calls) == 2
+
+
+def test_read_timeout_on_generation_is_not_retried(monkeypatch):
+    # The runtime accepted the request and is still generating; a retry doubles GPU work.
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        raise httpx.ReadTimeout("generation too slow", request=request)
+
+    _mock_async_client(monkeypatch, handler)
+    client = RuntimeClient(_settings(runtime_max_retries=2, runtime_retry_backoff_seconds=0.001))
+
+    with pytest.raises(httpx.ReadTimeout):
+        asyncio.run(client.chat_completions({"messages": []}, backend="ollama"))
+    assert len(calls) == 1
+
+
+def test_client_errors_do_not_open_the_circuit(monkeypatch):
+    # One tenant's malformed payloads (400/422) must not trip the breaker for everyone.
+    def handler(request):
+        return httpx.Response(422, json={"error": "bad request"})
+
+    _mock_async_client(monkeypatch, handler)
+    client = RuntimeClient(_settings(runtime_circuit_failure_threshold=1))
+
+    for _ in range(3):
+        with pytest.raises(httpx.HTTPStatusError):
+            asyncio.run(client.chat_completions({"messages": []}, backend="ollama"))
+    assert "ollama" not in client._opened_until
+
+
+def test_server_errors_still_open_the_circuit(monkeypatch):
+    def handler(request):
+        return httpx.Response(500, json={"error": "boom"})
+
+    _mock_async_client(monkeypatch, handler)
+    client = RuntimeClient(_settings(runtime_circuit_failure_threshold=1, runtime_max_retries=0))
+
+    with pytest.raises(httpx.HTTPStatusError):
+        asyncio.run(client.chat_completions({"messages": []}, backend="ollama"))
+    assert "ollama" in client._opened_until

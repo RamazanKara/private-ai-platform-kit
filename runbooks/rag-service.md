@@ -15,7 +15,7 @@ Queries return retrieved document excerpts, a query SHA-256 fingerprint, optiona
 
 When `auth.enabled` is true, `POST /v1/rag/query` and `GET /v1/rag/documents` require `X-API-Key` or `Authorization: Bearer`. Health and metrics remain unauthenticated for Kubernetes probes and scraping.
 
-When `auth.jwt.enabled` is true (see "Trust boundary" below), the service additionally verifies its own audience-bound bearer token (JWKS/issuer/audience/exp/nbf) and derives the caller's tenant from the verified claim.
+When `auth.jwt.enabled` is true (see "Trust boundary" below), the service additionally verifies its own audience-bound bearer token (JWKS/issuer/audience/exp/nbf) and derives the caller's tenant from the verified claim. With both enabled, send the API key in `X-API-Key` and the JWT in `Authorization: Bearer`; a JWT-shaped bearer value is never treated as an API key. `auth.jwt.audience` is required whenever JWT verification is on, so a token minted for another service (for example the gateway) is rejected.
 
 The local profile uses lexical retrieval. Customer values can switch to the Qdrant vector-store profile with `retrieval.backend=qdrant`; see `runbooks/vector-rag.md` for storage, network, and collection operations.
 
@@ -92,7 +92,7 @@ The bundled **local lexical lab** ships with isolation **off** (`retrieval.tenan
 - **Derive the tenant from the verified `tenantClaim`** and use *that* for the tenant-isolation filter, ignoring/validating `X-Sandbox-ID`: a header that contradicts the verified claim is rejected (`403 sandbox_identity_mismatch`), and a token that names no tenant is rejected (`403 sandbox_claim_invalid`).
 - Fail closed when `auth.jwt.required: true`: a missing or invalid token is `401`. An unreachable JWKS issuer with no cached keys is `503` (retry), distinct from a token rejection; a transient outage is covered by the last-known-good key cache (`cacheSeconds`).
 
-Header-trust is the fallback when JWT is off (the default; the base chart and local lab keep it off, backward compatible). The customer overlay ships it on as an operator-completed template (`deploy/clusters/customer/values/rag-service.yaml`): replace the placeholder issuer/JWKS/audience with the real IdP, and point `tenantClaim` at whatever claim uniquely identifies the tenant (it must match the `owner` documents are ingested with). `required: false` there keeps the API-key path as break-glass during IdP outages.
+Header-trust is the fallback when JWT is off (the default; the base chart and local lab keep it off, backward compatible). The customer overlay ships it on as an operator-completed template (`deploy/clusters/customer/values/rag-service.yaml`): replace the placeholder issuer/JWKS/audience with the real IdP, and point `tenantClaim` at whatever claim uniquely identifies the tenant (it must match the `owner` documents are ingested with). The overlay sets `required: true`, which the multi-tenant profile needs: with `required: false` a caller could omit the token and fall back to the spoofable header. Use `required: false` only where the RAG service is reachable exclusively through a component that stamps a verified `X-Sandbox-ID`.
 
 ## Troubleshooting
 

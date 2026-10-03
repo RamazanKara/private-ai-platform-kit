@@ -71,6 +71,10 @@ class WorkerConfig:
         )
 
 
+class ClaimLost(Exception):
+    """This worker's queue claim was reclaimed; another replica now owns the batch."""
+
+
 def _new_id(prefix: str) -> str:
     return f"{prefix}-{secrets.token_hex(16)}"
 
@@ -94,6 +98,9 @@ async def _replay_line(
         obj = json.loads(line)
     except json.JSONDecodeError:
         return _error_item(None, "invalid_json", "request line is not valid JSON")
+    if not isinstance(obj, dict):
+        # Valid JSON that is not an object ([1], "x") must fail this item, not the batch.
+        return _error_item(None, "invalid_json", "request line must be a JSON object")
     custom_id = obj.get("custom_id")
     body = obj.get("body")
     url = obj.get("url", record.endpoint)
@@ -144,8 +151,14 @@ async def process_batch(
     tenant: str,
     batch_id: str,
     client: httpx.AsyncClient,
+    *,
+    claimed: bool = False,
 ) -> None:
-    """Process one claimed batch to a terminal state (idempotent: safe to re-run)."""
+    """Process one batch to a terminal state (idempotent: safe to re-run).
+
+    `claimed` means this worker holds the queue claim: it then refreshes the claim
+    between chunks and stops, without finalizing, if another replica reclaimed the batch.
+    """
     record = batch_store.get_batch(tenant, batch_id)
     if record is None or record.status in _TERMINAL:
         return
@@ -173,6 +186,8 @@ async def process_batch(
     errors: list[dict[str, Any]] = []
     cancelled = False
     for start in range(0, len(lines), config.concurrency):
+        if claimed and not batch_store.heartbeat(tenant, batch_id):
+            raise ClaimLost(batch_id)
         current = batch_store.get_batch(tenant, batch_id)
         if current is not None and current.status == BATCH_CANCELLING:
             cancelled = True
@@ -255,12 +270,18 @@ async def run_once(
         return False
     tenant, batch_id = claimed
     try:
-        await process_batch(config, object_store, batch_store, tenant, batch_id, client)
+        await process_batch(config, object_store, batch_store, tenant, batch_id, client, claimed=True)
+    except ClaimLost:
+        # The claim now belongs to the replica that reclaimed the batch. Acking would
+        # delete that replica's claim, stop its heartbeat, and strand the batch unfinished.
+        _LOGGER.warning("batch %s was reclaimed by another worker; stopping without finalizing", batch_id)
+        return True
     except Exception as exc:
         _LOGGER.exception("batch %s processing failed", batch_id)
         _fail(batch_store, tenant, batch_id, f"worker error: {type(exc).__name__}")
-    finally:
-        batch_store.ack(tenant, batch_id)
+    # Not in a finally: a worker cancelled mid-batch must leave its claim behind so the
+    # reaper re-queues the batch instead of it sitting in_progress forever.
+    batch_store.ack(tenant, batch_id)
     return True
 
 

@@ -216,7 +216,7 @@ def _parse_record(item: Any, index: int) -> KeyRecord:
     if not isinstance(raw_budget, dict):
         raise KeyRecordError(f"API-key record '{key_id}' budget must be a mapping when set")
 
-    return KeyRecord(
+    record = KeyRecord(
         sha256=sha256,
         key_id=key_id,
         sandbox=sandbox,
@@ -228,6 +228,12 @@ def _parse_record(item: Any, index: int) -> KeyRecord:
             raw_budget.get("estimatedTokenLimit"), "estimatedTokenLimit", key_id
         ),
     )
+    # Budget counters are kept per sandbox. A per-key budget on an unbound key would only
+    # change the limit applied to whichever X-Sandbox-ID the caller sends, so rotating that
+    # header would mint a fresh counter per request and make the budget meaningless.
+    if record.has_budget_override() and record.sandbox is None:
+        raise KeyRecordError(f"API-key record '{key_id}' sets a budget and must also bind a sandbox")
+    return record
 
 
 def key_record_effective_budget_updates(record: KeyRecord) -> dict[str, Any]:

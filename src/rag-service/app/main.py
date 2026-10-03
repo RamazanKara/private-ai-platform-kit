@@ -73,6 +73,28 @@ AUTH_FAILURES = Counter(
     ["route", "reason"],
 )
 
+# Label bounds. Sandbox ids are caller-asserted unless JWT binding is on, and failed-auth
+# paths are arbitrary, so unbounded labels would let a client mint Prometheus series at will.
+_MAX_SANDBOX_LABEL_VALUES = 2000
+_SANDBOX_LABEL_VALUES: set[str] = set()
+_ROUTE_LABELS = frozenset({"/v1/rag/query", "/v1/rag/documents"})
+
+
+def _sandbox_label(sandbox_id: str) -> str:
+    """Return the sandbox metric label, collapsing ids past the cardinality bound."""
+    if sandbox_id in _SANDBOX_LABEL_VALUES:
+        return sandbox_id
+    if len(_SANDBOX_LABEL_VALUES) < _MAX_SANDBOX_LABEL_VALUES:
+        _SANDBOX_LABEL_VALUES.add(sandbox_id)
+        return sandbox_id
+    return "__other__"
+
+
+def _route_label(request: Request) -> str:
+    """Return a bounded route label for metrics recorded before routing."""
+    path = request.url.path
+    return path if path in _ROUTE_LABELS else "unmatched"
+
 
 class RagQueryRequest(BaseModel):
     """Request body for a RAG retrieval query with context and message options."""
@@ -151,15 +173,23 @@ def _install_openapi_contract(app: FastAPI, settings: Settings) -> None:
 
 
 def _api_key_from_request(request: Request, settings: Settings) -> str | None:
-    """Extract the API key from the bearer token or configured API-key header."""
+    """Extract the API key from the configured API-key header, else a non-JWT bearer value.
+
+    With JWT verification on, a JWT-shaped ``Authorization: Bearer`` value is the caller's
+    identity token, so the service API key must arrive in the API-key header. Reading the
+    bearer first used to hash the JWT as if it were a key and reject every caller of a
+    profile that enables both, which is exactly the multi-tenant customer profile.
+    """
+    api_key = request.headers.get(settings.api_key_header)
+    if api_key and api_key.strip():
+        return api_key.strip()
+    if settings.jwt_enabled and _bearer_token_from_request(request) is not None:
+        return None
     authorization = request.headers.get("authorization", "").strip()
     if authorization.lower().startswith("bearer "):
         token = authorization[7:].strip()
         if token:
             return token
-    api_key = request.headers.get(settings.api_key_header)
-    if api_key:
-        return api_key.strip()
     return None
 
 
@@ -168,13 +198,20 @@ def _valid_api_key(request: Request, settings: Settings) -> bool:
     api_key = _api_key_from_request(request, settings)
     if not api_key:
         return False
+    # API keys are high-entropy tokens and their SHA-256 digests are the configured
+    # identifiers used for constant-time allowlist matching, not password storage.
     digest = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
-    return any(hmac.compare_digest(digest, expected) for expected in settings.api_key_sha256s)
+    # Compare every digest (no early exit) so timing does not reveal which entry matched.
+    matched = False
+    for expected in settings.api_key_sha256s:
+        if hmac.compare_digest(digest, expected):
+            matched = True
+    return matched
 
 
 def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
     """Record the failure metric and build the 401 response with trace headers."""
-    AUTH_FAILURES.labels(request.url.path, reason).inc()
+    AUTH_FAILURES.labels(_route_label(request), reason).inc()
     response = JSONResponse(
         status_code=401,
         content={
@@ -201,7 +238,7 @@ def _jwks_unavailable_response(request: Request) -> JSONResponse:
     from a rejected token (401); returning 503 lets the caller back off instead of treating
     a transient IdP outage as an auth denial.
     """
-    AUTH_FAILURES.labels(request.url.path, "jwks_unavailable").inc()
+    AUTH_FAILURES.labels(_route_label(request), "jwks_unavailable").inc()
     response = JSONResponse(
         status_code=503,
         content={
@@ -228,7 +265,7 @@ def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
     but also asserts a different ``X-Sandbox-ID`` is not authorized for that identity, so the
     request is rejected rather than silently honoring either value.
     """
-    AUTH_FAILURES.labels(request.url.path, reason).inc()
+    AUTH_FAILURES.labels(_route_label(request), reason).inc()
     response = JSONResponse(
         status_code=403,
         content={
@@ -440,6 +477,11 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
     persist_task.cancel()
     await asyncio.to_thread(_persist_audit_head, app)
+    # Flush buffered spans. This must live here: with a lifespan configured, FastAPI never
+    # runs on_shutdown handlers, so a registered shutdown hook silently never fired.
+    tracer_provider = getattr(app.state, "tracer_provider", None)
+    if tracer_provider is not None:
+        tracer_provider.shutdown()
     retriever = app.state.retriever
     for dependency in (
         retriever,
@@ -517,11 +559,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.jwt_verifier = JwtVerifier(resolved)
     tracing = configure_tracing(resolved)
     app.state.tracer = tracing[0] if tracing else None
+    # Flushed at shutdown by _lifespan; BatchSpanProcessor otherwise drops its queued tail.
     app.state.tracer_provider = tracing[1] if tracing else None
-    if app.state.tracer_provider is not None:
-        # Flush buffered spans on termination: BatchSpanProcessor otherwise drops its
-        # queued tail every time a pod stops, losing the last requests' traces.
-        app.router.add_event_handler("shutdown", app.state.tracer_provider.shutdown)
     if resolved.vector_bootstrap_enabled and resolved.retrieval_tenant_isolation_enabled:
         # Bootstrapped platform knowledge is stamped owner=platform-team; with tenant
         # isolation on, callers only retrieve their own tenant's documents, so the
@@ -757,7 +796,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             results = await app.state.retriever.query(query_text, top_k, max_context_chars, tenant=tenant)
             result_ids = [result.document.id for result in results]
             context = build_context(results, max_context_chars)
-            RETRIEVAL_RESULTS.labels(request.state.sandbox_id).observe(len(results))
+            RETRIEVAL_RESULTS.labels(_sandbox_label(request.state.sandbox_id)).observe(len(results))
             response: dict[str, Any] = {
                 "request_id": request.state.request_id,
                 "sandbox_id": request.state.sandbox_id,
@@ -811,6 +850,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "sandbox_id": request.state.sandbox_id,
                 },
             ) from exc
+        except Exception as exc:
+            # Record what the client actually receives. Without this arm an unexpected
+            # failure kept the default 200 and wrote an "allowed" receipt to the chain.
+            status = "500"
+            status_code = 500
+            error = f"internal error: {type(exc).__name__}"
+            raise
         finally:
             REQUESTS.labels(route, status).inc()
             latency_seconds = perf_counter() - start

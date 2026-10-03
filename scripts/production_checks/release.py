@@ -50,7 +50,6 @@ def check_release_packaging(errors: list[str]) -> None:
             "sdk-compatibility",
             "sdk-build",
             "sdk-publish",
-            "pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b",
             "packages-dir: sdk-dist",
         ):
             require(
@@ -58,6 +57,13 @@ def check_release_packaging(errors: list[str]) -> None:
                 token in workflow,
                 f"CI workflow must publish and sign release supply-chain evidence with {token}",
             )
+        # The publish action must stay pinned to a full commit SHA, but not to one
+        # specific SHA: a hard-coded value turns every Dependabot bump into a red build.
+        require(
+            errors,
+            re.search(r"pypa/gh-action-pypi-publish@[0-9a-f]{40}\b", workflow) is not None,
+            "CI workflow must pin pypa/gh-action-pypi-publish to a full commit SHA",
+        )
         require(
             errors,
             "awk '/^Digest:/ {print $2; exit}'" not in workflow,
@@ -311,12 +317,18 @@ def check_release_packaging(errors: list[str]) -> None:
                 f"{service} .dockerignore must exclude local test environments",
             )
 
+    common_text = (ROOT / "scripts/common.sh").read_text()
+    require(
+        errors,
+        '--require-hashes -r "$lock"' in common_text,
+        "scripts/common.sh ensure_service_venv must install hashed dev dependencies",
+    )
     for script in ("scripts/bootstrap-python.sh", "scripts/test-gateway.sh", "scripts/test-rag.sh"):
         text = (ROOT / script).read_text()
         require(
             errors,
-            "--require-hashes -r requirements-dev.lock" in text,
-            f"{script} must install hashed dev dependencies",
+            "ensure_service_venv" in text,
+            f"{script} must install hashed dev dependencies through ensure_service_venv",
         )
         require(
             errors,

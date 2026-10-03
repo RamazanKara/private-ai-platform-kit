@@ -17,11 +17,16 @@ VENV="$ROOT/.venv-quality"
 PYBIN="$VENV/bin/python"
 
 ensure_tools() {
-  if [[ ! -x "$PYBIN" ]] || ! "$PYBIN" -m ruff --version >/dev/null 2>&1 \
-    || ! "$PYBIN" -m mypy --version >/dev/null 2>&1; then
+  # Rebuild when the lock changes, not only when the venv is missing: otherwise a
+  # ruff/mypy bump never reaches an existing checkout and local results drift from CI.
+  local digest
+  digest="$(sha256sum requirements-quality.lock | cut -d' ' -f1)"
+  if [[ ! -x "$PYBIN" ]] || [[ "$(cat "$VENV/.lock-sha256" 2>/dev/null)" != "$digest" ]]; then
     echo "[quality] creating isolated tool environment"
+    rm -rf "$VENV"
     python3 -m venv "$VENV"
     "$PYBIN" -m pip install --require-hashes -r requirements-quality.lock >/dev/null
+    echo "$digest" >"$VENV/.lock-sha256"
   fi
 }
 
@@ -51,6 +56,8 @@ run_typecheck() {
       MYPYPATH="$PWD" "$PYBIN" -m mypy app --config-file "$ROOT/pyproject.toml"
     )
   done
+  echo "[quality] mypy (python SDK)"
+  "$PYBIN" -m mypy sdk/python/ai_platform_client --config-file "$ROOT/pyproject.toml"
 }
 
 ensure_tools

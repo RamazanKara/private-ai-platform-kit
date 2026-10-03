@@ -180,6 +180,9 @@ class BatchStore(Protocol):
 
     def ack(self, tenant: str, batch_id: str) -> None: ...
 
+    def heartbeat(self, tenant: str, batch_id: str) -> bool:
+        """Refresh an in-flight claim; return False when the claim is no longer held."""
+
     def reclaim(self, min_idle_seconds: float) -> int: ...
 
 
@@ -281,6 +284,13 @@ class MemoryBatchStore:
         with self._lock:
             self._inflight.pop((tenant, batch_id), None)
 
+    def heartbeat(self, tenant: str, batch_id: str) -> bool:
+        with self._lock:
+            if (tenant, batch_id) not in self._inflight:
+                return False
+            self._inflight[(tenant, batch_id)] = time()
+            return True
+
     def reclaim(self, min_idle_seconds: float) -> int:
         cutoff = time() - min_idle_seconds
         requeued = 0
@@ -350,6 +360,13 @@ REDIS_ACK_SCRIPT = """
 -- batch-ack-v1
 redis.call('LREM', KEYS[1], 0, ARGV[1])
 redis.call('HDEL', KEYS[2], ARGV[1])
+return 1
+"""
+
+REDIS_HEARTBEAT_SCRIPT = """
+-- batch-heartbeat-v1
+if redis.call('HEXISTS', KEYS[1], ARGV[1]) == 0 then return 0 end
+redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
 return 1
 """
 
@@ -564,6 +581,24 @@ class RedisBatchStore:
         message = self._message(tenant, batch_id)
         try:
             self.client.eval(REDIS_ACK_SCRIPT, 2, self._processing_key(), self._claims_key(), message)
+        except _BATCH_BACKEND_ERRORS as exc:
+            raise BatchStoreError("batch metadata backend is unavailable") from exc
+
+    def heartbeat(self, tenant: str, batch_id: str) -> bool:
+        """Refresh the claim time of an in-flight batch; False when the claim is gone.
+
+        A worker processing a long batch calls this between chunks. Without it the claim
+        time is only written at claim, so any batch running longer than the reclaim
+        interval is re-queued and processed again by another replica, double-charging
+        every item. Claims are keyed by message, not owner: this detects a reclaim the
+        reaper made while the worker stalled, not one that another worker re-claimed.
+        """
+        try:
+            return bool(
+                self.client.eval(
+                    REDIS_HEARTBEAT_SCRIPT, 1, self._claims_key(), self._message(tenant, batch_id), str(time())
+                )
+            )
         except _BATCH_BACKEND_ERRORS as exc:
             raise BatchStoreError("batch metadata backend is unavailable") from exc
 

@@ -273,7 +273,12 @@ auth:
     tenantClaim: ""
 
 service:
+  # ClusterIP keeps the gateway in-cluster (port-forward or Ingress for outside clients).
+  # A NodePort also needs networkPolicy ingress that admits the node's traffic.
+  type: ClusterIP
   port: 8080
+  # Only used when type is NodePort; empty lets Kubernetes pick one.
+  nodePort: null
 
 # Optional Ingress for cluster-external clients. Disabled by default (port-forward only).
 ingress:
