@@ -458,8 +458,11 @@ class GatewayClient:
     # --- Agent-action receipts (requires AGENT_RECEIPTS_ENABLED on the gateway) ---
 
     def record_receipt(self, action_type: str, decision: str, **fields: Any) -> dict[str, Any]:
-        """Record an agent action (denied egress, tool execution, ...) on the audit hash chain.
+        """Record an agent action on the audit hash chain.
 
+        `action_type` is one of `egress_denied`, `egress_allowed`, `tool_exec`,
+        `file_write`, `credential_request`, or `workspace_lifecycle`; `decision` is
+        `allowed` or `denied`.
         The receipt is evidence that some other control acted; submitting one permits
         nothing. ``fields`` carries the optional receipt attributes (``target``, ``tool``,
         ``detail``, ...) documented in the gateway's OpenAPI contract.

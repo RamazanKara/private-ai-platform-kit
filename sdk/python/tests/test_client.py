@@ -381,7 +381,7 @@ def test_messages_completions_and_receipts_hit_their_routes(monkeypatch):
     client = GatewayClient("http://gateway.test")
     client.messages([{"role": "user", "content": "hi"}], max_tokens=64, system="be brief")
     client.completions("Once upon a time", max_tokens=8)
-    client.record_receipt("egress", "denied", target="example.com:443")
+    client.record_receipt("egress_denied", "denied", target="example.com:443")
 
     assert bodies["/v1/messages"] == {
         "messages": [{"role": "user", "content": "hi"}],
@@ -389,7 +389,7 @@ def test_messages_completions_and_receipts_hit_their_routes(monkeypatch):
         "system": "be brief",
     }
     assert bodies["/v1/completions"] == {"prompt": "Once upon a time", "max_tokens": 8}
-    assert bodies["/v1/receipts"] == {"action_type": "egress", "decision": "denied", "target": "example.com:443"}
+    assert bodies["/v1/receipts"] == {"action_type": "egress_denied", "decision": "denied", "target": "example.com:443"}
 
 
 def test_custom_transport_and_default_headers():

@@ -1,0 +1,143 @@
+# Private AI Platform Kit: single-host evaluation stack.
+#
+#   make compose-up      build the images, pull the model, start everything (first run ~5 min)
+#   make compose-smoke   send governed requests and verify the audit hash chain
+#   make compose-down    stop and delete the stack and its volumes
+#
+# The same service images and environment contract as the Helm charts, without Kubernetes:
+# an OpenAI- and Anthropic-compatible gateway in front of Ollama, with API-key auth bound to
+# a sandbox, budgets, prompt-secret blocking, output redaction, agent-action receipts, and a
+# hash-chained audit log; plus the RAG service over this repository's docs. Ports bind to
+# 127.0.0.1 only. This is an evaluation stack: the cluster profiles add network policy,
+# GitOps, Redis-backed state, and the hardened agent workspaces.
+#
+# Optional chat UI:  docker compose -f deploy/compose/compose.yaml --profile ui up -d
+#                    then open http://127.0.0.1:3000
+
+name: private-ai-platform-kit
+
+x-gateway-image: &gateway-image private-ai-platform-kit/inference-gateway:compose
+
+services:
+  ollama:
+    image: ollama/ollama:0.24.0@sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: "30m"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  # One-shot: pull the model into the shared volume, then exit. Cached across restarts.
+  model-pull:
+    image: ollama/ollama:0.24.0@sha256:a6149234667efc71d37766d61c1a16f24c33e4cd7a0bf4125c44a7e47e2419c4
+    entrypoint: ["ollama", "pull", "${PAK_MODEL:-qwen2.5:0.5b}"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+  inference-gateway:
+    build:
+      context: ../../src/inference-gateway
+    image: *gateway-image
+    ports:
+      - "127.0.0.1:${PAK_GATEWAY_PORT:-8080}:8080"
+    volumes:
+      - ./key-records.yaml:/etc/private-ai-platform-kit/key-records.yaml:ro
+    environment:
+      RUNTIME_BACKEND: ollama
+      OLLAMA_BASE_URL: http://ollama:11434
+      MODEL_ID: ${PAK_MODEL:-qwen2.5:0.5b}
+      ALLOWED_MODELS: ${PAK_MODEL:-qwen2.5:0.5b}
+      DEFAULT_SANDBOX_ID: demo
+      # Every request needs a key. The demo key "local-development-only" is a key record
+      # bound to the `demo` sandbox with its own token budget; see key-records.yaml.
+      API_KEY_AUTH_ENABLED: "true"
+      API_KEY_RECORDS_PATH: /etc/private-ai-platform-kit/key-records.yaml
+      ALLOW_STREAMING: "true"
+      MAX_COMPLETION_TOKENS: "512"
+      SANDBOX_BUDGET_ENABLED: "true"
+      SANDBOX_ESTIMATED_TOKEN_BUDGET: "200000"
+      USD_PER_1K_TOKENS: "0.002"
+      PROMPT_SECRET_MODE: block
+      OUTPUT_GUARDRAIL_ENABLED: "true"
+      OUTPUT_GUARDRAIL_MODE: redact
+      AGENT_RECEIPTS_ENABLED: "true"
+      RESPONSES_STORE_ENABLED: "true"
+      ADMIN_CONSOLE_ENABLED: "true"
+      AUDIT_LOG_ENABLED: "true"
+    depends_on:
+      model-pull:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/readyz', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  rag-service:
+    build:
+      context: ../../src/rag-service
+    image: private-ai-platform-kit/rag-service:compose
+    ports:
+      - "127.0.0.1:${PAK_RAG_PORT:-8090}:8080"
+    volumes:
+      # The kit's own documentation is the demo corpus: ask it about the platform.
+      - ../../docs:/knowledge:ro
+    environment:
+      RAG_DOCUMENT_DIR: /knowledge
+      DEFAULT_SANDBOX_ID: demo
+      # Tenant isolation stays on: a query must name its sandbox (X-Sandbox-ID: demo).
+      RAG_RETRIEVAL_TENANT_ISOLATION_ENABLED: "true"
+      AUDIT_LOG_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/readyz', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  open-webui:
+    profiles: [ui]
+    image: ghcr.io/open-webui/open-webui:0.11.4@sha256:9591b13f13843c7721c2b8eaf7382846c81b3ffe126526d1888d1fed50c6a33f
+    ports:
+      - "127.0.0.1:${PAK_UI_PORT:-3000}:8080"
+    volumes:
+      - open-webui-data:/app/backend/data
+    environment:
+      # The UI talks only to the governed gateway, never to Ollama directly.
+      OPENAI_API_BASE_URL: http://inference-gateway:8080/v1
+      OPENAI_API_KEY: local-development-only
+      ENABLE_OLLAMA_API: "false"
+      WEBUI_AUTH: "false"
+      ENABLE_OPENAI_API: "true"
+      # No outbound calls: without these, Open WebUI downloads an embedding model from
+      # Hugging Face on first start, which a private deployment should not do silently.
+      OFFLINE_MODE: "true"
+      HF_HUB_OFFLINE: "1"
+    depends_on:
+      inference-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ollama-models:
+  open-webui-data:

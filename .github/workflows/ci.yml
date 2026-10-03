@@ -583,6 +583,27 @@ jobs:
   # guarded by production-check; a duplicate job here produced double SARIF uploads
   # and a second copy of the steps to keep in sync.
 
+  # The Docker Compose stack is the advertised five-minute evaluation path. Run it the way
+  # a first-time user would, so the README's first command cannot rot unnoticed.
+  compose-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Start the Compose stack
+        run: make compose-up
+      - name: Walk the governed request path and verify the audit chain
+        run: make compose-smoke
+      - name: Diagnose on failure
+        if: failure()
+        run: docker compose -f deploy/compose/compose.yaml logs --no-color --tail=200
+      - name: Stop the Compose stack
+        if: always()
+        run: make compose-down
+
   local-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 60
