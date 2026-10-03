@@ -62,3 +62,6 @@ authority:
    then enable `PYPI_PUBLISH_ENABLED` at repository level.
 3. Register the platform OCI chart in Artifact Hub and record its assigned repository ID.
 4. Keep GHCR packages public so anonymous Helm pulls and Artifact Hub indexing work.
+5. Upload `docs/assets/social-preview.png` under **Settings > General > Social preview** so shared
+   links show the project card instead of GitHub's generated one. Its source is
+   `docs/assets/social-preview.svg`; re-render it with any headless browser at 1280x640.

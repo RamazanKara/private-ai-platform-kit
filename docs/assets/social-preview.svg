@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="title">Private AI Platform Kit</title>
+  <desc id="desc">Social preview: self-hosted LLM gateway, retrieval, and coding-agent workspaces for Kubernetes, with a verifiable record of every model call and agent action. A chain of three audit receipts, the last one edited and caught by the verifier.</desc>
+
+  <rect width="1280" height="640" fill="#0f172a"/>
+  <rect x="0" y="0" width="1280" height="6" fill="#34d399"/>
+
+  <text x="80" y="128" font-size="58" font-weight="800" fill="#f8fafc">Private AI Platform Kit</text>
+  <text x="80" y="184" font-size="27" fill="#cbd5e1">Self-hosted LLM gateway, retrieval, and coding-agent workspaces</text>
+  <text x="80" y="222" font-size="27" fill="#cbd5e1">for Kubernetes, with a verifiable record of every call.</text>
+
+  <!-- Receipt chain -->
+  <g font-family="'Cascadia Mono', 'Consolas', 'Courier New', monospace">
+    <rect x="80" y="292" width="320" height="132" rx="14" fill="#111c33" stroke="#334155" stroke-width="2"/>
+    <text x="104" y="330" font-size="20" font-weight="700" fill="#e2e8f0">receipt 41</text>
+    <text x="104" y="362" font-size="17" fill="#94a3b8">model_call   allowed</text>
+    <text x="104" y="392" font-size="17" fill="#64748b">prev 9f2c41e8…</text>
+
+    <rect x="480" y="292" width="320" height="132" rx="14" fill="#111c33" stroke="#334155" stroke-width="2"/>
+    <text x="504" y="330" font-size="20" font-weight="700" fill="#e2e8f0">receipt 42</text>
+    <text x="504" y="362" font-size="17" fill="#94a3b8">egress_denied denied</text>
+    <text x="504" y="392" font-size="17" fill="#64748b">prev 1a7e05bd…</text>
+
+    <rect x="880" y="292" width="320" height="132" rx="14" fill="#1f1215" stroke="#f87171" stroke-width="2"/>
+    <text x="904" y="330" font-size="20" font-weight="700" fill="#e2e8f0">receipt 43</text>
+    <text x="904" y="362" font-size="17" fill="#fca5a5">status 400 → 200</text>
+    <text x="904" y="392" font-size="17" fill="#64748b">prev c04b77a2…</text>
+
+    <path d="M404 358 L470 358" stroke="#34d399" stroke-width="3"/>
+    <path d="M462 350 L474 358 L462 366 Z" fill="#34d399"/>
+    <path d="M804 358 L870 358" stroke="#34d399" stroke-width="3"/>
+    <path d="M862 350 L874 358 L862 366 Z" fill="#34d399"/>
+
+    <text x="80" y="480" font-size="19" fill="#34d399">$ make audit-verify</text>
+    <text x="80" y="512" font-size="19" fill="#fca5a5">chain BROKEN at position 43 (record_hash_mismatch)</text>
+  </g>
+
+  <text x="80" y="588" font-size="21" fill="#94a3b8">OpenAI + Anthropic APIs · Ollama / vLLM · hardened agent sandboxes · Helm + Argo CD</text>
+</svg>
