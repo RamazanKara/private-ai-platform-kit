@@ -49,6 +49,7 @@ from app.metrics import (
 from app.metrics import (
     sandbox_label as _sandbox_label,
 )
+from app.params import apply_param_policy
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.request_context import _runtime_headers
 from app.runtime_client import RuntimeClient
@@ -68,6 +69,15 @@ from app.streaming import (
 )
 
 
+def _forward_only_reviewed_params(
+    request: Request, payload_dict: dict[str, Any], endpoint: str, settings: Settings
+) -> None:
+    """Apply the runtime parameter policy and report dropped fields on the response."""
+    dropped = apply_param_policy(payload_dict, endpoint, settings.extra_forwarded_params)
+    if dropped:
+        request.state.dropped_params = dropped
+
+
 def register_inference_routes(app: FastAPI, settings: Settings) -> None:
     """Register the OpenAI-compatible inference endpoints on the app."""
 
@@ -80,6 +90,7 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
     async def chat_completions(request: Request, payload: ChatCompletionRequest) -> dict[str, Any]:
         payload_dict = payload.model_dump(exclude_none=True)
         async with governed(request, settings, route="/v1/chat/completions", payload=payload_dict) as call:
+            _forward_only_reviewed_params(request, payload_dict, "chat", settings)
             policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
             effective = effective_settings(request, sandbox_policies, settings)
@@ -298,6 +309,7 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
     async def completions(request: Request, payload: CompletionRequest) -> dict[str, Any]:
         payload_dict = payload.model_dump(exclude_none=True)
         async with governed(request, settings, route="/v1/completions", payload=payload_dict) as call:
+            _forward_only_reviewed_params(request, payload_dict, "completions", settings)
             effective, model_route = resolve_single_route(request, settings, payload_dict)
             call.backend = model_route.backend
             # Legacy completions do not use the chat SSE usage/guardrail machinery. Reject
@@ -342,6 +354,7 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
     async def embeddings(request: Request, payload: EmbeddingsRequest) -> dict[str, Any]:
         payload_dict = payload.model_dump(exclude_none=True)
         async with governed(request, settings, route="/v1/embeddings", payload=payload_dict) as call:
+            _forward_only_reviewed_params(request, payload_dict, "embeddings", settings)
             effective, model_route = resolve_single_route(request, settings, payload_dict)
             call.backend = model_route.backend
             effective.validate_embedding_admission(payload_dict)
@@ -469,6 +482,7 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
                 item_prompt_action: str | None = None
                 async with semaphore:
                     try:
+                        apply_param_policy(item_dict, "chat", settings.extra_forwarded_params)
                         try:
                             model_route = policy.resolve(item_dict.get("model"), effective.model_id)
                         except ValueError as exc:

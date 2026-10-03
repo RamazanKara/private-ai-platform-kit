@@ -12,7 +12,7 @@ spec:
     matchLabels:
       {{- include "inference-gateway.selectorLabels" . | nindent 6 }}
   endpoints:
-    - port: http
+    - port: {{ if gt (int .Values.metrics.port) 0 }}metrics{{ else }}http{{ end }}
       path: /metrics
       interval: {{ .Values.serviceMonitor.interval }}
 {{- end }}

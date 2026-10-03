@@ -451,6 +451,18 @@
     {
       "aliases": [],
       "allowed_values": [],
+      "app_default": [],
+      "chart_default": [],
+      "chart_value": "admission.extraForwardedParams",
+      "description": "Request fields forwarded to the runtime in addition to the reviewed set; a listed name is forwarded even if the gateway would otherwise refuse it.",
+      "field": "extra_forwarded_params",
+      "name": "EXTRA_FORWARDED_PARAMS",
+      "sensitive": false,
+      "type": "csv"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
       "app_default": 768,
       "chart_default": 768,
       "chart_value": "admission.imagePartTokenEstimate",
@@ -459,6 +471,18 @@
       "name": "IMAGE_PART_TOKEN_ESTIMATE",
       "sensitive": false,
       "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": [],
+      "chart_default": [],
+      "chart_value": "admission.imageUrlAllowedHosts",
+      "description": "Hosts the runtime may fetch remote http(s) image_url parts from (a leading dot admits subdomains); empty allows data: URLs only.",
+      "field": "image_url_allowed_hosts",
+      "name": "IMAGE_URL_ALLOWED_HOSTS",
+      "sensitive": false,
+      "type": "csv"
     },
     {
       "aliases": [],
@@ -661,6 +685,18 @@
       "description": "Maximum serialized characters of tool/function definitions per request.",
       "field": "max_tool_chars",
       "name": "MAX_TOOL_CHARS",
+      "sensitive": false,
+      "type": "integer"
+    },
+    {
+      "aliases": [],
+      "allowed_values": [],
+      "app_default": 0,
+      "chart_default": 9090,
+      "chart_value": "metrics.port",
+      "description": "Port of the dedicated Prometheus listener; zero serves /metrics on the API port. The chart uses a separate port so an Ingress for the API cannot publish metrics.",
+      "field": "metrics_port",
+      "name": "METRICS_PORT",
       "sensitive": false,
       "type": "integer"
     },

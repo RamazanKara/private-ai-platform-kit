@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import socket
+import urllib.request
 
 import httpx
 import pytest
@@ -213,3 +215,22 @@ def test_auth_failure_metric_uses_the_route_template_not_the_raw_path(tmp_path):
     }
     assert "/v1/files/file-abc123" not in sampled_paths
     assert "/v1/no-such-route/random-1" not in sampled_paths
+
+
+# --- metrics listener --------------------------------------------------------------------
+
+
+def test_metrics_move_to_their_own_port_when_configured():
+    # An Ingress routes the API port; per-sandbox series must not ride along with it.
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    app = create_app(_tool_settings(metrics_port=port))
+
+    with TestClient(app) as client:
+        assert client.get("/metrics").status_code == 404
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/metrics", timeout=5) as response:
+            body = response.read().decode()
+
+    assert response.status == 200
+    assert "inference_gateway_requests_total" in body

@@ -4,6 +4,7 @@ import logging
 import time
 
 import httpx
+import pytest
 from app.main import create_app
 from app.policy import ModelRoute, ModelRoutingPolicy
 from app.settings import Settings
@@ -251,7 +252,7 @@ def test_chat_completion_forwards_assistant_tool_calls_and_tool_results():
 def test_chat_completion_forwards_vision_content_parts():
     # Regression: Message.content was a bare str, so an OpenAI content-part array
     # (text + image_url) failed validation before reaching a vision-capable runtime.
-    app = create_app(_tool_settings())
+    app = create_app(_tool_settings(image_url_allowed_hosts=("example.com",)))
     fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
     app.state.runtime_client = fake
     client = TestClient(app)
@@ -269,9 +270,67 @@ def test_chat_completion_forwards_vision_content_parts():
     assert fake.payload["messages"][0]["content"] == content
 
 
-def test_chat_completion_forwards_unknown_sampling_params():
-    # extra="allow" makes the gateway a faithful OpenAI proxy instead of silently
-    # dropping any field it does not model explicitly.
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://169.254.169.254/latest/meta-data/",
+        "http://kubernetes.default.svc/api",
+        "file:///etc/passwd",
+        "ftp://example.com/cat.png",
+        "https://evil-example.com/cat.png",
+    ],
+)
+def test_remote_image_urls_are_refused_unless_their_host_is_allowed(url):
+    # The runtime fetches remote image URLs from inside the cluster, so they are a
+    # server-side request forgery vector; only data: URLs and allowlisted hosts pass.
+    app = create_app(_tool_settings(image_url_allowed_hosts=("example.com", ".images.example.org")))
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    content = [{"type": "text", "text": "describe"}, {"type": "image_url", "image_url": {"url": url}}]
+
+    response = TestClient(app).post("/v1/chat/completions", json={"messages": [{"role": "user", "content": content}]})
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "image_url_not_allowed"
+    assert fake.calls == 0
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["data:image/png;base64,QUJD", "https://cdn.images.example.org/cat.png", "https://images.example.org/a.png"],
+)
+def test_data_urls_and_allowlisted_hosts_reach_the_runtime(url):
+    app = create_app(_tool_settings(image_url_allowed_hosts=(".images.example.org",)))
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    content = [{"type": "image_url", "image_url": {"url": url}}]
+
+    response = TestClient(app).post("/v1/chat/completions", json={"messages": [{"role": "user", "content": content}]})
+
+    assert response.status_code == 200
+
+
+def test_anthropic_url_image_blocks_follow_the_same_rule():
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    body = {
+        "max_tokens": 16,
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"type": "image", "source": {"type": "url", "url": "https://x.example/y.png"}}],
+            }
+        ],
+    }
+
+    response = TestClient(app).post("/v1/messages", json=body)
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "image_url_not_allowed"
+
+
+def test_chat_completion_forwards_openai_sampling_params():
+    # OpenAI parameters the request model does not name explicitly still reach the runtime.
     app = create_app(_tool_settings())
     fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
     app.state.runtime_client = fake
@@ -291,6 +350,89 @@ def test_chat_completion_forwards_unknown_sampling_params():
     assert fake.payload["top_p"] == 0.9
     assert fake.payload["seed"] == 42
     assert fake.payload["stop"] == ["\n\n"]
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"best_of": 4},
+        {"use_beam_search": True},
+        {"chat_template": "{{ messages }}"},
+        {"priority": -100},
+        {"ignore_eos": True},
+    ],
+)
+def test_runtime_extensions_that_defeat_a_control_are_refused(extra):
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    body = {"messages": [{"role": "user", "content": "hi"}], **extra}
+
+    response = TestClient(app).post("/v1/chat/completions", json=body)
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "parameter_not_allowed"
+    assert fake.calls == 0
+
+
+def test_unreviewed_params_are_dropped_and_reported():
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    body = {
+        "messages": [{"role": "user", "content": "hi"}],
+        "guided_json": {"type": "object"},
+        "some_future_runtime_flag": 1,
+        "another_unknown": "x",
+    }
+
+    response = TestClient(app).post("/v1/chat/completions", json=body)
+
+    assert response.status_code == 200
+    assert response.headers["X-Dropped-Params"] == "another_unknown,some_future_runtime_flag"
+    assert fake.payload["guided_json"] == {"type": "object"}
+    assert "some_future_runtime_flag" not in fake.payload
+
+
+def test_operators_can_forward_extra_params_including_refused_ones():
+    app = create_app(_tool_settings(extra_forwarded_params=("priority", "some_future_runtime_flag")))
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+    body = {"messages": [{"role": "user", "content": "hi"}], "priority": 5, "some_future_runtime_flag": 1}
+
+    response = TestClient(app).post("/v1/chat/completions", json=body)
+
+    assert response.status_code == 200
+    assert fake.payload["priority"] == 5
+    assert fake.payload["some_future_runtime_flag"] == 1
+    assert "X-Dropped-Params" not in response.headers
+
+
+def test_completions_allow_best_of_one_but_not_more():
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "text_completion", "choices": []})
+    client = TestClient(app)
+
+    assert client.post("/v1/completions", json={"prompt": "hi", "best_of": 1}).status_code == 200
+    refused = client.post("/v1/completions", json={"prompt": "hi", "best_of": 3})
+    assert refused.status_code == 400
+    assert refused.json()["detail"]["reason"] == "parameter_not_allowed"
+
+
+def test_batch_inference_items_follow_the_parameter_policy():
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    body = {
+        "requests": [
+            {"messages": [{"role": "user", "content": "ok"}]},
+            {"messages": [{"role": "user", "content": "no"}], "use_beam_search": True},
+        ]
+    }
+
+    results = TestClient(app).post("/v1/batch-inference", json=body).json()["results"]
+
+    assert [item["status_code"] for item in results] == [200, 400]
+    assert results[1]["error"]["reason"] == "parameter_not_allowed"
 
 
 def test_chat_completion_rejects_too_many_tools():

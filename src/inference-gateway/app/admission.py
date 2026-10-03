@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterator
 from typing import Any
+from urllib.parse import urlsplit
 
 SANDBOX_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 BUILT_IN_SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
@@ -205,6 +206,48 @@ def count_image_parts(messages: list[Any]) -> int:
 def largest_image_bytes(messages: list[Any]) -> int:
     """Return the largest decoded data-URL image byte size across all messages."""
     return max((_image_part_bytes(part) for part in _iter_image_parts(messages)), default=0)
+
+
+def _image_part_url(part: dict[str, Any]) -> Any:
+    image = part.get("image_url")
+    return image.get("url") if isinstance(image, dict) else image
+
+
+def host_is_allowed(host: str, allowed_hosts: tuple[str, ...]) -> bool:
+    """Match a hostname against an allowlist; ``.example.com`` also admits its subdomains."""
+    host = host.lower().rstrip(".")
+    for entry in allowed_hosts:
+        entry = entry.lower().rstrip(".")
+        if not entry:
+            continue
+        if entry.startswith("."):
+            if host == entry[1:] or host.endswith(entry):
+                return True
+        elif host == entry:
+            return True
+    return False
+
+
+def disallowed_image_url(messages: list[Any], allowed_hosts: tuple[str, ...]) -> str | None:
+    """Return the first image URL the runtime must not be asked to fetch, or None.
+
+    A ``data:`` URL carries its bytes inline and is always acceptable (size is checked
+    separately). Any other URL is fetched *by the runtime*, from inside the cluster, so it
+    is a server-side request forgery vector: only ``http``/``https`` URLs to an explicitly
+    allowed host pass, and every other scheme (``file:``, ``ftp:``, ...) is refused.
+    """
+    for part in _iter_image_parts(messages):
+        url = _image_part_url(part)
+        if not isinstance(url, str):
+            return repr(url)
+        if url.startswith("data:"):
+            continue
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return url
+        if not host_is_allowed(parsed.hostname, allowed_hosts):
+            return url
+    return None
 
 
 def validate_sandbox_id(value: str) -> str:

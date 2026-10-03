@@ -13,6 +13,12 @@ spec:
       {{- if and (eq (.Values.service.type | default "ClusterIP") "NodePort") .Values.service.nodePort }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
+    {{- if gt (int .Values.metrics.port) 0 }}
+    # Prometheus only; the Ingress targets the http port, so these series stay in-cluster.
+    - name: metrics
+      port: {{ .Values.metrics.port }}
+      targetPort: metrics
+    {{- end }}
   selector:
     {{- include "inference-gateway.selectorLabels" . | nindent 4 }}
 

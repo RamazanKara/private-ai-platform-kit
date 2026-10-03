@@ -45,6 +45,16 @@ admission:
   imagePartTokenEstimate: 768
   # Maximum decoded size (bytes) of a single data-URL image part; 0 disables the check.
   maxImageBytes: 0
+  # Hosts the runtime may fetch remote http(s) image_url parts from; a leading dot also admits
+  # subdomains (".images.example.com"). Empty (the default) accepts data: URLs only, because a
+  # remote URL makes the runtime issue a request from inside the cluster on the caller's behalf.
+  imageUrlAllowedHosts: []
+  # The gateway forwards the OpenAI parameters for each endpoint plus reviewed runtime extensions
+  # (guided decoding, top_k, min_p, ...), refuses extensions that defeat a gateway control
+  # (best_of > 1, beam search, chat_template, logits_processors, priority, ...), and drops the
+  # rest, naming them in the X-Dropped-Params response header. List extra field names here to
+  # forward them anyway; a listed name is forwarded even if it would otherwise be refused.
+  extraForwardedParams: []
   maxTools: 64
   maxToolChars: 32768
   # Streaming is shipped on so chat UIs and coding agents work out of the box; the
@@ -309,6 +319,12 @@ podLabels:
   platform.ai/owner: platform-team
   platform.ai/sandbox-id: local-lab
 
+# Prometheus metrics are served on their own port so an Ingress for the API (which routes the
+# http port) cannot publish per-sandbox request, cost, and budget series. 0 serves /metrics on
+# the API port instead, as the Docker Compose stack does.
+metrics:
+  port: 9090
+
 serviceMonitor:
   enabled: true
   interval: 30s
@@ -333,6 +349,9 @@ networkPolicy:
     - monitoring
   allowedIngressNamespaceLabels:
     - platform.ai/traceable-sandbox: "true"
+  # Namespaces allowed to scrape the dedicated metrics port (metrics.port).
+  metricsIngressNamespaces:
+    - monitoring
   runtimeEgress:
     - namespace: ollama
       port: 11434

@@ -54,6 +54,24 @@ All notable changes to this project are documented in this file. The format is b
 - RAG JWT verification requires `auth.jwt.audience`, so a token minted for another
   service cannot be replayed against the RAG service. RAG metric labels are bounded the
   same way as the gateway's (route and sandbox).
+- **Remote image URLs are refused unless their host is allowlisted.** The runtime fetches
+  an `image_url` from inside the cluster, which made every vision request a server-side
+  request forgery vector (cloud metadata endpoints, in-cluster services). `data:` URLs are
+  always accepted; `http(s)` URLs need a host in `admission.imageUrlAllowedHosts`
+  (`IMAGE_URL_ALLOWED_HOSTS`, a leading dot admits subdomains); other schemes are refused.
+  Anthropic `url` image sources follow the same rule.
+- **Runtime parameters pass a reviewed policy instead of being forwarded verbatim.** OpenAI
+  parameters and reviewed extensions (guided decoding, `top_k`, `min_p`, ...) are forwarded.
+  Extensions that defeat a gateway control are refused with `400 parameter_not_allowed`:
+  `best_of` above 1 and beam search (compute past the `n` cap), `chat_template` and its
+  kwargs, `logits_processors`, `ignore_eos`, `min_tokens`, `priority`, and similar. Anything
+  else is dropped and named in the `X-Dropped-Params` response header.
+  `admission.extraForwardedParams` (`EXTRA_FORWARDED_PARAMS`) forwards more names.
+- **Gateway metrics have their own port.** The chart serves Prometheus metrics on
+  `metrics.port` (9090) and the API port answers `/metrics` with 404, so enabling the
+  Ingress no longer publishes per-sandbox request, cost, and budget series. Only
+  `networkPolicy.metricsIngressNamespaces` reach the listener; the ServiceMonitor follows.
+  `METRICS_PORT=0` keeps the old single-port behavior.
 
 ### Fixed
 

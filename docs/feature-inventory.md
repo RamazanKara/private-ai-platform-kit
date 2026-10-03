@@ -23,6 +23,9 @@ configured.
 | Runtime failover | Shipped | Configured by policy | Readiness accepts a healthy declared fallback chain |
 | Prompt and tool-payload admission | Shipped | On | Recursive secret/blocked-term scan and size ceilings |
 | Output guardrail | Shipped | Off in base values | Scans visible content and generated tool/function arguments |
+| Runtime parameter policy | Shipped | On | OpenAI parameters and reviewed runtime extensions are forwarded; control-defeating extensions (`best_of` > 1, beam search, `chat_template`, `logits_processors`, `priority`, ...) are refused; others are dropped and named in `X-Dropped-Params`; `admission.extraForwardedParams` overrides |
+| Dedicated gateway metrics port | Shipped | Chart 9090; Compose uses the API port | `metrics.port`; the API port then answers `/metrics` with 404, and only `networkPolicy.metricsIngressNamespaces` reach the listener |
+| Remote image URLs | Shipped | Off (`data:` only) | `admission.imageUrlAllowedHosts` admits named hosts; other schemes are always refused |
 | Request/body limits | Shipped | 1 MiB JSON | Files use the independent bounded batch-file ceiling |
 | Rate limits and budgets | Shipped | Customer Redis profile on | Atomic shared counters; fixed windows; reservations settled against measured usage; fail policy is explicit |
 | Tamper-evident audit receipts | Shipped | On | Redacted fingerprints, chain verifier, head anchors, and chain-of-chains continuity across restarts |

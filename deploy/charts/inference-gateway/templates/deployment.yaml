@@ -84,6 +84,12 @@ spec:
               value: {{ .Values.admission.imagePartTokenEstimate | quote }}
             - name: MAX_IMAGE_BYTES
               value: {{ .Values.admission.maxImageBytes | quote }}
+            - name: IMAGE_URL_ALLOWED_HOSTS
+              value: {{ join "," .Values.admission.imageUrlAllowedHosts | quote }}
+            - name: EXTRA_FORWARDED_PARAMS
+              value: {{ join "," .Values.admission.extraForwardedParams | quote }}
+            - name: METRICS_PORT
+              value: {{ .Values.metrics.port | quote }}
             - name: MAX_TOOLS
               value: {{ .Values.admission.maxTools | quote }}
             - name: MAX_TOOL_CHARS
@@ -269,6 +275,10 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            {{- if gt (int .Values.metrics.port) 0 }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+            {{- end }}
           readinessProbe:
             httpGet:
               path: /readyz

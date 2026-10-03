@@ -10,7 +10,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest, start_http_server
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.audit import (
@@ -155,6 +155,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.router.add_event_handler("startup", _audit_chain_startup)
     app.router.add_event_handler("shutdown", _audit_chain_shutdown)
+    if resolved.metrics_port:
+
+        async def _start_metrics_listener() -> None:
+            server, _thread = start_http_server(resolved.metrics_port)
+            app.state.metrics_server = server
+
+        async def _stop_metrics_listener() -> None:
+            server = getattr(app.state, "metrics_server", None)
+            if server is not None:
+                server.shutdown()
+                server.server_close()
+
+        app.router.add_event_handler("startup", _start_metrics_listener)
+        app.router.add_event_handler("shutdown", _stop_metrics_listener)
     app.state.response_cache = build_response_cache(resolved)
     app.state.model_routing_policy = (
         ModelRoutingPolicy.from_path(resolved.model_routing_policy_path, resolved)
@@ -316,6 +330,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 response.headers["X-Output-Guardrail"] = request.state.output_guardrail_action
             if getattr(request.state, "prompt_guardrail_action", None):
                 response.headers["X-Prompt-Guardrail"] = request.state.prompt_guardrail_action
+            if getattr(request.state, "dropped_params", None):
+                # Fields the parameter policy did not forward (app/params.py), so a client can
+                # see why a runtime-specific option had no effect.
+                response.headers["X-Dropped-Params"] = ",".join(request.state.dropped_params)
             return response
 
         tracer = request.app.state.tracer
@@ -448,6 +466,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         operation_id="getGatewayMetrics",
     )
     async def metrics() -> Response:
+        if resolved.metrics_port:
+            # Metrics are served by the dedicated listener on METRICS_PORT. Refusing them here
+            # keeps an Ingress that routes the API from also publishing per-sandbox series.
+            raise StarletteHTTPException(status_code=404, detail="Not Found")
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     register_sandbox_routes(app, resolved)

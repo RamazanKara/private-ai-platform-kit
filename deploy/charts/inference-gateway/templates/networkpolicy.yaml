@@ -27,7 +27,19 @@ spec:
         {{- end }}
       ports:
         - protocol: TCP
-          port: http
+          port: http    {{- if gt (int .Values.metrics.port) 0 }}
+    # The metrics listener carries per-sandbox request, cost, and budget series: only the
+    # scraping namespaces reach it, not every namespace allowed to call the API.
+    - from:
+        {{- range .Values.networkPolicy.metricsIngressNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: metrics
+    {{- end }}
   egress:
     {{- if .Values.networkPolicy.allowDns }}
     - to:
