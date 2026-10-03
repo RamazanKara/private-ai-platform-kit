@@ -8,15 +8,15 @@ chat payload here, the caller feeds that payload through the existing chat gover
 and the resulting OpenAI chat completion is translated back into a Responses object. This
 mirrors the Anthropic ``/v1/messages`` translation module (``app/messages.py``) exactly.
 
-STATELESS subset: this implementation does not persist responses. The stateful surface of
-the Responses API (server-side conversation state via ``store: true`` and
-``previous_response_id``) is out of scope; a request asking for it is rejected with a
-clear 400 (``stateful_not_supported``) rather than silently ignored, so a caller that
-expects the server to remember prior turns is never misled into thinking it did.
+Server-side state (``store`` and ``previous_response_id``) is opt-in and handled by
+``responses_api``; without the store those fields are rejected rather than ignored.
 
-Text is the must-have and is exact; ``tools``/``tool_choice`` and assistant ``tool_calls``
-are mapped to their closest Responses equivalents (``function_call`` output items) on a
-best-effort basis (see the per-function docstrings for the fidelity caveats).
+Multi-turn tool use is translated in both directions: Responses function tools and
+``tool_choice`` become their chat shapes, ``function_call`` and ``function_call_output`` input
+items become an assistant ``tool_calls`` turn and ``tool`` messages, ``input_image`` parts
+become ``image_url`` parts, and assistant ``tool_calls`` come back as ``function_call``
+output items. Built-in Responses tools (web search, file search, ...) have no chat
+equivalent and are not forwarded.
 """
 
 from __future__ import annotations
@@ -35,17 +35,17 @@ _INCOMPLETE_FINISH_REASONS = {"length"}
 
 
 class ResponsesRequest(BaseModel):
-    """Request body for a native OpenAI ``POST /v1/responses`` call (stateless subset).
+    """Request body for a native OpenAI ``POST /v1/responses`` call.
 
     Mirrors the OpenAI Responses API shape. ``input`` is required and accepts either a plain
     string (translated to a single user message) or an array of input items / messages.
     ``instructions`` is prepended as a system message. ``max_output_tokens`` becomes the
-    OpenAI ``max_tokens`` cap that admission enforces. ``extra="allow"`` forwards any other
-    Responses field so nothing is silently dropped.
+    OpenAI ``max_tokens`` cap that admission enforces. Fields with no chat equivalent are
+    accepted (``extra="allow"``) but not forwarded to the runtime.
 
     The stateful fields ``store`` and ``previous_response_id`` are modelled explicitly so the
-    handler can reject them (this subset is stateless) instead of forwarding them into the
-    chat payload where they would be meaningless.
+    handler can serve them from the response store, or reject them when the store is off,
+    instead of forwarding them into the chat payload where they would be meaningless.
     """
 
     model_config = ConfigDict(extra="allow")
@@ -100,18 +100,41 @@ def _content_to_text(content: Any) -> str:
     return str(content)
 
 
+def _chat_content(content: Any) -> str | list[dict[str, Any]]:
+    """Translate Responses message content to chat content, keeping images when present.
+
+    Text-only content flattens to a string (the common case, and what admission meters).
+    Content with ``input_image`` parts becomes a chat content-part array so the image reaches
+    a vision runtime, subject to the gateway's image-URL and image-size admission rules.
+    """
+    if not isinstance(content, list) or not any(
+        isinstance(part, dict) and part.get("type") == "input_image" for part in content
+    ):
+        return _content_to_text(content)
+    parts: list[dict[str, Any]] = []
+    for part in content:
+        text = _content_part_text(part)
+        if text is not None:
+            parts.append({"type": "text", "text": text})
+        elif isinstance(part, dict) and part.get("type") == "input_image":
+            url = part.get("image_url")
+            if isinstance(url, str) and url:
+                image: dict[str, Any] = {"url": url}
+                if isinstance(part.get("detail"), str):
+                    image["detail"] = part["detail"]
+                parts.append({"type": "image_url", "image_url": image})
+    return parts
+
+
 def _input_item_to_message(item: Any) -> dict[str, Any] | None:
     """Translate one Responses input item into an OpenAI chat message, or None to skip it.
 
-    Handles the two common item shapes:
-
-    - a message item ``{role, content}`` (optionally ``{type: "message", role, content}``),
-      whose content is flattened to text; and
-    - a plain string, treated as a ``user`` message.
-
-    ``role`` defaults to ``user`` when absent. Non-message item types (e.g. a
-    ``function_call`` echoed back as input) carry no user-authored prompt text and are
-    skipped rather than forwarded as an empty turn.
+    Handles a message item ``{role, content}`` (optionally ``{type: "message", ...}``), a
+    plain string (a ``user`` message), and a ``function_call_output`` item (a ``tool``
+    message answering the call with the same ``call_id``). ``role`` defaults to ``user``.
+    ``function_call`` items are merged into the preceding assistant turn by
+    :func:`_input_to_messages`; other item types (reasoning, built-in tool calls) carry no
+    chat equivalent and are skipped.
     """
     if isinstance(item, str):
         return {"role": "user", "content": item}
@@ -121,27 +144,82 @@ def _input_item_to_message(item: Any) -> dict[str, Any] | None:
     if item_type in (None, "message"):
         role = item.get("role")
         role = str(role) if role else "user"
-        return {"role": role, "content": _content_to_text(item.get("content"))}
+        return {"role": role, "content": _chat_content(item.get("content"))}
+    if item_type == "function_call_output":
+        output = item.get("output")
+        return {
+            "role": "tool",
+            "tool_call_id": str(item.get("call_id") or ""),
+            "content": output if isinstance(output, str) else json.dumps(output),
+        }
     return None
+
+
+def _function_call_to_tool_call(item: dict[str, Any]) -> dict[str, Any]:
+    arguments = item.get("arguments")
+    return {
+        "id": str(item.get("call_id") or item.get("id") or f"call_{uuid4().hex[:24]}"),
+        "type": "function",
+        "function": {
+            "name": str(item.get("name") or ""),
+            "arguments": arguments if isinstance(arguments, str) else json.dumps(arguments or {}),
+        },
+    }
 
 
 def _input_to_messages(value: Any) -> list[dict[str, Any]]:
     """Translate a Responses ``input`` (string or item array) into OpenAI chat messages.
 
     A string becomes a single ``user`` message. An array is translated item by item via
-    :func:`_input_item_to_message`, dropping items that carry no message (so a mixed array is
-    not broken). Any other shape is coerced to a single ``user`` message string.
+    :func:`_input_item_to_message`. ``function_call`` items (the model's earlier tool calls,
+    echoed back by a client that keeps its own history) are attached to the preceding
+    assistant message, or to a new content-less assistant message, because chat requires a
+    ``tool`` message to follow the assistant turn that issued its call. Any other shape is
+    coerced to a single ``user`` message string.
     """
     if isinstance(value, str):
         return [{"role": "user", "content": value}]
     if isinstance(value, list):
         messages: list[dict[str, Any]] = []
         for item in value:
+            if isinstance(item, dict) and item.get("type") == "function_call":
+                last = messages[-1] if messages else None
+                if last is None or last.get("role") != "assistant":
+                    last = {"role": "assistant", "content": None}
+                    messages.append(last)
+                last.setdefault("tool_calls", []).append(_function_call_to_tool_call(item))
+                continue
             message = _input_item_to_message(item)
             if message is not None:
                 messages.append(message)
         return messages
     return [{"role": "user", "content": str(value)}]
+
+
+def _chat_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Translate Responses function tools (flat ``{type, name, parameters}``) to chat tools.
+
+    A tool already in the chat shape (with a ``function`` object) passes unchanged. Built-in
+    Responses tools (``web_search``, ``file_search``, ...) have no runtime equivalent here and
+    are left out rather than forwarded as malformed tool definitions.
+    """
+    translated: list[dict[str, Any]] = []
+    for tool in tools:
+        if not isinstance(tool, dict):
+            continue
+        if isinstance(tool.get("function"), dict):
+            translated.append(tool)
+        elif tool.get("type") == "function" and tool.get("name"):
+            function = {key: tool[key] for key in ("name", "description", "parameters", "strict") if key in tool}
+            translated.append({"type": "function", "function": function})
+    return translated
+
+
+def _chat_tool_choice(tool_choice: str | dict[str, Any]) -> str | dict[str, Any]:
+    """Translate a Responses ``tool_choice`` naming a function into the chat shape."""
+    if isinstance(tool_choice, dict) and tool_choice.get("type") == "function" and "name" in tool_choice:
+        return {"type": "function", "function": {"name": tool_choice["name"]}}
+    return tool_choice
 
 
 def responses_to_chat_payload(
@@ -160,8 +238,8 @@ def responses_to_chat_payload(
     - ``input`` is translated to chat messages (a string -> one user message; an item array
       -> a message per ``{role, content}`` / string item, content parts -> text).
     - ``max_output_tokens`` -> ``max_tokens`` (so the completion cap applies); ``temperature``
-      / ``top_p`` pass through; ``tools`` and ``tool_choice`` are forwarded verbatim (the
-      Responses function-tool shape matches OpenAI chat's).
+      / ``top_p`` pass through; function ``tools``, ``tool_choice``, and
+      ``parallel_tool_calls`` are translated to their chat shapes.
 
     ``stream``, ``metadata``, ``store``, and ``previous_response_id`` are intentionally not
     forwarded to the runtime here: the handler decides streaming and rejects the stateful
@@ -182,9 +260,14 @@ def responses_to_chat_payload(
     if request.top_p is not None:
         chat_payload["top_p"] = request.top_p
     if request.tools is not None:
-        chat_payload["tools"] = request.tools
+        tools = _chat_tools(request.tools)
+        if tools:
+            chat_payload["tools"] = tools
     if request.tool_choice is not None:
-        chat_payload["tool_choice"] = request.tool_choice
+        chat_payload["tool_choice"] = _chat_tool_choice(request.tool_choice)
+    parallel = (request.model_extra or {}).get("parallel_tool_calls")
+    if isinstance(parallel, bool):
+        chat_payload["parallel_tool_calls"] = parallel
     return chat_payload
 
 

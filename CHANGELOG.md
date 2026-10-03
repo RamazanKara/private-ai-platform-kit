@@ -123,6 +123,14 @@ All notable changes to this project are documented in this file. The format is b
   not ship `redis`, so selecting it stopped the service at startup.
 - RAG: `build_context` counts section separators against `max_context_chars`, so the
   context block can no longer exceed the requested size.
+- **Responses API: tool use works across turns.** `function_call` and
+  `function_call_output` input items were dropped, so a client returning a tool result got
+  an answer without it. They now become an assistant `tool_calls` turn and `tool`
+  messages. Responses function tools, which are flat (`{"type": "function", "name": ...}`),
+  were forwarded unchanged into a chat payload that expects them nested under `function`;
+  they are translated now, as are `tool_choice` and `parallel_tool_calls`. `input_image`
+  parts reach vision runtimes under the gateway's image rules. Built-in tools (web search,
+  file search) are left out.
 - Publish SDK wheels, source archives, and checksums to GitHub independently of
   optional PyPI account setup and environment approval. PyPI publishing now requires
   the repository Actions variable `PYPI_PUBLISH_ENABLED=true`.

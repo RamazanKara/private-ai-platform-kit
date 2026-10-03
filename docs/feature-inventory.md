@@ -12,7 +12,7 @@ configured.
 | Embeddings | Shipped | On | Gateway tests; same auth, budget, audit, and model policy |
 | Moderations | Shipped | On | Governance taxonomy, not OpenAI harm categories |
 | Anthropic Messages | Shipped | On, streaming and non-streaming | Native translation through the governed chat path; streaming obeys the shared `allowStreaming` toggle |
-| OpenAI Responses | Shipped | On, synchronous | Optional state is off by default; background and streaming remain out of scope |
+| OpenAI Responses | Shipped | On, synchronous | Function tools with multi-turn tool calls and image inputs; optional state is off by default; background, streaming, and built-in tools remain out of scope |
 | Responses server-side state | Shipped | Off | Tenant-scoped memory/Redis store with TTL and delete |
 | Synchronous batch fan-out | Shipped | On | Per-item admission/budget/guardrail tests |
 | Files + asynchronous Batch API | Shipped | Off | Bounded streaming upload, durable Redis queue, object-store blobs |

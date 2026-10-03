@@ -27,7 +27,7 @@ The generated [OpenAPI contract](https://github.com/RamazanKara/private-ai-platf
 This is not a complete OpenAI or Anthropic API implementation.
 
 - Chat completions and Anthropic Messages support streaming. Legacy completions and Responses do not.
-- Responses supports the synchronous request shape. Optional stored state supports `store`, `previous_response_id`, retrieve, delete, and input-items routes. Background responses are not implemented.
+- Responses supports the synchronous request shape, function tools with multi-turn `function_call` / `function_call_output` items, and `input_image` parts. Optional stored state supports `store`, `previous_response_id`, retrieve, delete, and input-items routes. Background responses and built-in tools (web search, file search) are not implemented.
 - The asynchronous Batch implementation accepts chat completions, completions, and embeddings. `completion_window` is treated as an expiry bound, not a scheduling or pricing commitment.
 - Audio, image generation, fine-tuning, and a general training API are not implemented.
 - Translated Messages and Responses payloads preserve supported text and tool fields but do not promise byte-for-byte parity with upstream services.

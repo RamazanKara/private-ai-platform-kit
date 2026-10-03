@@ -555,8 +555,8 @@ def test_input_item_to_message_shapes():
 
 def test_input_to_messages_string_array_and_other():
     assert _input_to_messages("hello") == [{"role": "user", "content": "hello"}]
-    # A mixed array drops skippable items but keeps the messages.
-    assert _input_to_messages([{"role": "user", "content": "a"}, {"type": "function_call"}, "b"]) == [
+    # Unknown item types are skipped; a function_call becomes an assistant tool-call turn.
+    assert _input_to_messages([{"role": "user", "content": "a"}, {"type": "reasoning"}, "b"]) == [
         {"role": "user", "content": "a"},
         {"role": "user", "content": "b"},
     ]
@@ -585,9 +585,127 @@ def test_responses_to_chat_payload_full_translation():
     assert payload["model"] == "m"
     assert payload["temperature"] == 0.5
     assert payload["top_p"] == 0.9
-    # tools / tool_choice are forwarded verbatim (shapes match OpenAI chat's).
-    assert payload["tools"] == [{"type": "function", "name": "t", "parameters": {"type": "object"}}]
+    # Responses function tools are flat; chat runtimes need them nested under "function".
+    assert payload["tools"] == [{"type": "function", "function": {"name": "t", "parameters": {"type": "object"}}}]
     assert payload["tool_choice"] == "auto"
+
+
+def test_multi_turn_tool_use_translates_to_chat_tool_messages():
+    request = ResponsesRequest(
+        input=[
+            {"role": "user", "content": "weather in Berlin?"},
+            {"type": "function_call", "call_id": "call_1", "name": "get_weather", "arguments": '{"city":"Berlin"}'},
+            {"type": "function_call", "call_id": "call_2", "name": "get_time", "arguments": {"tz": "CET"}},
+            {"type": "function_call_output", "call_id": "call_1", "output": '{"temp": 12}'},
+            {"type": "function_call_output", "call_id": "call_2", "output": {"time": "10:00"}},
+        ],
+        tools=[
+            {"type": "function", "name": "get_weather", "parameters": {"type": "object"}},
+            {"type": "web_search"},
+        ],
+        tool_choice={"type": "function", "name": "get_weather"},
+        parallel_tool_calls=False,
+    )
+
+    payload = responses_to_chat_payload(request)
+
+    assert payload["messages"] == [
+        {"role": "user", "content": "weather in Berlin?"},
+        {
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [
+                {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {"name": "get_weather", "arguments": '{"city":"Berlin"}'},
+                },
+                {"id": "call_2", "type": "function", "function": {"name": "get_time", "arguments": '{"tz": "CET"}'}},
+            ],
+        },
+        {"role": "tool", "tool_call_id": "call_1", "content": '{"temp": 12}'},
+        {"role": "tool", "tool_call_id": "call_2", "content": '{"time": "10:00"}'},
+    ]
+    # Built-in tools have no chat equivalent and are left out.
+    assert payload["tools"] == [
+        {"type": "function", "function": {"name": "get_weather", "parameters": {"type": "object"}}}
+    ]
+    assert payload["tool_choice"] == {"type": "function", "function": {"name": "get_weather"}}
+    assert payload["parallel_tool_calls"] is False
+
+
+def test_input_images_become_chat_image_parts():
+    request = ResponsesRequest(
+        input=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": "what is this?"},
+                    {"type": "input_image", "image_url": "data:image/png;base64,QUJD", "detail": "low"},
+                ],
+            }
+        ]
+    )
+
+    content = responses_to_chat_payload(request)["messages"][0]["content"]
+
+    assert content == [
+        {"type": "text", "text": "what is this?"},
+        {"type": "image_url", "image_url": {"url": "data:image/png;base64,QUJD", "detail": "low"}},
+    ]
+
+
+def test_responses_tool_round_trip_through_the_gateway():
+    app = create_app(_tool_settings())
+    fake = FakeRuntimeClient(
+        response={
+            "id": "c1",
+            "object": "chat.completion",
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {"id": "call_9", "type": "function", "function": {"name": "lookup", "arguments": "{}"}}
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ],
+        }
+    )
+    app.state.runtime_client = fake
+    body = {
+        "input": [
+            {"role": "user", "content": "find it"},
+            {"type": "function_call", "call_id": "call_1", "name": "search", "arguments": "{}"},
+            {"type": "function_call_output", "call_id": "call_1", "output": "nothing found"},
+        ],
+        "tools": [{"type": "function", "name": "lookup", "parameters": {"type": "object"}}],
+    }
+
+    response = TestClient(app).post("/v1/responses", json=body)
+
+    assert response.status_code == 200
+    assert [message["role"] for message in fake.payload["messages"]] == ["user", "assistant", "tool"]
+    assert fake.payload["tools"][0]["function"]["name"] == "lookup"
+    output = response.json()["output"]
+    assert output[-1]["type"] == "function_call"
+    assert output[-1]["call_id"] == "call_9"
+
+
+def test_responses_remote_images_follow_the_gateway_image_rule():
+    app = create_app(_tool_settings())
+    app.state.runtime_client = FakeRuntimeClient(response=_chat_response())
+    body = {
+        "input": [{"role": "user", "content": [{"type": "input_image", "image_url": "http://169.254.169.254/x.png"}]}]
+    }
+
+    response = TestClient(app).post("/v1/responses", json=body)
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["reason"] == "image_url_not_allowed"
 
 
 def test_responses_to_chat_payload_no_instructions_no_optional_fields():
