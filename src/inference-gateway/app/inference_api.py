@@ -18,6 +18,7 @@ from time import perf_counter, time
 from typing import Any
 
 import httpx
+from anyio import CancelScope
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
@@ -89,14 +90,23 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
                 chain = policy.resolve_chain(payload_dict.get("model"), effective.model_id)
             except ValueError as exc:
                 raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
+
             # Progressive delivery: resolve the shadow target from the originally-resolved
             # primary, then apply weighted canary selection (which may swap chain[0]).
+            # The sandbox allowlist governs every route that can serve the request, not only
+            # the one the caller named: a canary or fallback this sandbox may not use is
+            # skipped, rather than turning its traffic share into 400s or bypassing policy.
+            # The primary stays, so naming a disallowed model is still model_not_allowed.
+            def permitted(route: Any) -> bool:
+                return not effective.allowed_models or route.model_id in effective.allowed_models
+
             primary_route = chain[0]
             shadow_route = None if payload_dict.get("stream") else policy.shadow_target(primary_route)
             canary = policy.canary_target(primary_route, random.random())
-            if canary.model_id != primary_route.model_id:
+            if canary.model_id != primary_route.model_id and permitted(canary):
                 CANARY_ROUTED.labels(primary_route.model_id, canary.model_id).inc()
                 chain = [canary, *chain[1:]]
+            chain = [chain[0], *[route for route in chain[1:] if permitted(route)]]
             model_route = chain[0]
             call.backend = model_route.backend
             payload_dict["model"] = model_route.model_id
@@ -214,20 +224,26 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
                         AUDIT_LOGGER.debug("runtime stream error: %s", type(exc).__name__)
                         yield _terminal_stream_error_event(stream_backend, request)
                     finally:
-                        # True end of stream: record metrics, token usage, and audit now.
-                        await record_stream_end(
-                            request,
-                            settings,
-                            route=call.route,
-                            backend=stream_backend,
-                            start=call.start,
-                            status=stream_status,
-                            status_code=stream_status_code,
-                            usage=usage,
-                            error=stream_error,
-                            payload=payload_dict,
-                            guardrail_text=scanned.decode("utf-8", "ignore") if scan_enabled else "",
-                        )
+                        # True end of stream: release the runtime connection and record
+                        # metrics, token usage, and audit. Shielded because a client
+                        # disconnect cancels this body, and an unshielded await would be
+                        # cancelled too - losing the settlement and receipt for a call the
+                        # runtime already served.
+                        with CancelScope(shield=True):
+                            await stream.aclose()
+                            await record_stream_end(
+                                request,
+                                settings,
+                                route=call.route,
+                                backend=stream_backend,
+                                start=call.start,
+                                status=stream_status,
+                                status_code=stream_status_code,
+                                usage=usage,
+                                error=stream_error,
+                                payload=payload_dict,
+                                guardrail_text=scanned.decode("utf-8", "ignore") if scan_enabled else "",
+                            )
 
                 # FastAPI streams this Response object directly; the dict[str, Any] return
                 # annotation describes the JSON path and drives the OpenAPI response schema.

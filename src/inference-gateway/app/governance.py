@@ -29,9 +29,12 @@ from time import perf_counter
 from typing import Any, Literal
 
 import httpx
+from anyio import CancelScope
 from fastapi import HTTPException, Request
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.audit import write_audit_log
+from app.batchstore import BatchStoreError
 from app.budget import BudgetBackendError, BudgetReservation, SandboxBudgetTracker
 from app.metrics import (
     ADMISSION_REJECTIONS,
@@ -50,7 +53,22 @@ from app.metrics import (
     sandbox_label as _sandbox_label,
 )
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
+from app.response_store import ResponseStoreError
 from app.settings import AdmissionPolicyError, Settings
+
+# Outages of the opt-in state stores (stored responses, batch metadata). They are the
+# platform's fault and transient, so callers get a retryable 503, never a bare 500.
+STATE_BACKEND_ERRORS: tuple[type[Exception], ...] = (ResponseStoreError, BatchStoreError)
+
+
+def state_backend_unavailable_detail(request: Request) -> dict[str, Any]:
+    """Error detail for a state-store outage, shared by the rail and the app-level handler."""
+    return {
+        "message": "state store backend is unavailable",
+        "reason": "state_backend_unavailable",
+        "request_id": request.state.request_id,
+        "sandbox_id": request.state.sandbox_id,
+    }
 
 
 @dataclass
@@ -135,6 +153,15 @@ class governed:
                     },
                     headers={"Retry-After": "5"},
                 ) from exc
+            if isinstance(exc, STATE_BACKEND_ERRORS):
+                call.status = "503"
+                call.status_code = 503
+                call.error = "state store backend is unavailable"
+                raise HTTPException(
+                    status_code=503,
+                    detail=state_backend_unavailable_detail(request),
+                    headers={"Retry-After": "5"},
+                ) from exc
             if isinstance(exc, httpx.HTTPStatusError):
                 call.status = "502"
                 call.status_code = 502
@@ -177,32 +204,52 @@ class governed:
                     },
                 ) from exc
             # Anything else (HTTPException raised deliberately, cancellation, a genuine
-            # bug) propagates untouched; the finally below still records it.
+            # bug) propagates untouched. It must still be recorded as what the client got:
+            # leaving the default 200 here would write a tamper-evident receipt and metrics
+            # saying "allowed" for a request that ended in an error.
+            if isinstance(exc, StarletteHTTPException):
+                call.status = str(exc.status_code)
+                call.status_code = exc.status_code
+            elif isinstance(exc, asyncio.CancelledError):
+                # The client went away before a response; 499 is the de facto convention.
+                call.status = "499"
+                call.status_code = 499
+                call.error = "client closed request"
+            else:
+                call.status = "500"
+                call.status_code = 500
+                call.error = f"internal error: {type(exc).__name__}"
             return False
         finally:
             # Streaming responses record at true end-of-stream inside their body; the
-            # rail records the non-streaming and error-before-headers paths.
+            # rail records the non-streaming and error-before-headers paths. Shielded so a
+            # cancelled request still settles its reservation and writes its receipt.
             if not call.stream_owns_recording:
-                REQUESTS.labels(call.route, call.backend, call.status).inc()
-                SANDBOX_REQUESTS.labels(_sandbox_label(request.state.sandbox_id), call.backend, call.status).inc()
-                latency_seconds = perf_counter() - call.start
-                LATENCY.labels(call.route, call.backend).observe(latency_seconds)
-                if not call.cache_hit:
-                    record_token_usage(call.backend, call.runtime_response)
-                    record_estimated_cost(
-                        settings, request.state.sandbox_id, call.backend, (call.runtime_response or {}).get("usage")
-                    )
-                await settle_and_audit(
-                    settings,
-                    request,
-                    call.payload,
-                    status_code=call.status_code,
-                    latency_seconds=latency_seconds,
-                    backend=call.backend,
-                    runtime_response=call.runtime_response,
-                    runtime_status_code=call.runtime_status_code,
-                    error=call.error,
-                )
+                with CancelScope(shield=True):
+                    await self._record()
+
+    async def _record(self) -> None:
+        request, settings, call = self._request, self._settings, self.call
+        REQUESTS.labels(call.route, call.backend, call.status).inc()
+        SANDBOX_REQUESTS.labels(_sandbox_label(request.state.sandbox_id), call.backend, call.status).inc()
+        latency_seconds = perf_counter() - call.start
+        LATENCY.labels(call.route, call.backend).observe(latency_seconds)
+        if not call.cache_hit:
+            record_token_usage(call.backend, call.runtime_response)
+            record_estimated_cost(
+                settings, request.state.sandbox_id, call.backend, (call.runtime_response or {}).get("usage")
+            )
+        await settle_and_audit(
+            settings,
+            request,
+            call.payload,
+            status_code=call.status_code,
+            latency_seconds=latency_seconds,
+            backend=call.backend,
+            runtime_response=call.runtime_response,
+            runtime_status_code=call.runtime_status_code,
+            error=call.error,
+        )
 
 
 async def record_stream_end(

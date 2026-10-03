@@ -10,8 +10,9 @@ from typing import Any
 from uuid import uuid4
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from starlette.routing import Match
 
 from app.jwt_auth import JwtAuthError, JwtVerifier
 from app.key_records import KeyRecord, KeyRecordSet
@@ -102,6 +103,47 @@ def _runtime_headers(request: Request) -> dict[str, str]:
     if baggage:
         headers["baggage"] = baggage
     return headers
+
+
+def _route_label(request: Request) -> str:
+    """Return the matched route template (`/v1/files/{file_id}`) for metric labels.
+
+    These metrics fire before routing and for unauthenticated callers, so labelling them
+    with the raw path would let anyone mint one Prometheus series per random URL.
+    """
+    for route in request.app.router.routes:
+        match, _ = route.matches(request.scope)
+        if match is Match.FULL:
+            return getattr(route, "path", "unmatched")
+    return "unmatched"
+
+
+def require_bound_tenant(request: Request, feature: str) -> str:
+    """Return the caller's sandbox for tenant-scoped stored state, or refuse with 403.
+
+    Files, batches, and stored responses hold raw prompt content keyed by sandbox. With
+    authentication on, a flat API key is not bound to any sandbox, so the sandbox would be
+    whatever `X-Sandbox-ID` the caller sends - letting any key holder read another
+    tenant's data by naming it. Those endpoints therefore require a credential whose
+    sandbox comes from a verified binding: an API-key record with `sandbox` or a JWT
+    tenant claim. With authentication off, the deployment has no tenants to separate.
+    """
+    settings: Settings = request.app.state.settings
+    auth_enabled = settings.api_key_auth_enabled or settings.jwt_auth_enabled
+    if auth_enabled and not getattr(request.state, "sandbox_bound", False):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "message": (
+                    f"{feature} stores tenant data and requires a credential bound to a sandbox "
+                    "(an API-key record with 'sandbox', or a JWT tenant claim)"
+                ),
+                "reason": "sandbox_binding_required",
+                "request_id": request.state.request_id,
+                "sandbox_id": request.state.sandbox_id,
+            },
+        )
+    return request.state.sandbox_id
 
 
 def _auth_required(path: str) -> bool:
@@ -297,7 +339,7 @@ def _bound_sandbox_id(claims: dict[str, Any], claim_name: str) -> str:
 
 def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
     """Record the failure metric and build the 401 response with trace headers."""
-    AUTH_FAILURES.labels(request.url.path, reason).inc()
+    AUTH_FAILURES.labels(_route_label(request), reason).inc()
     response = JSONResponse(
         status_code=401,
         content=_error_envelope(
@@ -320,7 +362,7 @@ def _auth_failure_response(request: Request, reason: str) -> JSONResponse:
 
 def _jwks_unavailable_response(request: Request) -> JSONResponse:
     """Build a 503 response when the JWKS issuer is unreachable (not a token rejection)."""
-    AUTH_FAILURES.labels(request.url.path, "jwks_unavailable").inc()
+    AUTH_FAILURES.labels(_route_label(request), "jwks_unavailable").inc()
     response = JSONResponse(
         status_code=503,
         content=_error_envelope(
@@ -343,7 +385,7 @@ def _jwks_unavailable_response(request: Request) -> JSONResponse:
 
 def _overloaded_response(request: Request) -> JSONResponse:
     """Build a 503 response when the gateway concurrency limit is exceeded (load shed)."""
-    LOAD_SHED.labels(request.url.path).inc()
+    LOAD_SHED.labels(_route_label(request)).inc()
     response = JSONResponse(
         status_code=503,
         content=_error_envelope(
@@ -416,7 +458,7 @@ def _rate_limited_response(request: Request, retry_after: int) -> JSONResponse:
 
 def _sandbox_binding_response(request: Request, reason: str) -> JSONResponse:
     """Build a 403 when a JWT tenant claim is missing/invalid or contradicts the header."""
-    AUTH_FAILURES.labels(request.url.path, reason).inc()
+    AUTH_FAILURES.labels(_route_label(request), reason).inc()
     response = JSONResponse(
         status_code=403,
         content=_error_envelope(

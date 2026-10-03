@@ -95,10 +95,15 @@ def register_sandbox_routes(app: FastAPI, settings: Settings) -> None:
         summary="List approved private models",
         operation_id="listModels",
     )
-    async def models() -> dict[str, Any]:
+    async def models(request: Request) -> dict[str, Any]:
         REQUESTS.labels("/v1/models", settings.runtime_backend, "200").inc()
         policy: ModelRoutingPolicy = app.state.model_routing_policy
-        return {"object": "list", "data": policy.openai_models()}
+        # List what this caller may actually call: the gateway allowlist narrowed by the
+        # sandbox policy. Advertising a model that then fails with model_not_allowed sends
+        # SDK auto-discovery (and tools that pick the first listed model) down a dead end.
+        allowed = effective_settings(request, app.state.sandbox_policy_set, settings).allowed_models
+        data = [entry for entry in policy.openai_models() if not allowed or entry["id"] in allowed]
+        return {"object": "list", "data": data}
 
     @app.post(
         "/v1/receipts",

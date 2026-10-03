@@ -193,6 +193,59 @@ def test_canary_weight_zero_routes_to_primary():
     assert fake.payload["model"] == "primary-model"
 
 
+def test_canary_outside_the_allowlist_is_skipped_not_rejected():
+    # Previously the canary became chain[0] and failed admission, so its traffic share
+    # turned into model_not_allowed 400s for a model the caller never asked for.
+    app = create_app(_tool_settings(allowed_models=("primary-model",)))
+    app.state.model_routing_policy = ModelRoutingPolicy(
+        routes=(
+            ModelRoute("primary-model", "vllm", canary_model_id="canary-model", canary_weight=1.0),
+            ModelRoute("canary-model", "ollama"),
+        )
+    )
+    fake = FakeRuntimeClient(response={"id": "x", "object": "chat.completion", "choices": []})
+    app.state.runtime_client = fake
+
+    response = TestClient(app).post(
+        "/v1/chat/completions",
+        json={"model": "primary-model", "messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 200
+    assert fake.payload["model"] == "primary-model"
+
+
+def test_fallback_outside_the_allowlist_is_never_served():
+    app = create_app(_tool_settings(allowed_models=("primary-model",)))
+    app.state.model_routing_policy = ModelRoutingPolicy(
+        routes=(
+            ModelRoute("primary-model", "vllm", fallbacks=("forbidden-model",)),
+            ModelRoute("forbidden-model", "ollama"),
+        )
+    )
+    fake = _BackendAwareFake(fail_backends={"vllm"}, error=httpx.ConnectError("primary down"))
+    app.state.runtime_client = fake
+
+    response = TestClient(app).post(
+        "/v1/chat/completions",
+        json={"model": "primary-model", "messages": [{"role": "user", "content": "hi"}]},
+    )
+
+    assert response.status_code == 502
+    assert fake.backends_called == ["vllm"]
+
+
+def test_models_list_only_what_the_caller_may_call():
+    app = create_app(_tool_settings(allowed_models=("primary-model",)))
+    app.state.model_routing_policy = ModelRoutingPolicy(
+        routes=(ModelRoute("primary-model", "vllm"), ModelRoute("other-model", "ollama"))
+    )
+
+    listed = TestClient(app).get("/v1/models").json()["data"]
+
+    assert [entry["id"] for entry in listed] == ["primary-model"]
+
+
 def test_shadow_request_is_scheduled(monkeypatch):
     captured = {}
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+from anyio import CancelScope
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 
@@ -136,19 +137,23 @@ def register_messages_routes(app: FastAPI, settings: Settings) -> None:
                     finally:
                         # True end of stream. The translator kept the decoded assistant text,
                         # so the guardrail scan sees real text rather than its JSON escaping.
-                        await record_stream_end(
-                            request,
-                            settings,
-                            route=call.route,
-                            backend=stream_backend,
-                            start=call.start,
-                            status=stream_status,
-                            status_code=stream_status_code,
-                            usage=translator.usage,
-                            error=stream_error,
-                            payload=payload_dict,
-                            guardrail_text=translator.scanned_text,
-                        )
+                        # Shielded so a client disconnect cannot cancel the connection release,
+                        # settlement, or receipt for a call the runtime already served.
+                        with CancelScope(shield=True):
+                            await stream.aclose()
+                            await record_stream_end(
+                                request,
+                                settings,
+                                route=call.route,
+                                backend=stream_backend,
+                                start=call.start,
+                                status=stream_status,
+                                status_code=stream_status_code,
+                                usage=translator.usage,
+                                error=stream_error,
+                                payload=payload_dict,
+                                guardrail_text=translator.scanned_text,
+                            )
 
                 # FastAPI streams this Response object directly; the dict[str, Any] return
                 # annotation describes the JSON path and drives the OpenAPI response schema.

@@ -16,6 +16,59 @@ All notable changes to this project are documented in this file. The format is b
   releases. OpenTelemetry 1.45 drops `requests` from the runtime images.
 - Pull requests now build both images and run the same HIGH/CRITICAL Trivy gate as the
   nightly proof, so a vulnerable lock fails review instead of turning `main` red.
+- **Tenant-scoped state now requires a bound credential.** With authentication on, the
+  Files and Batch API and the Responses store (`store`, `previous_response_id`, and the
+  retrieval routes) answer only callers whose sandbox comes from an API-key record with
+  `sandbox` or a JWT tenant claim. A flat API key previously selected its tenant through
+  `X-Sandbox-ID`, so any key holder could list and download another tenant's raw batch
+  prompts. Unbound callers now get `403 sandbox_binding_required`; stateless use is
+  unchanged. Both features stay off by default.
+- An API-key record that sets a `budget` must also bind a `sandbox`. Budget counters are
+  per sandbox, so an unbound key could reset its budget by rotating `X-Sandbox-ID`.
+- Authentication-failure and load-shed metrics are labelled with the matched route
+  template (`/v1/files/{file_id}`) or `unmatched`, not the raw path, so unauthenticated
+  callers can no longer create unbounded Prometheus series.
+- After an identity-provider key rotation, a token with an unknown `kid` triggers one
+  rate-limited JWKS refresh instead of failing until the cache TTL expires. During a cold
+  issuer outage, requests fail fast inside the backoff window instead of each fetching.
+
+### Fixed
+
+- A runtime stream that failed after its first chunk was retried, appending a second,
+  different completion to the partial one the client already had. Mid-stream failures
+  now end the stream with an error event; only pre-first-byte failures are retried.
+- Read timeouts on generation requests are no longer retried (the runtime already
+  accepted the work), and only runtime faults (5xx, 429, transport errors) count toward
+  the circuit breaker; one tenant's malformed requests can no longer open it for all.
+- The concurrency limiter could leak a slot when a client disconnected before a
+  streamed body started, eventually shedding every request with 503. It is now a pure
+  ASGI middleware that releases on every path.
+- A client disconnect during a stream cancelled the budget settlement and the audit
+  receipt for a call the runtime had already served, and left the upstream stream open.
+  Both are now shielded, and the upstream stream is closed.
+- An unexpected exception inside a governed request was recorded on the hash-chained
+  receipt as `200 allowed`. It is now recorded as the status the client received.
+- A Redis outage in the Responses or batch store surfaced as an unhandled 500, sometimes
+  after the runtime call was charged. It is now a retryable `503 state_backend_unavailable`.
+- The batch worker refreshes its queue claim between chunks, so a batch running longer
+  than the reclaim interval is no longer processed again by a second replica. A worker
+  whose claim was reclaimed stops without acknowledging the re-queued batch, and a
+  request line that is valid JSON but not an object fails that item, not the whole batch.
+- A canary or fallback route outside the sandbox's model allowlist is skipped instead of
+  turning its traffic share into `model_not_allowed` errors or serving a forbidden model.
+  `/v1/models` lists only the models the caller may call.
+- `/readyz` probes backends concurrently with a 3 s ceiling, inside the kubelet timeout.
+- The in-memory response cache is locked; concurrent worker threads could raise a
+  `KeyError` during eviction.
+- The gateway pod mounts a writable `/tmp` sized for the largest allowed upload; uploads
+  above 1 MiB failed on the read-only root filesystem. The chart refuses to render the
+  batch worker with a non-S3 object store, which it could never read.
+- The S3 secret key is excluded from the settings `repr`.
+- Publish SDK wheels, source archives, and checksums to GitHub independently of
+  optional PyPI account setup and environment approval. PyPI publishing now requires
+  the repository Actions variable `PYPI_PUBLISH_ENABLED=true`.
+- Publish retained release documentation through a dispatched main-branch run so
+  GitHub Pages does not silently keep the earlier main artifact for a shared commit.
 
 ### Changed
 
@@ -34,14 +87,6 @@ All notable changes to this project are documented in this file. The format is b
   setup-kubectl, kind-action, and the Pages actions), and the remaining pins were
   refreshed. Dependabot groups both services into one PR per ecosystem.
 - `.gitattributes` keeps shell scripts and manifests LF-only on every platform.
-
-### Fixed
-
-- Publish SDK wheels, source archives, and checksums to GitHub independently of
-  optional PyPI account setup and environment approval. PyPI publishing now requires
-  the repository Actions variable `PYPI_PUBLISH_ENABLED=true`.
-- Publish retained release documentation through a dispatched main-branch run so
-  GitHub Pages does not silently keep the earlier main artifact for a shared commit.
 
 ## v0.29.0 - 2026-09-23
 

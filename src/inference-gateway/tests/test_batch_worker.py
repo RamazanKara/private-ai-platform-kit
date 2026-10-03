@@ -188,3 +188,55 @@ def test_run_worker_reclaims_and_stops():
 def test_amain_is_noop_when_disabled(monkeypatch):
     monkeypatch.delenv("BATCH_API_ENABLED", raising=False)
     asyncio.run(_amain())  # batch disabled -> returns without building stores
+
+
+def test_non_object_json_line_fails_only_that_item():
+    # `[1]` and `"x"` are valid JSON but not request objects; they must not fail the batch.
+    obj, store, tenant, batch_id = _setup(["[1]", '"x"', _line("good")])
+    _run(obj, store, tenant, batch_id, lambda req: httpx.Response(200, json={"choices": []}))
+    record = store.get_batch(tenant, batch_id)
+    assert record.status == "completed"
+    assert record.completed == 1 and record.failed == 2
+
+
+def test_long_batch_refreshes_its_claim_so_it_is_not_reclaimed():
+    obj, store, tenant, batch_id = _setup([_line(str(i)) for i in range(6)])
+    beats = []
+    real_heartbeat = store.heartbeat
+
+    def counting_heartbeat(t, b):
+        beats.append(b)
+        return real_heartbeat(t, b)
+
+    store.heartbeat = counting_heartbeat
+
+    async def _go():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda req: httpx.Response(200, json={}))) as client:
+            return await run_once(_CONFIG, obj, store, client)
+
+    assert asyncio.run(_go()) is True
+    # One heartbeat per chunk of `concurrency` (2) lines.
+    assert beats == [batch_id] * 3
+    assert store.get_batch(tenant, batch_id).status == "completed"
+
+
+def test_lost_claim_stops_without_finalizing_or_acking():
+    # The worker stalled past the reclaim interval and the reaper re-queued its batch. It
+    # must stop rather than race the next owner, and must not ack the re-queued message.
+    obj, store, tenant, batch_id = _setup([_line(str(i)) for i in range(4)])
+    calls = []
+
+    def handler(req):
+        calls.append(1)
+        if len(calls) == 2:
+            store.reclaim(0)
+        return httpx.Response(200, json={})
+
+    async def _go():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await run_once(_CONFIG, obj, store, client)
+
+    assert asyncio.run(_go()) is True
+    assert store.get_batch(tenant, batch_id).status == "in_progress"  # left for the next owner
+    assert len(calls) == 2  # the second chunk never ran here
+    assert store.claim() == (tenant, batch_id)  # still queued for another worker

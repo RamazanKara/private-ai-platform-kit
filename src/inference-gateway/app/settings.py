@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 import re
@@ -171,7 +172,8 @@ class Settings:
     batch_s3_bucket: str = ""
     batch_s3_region: str = "us-east-1"
     batch_s3_access_key_id: str = ""
-    batch_s3_secret_access_key: str = ""
+    # repr=False: a logged or printed Settings object must not carry the S3 credential.
+    batch_s3_secret_access_key: str = dataclasses.field(default="", repr=False)
     batch_store_backend: str = "memory"
     batch_redis_url: str = "redis://budget-redis.budget.svc.cluster.local:6379/2"
     batch_redis_timeout_seconds: float = 0.5

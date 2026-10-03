@@ -27,6 +27,7 @@ from app.admission import BATCH_ALLOWED_ENDPOINTS
 from app.batchstore import BatchRecord, FileRecord
 from app.env_config import parse_completion_window
 from app.objectstore import ObjectNotFound
+from app.request_context import require_bound_tenant
 from app.settings import Settings
 
 _FILE_PURPOSES = frozenset({"batch"})
@@ -47,7 +48,7 @@ def _new_id(prefix: str) -> str:
 
 
 def _tenant(request: Request) -> str:
-    return request.state.sandbox_id
+    return require_bound_tenant(request, "the Files and Batch API")
 
 
 def _error(status: int, reason: str, message: str) -> HTTPException:
@@ -58,6 +59,8 @@ def _require_enabled(request: Request) -> Settings:
     settings: Settings = request.app.state.settings
     if not settings.batch_api_enabled:
         raise _error(404, "batch_api_disabled", "the asynchronous batch API is not enabled")
+    # Refuse an unbound caller before reading an upload, not after.
+    _tenant(request)
     return settings
 
 
