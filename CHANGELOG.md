@@ -8,6 +8,16 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- Publish [strict release evidence](results/release-gate/release-gate-20261006T200025Z.md)
+  for source `09fba97e76c001c56ecb48deb02afd1e9f1105d3` on 2026-10-06: all 12 gates
+  passed with current, non-sample inputs inside the 24-hour freshness window.
+  The [static evidence pack](results/evidence/evidence-20261006T200024Z.md) passed
+  31 controls; both runtime images passed HIGH/CRITICAL scans. The
+  [run log](results/release-gate/strict-evidence-20261006T200025Z.log) retains commands,
+  output, local image digests, chart versions, and the source CI run URL. This local
+  proof uses mock-backed gateway conformance and load tests plus a synthetic Redis
+  restore fixture; live Kubernetes readiness, model quality, and production-data
+  recovery were not tested. Regenerate the evidence before a later release review.
 - **Try it in minutes without Kubernetes.** `make compose-up` starts the gateway, Ollama
   with a small model, and the RAG service on `127.0.0.1` from the same images and
   environment contract as the charts (about two minutes on a laptop, first run included).

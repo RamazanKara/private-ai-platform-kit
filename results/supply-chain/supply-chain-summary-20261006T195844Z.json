@@ -1,0 +1,21 @@
+{
+  "checksums": "results/supply-chain/supply-chain-checksums-20261006T195844Z.txt",
+  "gate": "HIGH and CRITICAL image vulnerabilities must be zero",
+  "generated_at": "20261006T195844Z",
+  "images": [
+    {
+      "image": "private-ai-platform-kit/inference-gateway:local-scan",
+      "name": "inference-gateway",
+      "sbom": "results/supply-chain/inference-gateway-20261006T195844Z.spdx.json",
+      "trivy_sarif": "results/supply-chain/trivy-inference-gateway-20261006T195844Z.sarif"
+    },
+    {
+      "image": "private-ai-platform-kit/rag-service:local-scan",
+      "name": "rag-service",
+      "sbom": "results/supply-chain/rag-service-20261006T195844Z.spdx.json",
+      "trivy_sarif": "results/supply-chain/trivy-rag-service-20261006T195844Z.sarif"
+    }
+  ],
+  "project": "Private AI Platform Kit",
+  "status": "pass"
+}

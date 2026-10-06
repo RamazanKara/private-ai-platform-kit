@@ -1,0 +1,12 @@
+{
+  "classes_checked": [
+    "auditLogs",
+    "generatedEvidence",
+    "ragKnowledge",
+    "agentWorkspace",
+    "modelGovernance"
+  ],
+  "errors": [],
+  "generated_at": "2026-10-06T19:59:56Z",
+  "policy": "platform/governance/data-retention.yaml"
+}

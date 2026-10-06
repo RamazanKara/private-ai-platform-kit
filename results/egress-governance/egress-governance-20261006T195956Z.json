@@ -1,0 +1,37 @@
+{
+  "catalog": "platform/network/egress-catalog.yaml",
+  "checked_references": [
+    {
+      "catalog_ref": "customer-git-artifact-mirror-example",
+      "cidr": "203.0.113.0/24",
+      "environment": "customer",
+      "expires_on": "2027-05-31",
+      "ports": [
+        443
+      ],
+      "source": "tenants/onboarding/coding-agents.yaml"
+    },
+    {
+      "catalog_ref": "customer-git-artifact-mirror-example",
+      "cidr": "203.0.113.0/24",
+      "environment": "customer",
+      "expires_on": "2027-05-31",
+      "ports": [
+        443
+      ],
+      "source": "tenants/onboarding/gpu-coding-agents.yaml"
+    },
+    {
+      "catalog_ref": "customer-model-cache-example",
+      "cidr": "198.51.100.0/24",
+      "environment": "customer",
+      "expires_on": "2027-05-31",
+      "ports": [
+        443
+      ],
+      "source": "tenants/onboarding/gpu-coding-agents.yaml"
+    }
+  ],
+  "errors": [],
+  "generated_at": "2026-10-06T19:59:56Z"
+}

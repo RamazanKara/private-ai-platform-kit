@@ -1,0 +1,34 @@
+{
+  "evidence_class": "conformance",
+  "gateway_url": "http://127.0.0.1:35579",
+  "generated_at": "2026-10-06T19:59:16.348168+00:00",
+  "model": "qwen2.5:0.5b",
+  "results": [
+    {
+      "case_id": "response-liveness",
+      "checks": [
+        "httpStatus",
+        "minChars"
+      ],
+      "failures": [],
+      "latency_ms": 43.35,
+      "passed": true,
+      "response_chars": 39
+    },
+    {
+      "case_id": "arithmetic-smoke",
+      "checks": [
+        "httpStatus",
+        "minChars",
+        "containsAny"
+      ],
+      "failures": [],
+      "latency_ms": 5.0,
+      "passed": true,
+      "response_chars": 10
+    }
+  ],
+  "source_revision": "09fba97e76c001c56ecb48deb02afd1e9f1105d3",
+  "suite": "local-smoke",
+  "suite_sha256": "50ce5b8b17e153ba502a93ade2ef42caf16bd2ed95ce47611af4eab7fbe4c96d"
+}

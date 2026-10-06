@@ -1,0 +1,59 @@
+{
+  "config": "platform/slo/objectives.yaml",
+  "errors": [],
+  "generated_at": "2026-10-06T20:00:24Z",
+  "objectives": [
+    {
+      "evidence": "results/loadtest/loadtest-20261006T195919Z.json",
+      "failures": [],
+      "id": "inference-availability",
+      "indicator": "load-error-rate",
+      "service": "inference-gateway",
+      "status": "pass",
+      "summary": "30 requests, error rate 0.0000"
+    },
+    {
+      "evidence": "results/loadtest/loadtest-20261006T195919Z.json",
+      "failures": [],
+      "id": "inference-latency",
+      "indicator": "load-latency",
+      "service": "inference-gateway",
+      "status": "pass",
+      "summary": "p95 27.00ms, p99 42.64ms"
+    },
+    {
+      "evidence": "results/evals/eval-20261006T195916Z.json",
+      "failures": [],
+      "id": "eval-quality-smoke",
+      "indicator": "eval-pass-rate",
+      "service": "inference-gateway",
+      "status": "pass",
+      "summary": "2/2 eval cases passed"
+    },
+    {
+      "evidence": "results/restore-drill/restore-drill-run-20261006T195956Z.json",
+      "failures": [],
+      "id": "restore-verification",
+      "indicator": "restore-pass-rate",
+      "service": "restore-drill",
+      "status": "pass",
+      "summary": "1/1 restore drills passed"
+    },
+    {
+      "evidence": "results/evidence/evidence-20261006T200024Z.json",
+      "failures": [],
+      "id": "agent-platform-readiness",
+      "indicator": "evidence-controls",
+      "service": "coding-agent-platform",
+      "status": "pass",
+      "summary": "evidence pack has 31 passed and 0 failed controls"
+    }
+  ],
+  "profile": "local-customer-handoff",
+  "project": "Private AI Platform Kit",
+  "summary": {
+    "config_errors": 0,
+    "failed": 0,
+    "passed": 5
+  }
+}

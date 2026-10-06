@@ -1,0 +1,17 @@
+{
+  "approved_models_checked": [
+    "BAAI/bge-small-en-v1.5",
+    "Qwen/Qwen3-Coder-Next",
+    "qwen2.5:0.5b",
+    "qwen3.5:0.8b"
+  ],
+  "artifacts_checked": [
+    "BAAI/bge-small-en-v1.5",
+    "Qwen/Qwen3-Coder-Next",
+    "qwen2.5:0.5b",
+    "qwen3.5:0.8b"
+  ],
+  "errors": [],
+  "generated_at": "2026-10-06T19:59:57Z",
+  "policy": "platform/governance/model-provenance.yaml"
+}

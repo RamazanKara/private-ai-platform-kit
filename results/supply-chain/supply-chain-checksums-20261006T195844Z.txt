@@ -1,0 +1,4 @@
+a96a337d984ab9292e98703a000f1ebf80af4f75eeb090e07e3d6d7ff841d1cd  results/supply-chain/inference-gateway-20261006T195844Z.spdx.json
+368db09f64684157cbf86eaa4d4eaaf5a77b5ad963972fd4d03008dfe1df629b  results/supply-chain/rag-service-20261006T195844Z.spdx.json
+c834361a28df84c56fde5b5ed5defc1cb3372d476399bddad4edfb18fb2944a4  results/supply-chain/trivy-inference-gateway-20261006T195844Z.sarif
+fb9d3daab827ae2ccb4f18461bf8e8c7abdddaeeb1fb902d55c3854a90bcefd5  results/supply-chain/trivy-rag-service-20261006T195844Z.sarif

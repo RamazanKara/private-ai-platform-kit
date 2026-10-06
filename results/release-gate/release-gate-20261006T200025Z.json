@@ -1,0 +1,100 @@
+{
+  "config": "platform/slo/release-gates.yaml",
+  "evidence_policy": {
+    "max_evidence_age_hours": 24.0,
+    "require_current_evidence": true
+  },
+  "gates": [
+    {
+      "evidence": "results/evals/eval-20261006T195916Z.json",
+      "failures": [],
+      "name": "eval",
+      "status": "pass",
+      "summary": "2/2 eval cases passed"
+    },
+    {
+      "evidence": "results/evals/safety-20261006T195917Z.json",
+      "failures": [],
+      "name": "safety",
+      "status": "pass",
+      "summary": "22/22 red-team cases resisted (rate 1.00)"
+    },
+    {
+      "evidence": "results/loadtest/loadtest-20261006T195919Z.json",
+      "failures": [],
+      "name": "load",
+      "status": "pass",
+      "summary": "30 requests, p95 27.00ms, error rate 0.0000"
+    },
+    {
+      "evidence": "results/restore-drill/restore-drill-run-20261006T195956Z.json",
+      "failures": [],
+      "name": "restore",
+      "status": "pass",
+      "summary": "1/1 restore drills passed"
+    },
+    {
+      "evidence": "results/toolchain/toolchain-20261006T195915Z.json",
+      "failures": [],
+      "name": "toolchain",
+      "status": "pass",
+      "summary": "toolchain profile strict has no missing required tools"
+    },
+    {
+      "evidence": "results/egress-governance/egress-governance-20261006T195956Z.json",
+      "failures": [],
+      "name": "egress",
+      "status": "pass",
+      "summary": "3 external egress references checked, 0 errors"
+    },
+    {
+      "evidence": "results/retention/retention-20261006T195956Z.json",
+      "failures": [],
+      "name": "retention",
+      "status": "pass",
+      "summary": "5 retention classes checked, 0 errors"
+    },
+    {
+      "evidence": "results/slo/slo-20261006T200024Z.json",
+      "failures": [],
+      "name": "slo",
+      "status": "pass",
+      "summary": "5/5 SLO objectives passed, 0 config errors"
+    },
+    {
+      "evidence": "results/quota/quota-20261006T195956Z.json",
+      "failures": [],
+      "name": "quota",
+      "status": "pass",
+      "summary": "3 quota plans and 4 chargeback labels checked"
+    },
+    {
+      "evidence": "results/model-provenance/model-provenance-20261006T195957Z.json",
+      "failures": [],
+      "name": "modelProvenance",
+      "status": "pass",
+      "summary": "4 model provenance artifacts checked"
+    },
+    {
+      "evidence": "results/supply-chain/supply-chain-summary-20261006T195844Z.json",
+      "failures": [],
+      "name": "supplyChain",
+      "status": "pass",
+      "summary": "2 images have validated SBOM, SARIF, and checksum evidence"
+    },
+    {
+      "evidence": "results/evidence/evidence-20261006T200024Z.json",
+      "failures": [],
+      "name": "evidencePack",
+      "status": "pass",
+      "summary": "evidence pack has 31 passed and 0 failed controls"
+    }
+  ],
+  "generated_at": "2026-10-06T20:00:25Z",
+  "project": "Private AI Platform Kit",
+  "summary": {
+    "failed": 0,
+    "passed": 12,
+    "skipped": 0
+  }
+}
