@@ -15,9 +15,9 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
 
-from app.governance import governed, reserve_budget, resolve_single_route
+from app.governance import governed, request_classification, reserve_budget, resolve_chat_routes
 from app.guardrails import _apply_output_guardrail, _apply_prompt_secret_mode
-from app.request_context import _runtime_headers, require_bound_tenant
+from app.request_context import require_bound_tenant
 from app.response_store import StoredResponse
 from app.responses import (
     ResponsesRequest,
@@ -25,6 +25,7 @@ from app.responses import (
     responses_to_chat_payload,
 )
 from app.runtime_client import RuntimeClient
+from app.runtime_routing import _chat_with_fallback
 from app.settings import AdmissionPolicyError, Settings
 
 
@@ -77,6 +78,7 @@ def _persist_response(
     response_store.create(
         StoredResponse(
             id=response_id,
+            data_classification=request.state.data_classification,
             tenant=request.state.sandbox_id,
             created_at=int(responses_body.get("created_at") or time()),
             model=str(responses_body.get("model") or ""),
@@ -169,8 +171,9 @@ def register_responses_routes(app: FastAPI, settings: Settings) -> None:
                 # actually sent, which is now this payload, not the one the rail was opened with.
                 payload_dict = responses_to_chat_payload(payload, base_messages=prior.messages)
                 call.payload = payload_dict
-            effective, model_route = resolve_single_route(request, settings, payload_dict)
-            call.backend = model_route.backend
+                request_classification(request, {"data_classification": prior.data_classification})
+            effective, chain, _ = resolve_chat_routes(request, settings, payload_dict)
+            call.backend = chain[0].backend
             # Streaming translation to the Responses SSE event sequence is not wired through
             # the metering/guardrail machinery yet; reject it explicitly (mirroring
             # /v1/completions & /v1/messages' streaming_not_supported) rather than silently
@@ -192,11 +195,8 @@ def register_responses_routes(app: FastAPI, settings: Settings) -> None:
                 request.state.prompt_guardrail_action = prompt_action
             await reserve_budget(request, effective, payload_dict)
             client: RuntimeClient = request.app.state.runtime_client
-            call.runtime_response = await client.chat_completions(
-                payload_dict,
-                headers=_runtime_headers(request),
-                backend=call.backend,
-            )
+            call.runtime_response = await _chat_with_fallback(client, chain, payload_dict, request)
+            call.backend = request.state.selected_route.backend
             # The output guardrail is endpoint-independent: /v1/responses must not be a bypass
             # around the redact/block policy the chat path enforces (OWASP LLM02:2025/LLM05:2025). It
             # runs on the OpenAI-shaped completion before translation to the Responses shape.

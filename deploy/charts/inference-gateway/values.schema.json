@@ -18,6 +18,19 @@
         "backend": { "type": "string", "enum": ["ollama", "vllm"] }
       }
     },
+    "providerCredentials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["env", "secretName", "secretKey"],
+        "properties": {
+          "env": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$" },
+          "secretName": { "type": "string", "minLength": 1 },
+          "secretKey": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
     "admission": {
       "type": "object",
       "properties": {

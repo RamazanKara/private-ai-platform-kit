@@ -59,6 +59,7 @@ class FileRecord:
     purpose: str  # batch | batch_output | batch_error
     object_key: str
     line_count: int = 0
+    data_classification: str = "internal"
 
     def to_public(self) -> dict[str, Any]:
         """Return the OpenAI file-object shape (internal tenant/object_key omitted)."""
@@ -102,6 +103,7 @@ class BatchRecord:
     # Who created the batch (an audit principal key id) and through which binding, so the
     # worker replays items as that submitter rather than as an anonymous service key.
     submitted_by: str | None = None
+    data_classification: str = "internal"
     # Checkpoint: input lines processed so far and the result parts already written, so a
     # restarted or reclaimed batch resumes instead of replaying (and re-charging) items.
     processed_lines: int = 0
@@ -698,6 +700,7 @@ def _file_to_dict(record: FileRecord) -> dict[str, Any]:
         "purpose": record.purpose,
         "object_key": record.object_key,
         "line_count": record.line_count,
+        "data_classification": record.data_classification,
     }
 
 
@@ -719,6 +722,7 @@ def _batch_meta_dict(record: BatchRecord) -> dict[str, Any]:
         "expires_at": record.expires_at,
         "metadata": record.metadata,
         "submitted_by": record.submitted_by,
+        "data_classification": record.data_classification,
     }
 
 
@@ -748,6 +752,7 @@ def _batch_from_parts(meta: dict[str, Any], state: dict[str, str]) -> BatchRecor
         expires_at=meta["expires_at"],
         metadata=meta.get("metadata") or {},
         submitted_by=meta.get("submitted_by"),
+        data_classification=meta.get("data_classification", "internal"),
         status=state.get("status", BATCH_VALIDATING),
     )
     for name in _STATE_INT_FIELDS:

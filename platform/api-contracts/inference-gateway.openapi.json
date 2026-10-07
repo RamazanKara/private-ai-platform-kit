@@ -5,6 +5,17 @@
         "additionalProperties": true,
         "description": "A batch of chat-completion requests processed in one call.\n\nEach item runs through the same auth (the batch is one authenticated request), model\nallowlist, admission, and budget controls; items are processed concurrently and the\nresponse reports per-item success or error so one bad item does not fail the batch.",
         "properties": {
+          "data_classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Classification"
+          },
           "requests": {
             "items": {
               "$ref": "#/components/schemas/ChatCompletionRequest"
@@ -23,6 +34,17 @@
         "additionalProperties": true,
         "description": "Request body for an OpenAI-compatible chat completion call.\n\nTool/function-calling and structured-output fields are modelled explicitly so\nthey survive ``model_dump`` to the runtime (the flagship coding-agent path),\nand ``extra=\"allow\"`` forwards any other OpenAI sampling parameter (``top_p``,\n``stop``, ``seed``, ``stream_options``, ...) verbatim instead of silently\ndropping it.",
         "properties": {
+          "data_classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Classification"
+          },
           "function_call": {
             "anyOf": [
               {
@@ -158,6 +180,17 @@
         "additionalProperties": true,
         "description": "Request body for an OpenAI-compatible legacy text completion call.\n\nThe pre-chat ``/v1/completions`` API takes a ``prompt`` (a string or list of strings)\nrather than ``messages``. Routing it through the gateway subjects legacy-completion\ntraffic to the same auth, allowlist, admission, budget, and audit controls as chat.\n``extra=\"allow\"`` forwards any other OpenAI sampling parameter to the runtime verbatim.",
         "properties": {
+          "data_classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Classification"
+          },
           "max_tokens": {
             "anyOf": [
               {
@@ -221,6 +254,17 @@
             "title": "Completion Window",
             "type": "string"
           },
+          "data_classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Classification"
+          },
           "endpoint": {
             "minLength": 1,
             "title": "Endpoint",
@@ -257,6 +301,17 @@
         "additionalProperties": true,
         "description": "Request body for an OpenAI-compatible embeddings call.\n\nRouting embeddings through the gateway (rather than calling a separate embedding\nservice directly) subjects them to the same auth, model allowlist, budget, and\naudit controls as chat completions. ``extra=\"allow\"`` forwards provider params\nsuch as ``dimensions`` or ``encoding_format`` unchanged.",
         "properties": {
+          "data_classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Classification"
+          },
           "input": {
             "anyOf": [
               {
@@ -384,6 +439,17 @@
         "additionalProperties": true,
         "description": "Request body for a native Anthropic ``POST /v1/messages`` call.\n\nMirrors the Anthropic Messages API shape. ``max_tokens`` is required by Anthropic, so\nit is modelled as required here and its absence is a 422 before the governance path\nruns (it also becomes the OpenAI ``max_tokens`` cap that admission enforces). ``system``\naccepts either a plain string or an Anthropic block array. ``extra=\"allow\"`` forwards\nany other Anthropic sampling field (``temperature``, ``top_p``, ``stop_sequences``,\n``tools``, ``tool_choice``, ``stream``, ``metadata``, ...) so nothing is silently dropped.",
         "properties": {
+          "data_classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Classification"
+          },
           "max_tokens": {
             "title": "Max Tokens",
             "type": "integer"
@@ -646,6 +712,17 @@
         "additionalProperties": true,
         "description": "Request body for a native OpenAI ``POST /v1/responses`` call.\n\nMirrors the OpenAI Responses API shape. ``input`` is required and accepts either a plain\nstring (translated to a single user message) or an array of input items / messages.\n``instructions`` is prepended as a system message. ``max_output_tokens`` becomes the\nOpenAI ``max_tokens`` cap that admission enforces. Fields with no chat equivalent are\naccepted (``extra=\"allow\"``) but not forwarded to the runtime.\n\nThe stateful fields ``store`` and ``previous_response_id`` are modelled explicitly so the\nhandler can serve them from the response store, or reject them when the store is off,\ninstead of forwarding them into the chat payload where they would be meaningless.",
         "properties": {
+          "data_classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Classification"
+          },
           "input": {
             "anyOf": [
               {

@@ -26,6 +26,7 @@ from starlette.datastructures import UploadFile
 from app.admission import BATCH_ALLOWED_ENDPOINTS
 from app.batchstore import BatchRecord, FileRecord
 from app.env_config import parse_completion_window
+from app.governance import governed, request_classification
 from app.objectstore import ObjectNotFound
 from app.request_context import require_bound_tenant
 from app.settings import Settings
@@ -41,6 +42,7 @@ class CreateBatchRequest(BaseModel):
     endpoint: str = Field(min_length=1)
     completion_window: str = "24h"
     metadata: dict[str, str] | None = None
+    data_classification: str | None = None
 
 
 def _new_id(prefix: str) -> str:
@@ -138,6 +140,8 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
         tenant = _tenant(request)
         file_id = _new_id("file")
         object_key = f"{tenant}/{file_id}"
+        async with governed(request, settings, route="/v1/files", payload={}) as call:
+            call.payload["data_classification"] = request_classification(request, {})
         await asyncio.to_thread(request.app.state.object_store.put_stream, object_key, upload.file, byte_count)
         record = FileRecord(
             id=file_id,
@@ -148,6 +152,7 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
             purpose=purpose,
             object_key=object_key,
             line_count=line_count,
+            data_classification=request.state.data_classification,
         )
         try:
             await asyncio.to_thread(request.app.state.batch_store.create_file, record)
@@ -217,22 +222,26 @@ def register_batch_routes(app: FastAPI, settings: Settings) -> None:
             raise _error(404, "input_file_not_found", f"no file with id '{payload.input_file_id}'")
         if file_record.purpose != "batch":
             raise _error(400, "invalid_input_file", "input_file_id must reference a file uploaded with purpose 'batch'")
-        now = int(time())
-        batch_id = _new_id("batch")
-        record = BatchRecord(
-            id=batch_id,
-            tenant=tenant,
-            endpoint=payload.endpoint,
-            input_file_id=payload.input_file_id,
-            completion_window=payload.completion_window,
-            created_at=now,
-            expires_at=now + window_seconds,
-            metadata=metadata,
-            total=file_record.line_count,
-            submitted_by=_submitter(request),
-        )
-        await asyncio.to_thread(request.app.state.batch_store.create_and_enqueue, record)
-        return JSONResponse(status_code=200, content=record.to_public())
+        async with governed(request, settings, route="/v1/batches", payload=payload.model_dump()) as call:
+            request_classification(request, {"data_classification": file_record.data_classification})
+            request_classification(request, call.payload)
+            now = int(time())
+            batch_id = _new_id("batch")
+            record = BatchRecord(
+                id=batch_id,
+                tenant=tenant,
+                endpoint=payload.endpoint,
+                input_file_id=payload.input_file_id,
+                completion_window=payload.completion_window,
+                created_at=now,
+                expires_at=now + window_seconds,
+                metadata=metadata,
+                total=file_record.line_count,
+                submitted_by=_submitter(request),
+                data_classification=request.state.data_classification,
+            )
+            await asyncio.to_thread(request.app.state.batch_store.create_and_enqueue, record)
+            return JSONResponse(status_code=200, content=record.to_public())
 
     @app.get("/v1/batches", tags=["batches"], summary="List batches", operation_id="listBatches")
     async def list_batches(request: Request, limit: int = 20, after: str | None = None) -> dict[str, Any]:

@@ -14,7 +14,7 @@ The inference gateway is the entry point for model API traffic. A normal request
 2. sandbox identity binding, when the key record or token supplies one;
 3. model allowlist, admission, and input-secret checks;
 4. rate and budget accounting;
-5. routing to Ollama or vLLM;
+5. classification-constrained routing to Ollama, vLLM, or an approved cloud provider;
 6. the optional output guardrail;
 7. metrics and a redacted audit event.
 

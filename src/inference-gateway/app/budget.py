@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from math import ceil
 from threading import Lock
@@ -126,6 +127,8 @@ class SandboxBudgetTracker(Protocol):
         usage: dict[str, Any] | None,
     ) -> BudgetSettlement | None: ...
 
+    def record_usage(self, sandbox_id: str, provider: str, usage: dict[str, Any], cost: float) -> None: ...
+
 
 def _token_count(value: Any) -> int | None:
     """Coerce a runtime-reported token count to a non-negative int, else None."""
@@ -211,6 +214,7 @@ class InMemorySandboxBudgetTracker:
         self._lock = Lock()
         self._usage: dict[str, BudgetUsage] = {}
         self._window_started_at: dict[str, float] = {}
+        self._providers: dict[str, dict[str, dict[str, Any]]] = {}
 
     def _limits(self, settings: Settings | None = None) -> dict[str, int]:
         resolved = settings or self.settings
@@ -230,6 +234,7 @@ class InMemorySandboxBudgetTracker:
             and now - started >= self.settings.sandbox_budget_window_seconds
         ):
             self._usage[sandbox_id] = BudgetUsage()
+            self._providers.pop(sandbox_id, None)
             self._window_started_at[sandbox_id] = now
         return self._usage.get(sandbox_id, BudgetUsage())
 
@@ -239,16 +244,25 @@ class InMemorySandboxBudgetTracker:
         with self._lock:
             usage = self._current_usage(sandbox_id)
             window_started_at = self._window_started_at.get(sandbox_id)
+            providers = deepcopy(self._providers.get(sandbox_id, {}))
         return {
             "enabled": resolved.sandbox_budget_enabled,
             "backend": self.backend,
             "sandbox_id": sandbox_id,
             "usage": asdict(usage),
+            "providers": providers,
             "limits": self._limits(resolved),
             "window_seconds": resolved.sandbox_budget_window_seconds,
             "window_started_at": window_started_at,
             "estimated_chars_per_token": resolved.budget_estimated_chars_per_token,
         }
+
+    def record_usage(self, sandbox_id: str, provider: str, usage: dict[str, Any], cost: float) -> None:
+        with self._lock:
+            self._current_usage(sandbox_id)
+            counters = self._providers.setdefault(sandbox_id, {}).setdefault(provider, {})
+            for name, value in provider_usage_delta(usage, cost).items():
+                counters[name] = counters.get(name, 0) + value
 
     def reserve(
         self,
@@ -382,6 +396,39 @@ return {1, refund, overrun, settled}
 """
 
 
+REDIS_USAGE_SCRIPT = """
+local key = KEYS[1]
+local ttl = tonumber(ARGV[1])
+local existing_ttl = redis.call('TTL', key)
+for i = 2, #ARGV, 2 do
+  redis.call('HINCRBYFLOAT', key, ARGV[i], ARGV[i + 1])
+end
+if ttl > 0 and existing_ttl < 0 then
+  redis.call('EXPIRE', key, ttl)
+end
+return 1
+"""
+
+
+def provider_usage_delta(usage: dict[str, Any], cost: float) -> dict[str, Any]:
+    return {
+        "requests": 1,
+        "prompt_tokens": _token_count(usage.get("prompt_tokens")) or 0,
+        "completion_tokens": _token_count(usage.get("completion_tokens")) or 0,
+        "total_tokens": actual_total_tokens(usage) or 0,
+        "estimated_cost": cost,
+    }
+
+
+def provider_usage_snapshot(raw: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    providers: dict[str, dict[str, Any]] = {}
+    for key, value in raw.items():
+        if key.startswith("provider."):
+            _, provider, field = key.split(".", 2)
+            providers.setdefault(provider, {})[field] = float(value) if field == "estimated_cost" else int(value)
+    return providers
+
+
 class RedisSandboxBudgetTracker:
     """Distributed budget tracker enforcing limits atomically via a Redis Lua script."""
 
@@ -434,11 +481,21 @@ class RedisSandboxBudgetTracker:
                 "prompt_chars": int(raw.get("prompt_chars", 0)),
                 "estimated_tokens": int(raw.get("estimated_tokens", 0)),
             },
+            "providers": provider_usage_snapshot(raw),
             "limits": self._limits(resolved),
             "window_seconds": resolved.sandbox_budget_window_seconds,
             "window_ttl_seconds": ttl,
             "estimated_chars_per_token": resolved.budget_estimated_chars_per_token,
         }
+
+    def record_usage(self, sandbox_id: str, provider: str, usage: dict[str, Any], cost: float) -> None:
+        args: list[Any] = [self.settings.sandbox_budget_window_seconds]
+        for name, value in provider_usage_delta(usage, cost).items():
+            args.extend((f"provider.{provider}.{name}", value))
+        try:
+            self.client.eval(REDIS_USAGE_SCRIPT, 1, self._key(sandbox_id), *args)
+        except _BUDGET_BACKEND_ERRORS as exc:
+            raise BudgetBackendError("sandbox usage backend is unavailable") from exc
 
     def reserve(
         self,

@@ -12,7 +12,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import random
 from operator import itemgetter
 from time import perf_counter, time
 from typing import Any
@@ -23,37 +22,33 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.audit import AUDIT_LOGGER, chain_audit_event, payload_fingerprint
-from app.budget import BudgetBackendError, SandboxBudgetTracker
 from app.cache import cache_key
 from app.governance import (
     admission_status,
     effective_settings,
     governed,
-    record_estimated_cost,
     record_stream_end,
-    record_token_usage,
+    request_classification,
     reserve_budget,
+    resolve_chat_routes,
     resolve_single_route,
-    route_settings,
     settle_and_audit,
 )
 from app.guardrails import _apply_output_guardrail, _apply_prompt_secret_mode
 from app.metrics import (
     CACHE_LOOKUPS,
-    CANARY_ROUTED,
     LATENCY,
     REQUESTS,
-    RUNTIME_FALLBACKS,
     SANDBOX_REQUESTS,
 )
 from app.metrics import (
     sandbox_label as _sandbox_label,
 )
 from app.params import apply_param_policy
-from app.policy import ModelRoutingPolicy, SandboxPolicySet
+from app.policy import SandboxPolicySet
 from app.request_context import _runtime_headers
 from app.runtime_client import RuntimeClient
-from app.runtime_routing import _is_failover_worthy, _open_stream_with_fallback, _schedule_shadow
+from app.runtime_routing import _chat_with_fallback, _open_stream_with_fallback, _schedule_shadow
 from app.schemas import (
     BatchRequest,
     ChatCompletionRequest,
@@ -91,37 +86,8 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
         payload_dict = payload.model_dump(exclude_none=True)
         async with governed(request, settings, route="/v1/chat/completions", payload=payload_dict) as call:
             _forward_only_reviewed_params(request, payload_dict, "chat", settings)
-            policy: ModelRoutingPolicy = request.app.state.model_routing_policy
-            sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
-            effective = effective_settings(request, sandbox_policies, settings)
-            # Chat resolves a failover *chain* (primary plus fallbacks) rather than the
-            # single route every other endpoint uses, so it keeps its own prologue instead
-            # of resolve_single_route.
-            try:
-                chain = policy.resolve_chain(payload_dict.get("model"), effective.model_id)
-            except ValueError as exc:
-                raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
-
-            # Progressive delivery: resolve the shadow target from the originally-resolved
-            # primary, then apply weighted canary selection (which may swap chain[0]).
-            # The sandbox allowlist governs every route that can serve the request, not only
-            # the one the caller named: a canary or fallback this sandbox may not use is
-            # skipped, rather than turning its traffic share into 400s or bypassing policy.
-            # The primary stays, so naming a disallowed model is still model_not_allowed.
-            def permitted(route: Any) -> bool:
-                return not effective.allowed_models or route.model_id in effective.allowed_models
-
-            primary_route = chain[0]
-            shadow_route = None if payload_dict.get("stream") else policy.shadow_target(primary_route)
-            canary = policy.canary_target(primary_route, random.random())
-            if canary.model_id != primary_route.model_id and permitted(canary):
-                CANARY_ROUTED.labels(primary_route.model_id, canary.model_id).inc()
-                chain = [canary, *chain[1:]]
-            chain = [chain[0], *[route for route in chain[1:] if permitted(route)]]
-            model_route = chain[0]
-            call.backend = model_route.backend
-            payload_dict["model"] = model_route.model_id
-            effective = route_settings(effective, model_route)
+            effective, chain, shadow_route = resolve_chat_routes(request, settings, payload_dict, progressive=True)
+            call.backend = chain[0].backend
             effective.validate_admission(payload_dict)
             # Redact/flag prompt secrets (non-block modes) before the payload is cached,
             # reserved, or sent - so a redacted credential is never persisted or forwarded.
@@ -133,7 +99,14 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
             cache_enabled = settings.response_cache_enabled and not payload_dict.get("stream")
             cache_id = ""
             if cache_enabled:
-                cache_id = cache_key(request.state.sandbox_id, payload_dict)
+                cache_id = cache_key(
+                    request.state.sandbox_id,
+                    {
+                        **payload_dict,
+                        "data_classification": request.state.data_classification,
+                        "routes": [route.model_id for route in chain],
+                    },
+                )
                 cached = await asyncio.to_thread(request.app.state.response_cache.get, cache_id)
                 if cached is not None:
                     CACHE_LOOKUPS.labels("hit").inc()
@@ -141,6 +114,12 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
                     call.cache_hit = True
                     # Bind for the rail's audit receipt, then return.
                     call.runtime_response = cached
+                    cached_model = cached.get("model")
+                    for candidate in chain:
+                        if candidate.model_id == cached_model:
+                            request.state.selected_route = candidate
+                            payload_dict["model"] = candidate.model_id
+                            break
                     return cached
                 CACHE_LOOKUPS.labels("miss").inc()
                 request.state.cache_status = "MISS"
@@ -262,27 +241,8 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
             # Non-streaming: try each route in the chain, failing over to the next on a
             # retryable/connection error or open circuit. call.backend and the payload model
             # are updated to the route that actually served, so metrics and audit reflect it.
-            last_exc: httpx.HTTPError | None = None
-            for index, candidate in enumerate(chain):
-                attempt = dict(payload_dict)
-                attempt["model"] = candidate.model_id
-                call.backend = candidate.backend
-                try:
-                    call.runtime_response = await client.chat_completions(
-                        attempt,
-                        headers=_runtime_headers(request),
-                        backend=candidate.backend,
-                    )
-                    payload_dict["model"] = candidate.model_id
-                    break
-                except httpx.HTTPError as exc:
-                    last_exc = exc
-                    if _is_failover_worthy(exc) and index + 1 < len(chain):
-                        RUNTIME_FALLBACKS.labels(candidate.backend, chain[index + 1].backend).inc()
-                        continue
-                    raise
-            if call.runtime_response is None:
-                raise last_exc or RuntimeError("no runtime route available")
+            call.runtime_response = await _chat_with_fallback(client, chain, payload_dict, request)
+            call.backend = request.state.selected_route.backend
             # Inspect the completion before it is cached or returned: redact/block leaked
             # credentials, PII, or denied content (OWASP LLM02:2025/LLM05:2025). Applied pre-cache so
             # a secret is never persisted in the response cache.
@@ -455,10 +415,8 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
                     "batch_too_large",
                     f"batch has {len(payload.requests)} requests; limit is {settings.max_batch_requests}",
                 )
-            policy: ModelRoutingPolicy = request.app.state.model_routing_policy
             sandbox_policies: SandboxPolicySet = request.app.state.sandbox_policy_set
             effective = effective_settings(request, sandbox_policies, settings)
-            tracker: SandboxBudgetTracker = request.app.state.budget_tracker
             client: RuntimeClient = request.app.state.runtime_client
             # Bound per-batch fan-out so one batch cannot saturate the upstream pool.
             semaphore = asyncio.Semaphore(min(8, max(1, len(payload.requests))))
@@ -479,64 +437,28 @@ def register_inference_routes(app: FastAPI, settings: Settings) -> None:
             async def _process(index: int, item: ChatCompletionRequest) -> dict[str, Any]:
                 item_dict = item.model_dump(exclude_none=True)
                 item_dict.pop("stream", None)
-                item_prompt_action: str | None = None
+                child = Request({**request.scope, "state": dict(request.scope["state"])})
+                child.state.batch_item_index = index
                 async with semaphore:
                     try:
-                        apply_param_policy(item_dict, "chat", settings.extra_forwarded_params)
-                        try:
-                            model_route = policy.resolve(item_dict.get("model"), effective.model_id)
-                        except ValueError as exc:
-                            raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
-                        item_dict["model"] = model_route.model_id
-                        effective.validate_admission(item_dict)
-                        # Attribute the redact/flag action to this item's audit receipt rather
-                        # than the one shared per-request field (concurrent items would race it).
-                        item_prompt_action = _apply_prompt_secret_mode(effective, item_dict, route)
-                        await asyncio.to_thread(tracker.reserve, request.state.sandbox_id, item_dict, effective)
-                        response = await client.chat_completions(
-                            item_dict, headers=_runtime_headers(request), backend=model_route.backend
-                        )
-                        # The output guardrail is an endpoint-independent control: a batch
-                        # item must not be a bypass around the redact/block policy that the
-                        # single-request path enforces (OWASP LLM02:2025/LLM05:2025).
-                        _apply_output_guardrail(response, settings, route, request)
-                        record_token_usage(model_route.backend, response)
-                        record_estimated_cost(
-                            settings,
-                            request.state.sandbox_id,
-                            model_route.backend,
-                            response.get("usage") if isinstance(response, dict) else None,
-                        )
-                        _audit_item(index, 200, item_dict, item_prompt_action)
-                        return {"index": index, "status_code": 200, "response": response}
-                    except AdmissionPolicyError as exc:
-                        item_code, _ = admission_status(exc.reason, settings)
-                        _audit_item(index, item_code, item_dict)
-                        return {
-                            "index": index,
-                            "status_code": item_code,
-                            "error": {"reason": exc.reason, "message": str(exc)},
-                        }
-                    except httpx.HTTPStatusError as exc:
-                        _audit_item(index, 502, item_dict, item_prompt_action)
-                        return {
-                            "index": index,
-                            "status_code": 502,
-                            "error": {
-                                "message": "runtime returned an error",
-                                "runtime_status": exc.response.status_code,
-                            },
-                        }
-                    except BudgetBackendError:
-                        _audit_item(index, 503, item_dict, item_prompt_action)
-                        return {
-                            "index": index,
-                            "status_code": 503,
-                            "error": {"reason": "budget_backend_unavailable", "message": "budget backend unavailable"},
-                        }
-                    except (httpx.HTTPError, ValueError):
-                        _audit_item(index, 502, item_dict, item_prompt_action)
-                        return {"index": index, "status_code": 502, "error": {"message": "runtime request failed"}}
+                        async with governed(child, settings, route=route, payload=item_dict) as call:
+                            if payload.data_classification is not None:
+                                request_classification(child, {"data_classification": payload.data_classification})
+                            apply_param_policy(item_dict, "chat", settings.extra_forwarded_params)
+                            item_effective, chain, _ = resolve_chat_routes(child, settings, item_dict)
+                            item_effective.validate_admission(item_dict)
+                            action = _apply_prompt_secret_mode(item_effective, item_dict, route)
+                            child.state.prompt_guardrail_action = action
+                            await reserve_budget(child, item_effective, item_dict)
+                            call.runtime_response = await _chat_with_fallback(client, chain, item_dict, child)
+                            _apply_output_guardrail(call.runtime_response, settings, route, child)
+                            if getattr(child.state, "output_guardrail_action", None):
+                                request.state.output_guardrail_action = child.state.output_guardrail_action
+                        _audit_item(index, 200, item_dict, action)
+                        return {"index": index, "status_code": 200, "response": call.runtime_response}
+                    except HTTPException as exc:
+                        _audit_item(index, exc.status_code, item_dict)
+                        return {"index": index, "status_code": exc.status_code, "error": exc.detail}
 
             results = await asyncio.gather(*[_process(index, item) for index, item in enumerate(payload.requests)])
             return {"object": "batch", "count": len(results), "results": list(results)}

@@ -13,7 +13,7 @@ verifiable record of every model call and agent action.**
 When a team asks to run coding agents, the security review asks three questions: where does
 the generated code run, what can it reach, and can you prove afterwards what it did? This kit
 answers them with running code on infrastructure you control. Models run on Ollama or vLLM
-inside your cluster. Agents run in hardened workspaces behind default-deny egress. Every
+inside your cluster, with optional governed cloud routes. Agents run in hardened workspaces behind default-deny egress. Every
 request passes one governance path in the gateway and leaves a hash-chained receipt that an
 auditor can verify offline.
 
@@ -79,8 +79,10 @@ read-only root filesystem, no ambient credentials, and short-lived audience-boun
 Egress is denied by default, and every exception is a reviewed catalog entry with an expiry
 date. Kyverno policies reject a workspace that drops any of this.
 
-**Models on your hardware.** Ollama for laptops and CPU nodes, vLLM for NVIDIA and AMD GPUs,
-from the same charts, with failover, canary, and shadow routing between them. The RAG service
+**Local and cloud models.** Ollama for laptops and CPU nodes, vLLM for NVIDIA and AMD GPUs,
+plus OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, and Vertex Gemini through the same
+governance path. Catalog policies order fallbacks and keep confidential data local.
+Cloud credentials stay in server env/Secrets; provider usage and cost appear in receipts. The RAG service
 isolates tenants by default and runs on a local lexical index or on Qdrant.
 
 **Delivery an auditor can check.** Helm charts and Argo CD applications, cosign-signed images

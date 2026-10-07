@@ -42,6 +42,7 @@ class StoredResponse:
     input_items: list[Any]  # this turn's input items (GET /v1/responses/{id}/input_items)
     messages: list[dict[str, Any]]  # full chat conversation incl. this reply (for chaining)
     previous_response_id: str | None = None
+    data_classification: str = "internal"
 
 
 class ResponseStore(Protocol):
@@ -145,6 +146,7 @@ def _to_dict(record: StoredResponse) -> dict[str, Any]:
         "input_items": record.input_items,
         "messages": record.messages,
         "previous_response_id": record.previous_response_id,
+        "data_classification": record.data_classification,
     }
 
 

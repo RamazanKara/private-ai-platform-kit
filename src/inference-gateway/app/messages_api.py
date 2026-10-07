@@ -16,7 +16,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 
 from app.audit import AUDIT_LOGGER
-from app.governance import governed, record_stream_end, reserve_budget, resolve_single_route
+from app.governance import governed, record_stream_end, reserve_budget, resolve_chat_routes
 from app.guardrails import _apply_output_guardrail, _apply_prompt_secret_mode
 from app.messages import (
     AnthropicStreamTranslator,
@@ -26,9 +26,8 @@ from app.messages import (
     chat_completion_to_anthropic,
     iter_sse_data_objects,
 )
-from app.request_context import _runtime_headers
 from app.runtime_client import RuntimeClient
-from app.runtime_routing import _open_stream_with_fallback
+from app.runtime_routing import _chat_with_fallback, _open_stream_with_fallback
 from app.settings import Settings
 
 
@@ -59,8 +58,8 @@ def register_messages_routes(app: FastAPI, settings: Settings) -> None:
         payload_dict = anthropic_to_chat_payload(payload)
         request_model = payload.model
         async with governed(request, settings, route="/v1/messages", payload=payload_dict) as call:
-            effective, model_route = resolve_single_route(request, settings, payload_dict)
-            call.backend = model_route.backend
+            effective, chain, _ = resolve_chat_routes(request, settings, payload_dict)
+            call.backend = chain[0].backend
             if payload.stream:
                 # Mark the translated payload as streaming BEFORE admission so the shared
                 # streaming toggle (ALLOW_STREAMING) governs /v1/messages exactly as it
@@ -80,11 +79,8 @@ def register_messages_routes(app: FastAPI, settings: Settings) -> None:
             await reserve_budget(request, effective, payload_dict)
             client: RuntimeClient = request.app.state.runtime_client
             if payload_dict.get("stream"):
-                # Single-route chain: /v1/messages resolves one model rather than a fallback
-                # chain, so this reuses the chat opener without inventing failover behavior
-                # the non-streaming path on this endpoint does not have.
                 stream, stream_backend, used_model, first_chunk = await _open_stream_with_fallback(
-                    client, [model_route], payload_dict, request
+                    client, chain, payload_dict, request
                 )
                 call.backend = stream_backend
                 payload_dict["model"] = used_model
@@ -158,11 +154,8 @@ def register_messages_routes(app: FastAPI, settings: Settings) -> None:
                 # FastAPI streams this Response object directly; the dict[str, Any] return
                 # annotation describes the JSON path and drives the OpenAPI response schema.
                 return StreamingResponse(stream_body(), media_type="text/event-stream")  # type: ignore[return-value]
-            call.runtime_response = await client.chat_completions(
-                payload_dict,
-                headers=_runtime_headers(request),
-                backend=call.backend,
-            )
+            call.runtime_response = await _chat_with_fallback(client, chain, payload_dict, request)
+            call.backend = request.state.selected_route.backend
             # The output guardrail is endpoint-independent: /v1/messages must not be a bypass
             # around the redact/block policy the chat path enforces (OWASP LLM02:2025/LLM05:2025). It
             # runs on the OpenAI-shaped completion before translation back to Anthropic.

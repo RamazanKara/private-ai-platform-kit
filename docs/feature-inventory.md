@@ -50,5 +50,11 @@ configured.
 | End-user multi-user chat UI | Example only | Off | Open WebUI manifest/runbook; identity and storage are operator-owned |
 | Training, fine-tuning, audio, images | Out of scope | n/a | Use purpose-built systems; see [Scope and non-goals](scope-and-non-goals.md) |
 
+Unreleased cloud milestone: OpenAI, Anthropic, Azure OpenAI, Bedrock, and Vertex Gemini
+adapters share model policy, budgets, DLP, settlement, and provider/cost receipts. Cloud
+routes are opt-in; confidential/restricted tenants and requests remain local. Provider
+protocols and the extended Compose walkthrough are tested with local fakes. See
+[model selection](model-selection.md#cloud-routes-unreleased) for configuration and limits.
+
 For operational acceptance criteria, use the [Production readiness matrix](production-readiness.md).
 For exact supported versions, use the [Version matrix](version-matrix.md).

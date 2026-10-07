@@ -137,7 +137,9 @@ def apply_param_policy(payload: dict[str, Any], endpoint: str, extra_forwarded: 
                 "best_of greater than 1 is not allowed through this gateway: "
                 "it multiplies runtime work past the n limit",
             )
-    dropped = [name for name in payload if name not in forwarded and name not in extra]
+    dropped = [
+        name for name in payload if name not in forwarded and name not in extra and name != "data_classification"
+    ]
     for name in dropped:
         del payload[name]
     return sorted(dropped)

@@ -3,16 +3,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
+import re
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 VALID_STATUSES = {"proposed", "approved", "deprecated", "blocked"}
-VALID_RUNTIMES = {"ollama", "vllm"}
+CLOUD_RUNTIMES = {"openai", "anthropic", "azure-openai", "bedrock", "vertex"}
+VALID_RUNTIMES = {"ollama", "vllm"} | CLOUD_RUNTIMES
 VALID_ACCELERATORS = {"cpu", "nvidia", "amd"}
 VALID_RISK_TIERS = {"low", "medium", "high"}
 VALID_DATA_CLASSES = {"public", "internal", "confidential", "restricted"}
@@ -83,10 +87,55 @@ def validate_model_entry(model_id: str, model: dict[str, Any], errors: list[str]
     require(errors, model.get("dataClassification") in VALID_DATA_CLASSES, f"{model_id}: dataClassification must be one of {sorted(VALID_DATA_CLASSES)}")
     require(errors, bool(model.get("license")), f"{model_id}: license is required")
     require(errors, bool(model.get("source")), f"{model_id}: source is required")
-    require(errors, isinstance(accelerators, list) and bool(accelerators), f"{model_id}: accelerators must be a non-empty list")
+    require(
+        errors,
+        isinstance(accelerators, list) and (bool(accelerators) or runtime in CLOUD_RUNTIMES),
+        f"{model_id}: local accelerators must be a non-empty list",
+    )
     if isinstance(accelerators, list):
         invalid = sorted(set(accelerators) - VALID_ACCELERATORS)
         require(errors, not invalid, f"{model_id}: accelerators contain unsupported values {invalid}")
+    if runtime in CLOUD_RUNTIMES:
+        connection = model.get("connection") or {}
+        require(
+            errors,
+            isinstance(connection, dict) and set(connection) == {"baseUrl", "model", "credentialEnv"},
+            f"{model_id}: cloud connection requires only baseUrl, model, credentialEnv",
+        )
+        if isinstance(connection, dict):
+            url = urlsplit(str(connection.get("baseUrl", "")))
+            require(
+                errors,
+                url.scheme in {"http", "https"}
+                and bool(url.hostname)
+                and not (url.username or url.password or url.query or url.fragment),
+                f"{model_id}: cloud baseUrl must not contain credentials or query parameters",
+            )
+            require(
+                errors,
+                bool(connection.get("model"))
+                and bool(re.fullmatch(r"[A-Z_][A-Z0-9_]*", str(connection.get("credentialEnv", "")))),
+                f"{model_id}: cloud model and credentialEnv variable name are required",
+            )
+        prices = model.get("pricing")
+        fields = {"inputUsdPer1kTokens", "outputUsdPer1kTokens"}
+        require(
+            errors,
+            isinstance(prices, dict) and set(prices) == fields,
+            f"{model_id}: cloud pricing requires input/output USD per 1K tokens",
+        )
+        if isinstance(prices, dict):
+            require(
+                errors,
+                all(
+                    not isinstance(value, bool)
+                    and isinstance(value, (int, float))
+                    and math.isfinite(value)
+                    and value >= 0
+                    for value in prices.values()
+                ),
+                f"{model_id}: prices must be finite non-negative numbers",
+            )
     for field in ("contextWindow", "maxPromptChars", "maxCompletionTokens"):
         value = model.get(field)
         require(errors, isinstance(value, int) and value > 0, f"{model_id}: {field} must be a positive integer")
@@ -160,6 +209,9 @@ def routing_models_for_allowlist(models: dict[str, dict[str, Any]], allowlist: l
                 "estimatedCharsPerToken": model.get("estimatedCharsPerToken"),
             }
         )
+        for field in ("connection", "pricing", "aliases", "fallbacks", "canary", "shadow"):
+            if field in model:
+                routing[-1][field] = model[field]
     return routing
 
 
@@ -243,7 +295,11 @@ def validate_promotion_requests(models: dict[str, dict[str, Any]], allowlists: d
             requested_accels = set(spec.get("accelerators", []))
             catalog_accels = set(model.get("accelerators", []))
             require(errors, requested_accels == catalog_accels, f"{rel(path)}: accelerators must match catalog accelerators")
-            require(errors, str(path.relative_to(ROOT)) == model.get("promotionRequest"), f"{model_id}: catalog promotionRequest must point at {rel(path)}")
+            require(
+                errors,
+                path.relative_to(ROOT).as_posix() == model.get("promotionRequest"),
+                f"{model_id}: catalog promotionRequest must point at {rel(path)}",
+            )
         evidence = spec.get("evidence", {})
         for field in ("evalSuite", "evalSummary", "loadTestSummary", "securityWorkflow"):
             evidence_path = evidence.get(field)

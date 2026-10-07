@@ -8,6 +8,15 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- Governed OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, and Vertex Gemini routes in
+  the existing model catalog, with Secret/env credentials, per-route input/output prices,
+  provider usage totals, and hash-covered provider/cost receipts. Ordered fallback now
+  also applies to Messages, Responses, and synchronous batch items; batch items and
+  shadow calls receive their own budget settlement and receipts.
+- Tenant/request data classification restricts confidential and restricted data to
+  local routes, including canary, shadow, fallback, cache, stored Responses, and batch
+  replay. Refusals return explicit receipted errors. Compose smoke exercises all five
+  cloud adapters with local protocol fakes and synthetic prices; no cloud credentials.
 - Publish [strict release evidence](results/release-gate/release-gate-20261006T200025Z.md)
   for source `09fba97e76c001c56ecb48deb02afd1e9f1105d3` on 2026-10-06: all 12 gates
   passed with current, non-sample inputs inside the 24-hour freshness window.

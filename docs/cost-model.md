@@ -24,15 +24,33 @@ Before pricing the deployment, choose the model and reduce or increase the GPU c
 
 ## Gateway usage estimate
 
-`GET /v1/usage` reports the gateway's estimated token count for a sandbox. When `USD_PER_1K_TOKENS` is set, it also returns:
+`GET /v1/usage` reports the sandbox's settled token counters and a `providers` breakdown
+of measured input/output/total tokens, requests, and estimated cost in the budget window.
+The same memory or Redis budget store holds these counters. Receipts record the selected
+provider, measured usage, applied prices, and `estimated_cost_usd`; Prometheus exports
+cost by sandbox and provider. Cache hits add no usage or cost. Shadow calls are separately
+reserved, settled, and receipted.
+
+Cloud catalog entries require explicit `pricing.inputUsdPer1kTokens` and
+`pricing.outputUsdPer1kTokens`. Rates are operator-supplied USD prices; the catalog
+ships proposed templates with zero placeholders, not current provider prices:
 
 ```text
-estimated_cost = estimated_tokens / 1000 * usd_per_1k_tokens
+estimated_cost_usd = (prompt_tokens * input_rate + completion_tokens * output_rate) / 1000
 ```
 
-The default rate is `0.0`. The operator supplies the rate.
+Unpriced local routes retain `USD_PER_1K_TOKENS` (default `0.0`). When measured usage
+exists, `/v1/usage` sums recorded costs instead of multiplying mixed-provider tokens
+by one rate. Otherwise the legacy estimate remains available. Token reservations stay
+conservative when a runtime does not report usage. Accounting-store failures appear as
+`usage_accounting: backend_unavailable` in receipts so exported receipts can reconcile
+missing counters.
 
-This is not billing data. The gateway estimates tokens from prompt characters and requested completion limits; it does not read GPU power, node invoices, storage charges, or provider metering. Use the endpoint for a consistent internal estimate only after deriving a rate from measured throughput and the real cost base.
+This remains an estimate, not a provider invoice. Anthropic cache read/write tokens are
+counted as input at the configured input rate; tiered, cache-specific, and discounted
+pricing are not modeled. Failed attempts/retries may consume provider capacity without
+reporting tokens. Configure contracted rates and reconcile against provider billing.
+The Compose fake prices are synthetic.
 
 ## Budgets and chargeback labels
 

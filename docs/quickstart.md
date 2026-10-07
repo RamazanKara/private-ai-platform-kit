@@ -31,6 +31,12 @@ Walk through the governed request path:
 make compose-smoke
 ```
 
+The walkthrough also exercises all five cloud adapters against the bundled local
+`cloud-fake` service, including streaming, overload fallback, confidential-data
+refusal, credential blocking, and per-provider accounting. The `demo-*` models and
+their prices are synthetic fixtures; no provider account, real credential, or external
+inference request is used. The ordinary Ollama completion still uses a real local model.
+
 The script sends real requests and exits non-zero at the first one that misbehaves. A passing
 run ends with:
 

@@ -2,7 +2,7 @@ import base64
 import hmac
 import json
 
-from app.budget import REDIS_SETTLE_SCRIPT
+from app.budget import REDIS_SETTLE_SCRIPT, REDIS_USAGE_SCRIPT
 from app.settings import Settings
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, padding
@@ -86,6 +86,11 @@ class FakeRedisBudgetStore:
         return True
 
     def eval(self, script, numkeys, key, *args):
+        if script == REDIS_USAGE_SCRIPT:
+            counters = self.data.setdefault(key, {})
+            for name, value in zip(args[1::2], args[2::2], strict=True):
+                counters[name] = counters.get(name, 0) + value
+            return 1
         # The tracker runs two Lua scripts against this client; dispatch on which one so
         # the fake keeps the same reserve/settle split as the real backend.
         if script is REDIS_SETTLE_SCRIPT or "HSET" in script:
@@ -130,7 +135,7 @@ class FakeRedisBudgetStore:
         for field, limit, reason, label in checks:
             if limit > 0 and proposed[field] > limit:
                 return [0, reason, label, proposed[field], limit]
-        self.data[key] = proposed
+        self.data[key] = {**current, **proposed}
         return [
             1,
             proposed["requests"],

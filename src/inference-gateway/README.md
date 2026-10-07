@@ -2,7 +2,9 @@
 
 This FastAPI service exposes the governed inference APIs. It authenticates callers,
 applies sandbox and model policy, reserves and settles budgets, routes requests to
-Ollama or vLLM, and emits metrics and redacted audit receipts.
+Ollama, vLLM, or approved cloud providers, and emits metrics and redacted audit receipts.
+See [model selection](../../docs/model-selection.md#cloud-routes-unreleased) for provider
+connections, prices, ordered fallback, and tenant/request classification rules.
 
 Use the [developer workflow](../../docs/development.md) for environment setup and
 the [feature inventory](../../docs/feature-inventory.md) for supported API behavior.
@@ -17,7 +19,7 @@ the [feature inventory](../../docs/feature-inventory.md) for supported API behav
 | Chat, completions, embeddings, and moderations | [inference_api.py](app/inference_api.py), [schemas.py](app/schemas.py) |
 | Messages and Responses protocols | [messages_api.py](app/messages_api.py), [messages.py](app/messages.py), [responses_api.py](app/responses_api.py), [responses.py](app/responses.py) |
 | Files and asynchronous Batch jobs | [batch_api.py](app/batch_api.py), [batch_worker.py](app/batch_worker.py), [batchstore.py](app/batchstore.py) |
-| Runtime transport, fallback, and streaming | [runtime_client.py](app/runtime_client.py), [runtime_routing.py](app/runtime_routing.py), [streaming.py](app/streaming.py) |
+| Runtime transport, fallback, and streaming | [runtime_client.py](app/runtime_client.py), [runtime_routing.py](app/runtime_routing.py), [streaming.py](app/streaming.py), [cloud_providers.py](app/cloud_providers.py) |
 | Configuration and model/sandbox policy | [settings.py](app/settings.py), [env_config.py](app/env_config.py), [policy.py](app/policy.py) |
 | Audit and agent-action receipts | [audit.py](app/audit.py), [receipts.py](app/receipts.py), [sandbox_api.py](app/sandbox_api.py) |
 | Persistence and caching | [objectstore.py](app/objectstore.py), [objectstore_s3.py](app/objectstore_s3.py), [response_store.py](app/response_store.py), [cache.py](app/cache.py) |

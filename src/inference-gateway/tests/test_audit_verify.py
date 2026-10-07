@@ -91,14 +91,14 @@ def test_verifier_dedups_and_verifies_live_gateway_chain(caplog):
     events = verifier.extract_audit_events(lines)
     deduped = verifier.deduplicate(events)
     assert len(events) == 2 * len(deduped)
-    assert len(deduped) == 4  # three inference_request + one batch_request
+    assert len(deduped) == 6  # three calls, two governed batch items, and the batch summary
 
     chains = verifier.group_into_chains(deduped)
     assert len(chains) == 1
     assert chains[0].chain_id == app.state.audit_chain_id
     result = verifier.verify_chain(chains[0])
     assert result.ok
-    assert result.count == 4
+    assert result.count == 6
 
 
 def test_verifier_detects_tampered_record(caplog):

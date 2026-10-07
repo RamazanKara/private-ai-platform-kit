@@ -147,6 +147,7 @@ async def _bind_batch_replay(request: Request) -> JSONResponse | None:
         return _sandbox_binding_response(request, "batch_replay_not_authorized")
     request.state.sandbox_id = tenant
     request.state.sandbox_bound = True
+    request.state.data_classification = record.data_classification
     principal = dict(getattr(request.state, "principal", None) or {})
     principal["batch_id"] = batch_id
     if record.submitted_by:

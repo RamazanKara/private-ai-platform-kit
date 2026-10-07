@@ -207,3 +207,114 @@ data:
             reviewedAt: '2026-09-23'
           notes: Current DeepSeek Flash candidate with a 552B backbone and specialized serving requirements. Context
             records upstream configuration, not validated capacity in this kit.
+        # Operator templates only: no cloud model is approved or enabled by default.
+        - id: cloud-openai
+          runtime: openai
+          owner: platform-team
+          status: proposed
+          stage: operator-template
+          riskTier: medium
+          dataClassification: internal
+          license: provider-terms
+          source: openai
+          accelerators: []
+          contextWindow: 8192
+          maxPromptChars: 8192
+          maxCompletionTokens: 1024
+          estimatedCharsPerToken: 4
+          connection:
+            baseUrl: https://api.openai.com/v1
+            model: REPLACE_WITH_APPROVED_MODEL
+            credentialEnv: OPENAI_API_KEY
+          pricing:
+            inputUsdPer1kTokens: 0
+            outputUsdPer1kTokens: 0
+          notes: Template limits and zero prices are placeholders; supply an approved model/deployment, region, prices, and evidence before promotion.
+        - id: cloud-anthropic
+          runtime: anthropic
+          owner: platform-team
+          status: proposed
+          stage: operator-template
+          riskTier: medium
+          dataClassification: internal
+          license: provider-terms
+          source: anthropic
+          accelerators: []
+          contextWindow: 8192
+          maxPromptChars: 8192
+          maxCompletionTokens: 1024
+          estimatedCharsPerToken: 4
+          connection:
+            baseUrl: https://api.anthropic.com/v1
+            model: REPLACE_WITH_APPROVED_MODEL
+            credentialEnv: ANTHROPIC_API_KEY
+          pricing:
+            inputUsdPer1kTokens: 0
+            outputUsdPer1kTokens: 0
+          notes: Template limits and zero prices are placeholders; supply an approved model/deployment, region, prices, and evidence before promotion.
+        - id: cloud-azure-openai
+          runtime: azure-openai
+          owner: platform-team
+          status: proposed
+          stage: operator-template
+          riskTier: medium
+          dataClassification: internal
+          license: provider-terms
+          source: azure-openai
+          accelerators: []
+          contextWindow: 8192
+          maxPromptChars: 8192
+          maxCompletionTokens: 1024
+          estimatedCharsPerToken: 4
+          connection:
+            baseUrl: https://YOUR-RESOURCE.openai.azure.com/openai/v1
+            model: REPLACE_WITH_APPROVED_MODEL
+            credentialEnv: AZURE_OPENAI_API_KEY
+          pricing:
+            inputUsdPer1kTokens: 0
+            outputUsdPer1kTokens: 0
+          notes: Template limits and zero prices are placeholders; supply an approved model/deployment, region, prices, and evidence before promotion.
+        - id: cloud-bedrock
+          runtime: bedrock
+          owner: platform-team
+          status: proposed
+          stage: operator-template
+          riskTier: medium
+          dataClassification: internal
+          license: provider-terms
+          source: bedrock
+          accelerators: []
+          contextWindow: 8192
+          maxPromptChars: 8192
+          maxCompletionTokens: 1024
+          estimatedCharsPerToken: 4
+          connection:
+            baseUrl: https://bedrock-runtime.us-east-1.amazonaws.com
+            model: REPLACE_WITH_APPROVED_MODEL
+            credentialEnv: AWS_BEARER_TOKEN_BEDROCK
+          pricing:
+            inputUsdPer1kTokens: 0
+            outputUsdPer1kTokens: 0
+          notes: Template limits and zero prices are placeholders; supply an approved model/deployment, region, prices, and evidence before promotion.
+        - id: cloud-vertex
+          runtime: vertex
+          owner: platform-team
+          status: proposed
+          stage: operator-template
+          riskTier: medium
+          dataClassification: internal
+          license: provider-terms
+          source: vertex
+          accelerators: []
+          contextWindow: 8192
+          maxPromptChars: 8192
+          maxCompletionTokens: 1024
+          estimatedCharsPerToken: 4
+          connection:
+            baseUrl: https://us-central1-aiplatform.googleapis.com/v1/projects/YOUR-PROJECT/locations/us-central1/endpoints/openapi
+            model: REPLACE_WITH_APPROVED_MODEL
+            credentialEnv: VERTEX_ACCESS_TOKEN
+          pricing:
+            inputUsdPer1kTokens: 0
+            outputUsdPer1kTokens: 0
+          notes: Template limits and zero prices are placeholders; supply an approved model/deployment, region, prices, and evidence before promotion.

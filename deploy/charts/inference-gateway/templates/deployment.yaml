@@ -38,6 +38,13 @@ spec:
           image: {{ include "inference-gateway.image" .Values.image | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            {{- range .Values.providerCredentials }}
+            - name: {{ .env | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secretName | quote }}
+                  key: {{ .secretKey | quote }}
+            {{- end }}
             - name: RUNTIME_BACKEND
               value: {{ .Values.runtime.backend | quote }}
             - name: MODEL_ID

@@ -52,6 +52,7 @@ class MessagesRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     model: str | None = None
+    data_classification: str | None = None
     messages: list[dict[str, Any]]
     system: str | list[dict[str, Any]] | None = None
     max_tokens: int
@@ -286,6 +287,8 @@ def anthropic_to_chat_payload(request: MessagesRequest) -> dict[str, Any]:
     translated_choice = _translate_tool_choice(payload.get("tool_choice"))
     if translated_choice is not None:
         chat_payload["tool_choice"] = translated_choice
+    if request.data_classification is not None:
+        chat_payload["data_classification"] = request.data_classification
     return chat_payload
 
 

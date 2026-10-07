@@ -51,11 +51,22 @@ services:
       - "127.0.0.1:${PAK_GATEWAY_PORT:-8080}:8080"
     volumes:
       - ./key-records.yaml:/etc/private-ai-platform-kit/key-records.yaml:ro
+      - ./model-routing.yaml:/etc/private-ai-platform-kit/model-routing.yaml:ro
+    # Render the local model override in tmpfs, keeping the image and template read-only.
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        python -c 'import os,yaml; p=yaml.safe_load(open("/etc/private-ai-platform-kit/model-routing.yaml")); p["spec"]["models"][0]["id"]=os.environ["MODEL_ID"]; open("/tmp/model-routing.yaml","w").write(yaml.safe_dump(p))'
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8080
     environment:
       RUNTIME_BACKEND: ollama
       OLLAMA_BASE_URL: http://ollama:11434
       MODEL_ID: ${PAK_MODEL:-qwen2.5:0.5b}
-      ALLOWED_MODELS: ${PAK_MODEL:-qwen2.5:0.5b}
+      ALLOWED_MODELS: ${PAK_MODEL:-qwen2.5:0.5b},demo-openai,demo-anthropic,demo-azure-openai,demo-bedrock,demo-vertex,demo-overload
+      MODEL_ROUTING_POLICY_PATH: /tmp/model-routing.yaml
+      VLLM_BASE_URL: http://cloud-fake:8000/local-overload
+      COMPOSE_PROVIDER_KEY: compose-fake-only
       DEFAULT_SANDBOX_ID: demo
       # Every request needs a key. The demo key "local-development-only" is a key record
       # bound to the `demo` sandbox with its own token budget; see key-records.yaml.
@@ -74,6 +85,8 @@ services:
       ADMIN_CONSOLE_ENABLED: "true"
       AUDIT_LOG_ENABLED: "true"
     depends_on:
+      cloud-fake:
+        condition: service_started
       model-pull:
         condition: service_completed_successfully
     healthcheck:
@@ -87,6 +100,16 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
+
+  cloud-fake:
+    image: *gateway-image
+    pull_policy: never
+    command: ["python", "/fixtures/cloud-fake.py"]
+    volumes:
+      - ./cloud-fake.py:/fixtures/cloud-fake.py:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
 
   rag-service:
     build:

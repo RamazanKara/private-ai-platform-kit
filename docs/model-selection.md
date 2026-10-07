@@ -1,5 +1,104 @@
 # Model selection and updates
 
+## Cloud routes (unreleased)
+
+The gateway supports `openai`, `anthropic`, `azure-openai`, `bedrock`, and `vertex`
+alongside `ollama` and `vllm`. Cloud templates in the existing model catalog are
+**proposed**, with placeholder model IDs, limits, and prices. They enable no external
+traffic. Review provider terms, region, retention, model limits, and input/output
+prices, then use the existing promotion workflow. `MODEL_ROUTING_POLICY_PATH` accepts
+a `ModelCatalog` (only `status: approved` entries) or the existing `ModelRoutingPolicy`.
+The catalog checker carries `connection`, `pricing`, and routing fields into the
+approved environment's `routing.policy.models`.
+
+An operator's Helm/GitOps values can contain:
+
+```yaml
+runtime:
+  modelId: qwen2.5:0.5b
+  allowedModels: [qwen2.5:0.5b, approved-cloud]
+providerCredentials:
+  - env: OPENAI_API_KEY
+    secretName: model-provider-credentials
+    secretKey: openai-api-key
+routing:
+  policy:
+    enabled: true
+    models:
+      - id: qwen2.5:0.5b
+        backend: ollama
+        fallbacks: [approved-cloud]
+      - id: approved-cloud
+        backend: openai
+        connection:
+          baseUrl: https://api.openai.com/v1
+          model: YOUR_APPROVED_MODEL_ID
+          credentialEnv: OPENAI_API_KEY
+        pricing:
+          inputUsdPer1kTokens: 0 # replace with your contracted rate
+          outputUsdPer1kTokens: 0 # replace with your contracted rate
+sandboxPolicy:
+  policy:
+    enabled: true
+    policies:
+      - sandboxId: private-team
+        dataClassification: confidential
+```
+
+Create the referenced Secret using your existing secret backend; do not put credential
+values in Git, catalog entries, Helm values, or client requests. Each connection reads
+only its named environment variable. Credential-bearing URLs and inline credential
+fields are rejected. Use HTTPS for real providers. The gateway's default NetworkPolicy
+still denies external egress: provision an approved HTTPS egress policy for the
+gateway namespace through the existing egress catalog, or route through an internal
+egress proxy permitted by `networkPolicy.runtimeEgress`. Workspaces retain their
+default-deny boundary and receive no provider credentials.
+
+| Backend | `connection.baseUrl` | `connection.model` / credential environment |
+| --- | --- | --- |
+| `openai` | `https://api.openai.com/v1` | Approved model ID / `OPENAI_API_KEY` |
+| `anthropic` | `https://api.anthropic.com/v1` | Approved Claude model ID / `ANTHROPIC_API_KEY` |
+| `azure-openai` | `https://RESOURCE.openai.azure.com/openai/v1` | Azure deployment name / `AZURE_OPENAI_API_KEY` |
+| `bedrock` | `https://bedrock-runtime.REGION.amazonaws.com` | Bedrock model ID or inference profile / `AWS_BEARER_TOKEN_BEDROCK` |
+| `vertex` | `https://REGION-aiplatform.googleapis.com/v1/projects/PROJECT/locations/REGION/endpoints/openapi` | `google/APPROVED_GEMINI_MODEL` / `VERTEX_ACCESS_TOKEN` |
+
+These adapters use [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create),
+[Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create),
+[Azure's v1 API](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/switching-endpoints),
+[Bedrock Converse](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html)
+with a [Bedrock bearer API key](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html),
+and [Vertex's OpenAI-compatible API](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/samples/generativeaionvertexai-gemini-chat-completions-non-streaming).
+Vertex needs an OAuth access token; the operator must refresh it and roll the gateway
+when an environment-backed Secret changes. Automatic credential acquisition/refresh
+and AWS SigV4 are not implemented. Readiness checks cloud credential presence, not
+provider availability or account permissions; actual calls use the shared circuit
+breaker and retry policy.
+
+All five support chat, function tools, and streaming through Chat and Messages;
+Responses and synchronous batch items retain non-streaming behavior. Anthropic and Bedrock
+adapters accept text and function tools; unsupported modalities/parameters receive an
+explicit, receipted 400. OpenAI and Azure also proxy embeddings and legacy completions.
+The other adapters reject those endpoints explicitly. Model-specific API restrictions
+still apply. No live cloud credential or paid call is needed for the provider tests or
+Compose walkthrough.
+
+`fallbacks` is an ordered preference: put a local route first for local preference,
+or a cloud route first for cloud preference. Chat, Messages, Responses, and synchronous
+batch items try the next permitted route on upstream overload (429/5xx), connection
+failure, or an open circuit. Ordinary 4xx errors never fall back; streaming fallback
+stops once output begins. Gateway-wide load shedding still returns 503 before routing.
+Embeddings and legacy completions retain single-route behavior.
+
+Set `data_classification: confidential` in an inference body, or send
+`X-Data-Classification: confidential`. Tenant `dataClassification` is a floor: neither
+a body nor a header can lower it. Values are `public`, `internal`, `confidential`, and
+`restricted`; the last two permit **only local routes**, including fallback, canary,
+shadow, and cache selection. If no eligible local route can serve the request, the
+gateway returns `403 data_classification_denied` with a hash-chained refusal receipt.
+Stored Responses and uploaded batch files/jobs preserve the floor during chaining and
+replay. Bind tenant identity to a key record or verified JWT claim for this to be a
+tenant security boundary.
+
 Model metadata was reviewed against the publishers' repositories on **2026-09-23**
 for the v0.29.0 release. The catalog separates models approved for the existing lab
 profiles from newer candidates that still need evaluation.

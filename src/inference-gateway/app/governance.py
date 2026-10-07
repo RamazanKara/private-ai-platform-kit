@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 from dataclasses import dataclass, field, replace
 from time import perf_counter
 from typing import Any, Literal
@@ -35,7 +36,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.audit import write_audit_log
 from app.batchstore import BatchStoreError
-from app.budget import BudgetBackendError, BudgetReservation, SandboxBudgetTracker
+from app.budget import BudgetBackendError, BudgetReservation, SandboxBudgetTracker, actual_total_tokens
 from app.metrics import (
     ADMISSION_REJECTIONS,
     BUDGET_SETTLED_TOKENS,
@@ -52,7 +53,7 @@ from app.metrics import (
 from app.metrics import (
     sandbox_label as _sandbox_label,
 )
-from app.policy import ModelRoutingPolicy, SandboxPolicySet
+from app.policy import DATA_CLASSIFICATIONS, LOCAL_BACKENDS, ModelRoute, ModelRoutingPolicy, SandboxPolicySet
 from app.response_store import ResponseStoreError
 from app.settings import AdmissionPolicyError, Settings
 
@@ -114,12 +115,24 @@ class governed:
 
     async def __aenter__(self) -> GovernedCall:
         self._request.state.budget_reservation = None
+        self._request.state.budget_reservation_object = None
+        self._request.state.budget_settlement = None
+        self._request.state.budget_settled = False
+        self._request.state.usage_cost = None
+        self._request.state.usage_accounting = None
+        self._request.state.applied_prices = None
+        self._request.state.routing_attempts = []
+        self._request.state.output_guardrail_action = None
+        self._request.state.prompt_guardrail_action = None
         return self.call
 
     # Literal[False], not bool: the rail never suppresses an exception, and the narrower
     # type is what lets mypy prove that code after an ``async with`` raise is unreachable.
     async def __aexit__(self, exc_type: Any, exc: BaseException | None, traceback: Any) -> Literal[False]:
         request, settings, call = self._request, self._settings, self.call
+        selected = getattr(request.state, "selected_route", None)
+        if selected is not None:
+            call.backend = selected.backend
         try:
             if exc is None:
                 return False
@@ -236,9 +249,6 @@ class governed:
         LATENCY.labels(call.route, call.backend).observe(latency_seconds)
         if not call.cache_hit:
             record_token_usage(call.backend, call.runtime_response)
-            record_estimated_cost(
-                settings, request.state.sandbox_id, call.backend, (call.runtime_response or {}).get("usage")
-            )
         await settle_and_audit(
             settings,
             request,
@@ -280,7 +290,6 @@ async def record_stream_end(
     LATENCY.labels(route, backend).observe(latency_seconds)
     usage_response = {"usage": usage} if usage is not None else None
     record_token_usage(backend, usage_response)
-    record_estimated_cost(settings, request.state.sandbox_id, backend, usage)
     if settings.output_guardrail_enabled and guardrail_text:
         patterns, terms = settings.output_findings(guardrail_text)
         if patterns or terms:
@@ -314,7 +323,86 @@ def resolve_single_route(request: Request, settings: Settings, payload_dict: dic
     except ValueError as exc:
         raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
     payload_dict["model"] = model_route.model_id
+    request.state.selected_route = model_route
+    effective.validate_model(model_route.model_id)
+    classification = request_classification(request, payload_dict)
+    if classification in {"confidential", "restricted"} and model_route.backend not in LOCAL_BACKENDS:
+        raise AdmissionPolicyError("data_classification_denied", "confidential data requires an eligible local model")
+    if (
+        "prompt" in payload_dict
+        and model_route.backend not in LOCAL_BACKENDS
+        and not any(key in payload_dict for key in ("max_tokens", "max_completion_tokens"))
+    ):
+        payload_dict["max_tokens"] = effective.max_completion_tokens
     return route_settings(effective, model_route), model_route
+
+
+def request_classification(request: Request, payload: dict[str, Any]) -> str:
+    policies: SandboxPolicySet = request.app.state.sandbox_policy_set
+    tenant = policies.policies.get(request.state.sandbox_id)
+    values = [
+        tenant.data_classification if tenant else "internal",
+        getattr(request.state, "data_classification", None),
+        request.headers.get("x-data-classification"),
+        payload.pop("data_classification", None),
+    ]
+    if any(value is not None and value not in DATA_CLASSIFICATIONS for value in values):
+        raise AdmissionPolicyError(
+            "invalid_data_classification", "data classification must be public, internal, confidential, or restricted"
+        )
+    classification = max((value for value in values if value is not None), key=DATA_CLASSIFICATIONS.index)
+    request.state.data_classification = classification
+    return classification
+
+
+def route_permitted(request: Request, effective: Settings, route: ModelRoute) -> bool:
+    return (not effective.allowed_models or route.model_id in effective.allowed_models) and (
+        getattr(request.state, "data_classification", "internal") not in {"confidential", "restricted"}
+        or route.backend in LOCAL_BACKENDS
+    )
+
+
+def resolve_chat_routes(
+    request: Request, settings: Settings, payload: dict[str, Any], *, progressive: bool = False
+) -> tuple[Settings, list[ModelRoute], ModelRoute | None]:
+    policy: ModelRoutingPolicy = request.app.state.model_routing_policy
+    effective = effective_settings(request, request.app.state.sandbox_policy_set, settings)
+    try:
+        chain = policy.resolve_chain(payload.get("model"), effective.model_id)
+    except ValueError as exc:
+        raise AdmissionPolicyError("model_not_allowed", str(exc)) from exc
+    primary = chain[0]
+    request.state.selected_route = primary
+    payload["model"] = primary.model_id
+    effective.validate_model(primary.model_id)
+    request_classification(request, payload)
+    shadow = policy.shadow_target(primary) if progressive and not payload.get("stream") else None
+    if shadow is not None and not route_permitted(request, effective, shadow):
+        shadow = None
+    if progressive:
+        canary = policy.canary_target(primary, random.random())
+        if canary != primary and route_permitted(request, effective, canary):
+            from app.metrics import CANARY_ROUTED
+
+            CANARY_ROUTED.labels(primary.model_id, canary.model_id).inc()
+            chain[0] = canary
+    request.state.classification_blocked_routes = [
+        {"provider": route.backend, "model": route.model_id}
+        for route in chain
+        if request.state.data_classification in {"confidential", "restricted"} and route.backend not in LOCAL_BACKENDS
+    ]
+    chain = [route for route in chain if route_permitted(request, effective, route)]
+    if not chain:
+        raise AdmissionPolicyError("data_classification_denied", "confidential data requires an eligible local model")
+    payload["model"] = chain[0].model_id
+    request.state.selected_route = chain[0]
+    if any(route.backend not in LOCAL_BACKENDS for route in chain) and not any(
+        key in payload for key in ("max_tokens", "max_completion_tokens")
+    ):
+        payload["max_completion_tokens"] = effective.max_completion_tokens
+    # Reserve for the largest prompt estimate among every eligible fallback.
+    divisor = min(route.estimated_chars_per_token or effective.budget_estimated_chars_per_token for route in chain)
+    return replace(effective, budget_estimated_chars_per_token=divisor), chain, shadow
 
 
 async def reserve_budget(request: Request, effective: Settings, budget_payload: dict[str, Any]) -> None:
@@ -364,6 +452,10 @@ def route_settings(settings: Settings, model_route: Any) -> Settings:
 
 def admission_status(reason: str, settings: Settings) -> tuple[int, dict[str, str] | None]:
     """Map an admission-rejection reason to its HTTP status and retry headers."""
+    if reason == "data_classification_denied":
+        return 403, None
+    if reason == "provider_not_configured":
+        return 503, None
     if reason.startswith("sandbox_") and reason.endswith("_exceeded"):
         headers = None
         if settings.sandbox_budget_window_seconds > 0:
@@ -406,21 +498,27 @@ def record_token_usage(backend: str, runtime_response: dict[str, Any] | None) ->
             TOKEN_USAGE.labels(backend, token_type).inc(value)
 
 
-def record_estimated_cost(settings: Settings, sandbox_id: str, backend: str, usage: dict[str, Any] | None) -> None:
-    """Increment the estimated-cost counter from runtime token usage.
-
-    Exposes the same USD_PER_1K_TOKENS cost model used by ``/v1/usage`` as a Prometheus
-    series so per-sandbox/backend spend is visualizable (FinOps/chargeback) rather than
-    only readable as an ad-hoc JSON field. A zero rate leaves the cost model off.
-    """
-    if settings.usd_per_1k_tokens <= 0 or not isinstance(usage, dict):
-        return
-    total_tokens = usage.get("total_tokens")
-    if not isinstance(total_tokens, (int, float)) or total_tokens < 0:
-        return
-    cost = (total_tokens / 1000.0) * settings.usd_per_1k_tokens
+def record_estimated_cost(
+    settings: Settings,
+    sandbox_id: str,
+    backend: str,
+    usage: dict[str, Any] | None,
+    model_route: ModelRoute | None = None,
+) -> float:
+    if not isinstance(usage, dict):
+        return 0.0
+    input_price = model_route.input_usd_per_1k_tokens if model_route else None
+    output_price = model_route.output_usd_per_1k_tokens if model_route else None
+    if input_price is None or output_price is None:
+        total = actual_total_tokens(usage) or 0
+        cost = total / 1000.0 * settings.usd_per_1k_tokens
+    else:
+        prompt = usage.get("prompt_tokens", 0)
+        completion = usage.get("completion_tokens", 0)
+        cost = (prompt * input_price + completion * output_price) / 1000.0
     if cost > 0:
         ESTIMATED_COST.labels(_sandbox_label(sandbox_id), backend).inc(cost)
+    return cost
 
 
 def record_budget_reservation(reservation: BudgetReservation | None, settings: Settings) -> None:
@@ -509,6 +607,23 @@ async def settle_and_audit(
     keeps the correction and its evidence from ever diverging.
     """
     await settle_budget(request, runtime_response)
+    usage = (runtime_response or {}).get("usage")
+    selected = getattr(request.state, "selected_route", None)
+    if selected and selected.input_usd_per_1k_tokens is not None:
+        request.state.applied_prices = {
+            "input_usd_per_1k_tokens": selected.input_usd_per_1k_tokens,
+            "output_usd_per_1k_tokens": selected.output_usd_per_1k_tokens,
+        }
+    if getattr(request.state, "cache_status", None) == "HIT":
+        request.state.usage_cost = 0.0
+    elif isinstance(usage, dict) and actual_total_tokens(usage) is not None:
+        cost = record_estimated_cost(settings, request.state.sandbox_id, backend, usage, selected)
+        request.state.usage_cost = cost
+        tracker: SandboxBudgetTracker = request.app.state.budget_tracker
+        try:
+            await asyncio.to_thread(tracker.record_usage, request.state.sandbox_id, backend, usage, cost)
+        except BudgetBackendError:
+            request.state.usage_accounting = "backend_unavailable"
     write_audit_log(
         settings,
         request,

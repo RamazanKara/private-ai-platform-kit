@@ -16,7 +16,7 @@ from fastapi import FastAPI, HTTPException, Request
 
 from app.audit import chain_audit_event, emit_audit_record
 from app.budget import BudgetBackendError, SandboxBudgetTracker
-from app.governance import effective_settings
+from app.governance import effective_settings, route_permitted
 from app.metrics import AGENT_RECEIPTS, REQUESTS
 from app.policy import ModelRoutingPolicy, SandboxPolicySet
 from app.receipts import ReceiptRequest, build_receipt_event, validate_receipt
@@ -80,6 +80,9 @@ def register_sandbox_routes(app: FastAPI, settings: Settings) -> None:
         usage = snapshot.get("usage") or {}
         estimated_tokens = usage.get("estimated_tokens", 0) if isinstance(usage, dict) else 0
         estimated_cost = round((estimated_tokens / 1000.0) * settings.usd_per_1k_tokens, 6)
+        providers = snapshot.get("providers") or {}
+        if providers:
+            estimated_cost = round(sum(provider["estimated_cost"] for provider in providers.values()), 9)
         return {
             "sandbox_id": request.state.sandbox_id,
             "usage": usage,
@@ -87,6 +90,7 @@ def register_sandbox_routes(app: FastAPI, settings: Settings) -> None:
             "estimated_cost": estimated_cost,
             "currency": settings.cost_currency,
             "usd_per_1k_tokens": settings.usd_per_1k_tokens,
+            "providers": providers,
         }
 
     @app.get(
@@ -101,8 +105,11 @@ def register_sandbox_routes(app: FastAPI, settings: Settings) -> None:
         # List what this caller may actually call: the gateway allowlist narrowed by the
         # sandbox policy. Advertising a model that then fails with model_not_allowed sends
         # SDK auto-discovery (and tools that pick the first listed model) down a dead end.
-        allowed = effective_settings(request, app.state.sandbox_policy_set, settings).allowed_models
-        data = [entry for entry in policy.openai_models() if not allowed or entry["id"] in allowed]
+        effective = effective_settings(request, app.state.sandbox_policy_set, settings)
+        tenant_policy = app.state.sandbox_policy_set.policies.get(request.state.sandbox_id)
+        request.state.data_classification = tenant_policy.data_classification if tenant_policy else "internal"
+        allowed = {route.model_id for route in policy.routes if route_permitted(request, effective, route)}
+        data = [entry for entry in policy.openai_models() if entry["id"] in allowed]
         return {"object": "list", "data": data}
 
     @app.post(

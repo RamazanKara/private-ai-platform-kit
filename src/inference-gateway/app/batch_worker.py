@@ -128,6 +128,7 @@ async def _replay_line(
     if not isinstance(body, dict):
         return _error_item(custom_id, "invalid_body", "request line 'body' must be a JSON object")
     headers = {"X-Sandbox-ID": record.tenant, "X-Batch-ID": record.id, "Content-Type": "application/json"}
+    headers["X-Data-Classification"] = record.data_classification
     if config.api_key:
         headers[config.api_key_header] = config.api_key
     try:

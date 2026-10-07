@@ -1,0 +1,46 @@
+apiVersion: platform.ai/v1alpha1
+kind: ModelRoutingPolicy
+spec:
+  models:
+    - id: qwen2.5:0.5b
+      backend: ollama
+    - id: demo-overload
+      backend: vllm
+      fallbacks: [demo-openai]
+    - id: demo-openai
+      backend: openai
+      connection:
+        baseUrl: http://cloud-fake:8000/openai/v1
+        model: fixture-model
+        credentialEnv: COMPOSE_PROVIDER_KEY
+      pricing: &fixture-pricing
+        inputUsdPer1kTokens: 1
+        outputUsdPer1kTokens: 3
+    - id: demo-anthropic
+      backend: anthropic
+      connection:
+        baseUrl: http://cloud-fake:8000/anthropic/v1
+        model: fixture-model
+        credentialEnv: COMPOSE_PROVIDER_KEY
+      pricing: *fixture-pricing
+    - id: demo-azure-openai
+      backend: azure-openai
+      connection:
+        baseUrl: http://cloud-fake:8000/azure-openai/openai/v1
+        model: fixture-deployment
+        credentialEnv: COMPOSE_PROVIDER_KEY
+      pricing: *fixture-pricing
+    - id: demo-bedrock
+      backend: bedrock
+      connection:
+        baseUrl: http://cloud-fake:8000/bedrock
+        model: fixture-model
+        credentialEnv: COMPOSE_PROVIDER_KEY
+      pricing: *fixture-pricing
+    - id: demo-vertex
+      backend: vertex
+      connection:
+        baseUrl: http://cloud-fake:8000/vertex/v1/projects/fixture/locations/local/endpoints/openapi
+        model: google/fixture-gemini
+        credentialEnv: COMPOSE_PROVIDER_KEY
+      pricing: *fixture-pricing

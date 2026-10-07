@@ -22,6 +22,7 @@ The gateway supports API-key hashes and JWT/JWKS verification. Key records can a
 Before forwarding an inference request, the gateway can enforce:
 
 - allowed model IDs and routing policy;
+- tenant/request classification: confidential and restricted data stay on local routes;
 - message, prompt, tool, completion, and batch size limits;
 - per-sandbox rate and estimated-token budgets;
 - input credential-pattern detection;
@@ -48,6 +49,13 @@ The projected platform token is short-lived and audience-bound, but it is still 
 ## Audit records
 
 The gateway audit event stores request metadata and hashes rather than raw prompt or completion text. Records are linked into a per-process hash chain.
+
+Cloud calls use the same controls and record the selected provider, routing attempts,
+classification, usage, and estimated cost on that chain. Classification refusals are
+explicit 403 receipts. Provider credentials come only from server environment variables
+or Kubernetes Secret references, never caller headers or bodies. See
+[cloud route configuration](model-selection.md#cloud-routes-unreleased) for egress,
+credential rotation, and protocol boundaries.
 
 The chain detects edits and reordering in an exported sequence. It does not by itself prevent deletion, survive a lost log stream, join replicas into one chain, or prove that the first and last records are complete. Export logs, retain the `chain_id`, and commit chain-head anchors to a separate trusted system. Use `make audit-verify` and follow the [audit-chain runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/audit-chain.md).
 

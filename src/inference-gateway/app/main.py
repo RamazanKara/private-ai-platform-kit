@@ -178,6 +178,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         else ModelRoutingPolicy.default(resolved)
     )
     app.state.sandbox_policy_set = SandboxPolicySet.from_path(resolved.sandbox_policy_path)
+    app.state.runtime_client.policy = app.state.model_routing_policy
     # Optional richer API-key records (scopes/expiry/sandbox binding/budget). Fails closed:
     # a malformed key store raises here and stops startup rather than silently disabling
     # per-key controls. No records file -> an empty set, preserving flat-hash behavior.

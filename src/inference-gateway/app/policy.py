@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, replace
+from math import isfinite
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import yaml
 
 from app.settings import Settings, validate_sandbox_id
 
-VALID_BACKENDS = {"ollama", "vllm"}
+LOCAL_BACKENDS = {"ollama", "vllm"}
+CLOUD_BACKENDS = {"openai", "anthropic", "azure-openai", "bedrock", "vertex"}
+VALID_BACKENDS = LOCAL_BACKENDS | CLOUD_BACKENDS
+DATA_CLASSIFICATIONS = ("public", "internal", "confidential", "restricted")
 
 
 @dataclass(frozen=True)
@@ -40,6 +46,11 @@ class ModelRoute:
     # Keeping the number per-model in the reviewed catalog makes it calibrated data rather
     # than a constant nobody revisits.
     estimated_chars_per_token: int = 0
+    base_url: str = ""
+    upstream_model: str = ""
+    credential_env: str = ""
+    input_usd_per_1k_tokens: float | None = None
+    output_usd_per_1k_tokens: float | None = None
 
 
 @dataclass(frozen=True)
@@ -68,8 +79,8 @@ class ModelRoutingPolicy:
             raise ValueError(f"{path} must contain a YAML mapping")
         if data.get("apiVersion") != "platform.ai/v1alpha1":
             raise ValueError("ModelRoutingPolicy apiVersion must be platform.ai/v1alpha1")
-        if data.get("kind") != "ModelRoutingPolicy":
-            raise ValueError("ModelRoutingPolicy kind must be ModelRoutingPolicy")
+        if data.get("kind") not in {"ModelRoutingPolicy", "ModelCatalog"}:
+            raise ValueError("routing manifest kind must be ModelRoutingPolicy or ModelCatalog")
         raw_models = data.get("spec", {}).get("models", [])
         if not isinstance(raw_models, list) or not raw_models:
             raise ValueError("ModelRoutingPolicy spec.models must be a non-empty list")
@@ -78,8 +89,10 @@ class ModelRoutingPolicy:
         for index, item in enumerate(raw_models):
             if not isinstance(item, dict):
                 raise ValueError(f"ModelRoutingPolicy spec.models[{index}] must be a mapping")
+            if data["kind"] == "ModelCatalog" and item.get("status") != "approved":
+                continue
             model_id = str(item.get("id") or "").strip()
-            backend = str(item.get("backend") or settings.runtime_backend).strip().lower()
+            backend = str(item.get("backend") or item.get("runtime") or settings.runtime_backend).strip().lower()
             aliases = tuple(str(alias).strip() for alias in item.get("aliases", []) if str(alias).strip())
             fallbacks = tuple(str(fb).strip() for fb in item.get("fallbacks", []) if str(fb).strip())
             canary_raw = item.get("canary")
@@ -95,6 +108,31 @@ class ModelRoutingPolicy:
                 raise ValueError(f"ModelRoutingPolicy model {model_id} backend must be one of {sorted(VALID_BACKENDS)}")
             if not 0.0 <= canary_weight <= 1.0:
                 raise ValueError(f"ModelRoutingPolicy model {model_id} canary.weight must be between 0 and 1")
+            connection = item.get("connection") or {}
+            pricing = item.get("pricing")
+            if not isinstance(connection, dict) or set(connection) - {"baseUrl", "model", "credentialEnv"}:
+                raise ValueError("model connection accepts only baseUrl, model, and credentialEnv")
+            base_url = str(connection.get("baseUrl") or "").rstrip("/")
+            upstream_model = str(connection.get("model") or "")
+            credential_env = str(connection.get("credentialEnv") or "")
+            if backend in CLOUD_BACKENDS:
+                url = urlsplit(base_url)
+                if (
+                    url.scheme not in {"http", "https"}
+                    or not url.hostname
+                    or url.username is not None
+                    or url.password is not None
+                    or url.query
+                    or url.fragment
+                ):
+                    raise ValueError("cloud connection.baseUrl must be an HTTP(S) URL without credentials or query")
+                if not upstream_model or not re.fullmatch(r"[A-Z_][A-Z0-9_]*", credential_env):
+                    raise ValueError("cloud connection requires model and a credentialEnv variable name")
+                if pricing is None:
+                    raise ValueError("cloud models require explicit input/output pricing (USD per 1K tokens)")
+            elif connection:
+                raise ValueError("local models use the configured Ollama/vLLM endpoints, not cloud connections")
+            input_price, output_price = model_prices(pricing)
             chars_per_token = item.get("estimatedCharsPerToken", 0)
             if isinstance(chars_per_token, bool) or not isinstance(chars_per_token, int) or chars_per_token < 0:
                 raise ValueError(
@@ -114,6 +152,11 @@ class ModelRoutingPolicy:
                     canary_weight=canary_weight,
                     shadow_model_id=shadow_model_id,
                     estimated_chars_per_token=chars_per_token,
+                    base_url=base_url,
+                    upstream_model=upstream_model,
+                    credential_env=credential_env,
+                    input_usd_per_1k_tokens=input_price,
+                    output_usd_per_1k_tokens=output_price,
                 )
             )
         return cls(tuple(routes))
@@ -202,6 +245,7 @@ class SandboxPolicy:
     request_budget: int | None = None
     prompt_char_budget: int | None = None
     estimated_token_budget: int | None = None
+    data_classification: str = "internal"
 
 
 @dataclass(frozen=True)
@@ -240,6 +284,11 @@ class SandboxPolicySet:
             budgets = item.get("budgets") or {}
             if not isinstance(budgets, dict):
                 raise ValueError(f"SandboxPolicySet policy {sandbox_id} budgets must be a mapping")
+            classification = item.get("dataClassification", "internal")
+            if classification not in DATA_CLASSIFICATIONS:
+                raise ValueError(
+                    "SandboxPolicySet dataClassification must be public, internal, confidential, or restricted"
+                )
             policies[sandbox_id] = SandboxPolicy(
                 sandbox_id=sandbox_id,
                 allowed_models=tuple(str(model) for model in item.get("allowedModels", []) if str(model)),
@@ -250,6 +299,7 @@ class SandboxPolicySet:
                 request_budget=_optional_non_negative_int(budgets, "requestLimit", sandbox_id),
                 prompt_char_budget=_optional_non_negative_int(budgets, "promptCharLimit", sandbox_id),
                 estimated_token_budget=_optional_non_negative_int(budgets, "estimatedTokenLimit", sandbox_id),
+                data_classification=classification,
             )
         return cls(policies)
 
@@ -276,6 +326,18 @@ class SandboxPolicySet:
         if policy.estimated_token_budget is not None:
             updates["sandbox_estimated_token_budget"] = policy.estimated_token_budget
         return replace(settings, **updates) if updates else settings
+
+
+def model_prices(pricing: Any) -> tuple[float | None, float | None]:
+    if pricing is None:
+        return None, None
+    fields = ("inputUsdPer1kTokens", "outputUsdPer1kTokens")
+    if not isinstance(pricing, dict) or set(pricing) != set(fields):
+        raise ValueError("pricing requires inputUsdPer1kTokens and outputUsdPer1kTokens")
+    for value in pricing.values():
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or value < 0:
+            raise ValueError("model prices must be finite non-negative numbers")
+    return float(pricing[fields[0]]), float(pricing[fields[1]])
 
 
 def _optional_bool(item: dict[str, Any], field: str, sandbox_id: str) -> bool | None:

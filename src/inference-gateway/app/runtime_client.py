@@ -8,6 +8,8 @@ from typing import Any
 
 import httpx
 
+from app.cloud_providers import cloud_request, cloud_response, cloud_stream, credential_headers
+from app.policy import CLOUD_BACKENDS, ModelRoute, ModelRoutingPolicy
 from app.settings import Settings
 
 REDACTED_MESSAGE_FIELDS = {"reasoning", "reasoning_content", "thinking"}
@@ -75,6 +77,7 @@ class RuntimeClient:
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self.policy = ModelRoutingPolicy.default(settings)
         self._failures: dict[str, int] = {}
         self._opened_until: dict[str, float] = {}
         self._client: httpx.AsyncClient | None = None
@@ -100,6 +103,20 @@ class RuntimeClient:
         body = dict(payload)
         body["model"] = body.get("model") or self.settings.model_id
         return body
+
+    def _request_parts(
+        self, payload: dict[str, Any], backend: str, endpoint: str, headers: dict[str, str] | None
+    ) -> tuple[str, dict[str, Any], dict[str, str] | None, ModelRoute | None]:
+        body = self._chat_completion_body(payload)
+        if backend not in CLOUD_BACKENDS:
+            return f"{self._base_url(backend)}/v1/{endpoint}", body, headers, None
+        route = self.policy.resolve(body["model"], self.settings.model_id)
+        if route.backend != backend:
+            raise ValueError("provider route mismatch")
+        if endpoint == "chat/completions" and not any(key in body for key in ("max_tokens", "max_completion_tokens")):
+            body["max_completion_tokens"] = self.settings.max_completion_tokens
+        url, body, auth = cloud_request(route, body, endpoint, self.settings.max_completion_tokens)
+        return url, body, auth, route
 
     def _base_url(self, backend: str | None = None) -> str:
         resolved = backend or self.settings.runtime_backend
@@ -214,9 +231,12 @@ class RuntimeClient:
         """Send a chat-completion request, retrying transient errors, and sanitize the result."""
         body = self._chat_completion_body(payload)
         resolved_backend = backend or self.settings.runtime_backend
+        url, body, headers, route = self._request_parts(body, resolved_backend, "chat/completions", headers)
         data = await self._post_json_with_retry(
-            self._chat_completions_url(resolved_backend), body, headers, resolved_backend
+            url, body, headers, f"{resolved_backend}:{route.model_id}" if route else resolved_backend
         )
+        if route:
+            data = cloud_response(data, route)
         return sanitize_chat_completion(data)
 
     async def embeddings(
@@ -229,9 +249,11 @@ class RuntimeClient:
         body = dict(payload)
         body["model"] = body.get("model") or self.settings.model_id
         resolved_backend = backend or self.settings.runtime_backend
-        return await self._post_json_with_retry(
-            f"{self._base_url(resolved_backend)}/v1/embeddings", body, headers, resolved_backend
+        url, body, headers, route = self._request_parts(body, resolved_backend, "embeddings", headers)
+        data = await self._post_json_with_retry(
+            url, body, headers, f"{resolved_backend}:{route.model_id}" if route else resolved_backend
         )
+        return cloud_response(data, route) if route else data
 
     async def completions(
         self,
@@ -248,9 +270,11 @@ class RuntimeClient:
         body = dict(payload)
         body["model"] = body.get("model") or self.settings.model_id
         resolved_backend = backend or self.settings.runtime_backend
-        return await self._post_json_with_retry(
-            self._completions_url(resolved_backend), body, headers, resolved_backend
+        url, body, headers, route = self._request_parts(body, resolved_backend, "completions", headers)
+        data = await self._post_json_with_retry(
+            url, body, headers, f"{resolved_backend}:{route.model_id}" if route else resolved_backend
         )
+        return cloud_response(data, route) if route else data
 
     async def stream_chat_completions(
         self,
@@ -267,38 +291,41 @@ class RuntimeClient:
         """
         body = self._chat_completion_body(payload)
         resolved_backend = backend or self.settings.runtime_backend
+        url, body, headers, route = self._request_parts(body, resolved_backend, "chat/completions", headers)
+        circuit = f"{resolved_backend}:{route.model_id}" if route else resolved_backend
         attempts = self.settings.runtime_max_retries + 1
         client = self._client_instance()
         last_error: httpx.HTTPError | None = None
         for attempt in range(attempts):
-            self._check_circuit(resolved_backend)
+            self._check_circuit(circuit)
             streamed = False
             try:
                 async with client.stream(
                     "POST",
-                    self._chat_completions_url(resolved_backend),
+                    url,
                     json=body,
                     headers=headers,
                 ) as response:
                     if response.status_code in RETRYABLE_STATUS and attempt + 1 < attempts:
                         # Drain the body so the pooled connection is released, then retry.
                         await response.aread()
-                        self._record_failure(resolved_backend)
+                        self._record_failure(circuit)
                         await self._sleep_before_retry(attempt, response)
                         continue
                     response.raise_for_status()
-                    self._record_success(resolved_backend)
-                    async for chunk in response.aiter_bytes():
+                    self._record_success(circuit)
+                    chunks = cloud_stream(response, route) if route else response.aiter_bytes()
+                    async for chunk in chunks:
                         streamed = True
                         yield chunk
                     return
             except httpx.HTTPStatusError as exc:
                 if is_runtime_fault(exc.response.status_code):
-                    self._record_failure(resolved_backend)
+                    self._record_failure(circuit)
                 raise
             except httpx.HTTPError as exc:
                 last_error = exc
-                self._record_failure(resolved_backend)
+                self._record_failure(circuit)
                 if streamed or not is_retryable_transport_error(exc) or attempt + 1 >= attempts:
                     raise
                 await self._sleep_before_retry(attempt, None)
@@ -308,6 +335,11 @@ class RuntimeClient:
     async def health(self, backend: str | None = None) -> dict[str, Any]:
         """Probe the backend health endpoint and return its status payload."""
         resolved_backend = backend or self.settings.runtime_backend
+        if resolved_backend in CLOUD_BACKENDS:
+            for route in self.policy.routes:
+                if route.backend == resolved_backend:
+                    credential_headers(route)
+            return {"status": "configured", "probe": "credentials_only"}
         # Short, fixed ceiling: this backs /readyz, whose kubelet probe times out after a
         # few seconds. A health endpoint that needs longer is itself the answer.
         timeout = httpx.Timeout(min(self.settings.request_timeout_seconds, 3.0))

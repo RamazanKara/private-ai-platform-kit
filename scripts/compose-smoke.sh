@@ -93,10 +93,36 @@ status="$(curl -sS -o "$OUT/body.json" -w '%{http_code}' "$RAG/v1/rag/query" -H 
 [[ "$status" == "200" ]] || fail "rag query returned $status"
 ok "top documents: $(json "', '.join(r['source'] for r in d['results'])")"
 
+step "7a. All five cloud adapters, using local protocol fakes and synthetic prices"
+for provider in openai anthropic azure-openai bedrock vertex; do
+  status="$(request POST /v1/chat/completions "{\"model\":\"demo-$provider\",\"max_tokens\":24,\"messages\":[{\"role\":\"user\",\"content\":\"hello fixture\"}]}")"
+  [[ "$status" == "200" ]] || fail "$provider fixture returned $status"
+  [[ "$(json "d['usage']['total_tokens']")" == "7" ]] || fail "$provider usage translation failed"
+  ok "$(json "d['choices'][0]['message']['content']")"
+done
+for provider in anthropic bedrock; do
+  chunks="$(curl -sS -N "$GATEWAY/v1/chat/completions" -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
+    -d "{\"model\":\"demo-$provider\",\"stream\":true,\"max_tokens\":24,\"messages\":[{\"role\":\"user\",\"content\":\"hello fixture\"}]}" | grep -c '^data: {' || true)"
+  [[ "$chunks" -gt 0 ]] || fail "$provider fixture did not stream"
+done
+
+step "7b. Local overload falls back to the cloud adapter; confidential data refuses that fallback"
+status="$(request POST /v1/chat/completions '{"model":"demo-overload","max_tokens":24,"messages":[{"role":"user","content":"hello fixture"}]}')"
+[[ "$status" == "200" ]] || fail "fallback returned $status"
+[[ "$(json "d['model']")" == "demo-openai" ]] || fail "wrong fallback model"
+status="$(request POST /v1/chat/completions '{"model":"demo-overload","data_classification":"confidential","messages":[{"role":"user","content":"private text"}]}')"
+[[ "$status" == "403" ]] || fail "confidential fallback returned $status"
+[[ "$(json "d['detail']['reason']")" == "data_classification_denied" ]] || fail "classification refusal missing"
+ok "403: confidential requests cannot fall back to cloud"
+status="$(request POST /v1/chat/completions "{\"model\":\"demo-openai\",\"messages\":[{\"role\":\"user\",\"content\":\"deploy with $fake_token\"}]}")"
+[[ "$status" == "400" ]] || fail "cloud credential blocking returned $status"
+ok "cloud requests share prompt credential blocking"
+
 step "8. Usage and estimated cost for the sandbox"
 status="$(request GET /v1/usage)"
 [[ "$status" == "200" ]] || fail "usage returned $status"
 ok "$(json "f\"sandbox {d['sandbox_id']}: {d['usage']['requests']} requests, {d['usage']['estimated_tokens']} estimated tokens, cost {d['estimated_cost']} {d.get('currency', '')}\"")"
+[[ "$(json "all(p in d['providers'] and d['providers'][p]['estimated_cost'] > 0 for p in ['openai', 'anthropic', 'azure-openai', 'bedrock', 'vertex'])")" == "True" ]] || fail "provider cost accounting missing"
 
 step "9. Export the audit log and verify its hash chain"
 "${COMPOSE[@]}" logs --no-color --no-log-prefix inference-gateway 2>/dev/null \
@@ -104,6 +130,15 @@ step "9. Export the audit log and verify its hash chain"
 records="$(wc -l <"$OUT/gateway-audit.jsonl")"
 [[ "$records" -gt 0 ]] || fail "no audit records found in the gateway log"
 python3 scripts/audit-verify.py "$OUT/gateway-audit.jsonl"
+python3 - "$OUT/gateway-audit.jsonl" <<'PY'
+import json
+import sys
+
+events = [json.loads(line[line.index("{"):]) for line in open(sys.argv[1], encoding="utf-8")]
+assert {"openai", "anthropic", "azure-openai", "bedrock", "vertex"} <= {e.get("provider") for e in events}
+assert any(e.get("status_code") == 403 and e.get("data_classification") == "confidential" for e in events)
+assert all("compose-fake-only" not in json.dumps(e) for e in events)
+PY
 ok "$records receipt lines verified ($OUT/gateway-audit.jsonl)"
 
 step "10. Rewrite history: turn the blocked request's 400 into a 200 and verify again"
