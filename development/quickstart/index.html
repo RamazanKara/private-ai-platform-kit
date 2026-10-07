@@ -1859,6 +1859,11 @@ only: the gateway on <code>8080</code> and the RAG service on <code>8090</code>.
 <p>Walk through the governed request path:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>compose-smoke
 </code></pre></div>
+<p>The walkthrough also exercises all five cloud adapters against the bundled local
+<code>cloud-fake</code> service, including streaming, overload fallback, confidential-data
+refusal, credential blocking, and per-provider accounting. The <code>demo-*</code> models and
+their prices are synthetic fixtures; no provider account, real credential, or external
+inference request is used. The ordinary Ollama completion still uses a real local model.</p>
 <p>The script sends real requests and exits non-zero at the first one that misbehaves. A passing
 run ends with:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>== 9. Export the audit log and verify its hash chain
