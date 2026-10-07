@@ -36,7 +36,6 @@ class ChatCompletionRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     model: str | None = None
-    data_classification: str | None = None
     messages: list[Message]
     temperature: float | None = None
     max_tokens: int | None = None
@@ -60,7 +59,6 @@ class EmbeddingsRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     model: str | None = None
-    data_classification: str | None = None
     input: str | list[str]
 
 
@@ -76,7 +74,6 @@ class CompletionRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     model: str | None = None
-    data_classification: str | None = None
     prompt: str | list[str]
     max_tokens: int | None = None
     stream: bool | None = False
@@ -101,5 +98,4 @@ class BatchRequest(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    data_classification: str | None = None
     requests: list[ChatCompletionRequest]

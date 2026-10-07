@@ -25,9 +25,6 @@ routing:
     enabled: false
     models: []
 
-# Inject only Secret references. Routing entries name these variables via connection.credentialEnv.
-providerCredentials: []
-
 sandboxPolicy:
   policyPath: ""
   policy:

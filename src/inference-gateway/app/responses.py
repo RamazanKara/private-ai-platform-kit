@@ -51,7 +51,6 @@ class ResponsesRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     model: str | None = None
-    data_classification: str | None = None
     input: str | list[Any]
     instructions: str | None = None
     max_output_tokens: int | None = None
@@ -269,8 +268,6 @@ def responses_to_chat_payload(
     parallel = (request.model_extra or {}).get("parallel_tool_calls")
     if isinstance(parallel, bool):
         chat_payload["parallel_tool_calls"] = parallel
-    if request.data_classification is not None:
-        chat_payload["data_classification"] = request.data_classification
     return chat_payload
 
 
