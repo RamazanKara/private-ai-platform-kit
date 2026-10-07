@@ -1301,17 +1301,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#cloud-routes-unreleased" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cloud routes (unreleased)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#models-used-by-the-shipped-profiles" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1678,17 +1667,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#cloud-routes-unreleased" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cloud routes (unreleased)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#models-used-by-the-shipped-profiles" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1758,123 +1736,6 @@
 
 
 <h1 id="model-selection-and-updates">Model selection and updates<a class="headerlink" href="#model-selection-and-updates" title="Permanent link">&para;</a></h1>
-<h2 id="cloud-routes-unreleased">Cloud routes (unreleased)<a class="headerlink" href="#cloud-routes-unreleased" title="Permanent link">&para;</a></h2>
-<p>The gateway supports <code>openai</code>, <code>anthropic</code>, <code>azure-openai</code>, <code>bedrock</code>, and <code>vertex</code>
-alongside <code>ollama</code> and <code>vllm</code>. Cloud templates in the existing model catalog are
-<strong>proposed</strong>, with placeholder model IDs, limits, and prices. They enable no external
-traffic. Review provider terms, region, retention, model limits, and input/output
-prices, then use the existing promotion workflow. <code>MODEL_ROUTING_POLICY_PATH</code> accepts
-a <code>ModelCatalog</code> (only <code>status: approved</code> entries) or the existing <code>ModelRoutingPolicy</code>.
-The catalog checker carries <code>connection</code>, <code>pricing</code>, and routing fields into the
-approved environment's <code>routing.policy.models</code>.</p>
-<p>An operator's Helm/GitOps values can contain:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">runtime</span><span class="p">:</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">modelId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qwen2.5:0.5b</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">allowedModels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">qwen2.5</span><span class="p p-Indicator">:</span><span class="nv">0.5b</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">approved-cloud</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nt">providerCredentials</span><span class="p">:</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPENAI_API_KEY</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model-provider-credentials</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai-api-key</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nt">routing</span><span class="p">:</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">policy</span><span class="p">:</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nt">models</span><span class="p">:</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qwen2.5:0.5b</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ollama</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">        </span><span class="nt">fallbacks</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">approved-cloud</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">approved-cloud</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">        </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">        </span><span class="nt">connection</span><span class="p">:</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">          </span><span class="nt">baseUrl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://api.openai.com/v1</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">          </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YOUR_APPROVED_MODEL_ID</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">          </span><span class="nt">credentialEnv</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPENAI_API_KEY</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">        </span><span class="nt">pricing</span><span class="p">:</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">          </span><span class="nt">inputUsdPer1kTokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w"> </span><span class="c1"># replace with your contracted rate</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">          </span><span class="nt">outputUsdPer1kTokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w"> </span><span class="c1"># replace with your contracted rate</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nt">sandboxPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">  </span><span class="nt">policy</span><span class="p">:</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span><span class="nt">policies</span><span class="p">:</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sandboxId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">private-team</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">        </span><span class="nt">dataClassification</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">confidential</span>
-</code></pre></div>
-<p>Create the referenced Secret using your existing secret backend; do not put credential
-values in Git, catalog entries, Helm values, or client requests. Each connection reads
-only its named environment variable. Credential-bearing URLs and inline credential
-fields are rejected. Use HTTPS for real providers. The gateway's default NetworkPolicy
-still denies external egress: provision an approved HTTPS egress policy for the
-gateway namespace through the existing egress catalog, or route through an internal
-egress proxy permitted by <code>networkPolicy.runtimeEgress</code>. Workspaces retain their
-default-deny boundary and receive no provider credentials.</p>
-<table>
-<thead>
-<tr>
-<th>Backend</th>
-<th><code>connection.baseUrl</code></th>
-<th><code>connection.model</code> / credential environment</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>openai</code></td>
-<td><code>https://api.openai.com/v1</code></td>
-<td>Approved model ID / <code>OPENAI_API_KEY</code></td>
-</tr>
-<tr>
-<td><code>anthropic</code></td>
-<td><code>https://api.anthropic.com/v1</code></td>
-<td>Approved Claude model ID / <code>ANTHROPIC_API_KEY</code></td>
-</tr>
-<tr>
-<td><code>azure-openai</code></td>
-<td><code>https://RESOURCE.openai.azure.com/openai/v1</code></td>
-<td>Azure deployment name / <code>AZURE_OPENAI_API_KEY</code></td>
-</tr>
-<tr>
-<td><code>bedrock</code></td>
-<td><code>https://bedrock-runtime.REGION.amazonaws.com</code></td>
-<td>Bedrock model ID or inference profile / <code>AWS_BEARER_TOKEN_BEDROCK</code></td>
-</tr>
-<tr>
-<td><code>vertex</code></td>
-<td><code>https://REGION-aiplatform.googleapis.com/v1/projects/PROJECT/locations/REGION/endpoints/openapi</code></td>
-<td><code>google/APPROVED_GEMINI_MODEL</code> / <code>VERTEX_ACCESS_TOKEN</code></td>
-</tr>
-</tbody>
-</table>
-<p>These adapters use <a href="https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create">OpenAI Chat Completions</a>,
-<a href="https://platform.claude.com/docs/en/api/messages/create">Anthropic Messages</a>,
-<a href="https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/switching-endpoints">Azure's v1 API</a>,
-<a href="https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html">Bedrock Converse</a>
-with a <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html">Bedrock bearer API key</a>,
-and <a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/samples/generativeaionvertexai-gemini-chat-completions-non-streaming">Vertex's OpenAI-compatible API</a>.
-Vertex needs an OAuth access token; the operator must refresh it and roll the gateway
-when an environment-backed Secret changes. Automatic credential acquisition/refresh
-and AWS SigV4 are not implemented. Readiness checks cloud credential presence, not
-provider availability or account permissions; actual calls use the shared circuit
-breaker and retry policy.</p>
-<p>All five support chat, function tools, and streaming through Chat and Messages;
-Responses and synchronous batch items retain non-streaming behavior. Anthropic and Bedrock
-adapters accept text and function tools; unsupported modalities/parameters receive an
-explicit, receipted 400. OpenAI and Azure also proxy embeddings and legacy completions.
-The other adapters reject those endpoints explicitly. Model-specific API restrictions
-still apply. No live cloud credential or paid call is needed for the provider tests or
-Compose walkthrough.</p>
-<p><code>fallbacks</code> is an ordered preference: put a local route first for local preference,
-or a cloud route first for cloud preference. Chat, Messages, Responses, and synchronous
-batch items try the next permitted route on upstream overload (429/5xx), connection
-failure, or an open circuit. Ordinary 4xx errors never fall back; streaming fallback
-stops once output begins. Gateway-wide load shedding still returns 503 before routing.
-Embeddings and legacy completions retain single-route behavior.</p>
-<p>Set <code>data_classification: confidential</code> in an inference body, or send
-<code>X-Data-Classification: confidential</code>. Tenant <code>dataClassification</code> is a floor: neither
-a body nor a header can lower it. Values are <code>public</code>, <code>internal</code>, <code>confidential</code>, and
-<code>restricted</code>; the last two permit <strong>only local routes</strong>, including fallback, canary,
-shadow, and cache selection. If no eligible local route can serve the request, the
-gateway returns <code>403 data_classification_denied</code> with a hash-chained refusal receipt.
-Stored Responses and uploaded batch files/jobs preserve the floor during chaining and
-replay. Bind tenant identity to a key record or verified JWT claim for this to be a
-tenant security boundary.</p>
 <p>Model metadata was reviewed against the publishers' repositories on <strong>2026-09-23</strong>
 for the v0.29.0 release. The catalog separates models approved for the existing lab
 profiles from newer candidates that still need evaluation.</p>
@@ -1970,9 +1831,9 @@ image and existing GPU profiles have not been validated with these candidates.
 Use the upstream recipe, then run the kit's real-model evals and load tests before
 changing a serving profile or approving a model.</p>
 <h2 id="reproduce-the-approved-model-metadata">Reproduce the approved model metadata<a class="headerlink" href="#reproduce-the-approved-model-metadata" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>model-check
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>make<span class="w"> </span>model-provenance-check
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>make<span class="w"> </span>model-provenance-verify
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>model-check
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>model-provenance-check
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>model-provenance-verify
 </code></pre></div>
 <p>The first two commands validate local catalog, manifest, and profile consistency.
 The third contacts the Ollama registry and Hugging Face metadata API. It reproduces

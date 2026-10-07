@@ -1842,7 +1842,6 @@
 <p>Before forwarding an inference request, the gateway can enforce:</p>
 <ul>
 <li>allowed model IDs and routing policy;</li>
-<li>tenant/request classification: confidential and restricted data stay on local routes;</li>
 <li>message, prompt, tool, completion, and batch size limits;</li>
 <li>per-sandbox rate and estimated-token budgets;</li>
 <li>input credential-pattern detection;</li>
@@ -1859,12 +1858,6 @@
 <p>The projected platform token is short-lived and audience-bound, but it is still a credential. The workspace can also exfiltrate through any approved destination. Keep the egress catalog narrow and treat files, retrieved text, model output, and tool arguments as untrusted.</p>
 <h2 id="audit-records">Audit records<a class="headerlink" href="#audit-records" title="Permanent link">&para;</a></h2>
 <p>The gateway audit event stores request metadata and hashes rather than raw prompt or completion text. Records are linked into a per-process hash chain.</p>
-<p>Cloud calls use the same controls and record the selected provider, routing attempts,
-classification, usage, and estimated cost on that chain. Classification refusals are
-explicit 403 receipts. Provider credentials come only from server environment variables
-or Kubernetes Secret references, never caller headers or bodies. See
-<a href="../model-selection/#cloud-routes-unreleased">cloud route configuration</a> for egress,
-credential rotation, and protocol boundaries.</p>
 <p>The chain detects edits and reordering in an exported sequence. It does not by itself prevent deletion, survive a lost log stream, join replicas into one chain, or prove that the first and last records are complete. Export logs, retain the <code>chain_id</code>, and commit chain-head anchors to a separate trusted system. Use <code>make audit-verify</code> and follow the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/audit-chain.md">audit-chain runbook</a>.</p>
 <p>Also review runtime, ingress, proxy, RAG, object-store, and application logs. Gateway redaction does not control what another component logs.</p>
 <h2 id="supply-chain">Supply chain<a class="headerlink" href="#supply-chain" title="Permanent link">&para;</a></h2>
