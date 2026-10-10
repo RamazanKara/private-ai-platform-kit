@@ -4,10 +4,9 @@ This repository is for private AI platform operations and should be treated as s
 
 ## Supported Surface
 
-The latest tagged release and `main` receive security fixes. Pre-1.0 older minor lines are not
-maintained; operators should upgrade to the latest release. A coordinated fix may be backported
-when a customer cannot upgrade immediately, but that is an explicit exception rather than a
-standing support promise.
+The latest tagged release and `main` receive security fixes; operators upgrade to the latest
+release to pick them up. For customers who need more time to upgrade, maintainers can coordinate
+a backported fix case by case.
 
 Security fixes should cover:
 

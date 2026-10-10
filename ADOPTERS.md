@@ -1,8 +1,6 @@
 # Adopters
 
-No public adopters are listed yet.
-
-If your team can be named publicly, open a pull request with:
+Teams using the kit can list themselves here. If your team can be named publicly, open a pull request with:
 
 - Organization or project name
 - Use case category

@@ -54,9 +54,8 @@ changing callers.
 
 ## Output Guardrail (Response Path)
 
-Input moderation cannot catch a credential or PII value that the *model* emits: a successful
-prompt injection or a hallucinated secret leaves the gateway in the completion. The output
-guardrail inspects the model response before it is returned or cached, contributing controls for
+The output guardrail catches credential and PII values that the *model* emits, such as a secret
+surfaced by prompt injection or hallucination, complementing input moderation. It inspects the model response before it is returned or cached, contributing controls for
 OWASP LLM02:2025 (sensitive information disclosure) and LLM05:2025 (improper output handling).
 
 Configure it in Helm values:
@@ -90,9 +89,8 @@ Modes:
 Each action increments `inference_gateway_output_guardrail_total{action,route}` and sets the
 `X-Output-Guardrail` response header.
 
-Streaming responses are **detected and flagged** only (`flagged_stream`): the bytes are already
-on the wire, so the guardrail cannot redact or block them mid-stream. For hard redact/block
-enforcement, run callers non-streaming (the default `admission.allowStreaming: false`).
+Streaming responses are **detected and flagged** (`flagged_stream`) at end of stream, since the
+bytes are already on the wire. For redact/block enforcement, run callers non-streaming (the default `admission.allowStreaming: false`).
 
 Treat model output as untrusted: a coding agent must never pass a completion to a shell, `eval`,
 or file write without its own validation, regardless of the gateway guardrail.

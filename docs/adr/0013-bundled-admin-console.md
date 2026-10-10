@@ -6,7 +6,7 @@
 
 ## Context
 
-`docs/scope-and-non-goals.md` listed "No admin/usage console UI": the kit shipped the data
+`docs/scope.md` kept the kit API-only: it shipped the data
 layer a console would build on (`/v1/usage`, `/v1/sandbox/budget`, `/v1/models`, Prometheus
 metrics, the client SDK) but no UI. The requirement now is a lightweight read-only console so an
 operator can see a sandbox's usage, budget, and approved models without wiring Grafana or
@@ -53,6 +53,6 @@ HTML; the API calls the page makes carry the operator's key). No new dependency 
 - **Server-rendered HTML from the gateway.** Would add templating to an API service and re-render
   on every view. Rejected: a static page calling the JSON APIs keeps the gateway API-only in
   spirit.
-- **Keep it a non-goal (Grafana + curl).** Grafana still owns metrics dashboards; this console is
+- **Stay API-only (Grafana + curl).** Grafana still owns metrics dashboards; this console is
   a lightweight per-sandbox usage/budget/model view for operators who do not want to wire Grafana
-  for that. Implemented as **opt-in** so the non-goal stance remains the default.
+  for that. Implemented as **opt-in** so API-only remains the default.

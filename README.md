@@ -36,8 +36,8 @@ make compose-up      # gateway, Ollama with a 0.5B model, and the RAG service (a
 make compose-smoke   # the walkthrough recorded above
 ```
 
-Nothing in the recording is staged. `compose-smoke` sends real requests and stops at the first
-one that does not behave: a credential in a prompt is blocked before the model sees it, a model
+Every step in the recording is live. `compose-smoke` sends real requests and checks each
+response: a credential in a prompt is blocked before the model sees it, a model
 outside the allowlist is refused, an agent's denied egress attempt lands on the same audit
 chain as the model calls, and an edited receipt fails verification.
 
@@ -94,7 +94,7 @@ governance switched off.
 
 ## How it compares
 
-This kit does not replace every gateway. Choose by the problem you have:
+Choose by the problem you have:
 
 | If you mainly need | Look at |
 | --- | --- |
@@ -104,8 +104,7 @@ This kit does not replace every gateway. Choose by the problem you have:
 | A chat interface for people | Open WebUI, which runs on top of this kit |
 | Self-hosted models **and** coding agents on your own cluster, with every call and agent action on a record you can verify | **this kit** |
 
-The [decision guide](docs/decision-guide.md) covers the tradeoffs, including when this kit is
-the wrong choice.
+The [decision guide](docs/decision-guide.md) covers the tradeoffs and which tool fits each need.
 
 ## Run it on Kubernetes
 
@@ -136,11 +135,10 @@ must provide.
 
 ## Status
 
-The current release is `v0.29.0`. It is ready for evaluation and platform engineering work and
-is tested on every pull request: unit and contract tests, chart rendering, policy tests, a
-`kind` cluster end to end, and the Compose walkthrough. It is not a managed service. A
-production deployment on customer-owned clusters still needs your identity provider, secret
-backend, ingress, storage, observability, backups, and capacity planning; the
+The current release is `v0.29.0`. Every pull request runs unit and contract tests, chart
+rendering, policy tests, a `kind` cluster end to end, and the Compose walkthrough. A production
+deployment on a customer-owned cluster connects to your identity provider, secret backend,
+ingress, storage, observability, and backups, and is sized to your capacity plan; the
 [production readiness matrix](docs/production-readiness.md) lists each item and who owns it.
 
 ## Documentation
@@ -174,7 +172,7 @@ The full documentation is published at <https://ramazankara.github.io/private-ai
 | `paper/` | Research harness and recorded results |
 | `chaos/`, `loadtest/`, `results/` | Resilience drills, load scenarios, and sample report shapes |
 
-Files under `results/` named `sample-*` show report formats only; strict release checks require
+Files under `results/` named `sample-*` show report formats; strict release checks run against
 freshly generated evidence.
 
 ## Contributing

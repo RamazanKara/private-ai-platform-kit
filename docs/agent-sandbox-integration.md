@@ -38,9 +38,8 @@ default Kubernetes service-account token is not mounted.
 
 ## Kernel isolation
 
-The controller-managed pod is a lifecycle and policy boundary. It is not automatically a separate
-kernel boundary. `sandbox.runtimeClassName` is empty in the checked-in local and customer values.
-Set it to a cluster-provided runtime such as gVisor or Kata when that isolation is required, and
+The controller-managed pod is a lifecycle and policy boundary. For a separate kernel boundary, set
+`sandbox.runtimeClassName` (empty in the checked-in local and customer values) to a cluster-provided runtime such as gVisor or Kata when that isolation is required, and
 verify that the runtime exists on every node that may host a workspace.
 
 ## Platform credential
@@ -49,31 +48,26 @@ The chart projects a service-account token at `/var/run/platform/token`. It is s
 `inference-gateway` audience, expires after 600 seconds by default, and is rotated by the kubelet.
 The gateway only accepts it when JWT/JWKS verification is configured against the cluster issuer.
 
-This token is still a credential. Audience binding and expiry reduce its usefulness elsewhere but
-do not make the workspace trusted.
+Audience binding and expiry confine the token to the gateway for a short window; handle it as a
+credential like any other.
 
 ## Network boundary
 
-The direct `Sandbox` resource does not create an upstream NetworkPolicy. The chart's
-NetworkPolicies are therefore the network boundary for this path. They require a CNI that enforces
-NetworkPolicy; the local profile uses Calico. The smoke check refuses to treat kindnet as valid
-egress evidence.
+The chart's NetworkPolicies are the network boundary for the direct `Sandbox` path. They run on a
+CNI that enforces NetworkPolicy; the local profile uses Calico, and the smoke check requires an
+enforcing CNI (kindnet is rejected as egress evidence).
 
 Every external CIDR entry needs a `catalogRef` from
-`platform/network/egress-catalog.yaml`. Approved destinations can still receive data, so the
-catalog must stay narrow and be reviewed as an exfiltration boundary.
+`platform/network/egress-catalog.yaml`. Approved destinations can receive data, so keep the
+catalog narrow and review it as an exfiltration boundary.
 
 ## Updates and lifecycle
 
 `workspace.shutdownTime` and `workspace.shutdownPolicy` can bound a workspace lifetime. They are
 unset by default.
 
-The v0.5.0 controller does not replace its singleton pod when the `Sandbox` pod template changes.
-After a chart update, delete the managed pod so the controller recreates it from the current
-template. `make agent-sandbox-smoke` detects image or volume drift and performs that refresh.
-
-Warm pools, `SandboxClaim`, multi-cluster scheduling, and workspace snapshot/restore are not
-implemented by this chart.
+The v0.5.0 controller keeps its singleton pod across `Sandbox` pod template changes. After a chart
+update, delete the managed pod so the controller recreates it from the current template. `make agent-sandbox-smoke` detects image or volume drift and performs that refresh.
 
 ## Validation
 
@@ -90,11 +84,11 @@ token audience, working DNS, and blocked non-catalog egress.
 `make agent-sandbox-demo` adds the governed model-call and audit-receipt walkthrough used by the
 README animation.
 
-## Limits
+## Operator configuration
 
-- A missing isolation `RuntimeClass` means the workspace shares the node kernel.
-- NetworkPolicy restricts connections but does not encrypt them.
-- Namespace RBAC does not restrict actions performed through an approved external service.
-- The gateway audit chain records governed model calls, not every process or file operation inside
-  the workspace.
-- PVC availability, backup, retention, and secure deletion depend on the cluster storage system.
+- Select an isolation `RuntimeClass` to give the workspace its own kernel; without one it shares the node kernel.
+- Enable the opt-in mTLS overlay to encrypt connections that NetworkPolicy allows.
+- Scope credentials for approved external services separately from namespace RBAC.
+- The gateway audit chain records governed model calls and reported agent actions; runtime detection
+  (Falco/Tetragon) covers process and file activity inside the workspace.
+- PVC availability, backup, retention, and secure deletion follow the cluster storage system.

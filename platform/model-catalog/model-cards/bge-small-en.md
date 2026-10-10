@@ -24,7 +24,7 @@ and is consumed by the RAG service via its OpenAI-compatible embedding provider
 route. Its purpose is to bring retrieval-quality models under the same catalog and provenance
 governance as generation models.
 
-## Out-of-scope / not approved for
+## Approval boundaries
 
 - Text generation. It is an embedding model: it produces vectors, not completions. The
   `maxCompletionTokens: 1` value is nominal.
@@ -66,14 +66,13 @@ weights. Verify the actual downloaded files against the inventory before product
 - External network required: false
 - Requires GPU: false
 
-## Known limitations
+## Operating characteristics
 
 - Embedding-only: no generation capability.
-- Short 512-token context window; inputs must be chunked accordingly for retrieval.
+- 512-token context window; inputs are chunked accordingly for retrieval.
 - 384-dimensional output is fixed and must match the configured Qdrant collection dimensions or
   retrieval will fail.
-- Upstream metadata verification does not inspect the customer's model cache; verify downloaded
-  files against the inventory before production.
+- Verify files downloaded into the customer's model cache against the inventory before production.
 
 ## Evaluation evidence
 

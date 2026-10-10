@@ -39,20 +39,19 @@ Size the actual model artifact on the target GPU. Account for weights, KV cache,
 runtime overhead, prompt/completion length, and concurrent requests. Change
 `accelerator.count`, tensor parallelism, context length, replica count, and KEDA bounds together.
 
-`make loadtest-local` uses a mock runtime and cannot size a GPU deployment. Point `make loadtest`
+`make loadtest-local` uses a mock runtime for gateway-path checks. To size a GPU deployment, point `make loadtest`
 at the deployed gateway and collect vLLM queue, latency, token-throughput, and GPU-memory metrics
 at the same time. Run the relevant eval suite again after changing the model, precision, or
 quantization.
 
 The chart creates a Kubernetes `Deployment`. Its tensor-parallel configuration assumes that all
-requested GPUs are available to one pod on one node. The repository does not install or test a
-multi-node vLLM operator. A model that cannot fit on one node needs a separately designed and tested
-LeaderWorkerSet, Ray, or equivalent deployment.
+requested GPUs are available to one pod on one node. For a model larger than one node, deploy it
+with LeaderWorkerSet, Ray, or an equivalent multi-node operator.
 
 The FP8 and AWQ files under `deploy/clusters/customer/values/` are configuration examples. The
 operator must supply a compatible GPU, runtime image, and model artifact. MIG and time-slicing are
-also cluster/device-plugin settings; the chart can request the resulting resource name but does not
-configure GPU partitioning.
+also cluster/device-plugin settings; the chart requests the resulting resource name, and the device
+plugin configures GPU partitioning.
 
 See [Capacity and sizing](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/capacity-sizing.md)
 for the measurement loop.

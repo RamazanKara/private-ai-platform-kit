@@ -52,8 +52,7 @@ Add an **opt-in** server-side response store, off by default (`RESPONSES_STORE_E
 - Governance is unchanged: every stateful request still runs the full chat governance path
   (allowlist, admission, prompt-secret policy, budget, output guardrail, audit) on the
   reconstructed conversation, so chaining cannot bypass any control.
-- Streaming and background (`background: true`) response objects remain out of scope
-  (documented); this is the stateful-but-synchronous subset.
+- This decision covers stateful, synchronous response objects.
 - Operational cost: a Redis keyspace for stored responses (or per-replica memory locally). Off
   by default, so operators who do not enable it pay nothing.
 

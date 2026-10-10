@@ -29,7 +29,7 @@ The published site is at [ramazankara.github.io/private-ai-platform-kit](https:/
 | Components and request flow | [Architecture](architecture.md) |
 | Implemented features and defaults | [Feature inventory](feature-inventory.md) |
 | Project fit and alternatives | [Decision guide](decision-guide.md) |
-| Supported boundary | [Scope and non-goals](scope-and-non-goals.md) |
+| Supported boundary | [Scope](scope.md) |
 | Design decisions | [Architecture decision records](adr/README.md) |
 | Versions tested and pinned | [Version matrix](version-matrix.md) |
 | Model defaults, candidates, and revision updates | [Model selection](model-selection.md) |
@@ -39,8 +39,8 @@ The published site is at [ramazankara.github.io/private-ai-platform-kit](https:/
 | Need | Document |
 | --- | --- |
 | Control and validation matrix | [Production readiness](production-readiness.md) |
-| Security defaults and limitations | [Security overview](security-overview.md) |
-| Threats and residual risk | [Threat model](threat-model.md) |
+| Security defaults and controls | [Security overview](security-overview.md) |
+| Threats and controls | [Threat model](threat-model.md) |
 | OWASP LLM Top 10 for 2025 | [OWASP mapping](owasp-llm-top-10-mapping.md) |
 | Governance framework crosswalk | [AI governance crosswalk](ai-governance-crosswalk.md) |
 | Release artifacts | [Release verification](release-verification.md) |

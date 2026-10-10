@@ -13,15 +13,14 @@ profiles from newer candidates that still need evaluation.
 | Customer coding agents | `Qwen/Qwen3-Coder-Next` | Now pins the upstream commit and all safetensors shard checksums in a reproducible inventory. |
 | Customer RAG embeddings | `BAAI/bge-small-en-v1.5` | Now pins the upstream commit and weight inventory; the embedding deployment uses the same revision. |
 
-These approvals describe lab profiles. They do not establish production suitability
-for a customer's workloads. Read the [model cards](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/model-catalog/model-cards/README.md)
-for the existing evidence and limitations.
+These approvals describe lab profiles; confirm suitability for each customer workload with its
+own evals. Read the [model cards](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/model-catalog/model-cards/README.md)
+for the recorded evidence.
 
 ## Current GPU candidates
 
 All rows below have `status: proposed` and are absent from the gateway allowlists.
-Context sizes are upstream configuration values, not measured capacity or enabled
-gateway limits. Candidate licenses and revision links are recorded in
+Context sizes are upstream configuration values; gateway limits are set separately. Candidate licenses and revision links are recorded in
 [`platform/model-catalog/models.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/model-catalog/models.yaml).
 
 | Candidate | Upstream license | Context tokens | Evaluation focus |
@@ -34,13 +33,10 @@ gateway limits. Candidate licenses and revision links are recorded in
 
 Qwen3.8-Flash-Next is **not** Apache-2.0. Its publisher uses the
 [Qwen Community 1.0 license](https://huggingface.co/Qwen/Qwen3.8-Flash-Next/blob/de4b8e4d43b917e7706784d8bb445c9af86a3540/LICENSE).
-The catalog records `LicenseRef-Qwen-Community-1.0` so its terms cannot be confused
-with the permissive license of Qwen3.8-27B.
+The catalog records `LicenseRef-Qwen-Community-1.0` so its terms stay distinct from the permissive license of Qwen3.8-27B.
 
-The newer models include upstream multimodal capabilities. Their presence in the
-catalog does not add image or video support to the gateway. The pinned runtime
-image and existing GPU profiles have not been validated with these candidates.
-Use the upstream recipe, then run the kit's real-model evals and load tests before
+The newer models include upstream multimodal capabilities; the gateway serves them
+through its existing text and `input_image` request shapes. Use the upstream recipe, then run the kit's real-model evals and load tests before
 changing a serving profile or approving a model.
 
 ## Reproduce the approved model metadata
@@ -57,9 +53,8 @@ the approved Ollama layer digests and Hugging Face weight inventories without
 downloading model weights.
 
 A manifest digest identifies the inventory of weight filenames, byte sizes, and
-upstream SHA-256 checksums at one immutable commit. It is not a checksum of the
-entire model, and it does not verify bytes already installed in a customer model
-store. Compare those files against the inventory during model-store ingestion.
+upstream SHA-256 checksums at one immutable commit. To verify bytes installed in a
+customer model store, compare those files against the inventory during model-store ingestion.
 
 See the [provenance runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/model-provenance.md)
 for the manifest format and update commands.

@@ -155,8 +155,8 @@ files against the inventory before production. See
 
 **Output guardrail**: A response-path control that inspects the model's completion before it is
 returned or cached, contributing controls for OWASP LLM02:2025 (sensitive information disclosure)
-and LLM05:2025 (improper output handling); the input-side prompt secret detection cannot catch a
-secret the *model* emits. Modes are
+and LLM05:2025 (improper output handling); it catches secrets the *model* emits, complementing input-side prompt secret
+detection. Modes are
 `flag`, `redact` (default), and `block`; streaming responses are detected/flagged only. Configured
 under `guardrails.outputGuardrail`. See
 [Guardrails](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/guardrails.md).
@@ -207,7 +207,7 @@ revision. Re-validate quality with `make eval` after changing quantization. See
 **Release gate**: A machine-checked readiness gate declared in `platform/slo/release-gates.yaml` that
 verifies eval, load, restore, toolchain, SLO, quota, provenance, supply-chain, egress/retention, and
 evidence-pack evidence before a customer handoff. Run the default gate with `make release-gate`. A
-failed gate means the handoff evidence is incomplete or below threshold. See
+failed gate points to the evidence to regenerate or the threshold to meet. See
 [Release gates](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/release-gates.md).
 
 **Response cache**: An exact-match, per-sandbox cache of non-streaming chat completions, keyed by
@@ -244,8 +244,8 @@ For a tenant lab it equals the namespace sandbox id. See
 for customer demos, release reviews, restore-drill reviews, and production-readiness handoff. It fails
 when a required gate falls back to checked-in `sample-*` evidence or when selected evidence is older
 than `RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS` (default 24h), so the report is based on the current build
-rather than only validating sample report shapes. It does not establish production readiness by
-itself. See
+rather than only validating sample report shapes. It is one input to a production-readiness
+review. See
 [Release gates](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/release-gates.md)
 and [Evidence and validation](proof.md).
 

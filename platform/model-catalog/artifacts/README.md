@@ -6,8 +6,7 @@ commit. `schemaVersion`, `modelId`, and `revision` identify the inventory. Each
 
 The SHA-256 of the JSON file is stored in
 [model-provenance.yaml](../../governance/model-provenance.yaml) with
-`digest.scope: artifact-manifest`. It identifies this inventory; it is not the
-checksum of concatenated model weights.
+`digest.scope: artifact-manifest`. It identifies this inventory of per-file checksums.
 
 Generate an inventory for a reviewed revision from the repository root:
 

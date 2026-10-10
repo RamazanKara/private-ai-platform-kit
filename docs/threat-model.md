@@ -62,9 +62,8 @@ handling regulated data in a multi-tenant cluster (see Required Customer Hardeni
 
 ### Detective / runtime monitoring
 
-Admission (Kyverno) and NetworkPolicies are preventive; they do not observe post-admission
-behavior of a hijacked agent or compromised runtime pod. An optional runtime-detection layer
-(Falco/Tetragon) is provided. See [runbooks/runtime-threat-detection.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md).
+Admission (Kyverno) and NetworkPolicies are preventive. The optional runtime-detection layer
+(Falco/Tetragon) observes post-admission behavior of agent and runtime pods. See [runbooks/runtime-threat-detection.md](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md).
 
 ### Agent workspace isolation boundary
 
@@ -74,7 +73,7 @@ hardened template. The platform credential is a projected, audience-bound Servic
 with a short TTL, useless against the Kubernetes API and self-expiring, replacing long-lived
 secrets. Without a kernel-isolation runtime class the syscall boundary is still the container
 runtime plus the restricted pod profile; set `sandbox.runtimeClassName` (gVisor/Kata) where the
-cluster provides one, expected at the `high` risk tier (`C-ISOLATE`). What kernel isolation does **not** change: prompt injection and tool abuse remain
+cluster provides one, expected at the `high` risk tier (`C-ISOLATE`). Prompt injection and tool abuse are
 application-layer threats (bounded by the egress catalog, budgets, and gateway guardrails, not by
 the sandbox), and exfiltration through *approved* catalog destinations remains a governance
 decision. NetworkPolicy enforcement depends on the CNI: the local lab therefore defaults to
@@ -85,8 +84,7 @@ evidence of policy enforcement rather than an unroutable-address false positive.
 ## AI-Specific Threats
 
 These are the threats that distinguish an AI platform from a generic web service.
-The controls below are mechanisms already in this repo; none of them make the
-threat go away, so treat them as defense in depth, not a guarantee.
+The controls below are mechanisms in this repo, layered as defense in depth.
 
 ### Indirect / RAG prompt injection
 
@@ -104,9 +102,9 @@ threat go away, so treat them as defense in depth, not a guarantee.
   gateway redacts and fingerprints prompts/queries instead of logging raw text,
   runs prompt secret detection, and applies sandbox budgets and admission limits
   that cap the blast radius of a runaway agent loop. Coding-agent eval suites
-  include `forbiddenAny` secret-leak checks. Residual risk remains: these reduce
-  what an injected instruction can *reach*, not whether the model is *influenced*.
-  Review which documents enter the corpus and keep agent egress narrow.
+  include `forbiddenAny` secret-leak checks. These controls limit what an injected
+  instruction can *reach*. Review which documents enter the corpus and keep agent
+  egress narrow.
 
 ### Model-artifact tampering / weight poisoning
 
@@ -123,9 +121,8 @@ threat go away, so treat them as defense in depth, not a guarantee.
   models pin a commit and safetensors checksum inventory; Ollama entries record
   registry weight-layer digests. Customers verify downloaded bytes before
   production. vLLM/Ollama model caches are isolated per the sandbox and runtime
-  security context. Residual risk: provenance proves *what* was pulled, not that
-  the upstream training was clean -- weight-level backdoors are out of scope for
-  digest verification.
+  security context. Provenance proves *what* was pulled; pair it with evals and
+  source review to assess upstream training.
 
 ### Build / release pipeline trust boundary
 

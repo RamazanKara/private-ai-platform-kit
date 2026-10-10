@@ -2,7 +2,7 @@
 
 The file `tenants/onboarding/regulated-offline-coding-agents.yaml` defines a tenant named `regulated-offline`. The name describes its intended use; the generated manifests enforce a narrower fact: pods in that tenant namespace receive no external CIDR egress rule.
 
-This is not an air-gap configuration for the cluster. Image pulls, model downloads, GitOps, identity, and services outside the tenant namespace need separate offline controls.
+The profile covers the tenant namespace. For a fully offline cluster, add offline controls for image pulls, model downloads, GitOps, identity, and services outside the tenant namespace.
 
 ## Render the manifests
 
@@ -37,11 +37,11 @@ Confirm that:
 - storage class, quota, and PVC size are appropriate;
 - identity and API-key material are supplied without being written to Git.
 
-Apply the reviewed files through the customer's GitOps process. A direct `kubectl apply` can be used in a disposable lab, but it is not the documented customer handoff path.
+Apply the reviewed files through the customer's GitOps process. A direct `kubectl apply` works for a disposable lab; GitOps is the documented customer handoff path.
 
 ## Test the boundary
 
-Use an image that is already present or available from the internal registry. From a pod in the tenant namespace, test both an allowed in-cluster destination and a destination that is otherwise reachable from the cluster. A timeout to an unroutable address does not prove that NetworkPolicy is working.
+Use an image that is already present or available from the internal registry. From a pod in the tenant namespace, test both an allowed in-cluster destination and a destination that is otherwise reachable from the cluster. Use a reachable deny target, because a timeout to an unroutable address says nothing about NetworkPolicy.
 
 The repository's agent-sandbox smoke test uses the Kubernetes API as the deny target for this reason:
 

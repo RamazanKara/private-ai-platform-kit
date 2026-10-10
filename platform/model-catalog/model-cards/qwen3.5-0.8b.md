@@ -22,7 +22,7 @@ chat model for customer labs that want better answer quality than the local smok
 serves as the CPU-runnable eval proxy for the multi-GPU `Qwen/Qwen3-Coder-Next` coding-agent suite
 (see that model's card).
 
-## Out-of-scope / not approved for
+## Approval boundaries
 
 - The local laptop profile. It reasons slowly on a CPU-only laptop, so the local quickstart uses
   `qwen2.5:0.5b` instead; `qwen3.5:0.8b` is not in the `local` allowlist.
@@ -65,11 +65,11 @@ Re-verify it against your own model store before any production use.
 - External network required: false
 - Requires GPU: false
 
-## Known limitations
+## Operating characteristics
 
-- 0.8B parameters: a small reasoning model. Better quality than `qwen2.5:0.5b` but well below the
-  larger customer GPU models.
-- Reasons slowly on CPU-only hosts; this is why the local laptop profile does not use it.
+- 0.8B parameters: a small reasoning model with better quality than `qwen2.5:0.5b`; the customer
+  GPU models cover heavier workloads.
+- Reasoning on CPU-only hosts takes longer, so the local laptop profile uses `qwen2.5:0.5b`.
 - CPU-only serving; throughput and latency are bounded by the host CPU.
 
 ## Evaluation evidence

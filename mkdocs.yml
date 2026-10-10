@@ -110,7 +110,7 @@ nav:
       - Agent-sandbox integration: agent-sandbox-integration.md
       - OWASP LLM Top 10 mapping: owasp-llm-top-10-mapping.md
       - AI governance crosswalk: ai-governance-crosswalk.md
-      - Scope and non-goals: scope-and-non-goals.md
+      - Scope: scope.md
       - Architecture decisions: adr/README.md
   - Reference:
       - Feature inventory: feature-inventory.md

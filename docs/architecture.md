@@ -20,7 +20,7 @@ The inference gateway is the entry point for model API traffic. A normal request
 
 The exact HTTP surface is generated into [`platform/api-contracts/inference-gateway.openapi.json`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json). Not every route performs model inference, and optional controls only apply when enabled in the active values.
 
-RAG is a separate service. It returns retrieved passages and grounded message objects; it does not automatically intercept gateway calls. The local profile uses the checked-in lexical corpus. The customer values select Qdrant and an embedding endpoint.
+RAG is a separate service. It returns retrieved passages and grounded message objects; clients call it directly alongside the gateway. The local profile uses the checked-in lexical corpus. The customer values select Qdrant and an embedding endpoint.
 
 ## Components
 
@@ -36,7 +36,7 @@ RAG is a separate service. It returns retrieved passages and grounded message ob
 | Agent-sandbox controller | `agent-sandbox-system` | `deploy/vendor/agent-sandbox` | Cluster-scoped prerequisite |
 | Policies and catalog | cluster/inference | `deploy/policies`, `platform/model-catalog` | Admission policy and approved model records |
 
-The data plane uses plaintext HTTP by default. NetworkPolicy restricts reachability but does not encrypt traffic. The customer must supply transport encryption where it is required.
+The data plane uses HTTP by default, and NetworkPolicy restricts reachability. Enable the opt-in [mTLS overlay](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md) where transport encryption is required.
 
 ## Local profile
 
@@ -54,13 +54,13 @@ The local profile uses:
 
 The default Argo CD path includes platform operators, observability, policies, cost controls, and backup examples. `QUICKSTART_DIRECT_APPLY=1` is intentionally smaller: it applies the core runtime charts directly and omits those add-ons.
 
-The local path needs network access for downloads and image/model pulls. It keeps inference requests on the local cluster after those components are installed, but it is not an air-gapped installation procedure.
+The local path needs network access for downloads and image/model pulls. After those components are installed, inference requests stay on the local cluster.
 
 ## Customer profile
 
 ![Customer profile](assets/architecture-customer.svg)
 
-The customer profile assumes that the cluster, Argo CD, ingress, secret integration, observability, and backup systems already exist. Its Argo CD application list is deliberately smaller than the local list and does not install the local observability, cost-control, platform-operator, or Velero applications.
+The customer profile assumes that the cluster, Argo CD, ingress, secret integration, observability, and backup systems already exist. Its Argo CD application list is a focused subset of the local list; the operator's existing observability, cost-control, platform-operator, and backup tooling takes the place of the local versions.
 
 The checked-in customer values deploy both Ollama and vLLM routes. They also add a separate vLLM embedding service and configure RAG to use Qdrant. The NVIDIA example requests four GPUs per vLLM replica and keeps at least two replicas when KEDA is enabled. Those values describe a large reference configuration, not a minimum or recommendation.
 
@@ -82,12 +82,12 @@ See [the customer deployment guide](https://github.com/RamazanKara/private-ai-pl
 
 `tenants/onboarding/regulated-offline-coding-agents.yaml` is a tenant policy example. It renders a namespace with no external CIDR egress and allows only DNS plus the in-cluster gateway and RAG service.
 
-The profile name does not make the cluster air-gapped. It does not control image pulls, model downloads, Argo CD, the gateway namespace, the identity provider, or other cluster services. An offline deployment also needs private registries and mirrors, preloaded model weights, internal Git and identity endpoints, and cluster-wide egress controls.
+The profile governs the tenant namespace. A fully offline deployment adds private registries and mirrors, preloaded model weights, internal Git and identity endpoints, and cluster-wide egress controls for image pulls, model downloads, Argo CD, the gateway namespace, and other cluster services.
 
 Use the [restricted-egress tenant walkthrough](regulated-offline-tenant-example.md) to render and inspect the manifests.
 
 ## Stateful and failure boundaries
 
-The bundled Redis, Qdrant, and Loki configurations are development/reference footprints. Redis has no persistence in the bundled chart, Qdrant is a single instance, and the local observability stack is not an HA logging service. The [external stores runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md) describes the handoff path.
+The bundled Redis, Qdrant, and Loki configurations are development/reference footprints. The bundled Redis runs without persistence, Qdrant runs as a single instance, and the local observability stack is a single-binary logging service. The [external stores runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md) describes the handoff path.
 
 The gateway audit chain is per process/replica. Export records and store chain-head anchors outside the gateway if the log is intended as tamper or rollback evidence.

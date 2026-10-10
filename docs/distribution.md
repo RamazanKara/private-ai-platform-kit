@@ -16,10 +16,10 @@ helm install private-ai oci://ghcr.io/ramazankara/private-ai-platform-kit/charts
 ```
 
 Release CI publishes `artifacthub-repo.yml` to the chart repository's special
-`artifacthub.io` OCI tag. To finish discoverability, a maintainer must register
+`artifacthub.io` OCI tag. For Artifact Hub listing, a maintainer registers
 `oci://ghcr.io/ramazankara/private-ai-platform-kit/charts/platform` once in the Artifact Hub
-control panel, copy the assigned `repositoryID` into `artifacthub-repo.yml`, and cut the next
-release. This external registration cannot be completed from repository code.
+control panel, copies the assigned `repositoryID` into `artifacthub-repo.yml`, and cuts the next
+release.
 
 ## Python package
 
@@ -29,7 +29,7 @@ python -m pip install https://github.com/RamazanKara/private-ai-platform-kit/rel
 
 The wheel, source archive, and `sdk-checksums.txt` are attached to each GitHub release.
 Follow [release verification](release-verification.md) to verify the files before installing.
-Version 0.29.0 uses GitHub downloads only; it is not published to PyPI.
+Version 0.29.0 is distributed through GitHub release downloads.
 
 ### Optional PyPI publishing
 

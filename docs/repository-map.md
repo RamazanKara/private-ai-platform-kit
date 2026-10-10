@@ -66,8 +66,8 @@ extend them through `requirements-dev.txt`. Root quality, docs, coverage, SDK bu
 and SDK test environments have separate requirement files. Keep the lock associated
 with each environment aligned with its input.
 
-Files named `sample-*` under `results/` describe report formats. They are not current
-validation evidence. Research results under `paper/` are a separate recorded dataset;
+Files named `sample-*` under `results/` describe report formats; current validation evidence
+is generated per run. Research results under `paper/` are a separate recorded dataset;
 follow the research guide when reproducing or updating them.
 
 ## Where to put a change

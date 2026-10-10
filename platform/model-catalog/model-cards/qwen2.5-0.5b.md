@@ -22,7 +22,7 @@ machine. It is the only model in the `local` gateway allowlist
 (`deploy/clusters/local/values/inference-gateway.yaml`). Use it to validate that the platform is
 wired correctly, not to judge model quality.
 
-## Out-of-scope / not approved for
+## Approval boundaries
 
 - Customer or production environments. It is allowlisted only in `local`; the customer Ollama
   profile uses `qwen3.5:0.8b` instead.
@@ -66,10 +66,9 @@ Re-verify it against your own model store before any production use.
 - External network required: false
 - Requires GPU: false
 
-## Known limitations
+## Operating characteristics
 
-- 0.5B parameters: low answer quality, no reliable reasoning or tool-use behaviour. Selected for
-  speed on CPU, not capability.
+- 0.5B parameters, selected for speed on CPU; use larger models for reasoning and tool use.
 - CPU-only serving; throughput and latency are bounded by the host CPU.
 - Intended as a smoke/demo model, so its admission limits (8192 prompt chars, 1024 completion
   tokens) are deliberately small.

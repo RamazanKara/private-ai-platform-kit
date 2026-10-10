@@ -1,6 +1,6 @@
 # Customer-owned Kubernetes deployment
 
-This overlay is for customers who already operate Kubernetes. It does not create cloud infrastructure and does not assume a specific managed Kubernetes service.
+This overlay is for customers who already operate Kubernetes. It deploys onto existing infrastructure and works with any conformant cluster, managed or self-run.
 
 ## What Customers Provide
 
@@ -43,9 +43,9 @@ The configurator updates:
 
 ## 2. Prepare secrets
 
-Gateway and RAG business endpoints read SHA-256 API-key hashes from existing Kubernetes Secrets. The
-checked-in customer values do not create those Secrets. `external-secrets.yaml` is an example and is
-not part of the customer Argo CD application list; install External Secrets Operator and add the
+Gateway and RAG business endpoints read SHA-256 API-key hashes from existing Kubernetes Secrets that the
+operator provides. `external-secrets.yaml` is an example that sits outside the customer Argo CD
+application list; install External Secrets Operator and add the
 reviewed manifest to the customer GitOps path, or create the Secrets through the customer's existing
 secret system. Do not store plaintext API keys in Helm values.
 

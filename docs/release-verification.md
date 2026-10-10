@@ -67,8 +67,8 @@ Chart OCI tags drop the leading `v` (`${RELEASE#v}`) to match the chart `version
 ## Provenance And SBOM Attestations
 
 The main-branch image build publishes SLSA provenance and SPDX SBOM attestations.
-The tag workflow promotes those same image digests and signs them for the release;
-it does not rebuild them. Verify build attestations against `refs/heads/main` and
+The tag workflow promotes those same image digests and signs them for the release
+without rebuilding. Verify build attestations against `refs/heads/main` and
 the release's exact source commit, using the authenticated GitHub CLI.
 
 Run from a checkout containing the release tag:

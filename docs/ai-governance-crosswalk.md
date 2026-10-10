@@ -14,21 +14,19 @@ The machine-readable companion is
 That file carries the per-control framework citations and the risk-tier-to-control mapping; this
 document is the human-readable explanation.
 
-## What this is and is not
+## How to read this crosswalk
 
-The kit ships mechanisms, not certifications. Each row below points at a control that exists in the
-repo and the framework obligation it contributes evidence toward. A framework citation means "this
-control helps you meet that obligation," not "this deployment is conformant." Conformity is a
-property of your deployment, your use case, and your evidence, not of the kit alone. In particular,
-whether your deployment is an EU AI Act high-risk system depends on your use case (Annex III), which
-the kit cannot determine for you. See [docs/threat-model.md](threat-model.md) for the residual risks
-that none of these controls remove and [docs/production-readiness.md](production-readiness.md) for the
-control matrix and validation commands.
+The kit ships controls that produce evidence for an assessment. Each row below points at a control
+that exists in the repo and the framework obligation it contributes evidence toward: a framework
+citation means "this control helps you meet that obligation." Conformity is established for each
+deployment from its use case and evidence. Whether a deployment is an EU AI Act high-risk system is
+decided from its use case (Annex III). See [docs/threat-model.md](threat-model.md) for the risks
+these controls address and [docs/production-readiness.md](production-readiness.md) for the control
+matrix and validation commands.
 
-The kit also delegates several obligations to the operator. Where a framework expects something the
-kit does not implement (fundamental-rights impact assessment, conformity assessment, registration,
-post-market incident reporting to authorities), that work is yours. Those gaps are called out in the
-[Operator responsibilities](#operator-responsibilities) section.
+Organizational obligations such as fundamental-rights impact assessment, conformity assessment,
+registration, and post-market incident reporting to authorities sit with the operator; they are
+listed in the [Operator responsibilities](#operator-responsibilities) section.
 
 ## Risk-tier semantics
 
@@ -37,8 +35,7 @@ post-market incident reporting to authorities), that work is yours. Those gaps a
 [`platform/governance/model-provenance.yaml`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/model-provenance.yaml). The enum
 `low | medium | high` is validated by `VALID_RISK_TIERS` in
 [`scripts/model-catalog.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-catalog.py) and re-checked in
-[`scripts/model-provenance.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-provenance.py). Until now the field was validated but
-not defined. This section gives it meaning: what each tier represents and which controls it mandates.
+[`scripts/model-provenance.py`](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/scripts/model-provenance.py). This section defines what each tier represents and which controls it mandates.
 
 `riskTier` is the model artifact's inherent risk: its capability, autonomy, and blast radius if it
 misbehaves. It is distinct from two neighbouring concepts:
@@ -181,8 +178,8 @@ operational-control and lifecycle clauses:
 
 ## Operator responsibilities
 
-The kit does not implement, and cannot substitute for, the following. These are the operator's
-obligations under one or more of the frameworks:
+The operator carries these obligations under one or more of the frameworks, supported by the kit's
+controls and evidence:
 
 - Determining whether a deployment is an EU AI Act high-risk system (Annex III) or a prohibited
   practice (Article 5).

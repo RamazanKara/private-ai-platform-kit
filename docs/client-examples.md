@@ -1,9 +1,9 @@
 # Client API examples
 
-The gateway implements a documented subset of the OpenAI API. Clients that use those
-routes can point their base URL at the gateway and send the platform headers. Check the
+The gateway implements the documented OpenAI routes. Clients point their base URL at the
+gateway and send the platform headers. The
 [OpenAPI contract](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json)
-and [scope](scope-and-non-goals.md) before assuming that an SDK feature is supported.
+and [scope](scope.md) list each supported route and feature.
 These examples use `http://127.0.0.1:8080`, where the [Docker Compose stack](quickstart.md#docker-compose)
 serves the gateway with API key `local-development-only`. In the `kind` lab, port-forward the
 gateway service first; in a customer cluster, use your ingress host.
@@ -95,9 +95,9 @@ layered behind the same endpoint later without changing callers.
 The gateway also exposes the pre-chat `/v1/completions` endpoint for tools that still use a
 `prompt` (a string or list of strings) instead of `messages`. It runs through the **same**
 governance path as chat (model allowlist, admission limits, prompt secret policy, sandbox
-budget, output guardrail, and audit), so legacy-completion traffic is not a control bypass.
-Streaming is **not** supported on `/v1/completions` in this release (send `stream: false`,
-or use `/v1/chat/completions` for streaming); a streaming request is rejected with a clear
+budget, output guardrail, and audit), so legacy-completion traffic gets the same controls.
+`/v1/completions` returns complete responses (send `stream: false`, or use
+`/v1/chat/completions` for streaming); a streaming request returns a
 `streaming_not_supported` error. Prefer `/v1/chat/completions` for new integrations.
 
 ## Native Anthropic Messages API (`/v1/messages`)
@@ -107,7 +107,7 @@ and Claude-style agents can point at the gateway directly, with no translation s
 for the common case. The Anthropic request and response are translated to and from the
 internal OpenAI chat shape and run through the **same** governance path as chat (model
 allowlist, admission limits, prompt secret policy, sandbox budget, output guardrail, and
-audit), so `/v1/messages` traffic is not a control bypass. Anthropic **requires**
+audit), so `/v1/messages` traffic gets the same controls. Anthropic **requires**
 `max_tokens`; a request that omits it is rejected, and the value is also enforced against the
 gateway's completion-token cap. The response is an Anthropic `Message` (`type: "message"`,
 `content` blocks, `stop_reason`, `usage.input_tokens`/`output_tokens`).
@@ -124,11 +124,10 @@ curl -fsS "$GATEWAY/v1/messages" \
       }'
 ```
 
-Translation is faithful but pragmatic: message and `system` text are exact; Anthropic tool
-definitions (`name`/`description`/`input_schema`) and `tool_use`/`tool_result` content blocks
-are mapped to their closest OpenAI equivalents on a best-effort basis. For Anthropic-shaped
-features the native endpoint does not cover, such as content blocks with no OpenAI
-equivalent, the translation-sidecar approach below remains available.
+Message and `system` text translate exactly; Anthropic tool definitions
+(`name`/`description`/`input_schema`) and `tool_use`/`tool_result` content blocks map to their
+closest OpenAI equivalents. For Anthropic content blocks with no OpenAI equivalent, use the
+translation-sidecar approach below.
 
 ### Streaming
 
@@ -164,7 +163,7 @@ both surfaces. Two behaviors are worth knowing:
   the wire, so the guardrail scans the assistant text at end-of-stream and records a finding.
   Use non-streaming requests where the guardrail must be able to block.
 
-Reasoning and thinking deltas cannot leak through this path: the translator reads only
+Reasoning and thinking deltas stay out of this path: the translator reads only
 `delta.content` and `delta.tool_calls`, so anything else a runtime streams has no route into
 the Anthropic events.
 
@@ -178,7 +177,7 @@ The gateway exposes the synchronous OpenAI **Responses API**, so tooling built
 on `client.responses.create(...)` can point at the gateway directly. The Responses request and
 response are translated to and from the internal OpenAI chat shape and run through the **same**
 governance path as chat (model allowlist, admission limits, prompt secret policy, sandbox
-budget, output guardrail, and audit), so `/v1/responses` traffic is not a control bypass.
+budget, output guardrail, and audit), so `/v1/responses` traffic gets the same controls.
 `input` accepts a plain string or an array of input items/messages; `instructions` is prepended
 as a system message; `max_output_tokens` maps to the gateway's completion-token cap and is
 enforced against it. The response is a Responses object (`object: "response"`, `status`,
@@ -201,10 +200,10 @@ Server-side state is opt-in and off by default because it persists raw conversat
 Set `RESPONSES_STORE_ENABLED=true` and use the Redis backend for multi-replica deployments;
 then `store: true`, `previous_response_id`, `GET`/`DELETE /v1/responses/{id}`, and
 `GET /v1/responses/{id}/input_items` are tenant-scoped and TTL-bounded. When state is disabled,
-those requests fail explicitly with `stateful_not_supported`. Streaming is **not** supported on `/v1/responses` (send
+those requests return a `stateful_not_supported` error. `/v1/responses` returns complete responses (send
 `stream: false`, or use `/v1/chat/completions` for OpenAI-shaped streaming); a streaming request
-is rejected with a clear `streaming_not_supported` error. Assistant `tool_calls` are mapped to
-`function_call` output items (`name`, `arguments`, `call_id`) on a best-effort basis, and a
+returns a `streaming_not_supported` error. Assistant `tool_calls` map to
+`function_call` output items (`name`, `arguments`, `call_id`), and a
 `length` finish maps to `status: "incomplete"` with `incomplete_details.reason:
 "max_output_tokens"`.
 
@@ -361,14 +360,14 @@ http://<gateway-host>/v1`, the API key, and a `requestOptions.headers` entry set
 `X-Sandbox-ID`. The gateway's `/v1/models` lists the approved models to configure.
 
 > Frameworks that cannot set a custom header should bind the sandbox with a JWT tenant claim
-> (`auth.jwt.tenantClaim`) so per-sandbox budgets and attribution cannot be spoofed.
+> (`auth.jwt.tenantClaim`) so per-sandbox budgets and attribution are bound to verified identity.
 
 ## Anthropic SDK / Claude-style agents (translation sidecar as an alternative)
 
-The gateway now exposes a native Anthropic `/v1/messages` endpoint (see above), which is the
-preferred path for Anthropic-SDK and Claude-style agents. A translation **sidecar** remains a
-supported **alternative** for Anthropic-shaped features the native endpoint does not yet cover,
-such as content blocks with no OpenAI equivalent. For example, a
+The gateway exposes a native Anthropic `/v1/messages` endpoint (see above), which is the
+preferred path for Anthropic-SDK and Claude-style agents. A translation **sidecar** is a
+supported **alternative** for Anthropic-shaped features such as content blocks with no OpenAI
+equivalent. For example, a
 [LiteLLM](https://docs.litellm.ai/) proxy that exposes an Anthropic-shaped `/v1/messages`
 endpoint and forwards to the gateway's `/v1/chat/completions`. The sidecar does the
 Anthropic-to-OpenAI request/response translation; the gateway still applies auth, model
@@ -394,7 +393,6 @@ litellm --config config.yaml   # serves an Anthropic-compatible /v1/messages
 ```
 
 Anthropic-SDK clients then point `base_url` at the sidecar (rather than the gateway's native
-`/v1/messages`) only when they need Anthropic behavior the native endpoint does not yet cover:
-this is a translation shim, and features without an OpenAI chat-completions equivalent are
-limited by what the sidecar can map. See [Scope and non-goals](scope-and-non-goals.md) for the
-exact list of protocol surfaces the gateway does and does not implement.
+`/v1/messages`) when they need Anthropic behavior beyond the native endpoint; the sidecar maps
+those features onto chat completions. See [Scope](scope.md) for the
+exact list of protocol surfaces the gateway implements.

@@ -57,14 +57,11 @@ intake, the taxonomy, the chaining, and the verification, not a collection agent
 - "Prove what it did" becomes checkable offline for more than model calls: `make audit-verify`
   verifies agent actions and model calls in one chain, and a deleted action receipt breaks the
   chain like any other record.
-- The chain's value now depends partly on producers the kit does not control. A receipt stream is
-  only as complete as what the operator wired into it, and the docs say so rather than implying
-  full coverage. Completeness is an operator property; integrity is the kit's.
-- Receipts are self-reported by the sandbox, so they are evidence of claims, not proof of
-  behavior. This is why the boundary above matters: an agent that never reports a `tool_exec`
-  simply has no receipt for it, and only the out-of-band producers (Falco, CNI) close that. The
-  chain makes tampering with reported history detectable; it does not make unreported history
-  appear.
+- Receipt coverage follows the producers the operator wires in: the kit guarantees integrity, and
+  the operator chooses coverage.
+- Receipts are self-reported by the sandbox and record what it reports. Out-of-band producers
+  (Falco, CNI) add receipts for actions observed outside the agent, which is why the boundary above
+  matters. The chain makes tampering with reported history detectable.
 - One more opt-in endpoint on the gateway, with a bounded body, its own rate limit path, and a
   closed vocabulary, so an enabled intake cannot become an unbounded log sink.
 

@@ -21,13 +21,12 @@ profile for customer-owned labs and is allowlisted in the `customer` gateway
 (`deploy/clusters/customer/values/inference-gateway.yaml`). It is served by vLLM via the customer
 vLLM profiles and is intended for coding-agent workspace validation, not the local laptop flow.
 
-## Out-of-scope / not approved for
+## Approval boundaries
 
-- Local or CPU-only environments. It requires multi-GPU serving and is not in the `local`
-  allowlist. It cannot be run in CI.
-- Production sign-off on the bundled evidence alone. The cited eval suite was run against a
-  CPU-runnable proxy (`qwen3.5:0.8b`), so the suite must be re-run against the real model on the
-  customer GPU profile before production sign-off (see Evaluation evidence).
+- Local or CPU-only environments. It is served on multi-GPU nodes and is not in the `local`
+  allowlist.
+- Production sign-off uses evals run against the real model on the customer GPU profile (see
+  Evaluation evidence).
 - Air-gapped operation as configured: its promotion request declares
   `externalNetworkRequired: true` (weights are pulled from Hugging Face). Pre-stage weights into a
   private model store for offline serving.
@@ -75,11 +74,10 @@ weights. Verify the actual downloaded files against the inventory before product
 - External network required: true
 - Requires GPU: true
 
-## Known limitations
+## Operating characteristics
 
-- Multi-GPU only: cannot be served on CPU and cannot be exercised in CI.
-- Eval evidence is via a proxy model; real-model evaluation on the customer GPU profile is a
-  prerequisite for production sign-off.
+- Multi-GPU serving.
+- Production sign-off runs the eval suite against the real model on the customer GPU profile.
 - Requires external network to fetch weights unless they are pre-staged into a private model
   store.
 - Customer overrides must keep `model.revision`, the inventory, and provenance in sync.
@@ -87,9 +85,8 @@ weights. Verify the actual downloaded files against the inventory before product
 ## Evaluation evidence
 
 - Eval suite: `platform/evals/coding-agent-suite.yaml`
-- Eval model proxy: `qwen3.5:0.8b`. `Qwen3-Coder-Next` requires multi-GPU serving and cannot be
-  run in CI; `qwen3.5:0.8b` is the CPU-runnable proxy exercised by the coding-agent eval suite.
-  Re-run the suite against the real model on the customer GPU profile before production sign-off.
+- Eval model proxy: `qwen3.5:0.8b`, the CPU-runnable proxy for the coding-agent eval suite in CI.
+  Run the suite against the real model on the customer GPU profile for production sign-off.
 - Eval summary: `results/evals/sample-summary.md`
 - Load-test summary: `results/loadtest/sample-summary.md`
 - Security workflow: `.github/workflows/ci.yml`

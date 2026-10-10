@@ -37,7 +37,7 @@ make rag-eval-check
 
 The service tests prepare their own hashed development environment.
 `make rag-eval-check` checks the retrieval-evaluation metrics and golden suite
-configuration; it does not run a live retrieval benchmark.
+configuration; run the RAG eval suite for a live retrieval benchmark.
 
 Run a local lexical service over the repository's documentation:
 
@@ -49,7 +49,7 @@ RAG_DOCUMENT_DIR="$PWD/docs" RAG_RETRIEVAL_BACKEND=lexical \
 
 Open `http://127.0.0.1:8081/docs` for the local API. The server loads Markdown/text
 documents at startup. Restart it after changing the corpus. This loopback example
-uses environment defaults; it does not require a gateway, model, or vector store.
+uses environment defaults and runs without a gateway, model, or vector store.
 
 ## Related contracts
 

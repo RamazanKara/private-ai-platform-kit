@@ -2,8 +2,8 @@
 
 This is the release-level source of truth for what `v0.29.0` implements, what is enabled by
 default, and what remains operator-owned. “Shipped” means code, configuration, tests, and an
-operator path exist in this repository; it does not mean a customer-specific integration is
-configured.
+operator path exist in this repository; customer-specific integrations are configured per
+deployment.
 
 | Capability | Status | Default | Verification / boundary |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ configured.
 | Embeddings | Shipped | On | Gateway tests; same auth, budget, audit, and model policy |
 | Moderations | Shipped | On | Governance taxonomy, not OpenAI harm categories |
 | Anthropic Messages | Shipped | On, streaming and non-streaming | Native translation through the governed chat path; streaming obeys the shared `allowStreaming` toggle |
-| OpenAI Responses | Shipped | On, synchronous | Function tools with multi-turn tool calls and image inputs; optional state is off by default; background, streaming, and built-in tools remain out of scope |
+| OpenAI Responses | Shipped | On, synchronous | Function tools with multi-turn tool calls and image inputs; optional state is off by default; synchronous responses |
 | Responses server-side state | Shipped | Off | Tenant-scoped memory/Redis store with TTL and delete |
 | Synchronous batch fan-out | Shipped | On | Per-item admission/budget/guardrail tests |
 | Files + asynchronous Batch API | Shipped | Off | Bounded streaming upload, durable Redis queue with owner-token claims, object-store blobs, streamed and checkpointed processing, replay bound to the running batch and its submitter |
@@ -48,7 +48,7 @@ configured.
 | SBOM, provenance, signatures | Shipped | Release CI | Build once, promote digest, digest-bound charts, Sigstore bundles |
 | Multi-node model serving | Example/integration | Off | LeaderWorkerSet/Ray installation and topology are operator-owned |
 | End-user multi-user chat UI | Example only | Off | Open WebUI manifest/runbook; identity and storage are operator-owned |
-| Training, fine-tuning, audio, images | Out of scope | n/a | Use purpose-built systems; see [Scope and non-goals](scope-and-non-goals.md) |
+| Training, fine-tuning, audio, images | Integrate | n/a | Pair with purpose-built systems; see [Scope](scope.md) |
 
 For operational acceptance criteria, use the [Production readiness matrix](production-readiness.md).
 For exact supported versions, use the [Version matrix](version-matrix.md).

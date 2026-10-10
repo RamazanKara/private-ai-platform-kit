@@ -8,9 +8,9 @@
 
 The gateway is OpenAI-compatible and already offers a **synchronous** fan-out at
 `POST /v1/batch-inference`: it runs a bounded set of chat requests concurrently and returns
-every result inline, within one request timeout. ADR 0005 and `docs/scope-and-non-goals.md`
-listed the OpenAI **asynchronous** file-batch API (`/v1/files` + `/v1/batches`) as an explicit
-non-goal, because it is a stateful subsystem rather than a request handler.
+every result inline, within one request timeout. ADR 0005 and `docs/scope.md`
+deferred the OpenAI **asynchronous** file-batch API (`/v1/files` + `/v1/batches`), because it is
+a stateful subsystem rather than a request handler.
 
 The requirement now is to support large, offline, bulk workloads that do not fit a single
 request: submit thousands of requests as a JSONL file, have them processed asynchronously under
@@ -100,15 +100,15 @@ cannot cross tenants.
   receipts extend the existing chain, admission and budget apply per item, and **partial completion
   is normal** (some items land in the output file, some in the error file with the standard error
   envelope). No batch-specific copy of the policy exists to drift.
-- This **reverses the async-batch non-goal** in ADR 0005 and `docs/scope-and-non-goals.md`, which
+- This **adopts the previously deferred async batch API** from ADR 0005 and `docs/scope.md`, which
   are updated when the subsystem lands. The synchronous `/v1/batch-inference` route is unchanged
   and remains the right tool for small inline batches.
 - Operational cost: an object store (MinIO locally, external S3 for customers) and a durable Redis
   must be run, and the `batch-processor` Deployment sized. This is documented for both the local
   and customer overlays, with the feature off by default.
 - The self-hosted context means OpenAI's 50% batch **cost discount** has no analogue; the
-  `completion_window` is honored as an **expiry** bound, not a scheduling SLA. Streaming batch
-  output is out of scope; the batch `endpoint` set is limited to chat/completions/embeddings.
+  `completion_window` is honored as an **expiry** bound. Batch output is delivered as files; the
+  batch `endpoint` set covers chat/completions/embeddings.
 
 **Phased rollout** (each phase independently shippable and gated by `make validate` + `make
 coverage` + `make production-check`):
@@ -117,7 +117,7 @@ coverage` + `make production-check`):
    config/api contracts scaffolding. No externally visible behavior.
 2. **Files API**: `/v1/files` endpoints over the object store + Redis metadata, size/line caps.
 3. **Batches API (state)**: `/v1/batches` create/get/cancel/list, job records, enqueue to the
-   queue; batches reach `in_progress` but are not yet processed.
+   queue; batches reach `in_progress`, and phase 4 adds processing.
 4. **`batch-processor` worker**: the Deployment consumes, replays through the gateway, writes
    output/error files, updates counts/status, cancellation, expiry/reaper, crash recovery.
 5. **Governance & hardening**: per-item budget/audit correctness, tenant-isolation enforcement in

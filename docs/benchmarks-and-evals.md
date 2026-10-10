@@ -1,6 +1,6 @@
 # Benchmarks And Evals
 
-The repository includes lightweight eval and load-test paths for release hygiene. They are not a substitute for customer workload benchmarks.
+The repository includes lightweight eval and load-test paths for release hygiene. Pair them with benchmarks of your own workloads for capacity and quality decisions.
 
 ## Evals
 

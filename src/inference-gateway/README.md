@@ -46,8 +46,7 @@ OLLAMA_BASE_URL=http://127.0.0.1:11434 MODEL_ID=qwen3.5:0.8b \
   --app-dir src/inference-gateway --host 127.0.0.1 --port 8080 --reload
 ```
 
-Set `MODEL_ID` to a model already installed in that Ollama instance. The command
-does not download a model. Open `http://127.0.0.1:8080/docs` for the local API.
+Set `MODEL_ID` to a model already installed in that Ollama instance; pull models with Ollama first. Open `http://127.0.0.1:8080/docs` for the local API.
 This loopback development server uses environment defaults; deployed authentication
 and policy come from the chart and cluster values.
 

@@ -11,7 +11,7 @@ listed under [Operator-Owned Scope](#operator-owned-scope).
 For a confirmed data-loss or data-exposure event treat this as **SEV1** and start from the
 [incident-response index](incident-response.md) first; this runbook is the recovery procedure that
 the SEV1 path routes into. For backup-tooling failures (a drill or backup that did not complete) use
-[restore-drill.md](restore-drill.md) instead -- a failed drill is not yet a disaster.
+[restore-drill.md](restore-drill.md) instead.
 
 ## What The Kit Backs Up
 
@@ -32,7 +32,7 @@ Two complementary mechanisms ship in `deploy/backup`:
   is excluded because its Redis is ephemeral cache (see the data-loss table below).
 
 - **restore-drill** (`deploy/backup/restore-drill`, runbook [restore-drill.md](restore-drill.md)).
-  This *validates* recoverability; it is not itself a backup. The Kubernetes CronJob
+  This *validates* recoverability alongside the backups above. The Kubernetes CronJob
   (`deploy/backup/restore-drill/k8s/cronjob.yaml`) runs daily at `0 3 * * *`, one hour after the
   Velero schedule. Two drills exist and prove different things: the default Redis-AOF smoke proves
   the restore *tooling* runs, while `RUNTIME=local RESTORE_DRILL_QDRANT_DATA=1 make restore-drill`
@@ -59,9 +59,8 @@ frequency or add CSI snapshot intervals. These cadences are operator-tunable: sh
 is dominated by data restore time (Qdrant snapshot size, agent-workspace PVC size) and runtime
 warm-up (image and model re-pull -- the model weights are the long pole, especially large vLLM
 models). As a single-cluster planning target, aim for **bring-up within a few hours** for a
-moderate data footprint, with the caveat that very large model weights and large vector collections
-extend the runtime and vector-store steps. Measure your own RTO with a real restore drill rather
-than trusting this estimate; the kit gives you the drill to do exactly that.
+moderate data footprint; very large model weights and large vector collections extend the runtime
+and vector-store steps. Measure your own RTO with the restore drill the kit provides.
 
 > These are *targets for a single-cluster rebuild from good backups*. They assume the operator-owned
 > backup target and Velero locations exist and are healthy. With no off-cluster backup, the cluster

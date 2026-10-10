@@ -9,8 +9,8 @@ This example uses a fake customer organization, `acme-ai`, to show the expected 
 - GPU profile: `nvidia`
 - Runtime model: `Qwen/Qwen3-Coder-Next`
 - Secret integration: customer-operated External Secrets or an equivalent mechanism. The
-  checked-in `external-secrets.yaml` is an example and is not synced by the customer application
-  set.
+  checked-in `external-secrets.yaml` is an example the operator adapts and applies outside the
+  customer application set.
 
 ## Configure the overlay
 

@@ -43,12 +43,11 @@ customer already operates.
   local validation is meaningful as handoff evidence.
 - Differences are isolated to a cluster directory and a few overlay manifests, which keeps the diff
   between "works on my laptop" and "works on the customer cluster" small and reviewable.
-- The kit deliberately does not provision the customer's cluster or replace its platform services;
+- The kit deploys onto the customer's cluster and works with its existing platform services;
   ingress, storage classes, secrets, logging, observability, and GPU pools are the operator's to
-  bring. Maturity is explicitly a "controlled handoff," not a turnkey production install.
-- Maintaining two cluster directories that must stay in lockstep is an ongoing cost; the shared
-  charts and policies limit it, but drift between local and customer values is a real failure mode to
-  watch.
+  bring, and delivery is a controlled handoff.
+- Trade-off: two cluster directories stay in lockstep. The shared charts and policies keep that
+  cost low, and reviews compare local and customer values for drift.
 
 ## Alternatives considered
 

@@ -28,15 +28,14 @@ provenance workflows that keep these sources in sync are in
 | `Qwen/Qwen3-Coder-Next` | [qwen3-coder.md](qwen3-coder.md) | vllm | customer-lab | medium |
 | `BAAI/bge-small-en-v1.5` | [bge-small-en.md](bge-small-en.md) | vllm (embedding) | customer-lab | low |
 
-Models with `status: proposed` in the catalog do not yet have a card. A card is added as part of
+Models with `status: proposed` receive a card as part of
 promoting a model to `approved`, alongside its provenance digest and promotion request.
 
 ## When a card is required
 
-A card is mandatory for any catalog entry with `status: approved`. The reverse also holds: an
-approved model without a card is a governance gap. The presence check wired into
-`scripts/model-catalog.py` fails validation if an approved model is missing its card, so
-`make model-check` will not pass until the card exists.
+A card is mandatory for any catalog entry with `status: approved`. The presence check wired into
+`scripts/model-catalog.py` fails validation if an approved model has no card, so
+`make model-check` confirms every approved model is documented.
 
 ## Card template
 
@@ -59,7 +58,7 @@ governed YAML; do not leave placeholders or invent values.
 
 <What this model is approved for in the kit, and the environment(s) it is allowlisted in.>
 
-## Out-of-scope / not approved for
+## Approval boundaries
 
 <Uses the promotion request did not cover; defer to governance before any of these.>
 
@@ -88,9 +87,9 @@ governed YAML; do not leave placeholders or invent values.
 - External network required: <conditions.externalNetworkRequired>
 - Requires GPU: <conditions.requiresGpu>
 
-## Known limitations
+## Operating characteristics
 
-<Factual limits: size, CPU/GPU behaviour, context, multi-GPU requirements, etc.>
+<Factual characteristics: size, CPU/GPU behaviour, context, multi-GPU requirements, etc.>
 
 ## Evaluation evidence
 

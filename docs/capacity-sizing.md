@@ -15,7 +15,7 @@ Collect these first:
 - retention and backup requirements;
 - allowed cold-start time and maximum replica cost.
 
-`make loadtest-local` does not measure model capacity. It starts a mock OpenAI-compatible runtime. Use it for gateway-path regression tests, then run `make loadtest` against the real deployment.
+`make loadtest-local` starts a mock OpenAI-compatible runtime for gateway-path regression tests. To measure model capacity, then run `make loadtest` against the real deployment.
 
 ## Gateway
 
@@ -26,9 +26,9 @@ The gateway chart can scale with KEDA on four Prometheus signals:
 - load-shed rate;
 - p95 request latency.
 
-The current customer values set a floor of 2 and a ceiling of 20 replicas. Treat the thresholds as initial configuration. Verify that the Prometheus queries return data in the target cluster before relying on them.
+The current customer values set a floor of 2 and a ceiling of 20 replicas. Treat the thresholds as initial configuration, and confirm the Prometheus queries return data in the target cluster.
 
-`concurrency.maxConcurrentRequests` is a per-process load-shed limit. `0` disables that limit. A higher value does not add model capacity; it only lets more work reach the runtime. Size the gateway and runtime together and watch 503 responses, queue depth, and tail latency.
+`concurrency.maxConcurrentRequests` is a per-process load-shed limit. `0` disables that limit. A higher value lets more work reach the runtime; model capacity comes from the runtime itself. Size the gateway and runtime together and watch 503 responses, queue depth, and tail latency.
 
 ## vLLM
 

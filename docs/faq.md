@@ -18,35 +18,35 @@ Not for the local path. The local smoke test uses `qwen2.5:0.5b` with Ollama on 
 
 ## Is in-cluster traffic encrypted?
 
-Not by default. The data plane uses HTTP. NetworkPolicy restricts which pods can connect but does not encrypt packets. See [Security overview](security-overview.md).
+The data plane uses HTTP by default, and NetworkPolicy restricts which pods can connect. Enable the opt-in [mTLS overlay](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md) to encrypt pod-to-pod traffic. See [Security overview](security-overview.md).
 
 ## Is the agent workspace a separate kernel sandbox?
 
-Only when the cluster supplies an isolation runtime and `sandbox.runtimeClassName` selects it. Otherwise the workspace uses a restricted container/pod security boundary on the node's normal container runtime.
+Yes, when the cluster supplies an isolation runtime such as gVisor or Kata and `sandbox.runtimeClassName` selects it. On the node's standard container runtime, the workspace uses a restricted container/pod security boundary.
 
 ## How is tenant identity enforced?
 
-A sandbox-bound key record or verified JWT tenant claim can bind the gateway request to a tenant. RAG can verify its own JWT as well. Without those bindings, `X-Sandbox-ID` is trusted caller input and is not a safe multi-tenant boundary under a shared key.
+A sandbox-bound key record or verified JWT tenant claim binds the gateway request to a tenant. RAG can verify its own JWT as well. Use one of these bindings for multi-tenant deployments: without them, `X-Sandbox-ID` is trusted caller input under a shared key.
 
-## Does the gateway implement the full OpenAI or Anthropic API?
+## Which OpenAI and Anthropic routes does the gateway implement?
 
-No. It implements the routes in the checked-in [OpenAPI contract](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json). Chat completions and Anthropic Messages can stream; legacy completions and Responses cannot in this release. See [Scope and non-goals](scope-and-non-goals.md).
+The routes in the checked-in [OpenAPI contract](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json). Chat completions and Anthropic Messages stream; legacy completions and Responses return complete responses. See [Scope](scope.md).
 
 ## What do the checked-in evidence files prove?
 
-Files named `sample-*` prove report shape and gate behavior. The non-strict gate may use them. They do not prove the state of the current checkout, a release, or a customer cluster. Generate fresh reports and use `make release-gate-strict` for a handoff.
+Files named `sample-*` show report shape and gate behavior, and the non-strict gate uses them. For the state of the current checkout, a release, or a customer cluster, generate fresh reports and use `make release-gate-strict` for a handoff.
 
 ## Does the audit chain prevent log tampering?
 
-It makes edits and reordering detectable in an exported chain. Durability and rollback detection require external log retention and a trusted chain-head anchor. Each gateway process/replica has its own chain.
+It makes edits and reordering detectable in an exported chain. Pair it with external log retention and a trusted chain-head anchor for durability and rollback detection. Each gateway process/replica has its own chain.
 
 ## What does the `regulated-offline` profile guarantee?
 
-It renders a tenant namespace without external CIDR egress. It does not air-gap the whole cluster or configure private registries, model mirrors, internal identity, or cluster-wide egress policy. See the [restricted-egress example](regulated-offline-tenant-example.md).
+It renders a tenant namespace with no external CIDR egress. Cluster-wide air-gapping, private registries, model mirrors, internal identity, and cluster-wide egress policy are configured by the operator. See the [restricted-egress example](regulated-offline-tenant-example.md).
 
 ## How do I upgrade or roll back?
 
-Change the immutable `CUSTOMER_REVISION`, review the rendered changes, and let Argo CD reconcile. Roll back by returning to the prior tag. Follow the [upgrade runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/upgrade.md); stateful schema or collection changes may require a separate data rollback.
+Change the immutable `CUSTOMER_REVISION`, review the rendered changes, and let Argo CD reconcile. Roll back by returning to the prior tag. Follow the [upgrade runbook](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/upgrade.md); for stateful schema or collection changes, plan a matching data rollback.
 
 ## Where should I report a security issue?
 

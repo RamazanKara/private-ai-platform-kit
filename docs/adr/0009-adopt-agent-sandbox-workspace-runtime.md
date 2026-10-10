@@ -87,22 +87,22 @@ Positive:
 - Warm pools give a path to low-latency workspace allocation without bespoke
   pooling code.
 
-Negative / accepted costs:
+Trade-offs:
 
-- New dependency on a `v1beta1` API that may still change before GA. Release
-  manifests must be vendored and pinned in `docs/version-matrix.md`; upgrades
+- New dependency on the `v1beta1` API. Release
+  manifests are vendored and pinned in `docs/version-matrix.md`; upgrades
   go through the normal release-verification path.
 - No upstream Helm chart: installation is by vendored versioned manifests,
   which is a second deployment mechanism next to Helm/Argo CD.
 - gVisor/Kata become documented cluster prerequisites for the hardened
-  profile (decision guide + version matrix); the local lab intentionally does
-  not exercise them, so hardened-profile CI needs a capable environment.
+  profile (decision guide + version matrix); the local lab runs the standard
+  container runtime, and hardened-profile CI runs in an environment that provides them.
 - Two runtime paths (namespace, agent-sandbox) must be rendered and tested in
   `make validate`, increasing the chart test matrix.
 - When the pooled path (SandboxTemplate/warm pools) is adopted, upstream's
   template-scoped NetworkPolicy model must be reconciled with the kit's
   default-deny policies so the egress catalog remains the single source of
-  truth; this reconciliation is a design obligation, not an option.
+  truth; this reconciliation is part of that adoption.
 
 ## Alternatives considered
 
@@ -121,4 +121,4 @@ Negative / accepted costs:
   of GA proves too costly.
 - **Hosted sandbox services (E2B, Daytona, Modal and similar).** Rejected:
   external SaaS execution of agent workloads contradicts the kit's
-  local-first, sovereign scope (`docs/scope-and-non-goals.md`).
+  local-first, sovereign scope (`docs/scope.md`).

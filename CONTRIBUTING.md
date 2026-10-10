@@ -7,7 +7,7 @@ focused tests, generated files, and troubleshooting.
 
 ## Start locally
 
-Service and tooling development does not require a Kubernetes cluster. From the
+Service and tooling development runs without a Kubernetes cluster. From the
 repository root in Linux or WSL:
 
 ```bash
@@ -92,8 +92,8 @@ make release-gate-strict
 make release-report-strict
 ```
 
-The non-strict `make release-gate` target can use sample evidence for local
-configuration checks. It does not establish readiness for a current deployment.
+The non-strict `make release-gate` target uses sample evidence for local
+configuration checks; the strict targets above check current deployment evidence.
 See [release gates](runbooks/release-gates.md) for required evidence.
 
 ## Community workflow

@@ -134,7 +134,7 @@ external managed Qdrant or a Qdrant cluster instead of raising the bundled repli
 - **External managed Qdrant** (Qdrant Cloud or a separately-operated Qdrant cluster): point
   the RAG service at it and stop deploying the bundled chart.
 - **Self-run Qdrant cluster**, a multi-node deployment with sharding/replication, operated
-  outside this chart (the bundled chart intentionally does not model clustering).
+  outside this chart (the bundled chart covers the single-instance footprint).
 
 ### Steps
 
@@ -194,8 +194,8 @@ object store for long-term hold (see [Audit chain & SIEM forwarding](audit-chain
    buffer, not the durable audit hold. The [Audit chain & SIEM forwarding](audit-chain.md)
    runbook covers exporting/anchoring the chain head and shipping receipts to a SIEM.
 
-Loki is an operator-owned platform service the kit does not run for you (see
-[Scope and non-goals](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope-and-non-goals.md));
+Loki is an operator-owned platform service (see
+[Scope](https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope.md));
 the bundled footprint is a working reference, and the object-storage/replicated topology is
 yours to size and operate.
 

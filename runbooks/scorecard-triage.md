@@ -41,8 +41,8 @@ Score each finding by exploitability, not just the raw number. Work top-down:
 
 ## Accepting A Finding
 
-Some checks (for example `Fuzzing`, `Branch-Protection` on a solo-maintained repo) may be
-intentionally out of scope. Record the decision and rationale in the pull request that touches the
+Some checks (for example `Fuzzing`, `Branch-Protection` on a solo-maintained repo) can be
+intentionally accepted. Record the decision and rationale in the pull request that touches the
 related area, and dismiss the code-scanning alert with the matching reason so it does not re-surface
 as actionable. Do not silence a finding without a written rationale.
 

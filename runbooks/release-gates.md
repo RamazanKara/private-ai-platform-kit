@@ -66,7 +66,7 @@ The strict gate fails when a required gate falls back to checked-in `sample-*` e
 
 ## Interpreting Failures
 
-A failed release gate means the handoff evidence is incomplete or below the defined threshold. Do not promote the lab to a customer handoff until the failed gate has been rerun and the report passes.
+A failed release gate points to the evidence to regenerate or the threshold to meet. Promote the lab to a customer handoff once the failed gate has been rerun and the report passes.
 
 If the strict gate reports sample evidence, rerun the matching evidence command from the previous section. Sample artifacts prove report shape only; they do not prove the current build is ready for a customer handoff.
 

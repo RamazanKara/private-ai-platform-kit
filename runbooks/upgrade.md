@@ -121,7 +121,7 @@ Git change yet, use Argo CD's deployment history:
     argocd app history private-ai-platform-kit-root
     argocd app rollback private-ai-platform-kit-root <history-id>
 
-This is a stopgap. The Git revision still points at the bad tag, so reconcile Git
+This is a temporary measure. The Git revision still points at the bad tag, so reconcile Git
 (revert `CUSTOMER_REVISION`) afterward or selfHeal/the next sync will roll forward
 again.
 

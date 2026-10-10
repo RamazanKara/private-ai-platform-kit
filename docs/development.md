@@ -133,8 +133,8 @@ The MkDocs hook keeps each mirrored page's edit link pointed at its source.
 
 `make repo-hygiene` checks tracked and new, unignored Markdown files, including
 service READMEs. It checks inline local links and images for file existence and
-recognizes Make target references in code. It does not validate remote URLs,
-reference-style Markdown links, or heading anchors; preview the affected pages too.
+recognizes Make target references in code. Preview the affected pages to check remote URLs,
+reference-style Markdown links, and heading anchors.
 
 ## Common development problems
 

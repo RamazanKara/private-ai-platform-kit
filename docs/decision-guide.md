@@ -54,4 +54,4 @@ The [capacity worksheet](capacity-sizing.md), [customer deployment guide](https:
 
 ## Maturity
 
-The local path is an executable lab. The customer path is a template. The bundled Redis, Qdrant, and Loki footprints are not HA services, transport encryption is off by default, and the checked-in customer values contain integration placeholders. Treat a production deployment as its own engineering and acceptance project.
+The local path is an executable lab. The customer path is a template you adapt: swap the bundled single-node Redis, Qdrant, and Loki footprints for their HA paths, enable the opt-in transport encryption overlay, and fill in the integration placeholders in the customer values. Plan a production deployment as its own engineering and acceptance project.

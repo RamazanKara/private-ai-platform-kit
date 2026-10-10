@@ -106,7 +106,7 @@ claim at the next heartbeat and stops without touching the replica that took ove
 ## Cancellation and expiry
 
 - `POST /v1/batches/{id}/cancel` flips the batch to `cancelling`; the worker finalizes it to
-  `cancelled` at its next chunk boundary (best-effort; in-flight items may still complete).
+  `cancelled` at its next chunk boundary (in-flight items can still complete).
 - A batch not finished within its `completion_window` (default `24h`, honored as an expiry
   bound) becomes `expired` at the next chunk boundary or when a worker next picks it up.
   Results finished before cancellation or expiry are kept in the output and error files.

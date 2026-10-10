@@ -44,10 +44,9 @@ backend-absent and restore alerts also name the runbook in their summary.
 | Upgrade gone wrong / need to roll back | `runbooks/upgrade.md` |
 | Vector store schema / collection migration | `runbooks/qdrant-migration.md` |
 
-## Gap Sections
+## Additional First-Response Procedures
 
-The following failures did not have a dedicated runbook. Each section is the
-first-response procedure; escalate per the tiers above.
+Each section below is the first-response procedure for a failure without its own runbook; escalate per the tiers above.
 
 ### Budget Redis Outage
 

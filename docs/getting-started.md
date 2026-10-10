@@ -113,7 +113,7 @@ make evidence
 make evidence LIVE=1
 ```
 
-The non-strict release gate may use checked-in `sample-*` reports to test the gate configuration. It is not release evidence. Before a release or customer handoff, generate current reports and run:
+The non-strict release gate uses checked-in `sample-*` reports to test the gate configuration. Before a release or customer handoff, generate current reports and run:
 
 ```bash
 make validate-full

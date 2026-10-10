@@ -60,9 +60,8 @@ Two adjacent duplications had accumulated around the same feature:
 
 - One runtime path: half the chart test matrix, no decision-guide fork, and
   the default posture equals the documented posture.
-- Every conformant cluster must run the vendored controller; a cluster that
-  cannot is no longer a supported workspace target (accepted: no such
-  cluster is known, and the tracing/tenant features remain unaffected).
+- Every conformant cluster runs the vendored controller, which installs on any
+  conformant cluster; the tracing/tenant features are independent of it.
 - `C-ISOLATE` stops being tier-conditional and is mandated at every risk
   tier; evidence packs fail when the controller is absent instead of
   recording an unclaimed control.

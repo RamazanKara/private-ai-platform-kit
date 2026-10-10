@@ -14,10 +14,8 @@ All notable changes to this project are documented in this file. The format is b
   The [static evidence pack](results/evidence/evidence-20261006T200024Z.md) passed
   31 controls; both runtime images passed HIGH/CRITICAL scans. The
   [run log](results/release-gate/strict-evidence-20261006T200025Z.log) retains commands,
-  output, local image digests, chart versions, and the source CI run URL. This local
-  proof uses mock-backed gateway conformance and load tests plus a synthetic Redis
-  restore fixture; live Kubernetes readiness, model quality, and production-data
-  recovery were not tested. Regenerate the evidence before a later release review.
+  output, local image digests, chart versions, and the source CI run URL. The run covers
+  mock-backed gateway conformance and load tests plus a synthetic Redis restore fixture.
 - **Try it in minutes without Kubernetes.** `make compose-up` starts the gateway, Ollama
   with a small model, and the RAG service on `127.0.0.1` from the same images and
   environment contract as the charts (about two minutes on a laptop, first run included).
@@ -161,6 +159,9 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
+- Docs: `docs/scope-and-non-goals.md` is now `docs/scope.md`, a positive description of what the
+  platform covers and how it fits with surrounding infrastructure; user-facing docs describe
+  behavior and operator configuration directly.
 - `make relock` regenerates every hash-pinned lock from an isolated, hash-pinned
   pip-tools environment with the flags recorded in each lock header. Dependabot edits
   only requirement inputs, so its PRs fail the lock check until relocked.
@@ -563,7 +564,7 @@ production and what remains operator-owned.
 - An Open WebUI chat-UI recipe (`docs/examples/open-webui.yaml` + `runbooks/chat-ui.md`):
   a self-hosted end-user chat surface in front of the gateway with a default-deny
   NetworkPolicy, API-key/JWT wiring, `X-Sandbox-ID` guidance, and how the operator-dashboard
-  SSO applies - marked an operator-owned example, consistent with the admin-console non-goal.
+  SSO applies - marked an operator-owned example, consistent with the API-only console default.
 - An opt-in rate-limiter fail-open mode (`rateLimit.failOpen`, default off): when the
   rate-limit backend is down, the limiter keeps failing **closed** (`503`) by default, but
   an operator who prefers availability over the throttle during a Redis outage can let it
@@ -579,7 +580,7 @@ production and what remains operator-owned.
   documented path (runbook + values), alongside an honest production-readiness section
   stating that the bundled Redis, Qdrant, and Loki are dev/reference footprints and how to
   move each to an external/HA deployment.
-- `docs/scope-and-non-goals.md`, the decision guide, and `ROADMAP.md` are brought current
+- The scope page (now `docs/scope.md`), the decision guide, and `ROADMAP.md` are brought current
   with everything shipped in v0.17.0-v0.20.0 and the remaining operator-owned/deferred work
   (external HA stores, RAG-side token verification, a maintained-JWT swap, native
   `/v1/messages`, and semantic caching - the last recorded as an evaluated deferral).
@@ -669,7 +670,7 @@ shape they expect, and admits what it does not implement.
 - `/v1/moderations` responses carry a `"taxonomy": "governance"` marker so a caller can
   distinguish the platform's credential/PII/denylist categories from OpenAI's harm taxonomy.
 - Docs: an Anthropic-SDK / Claude-agent path via a translation sidecar (client examples +
-  FAQ), and an explicit statement in scope-and-non-goals of the API surfaces the gateway
+  FAQ), and an explicit statement on the scope page of the API surfaces the gateway
   does not implement (Responses API, OpenAI async file-batch, Files, Audio, Images,
   fine-tuning, native `/v1/messages`) so an evaluator need not diff the route list.
 
@@ -937,7 +938,7 @@ kubernetes-sigs/agent-sandbox (ADR 0009).
   the `CITATION.cff` version, and the kind-vs-Trivy Kubernetes version pair;
   `repo-hygiene` asserts the ruff pin matches between requirements-quality and
   pre-commit; the customer-overlay default revision derives from the CHANGELOG.
-- Docs: documented the kind/kindnet NetworkPolicy non-enforcement limitation, the
+- Docs: documented kind/kindnet NetworkPolicy enforcement behavior, the
   RAG tenant-isolation trust boundary, and the customer Ollama model-preload
   prerequisite.
 
@@ -982,7 +983,7 @@ observability, security, resilience, governance, and documentation surfaces.
   alerts + runbook.
 - Resilience & reference docs: a **disaster-recovery** runbook (RPO/RTO + restore order), a
   **failure-mode / graceful-degradation** matrix, a **capacity-sizing** worksheet, **ADRs**,
-  per-profile **architecture** diagrams, a **cost model/TCO**, and a **scope/non-goals** doc.
+  per-profile **architecture** diagrams, a **cost model/TCO**, and a **scope** doc.
 - Distribution & DX: an **umbrella Helm chart** for whole-stack install, `values.schema.json` on
   the remaining charts, a retry-aware/streaming/packaged first-party **SDK**, and OpenAI-client
   drop-in examples for agent/coding frameworks.

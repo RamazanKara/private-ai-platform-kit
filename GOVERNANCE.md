@@ -37,17 +37,17 @@ maintainer is available. If consensus fails, the steward makes and records the f
 Releases should include current validation evidence, changelog entries, image scan evidence, SBOMs, checksums, and signed immutable image digests.
 
 The target cadence is one reviewed maintenance release per month when releasable changes exist,
-with quarterly roadmap and dependency-support reviews. Empty calendar releases are not created.
+with quarterly roadmap and dependency-support reviews.
 Critical security fixes ship as soon as coordinated disclosure permits. Release tags are immutable;
 a bad release is superseded by a new patch version rather than retagged. The release checklist and
 distribution channels are documented in [Distribution](docs/distribution.md).
 
 ## Support and Compatibility
 
-The latest release and `main` receive fixes. Before 1.0, only the latest minor line is actively
-supported; release notes must call out breaking changes and migrations. Published images, charts,
-SDK artifacts, and documentation use the same version. Community support is best effort through
-issues; security reports follow [SECURITY.md](SECURITY.md).
+The latest release and `main` receive fixes, and the latest minor line is the supported line;
+release notes call out breaking changes and migrations. Published images, charts, SDK artifacts,
+and documentation use the same version. Community support runs through GitHub issues; security
+reports follow [SECURITY.md](SECURITY.md).
 
 ## Continuity
 
