@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1683,18 +1683,17 @@ hardware recommendation.</p>
 <p>Size the actual model artifact on the target GPU. Account for weights, KV cache, activations,
 runtime overhead, prompt/completion length, and concurrent requests. Change
 <code>accelerator.count</code>, tensor parallelism, context length, replica count, and KEDA bounds together.</p>
-<p><code>make loadtest-local</code> uses a mock runtime and cannot size a GPU deployment. Point <code>make loadtest</code>
+<p><code>make loadtest-local</code> uses a mock runtime for gateway-path checks. To size a GPU deployment, point <code>make loadtest</code>
 at the deployed gateway and collect vLLM queue, latency, token-throughput, and GPU-memory metrics
 at the same time. Run the relevant eval suite again after changing the model, precision, or
 quantization.</p>
 <p>The chart creates a Kubernetes <code>Deployment</code>. Its tensor-parallel configuration assumes that all
-requested GPUs are available to one pod on one node. The repository does not install or test a
-multi-node vLLM operator. A model that cannot fit on one node needs a separately designed and tested
-LeaderWorkerSet, Ray, or equivalent deployment.</p>
+requested GPUs are available to one pod on one node. For a model larger than one node, deploy it
+with LeaderWorkerSet, Ray, or an equivalent multi-node operator.</p>
 <p>The FP8 and AWQ files under <code>deploy/clusters/customer/values/</code> are configuration examples. The
 operator must supply a compatible GPU, runtime image, and model artifact. MIG and time-slicing are
-also cluster/device-plugin settings; the chart can request the resulting resource name but does not
-configure GPU partitioning.</p>
+also cluster/device-plugin settings; the chart requests the resulting resource name, and the device
+plugin configures GPU partitioning.</p>
 <p>See <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/capacity-sizing.md">Capacity and sizing</a>
 for the measurement loop.</p>
 <h2 id="evidence">Evidence<a class="headerlink" href="#evidence" title="Permanent link">&para;</a></h2>

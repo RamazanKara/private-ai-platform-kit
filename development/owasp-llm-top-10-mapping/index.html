@@ -1236,14 +1236,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1891,108 +1891,97 @@
 
 <h1 id="owasp-top-10-for-llm-applications-2025-mapping">OWASP Top 10 for LLM Applications 2025 mapping<a class="headerlink" href="#owasp-top-10-for-llm-applications-2025-mapping" title="Permanent link">&para;</a></h1>
 <p>This page uses the <a href="https://genai.owasp.org/llm-top-10/">OWASP Top 10 for LLM Applications 2025</a> names and numbering. The older list used different numbers for several risks; references in this repository use the <code>:2025</code> suffix to avoid that ambiguity.</p>
-<p>This is a control inventory, not an OWASP assessment or certification. “Partial” means the repository has a relevant mechanism but leaves material residual risk.</p>
+<p>This page inventories the platform's controls for each risk and the operator controls that complete them. Use it as input to an OWASP assessment of a specific deployment.</p>
 <h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Risk</th>
 <th>In-repository mechanisms</th>
-<th>Coverage</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>LLM01:2025 Prompt Injection</td>
 <td>Input limits and secret patterns, restricted RAG/workspace access, default-deny egress, safety evals</td>
-<td>Partial</td>
 </tr>
 <tr>
 <td>LLM02:2025 Sensitive Information Disclosure</td>
 <td>Audit redaction, optional input/output pattern checks, tenant-scoped retrieval</td>
-<td>Partial</td>
 </tr>
 <tr>
 <td>LLM03:2025 Supply Chain</td>
 <td>Pinned dependencies/actions, SBOMs, scans, signatures, model catalog/provenance</td>
-<td>Partial</td>
 </tr>
 <tr>
 <td>LLM04:2025 Data and Model Poisoning</td>
 <td>Model promotion/provenance records, reviewed RAG ingestion and collection versions</td>
-<td>Partial</td>
 </tr>
 <tr>
 <td>LLM05:2025 Improper Output Handling</td>
-<td>Optional output guardrail; downstream output remains untrusted</td>
-<td>Partial</td>
+<td>Optional output guardrail; caller-side output validation</td>
 </tr>
 <tr>
 <td>LLM06:2025 Excessive Agency</td>
 <td>Workspace RBAC, quotas, budgets, default-deny and catalog egress</td>
-<td>Partial</td>
 </tr>
 <tr>
 <td>LLM07:2025 System Prompt Leakage</td>
 <td>No secrets in prompts, audit redaction, optional output pattern checks</td>
-<td>Limited</td>
 </tr>
 <tr>
 <td>LLM08:2025 Vector and Embedding Weaknesses</td>
 <td>Tenant/owner filters, classification filters, governed embedding model and collection version</td>
-<td>Partial</td>
 </tr>
 <tr>
 <td>LLM09:2025 Misinformation</td>
 <td>Grounded context, eval suites, release thresholds</td>
-<td>Partial</td>
 </tr>
 <tr>
 <td>LLM10:2025 Unbounded Consumption</td>
 <td>Admission limits, rate limits, budgets, concurrency shedding, batch/file ceilings</td>
-<td>Strong at the gateway boundary</td>
 </tr>
 </tbody>
 </table>
 <h2 id="llm012025-prompt-injection">LLM01:2025 Prompt Injection<a class="headerlink" href="#llm012025-prompt-injection" title="Permanent link">&para;</a></h2>
 <p>The gateway bounds caller-controlled messages, tools, and payload sizes and can reject configured secret patterns. Agent namespaces restrict network and Kubernetes access. RAG documents are filtered and workspace egress is catalog-based.</p>
-<p>None of these controls reliably tells instructions from data. Retrieved text, repository files, tool output, and user prompts can still influence the model. Keep tools least-privileged, require confirmation for consequential actions, and design the system so a compromised model response has limited authority.</p>
+<p>Retrieved text, repository files, tool output, and user prompts all reach the model as input, so these controls focus on limiting what an influenced response can reach. Keep tools least-privileged, require confirmation for consequential actions, and design the system so a compromised model response has limited authority.</p>
 <p>Verification: gateway admission tests, <code>make agent-sandbox-smoke</code>, <code>make egress-check</code>, and the safety eval suite.</p>
 <h2 id="llm022025-sensitive-information-disclosure">LLM02:2025 Sensitive Information Disclosure<a class="headerlink" href="#llm022025-sensitive-information-disclosure" title="Permanent link">&para;</a></h2>
 <p>Gateway audit events omit raw prompt and completion text. Input secret detection is enabled in the shipped environment values. The optional output guardrail can flag, redact, or block configured patterns for non-streaming responses.</p>
-<p>Pattern matching is incomplete, streaming content can be observed before end-of-stream detection, and other components may log raw data. The operator must review runtime/proxy logging, classify RAG content, bind tenant identity, set retention, and prevent secrets from entering prompts in the first place.</p>
+<p>Pattern checks catch configured formats, and streaming content is checked at end of stream. Complete the picture by reviewing runtime/proxy logging, classifying RAG content, binding tenant identity, setting retention, and keeping secrets out of prompts at the source.</p>
 <p>Verification: audit-redaction and output-guardrail tests, <code>make retention-check</code>.</p>
 <h2 id="llm032025-supply-chain">LLM03:2025 Supply Chain<a class="headerlink" href="#llm032025-supply-chain" title="Permanent link">&para;</a></h2>
 <p>First-party Python dependencies are hash-locked, base images and GitHub Actions are pinned, and release workflows produce scans, SBOMs, signatures, and provenance. Kyverno can enforce the project's signing identity for project images.</p>
-<p>The project does not establish the integrity of upstream model training, customer model weights, customer images, the cluster, or private mirrors. Model provenance records must be replaced with the digest of the artifact actually served.</p>
+<p>The operator verifies upstream model training sources, customer model weights, customer images, the cluster, and private mirrors. Replace model provenance records with the digest of the artifact actually served.</p>
 <p>Verification: <code>make dependency-lock-check</code>, <code>make repo-security-scan</code>, <code>make image-scan</code>, and release verification.</p>
 <h2 id="llm042025-data-and-model-poisoning">LLM04:2025 Data and Model Poisoning<a class="headerlink" href="#llm042025-data-and-model-poisoning" title="Permanent link">&para;</a></h2>
 <p>The model catalog requires promotion and provenance records. RAG ingestion records source metadata, owner/classification fields, embedding model, and collection version.</p>
-<p>A digest identifies an artifact; it does not prove that its training data or behavior is clean. Likewise, collection metadata does not validate the truth or safety of ingested documents. Operators need source approval, malware/content review, representative evals, and rollback to known model and collection versions.</p>
+<p>A digest identifies an artifact, and collection metadata records where ingested documents came from. Judging training data, model behavior, and document safety calls for source approval, malware/content review, representative evals, and rollback to known model and collection versions, all supported by these records.</p>
 <p>Verification: <code>make model-check</code>, <code>make model-provenance-check</code>, and RAG evals.</p>
 <h2 id="llm052025-improper-output-handling">LLM05:2025 Improper Output Handling<a class="headerlink" href="#llm052025-improper-output-handling" title="Permanent link">&para;</a></h2>
 <p>The optional output guardrail inspects visible text and tool/function arguments before a non-streaming response is cached or returned. It is off in the base values.</p>
-<p>Model output must still be treated as untrusted. Callers are responsible for escaping rendered text, validating structured data, constraining shell/SQL/code execution, checking URLs and file paths, and applying authorization at the action boundary. A model saying an action is allowed is not authorization.</p>
+<p>Treat model output as untrusted input. Callers escape rendered text, validate structured data, constrain shell/SQL/code execution, check URLs and file paths, and apply authorization at the action boundary, independent of what the model says is allowed.</p>
 <p>Verification: gateway output-guardrail and tool-output tests.</p>
 <h2 id="llm062025-excessive-agency">LLM06:2025 Excessive Agency<a class="headerlink" href="#llm062025-excessive-agency" title="Permanent link">&para;</a></h2>
 <p>Agent workspaces have namespace RBAC, quota, restricted pods, short-lived projected credentials, per-sandbox gateway budgets, and default-deny egress with reviewed exceptions.</p>
-<p>These controls limit blast radius but do not decide which tools or actions an agent should have. Approved egress can still be abused, and a viewer or job-management role may be too broad for a particular workflow. Keep actions narrow, separately authorized, observable, and reversible where possible.</p>
+<p>These controls limit blast radius; the operator decides which tools and actions each agent gets. Review approved egress and role scope (for example viewer or job-management) per workflow, and keep actions narrow, separately authorized, observable, and reversible where possible.</p>
 <p>Verification: <code>make agent-smoke</code>, <code>make agent-sandbox-smoke</code>, <code>make quota-check</code>, and <code>make egress-check</code>.</p>
 <h2 id="llm072025-system-prompt-leakage">LLM07:2025 System Prompt Leakage<a class="headerlink" href="#llm072025-system-prompt-leakage" title="Permanent link">&para;</a></h2>
-<p>System/developer prompts are included in the request sent to the runtime. The platform does not claim that a model can keep them secret. Do not put API keys, private policy logic, or other secrets in prompts.</p>
-<p>Audit redaction prevents the gateway's audit event from storing raw prompts, and the optional output guardrail may catch known credential formats. Neither control prevents a model from paraphrasing or revealing instructions.</p>
+<p>System/developer prompts are included in the request sent to the runtime, so treat them as visible to the model's output. Keep API keys, private policy logic, and other secrets out of prompts.</p>
+<p>Audit redaction keeps raw prompts out of the gateway's audit event, and the optional output guardrail catches known credential formats in responses.</p>
 <p>Verification: prompt-redaction tests and application-specific adversarial evals.</p>
 <h2 id="llm082025-vector-and-embedding-weaknesses">LLM08:2025 Vector and Embedding Weaknesses<a class="headerlink" href="#llm082025-vector-and-embedding-weaknesses" title="Permanent link">&para;</a></h2>
 <p>RAG records owner and classification metadata, can enforce tenant filters on lexical and Qdrant backends, and versions collections against an embedding configuration. Customer values can derive tenant identity from a RAG-verified JWT.</p>
-<p>When JWT verification is disabled, the service trusts <code>X-Sandbox-ID</code>. Shared keys plus caller-supplied tenant headers are not a multi-tenant identity boundary. The operator also owns document-source approval, embedding-model changes, collection migration, index exposure, and poisoning detection.</p>
+<p>With JWT verification disabled, the service trusts <code>X-Sandbox-ID</code>; enable verified tenant identity for multi-tenant deployments that share keys. The operator also owns document-source approval, embedding-model changes, collection migration, index exposure, and poisoning detection.</p>
 <p>Verification: RAG tenant-isolation tests, <code>make rag-eval-check</code>, and the Qdrant migration procedure.</p>
 <h2 id="llm092025-misinformation">LLM09:2025 Misinformation<a class="headerlink" href="#llm092025-misinformation" title="Permanent link">&para;</a></h2>
 <p>The RAG service returns source excerpts and grounded message objects. Eval suites can check expected terms, forbidden terms, latency, retrieval precision, and a repository-defined faithfulness score.</p>
-<p>Those checks do not establish truth for a customer domain. The local lexical corpus and mock-runtime evals are test fixtures. Add domain cases, human review, source citations, abstention behavior, and acceptance thresholds for the actual model and corpus.</p>
+<p>The local lexical corpus and mock-runtime evals are test fixtures. For a customer domain, add domain cases, human review, source citations, abstention behavior, and acceptance thresholds for the actual model and corpus.</p>
 <p>Verification: <code>make eval</code>, <code>make rag-eval</code>, and strict release gates with current evidence.</p>
 <h2 id="llm102025-unbounded-consumption">LLM10:2025 Unbounded Consumption<a class="headerlink" href="#llm102025-unbounded-consumption" title="Permanent link">&para;</a></h2>
 <p>The gateway caps request/body size, message/tool counts, completion limits, batch sizes, and file uploads. It also supports per-sandbox rate limits, estimated-token budgets, and per-process concurrency shedding. Shared Redis is used by the shipped local/customer budget profiles.</p>
-<p>These controls cover traffic through the gateway. They do not cap cluster autoscaling cost by themselves, prevent expensive model configuration, or account for work performed outside the gateway. Set KEDA ceilings, Kubernetes quotas, object-store limits, and customer cost alerts as separate controls.</p>
+<p>These controls cover traffic through the gateway. Pair them with KEDA ceilings, Kubernetes quotas, object-store limits, model configuration review, and customer cost alerts for autoscaling cost and work outside the gateway.</p>
 <p>Verification: admission, budget, rate-limit, body-limit, file, batch, and load-shedding tests; <code>make quota-check</code>.</p>
 
 

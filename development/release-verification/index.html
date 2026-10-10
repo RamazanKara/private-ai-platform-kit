@@ -1063,14 +1063,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1825,8 +1825,8 @@
 <p>Chart OCI tags drop the leading <code>v</code> (<code>${RELEASE#v}</code>) to match the chart <code>version</code>, while runtime image tags keep it.</p>
 <h2 id="provenance-and-sbom-attestations">Provenance And SBOM Attestations<a class="headerlink" href="#provenance-and-sbom-attestations" title="Permanent link">&para;</a></h2>
 <p>The main-branch image build publishes SLSA provenance and SPDX SBOM attestations.
-The tag workflow promotes those same image digests and signs them for the release;
-it does not rebuild them. Verify build attestations against <code>refs/heads/main</code> and
+The tag workflow promotes those same image digests and signs them for the release
+without rebuilding. Verify build attestations against <code>refs/heads/main</code> and
 the release's exact source commit, using the authenticated GitHub CLI.</p>
 <p>Run from a checkout containing the release tag:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">SOURCE_REVISION</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">RELEASE</span><span class="si">}</span><span class="s2">^{commit}"</span><span class="k">)</span><span class="s2">"</span>

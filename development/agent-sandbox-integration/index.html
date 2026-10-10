@@ -1121,10 +1121,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#limits" class="md-nav__link">
+  <a href="#operator-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Limits
+        Operator configuration
       
     </span>
   </a>
@@ -1203,14 +1203,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1788,10 +1788,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#limits" class="md-nav__link">
+  <a href="#operator-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Limits
+        Operator configuration
       
     </span>
   </a>
@@ -1852,32 +1852,27 @@ last-applied annotation.</p>
 capabilities, disables privilege escalation, and makes the root filesystem read-only. The
 default Kubernetes service-account token is not mounted.</p>
 <h2 id="kernel-isolation">Kernel isolation<a class="headerlink" href="#kernel-isolation" title="Permanent link">&para;</a></h2>
-<p>The controller-managed pod is a lifecycle and policy boundary. It is not automatically a separate
-kernel boundary. <code>sandbox.runtimeClassName</code> is empty in the checked-in local and customer values.
-Set it to a cluster-provided runtime such as gVisor or Kata when that isolation is required, and
+<p>The controller-managed pod is a lifecycle and policy boundary. For a separate kernel boundary, set
+<code>sandbox.runtimeClassName</code> (empty in the checked-in local and customer values) to a cluster-provided runtime such as gVisor or Kata when that isolation is required, and
 verify that the runtime exists on every node that may host a workspace.</p>
 <h2 id="platform-credential">Platform credential<a class="headerlink" href="#platform-credential" title="Permanent link">&para;</a></h2>
 <p>The chart projects a service-account token at <code>/var/run/platform/token</code>. It is scoped to the
 <code>inference-gateway</code> audience, expires after 600 seconds by default, and is rotated by the kubelet.
 The gateway only accepts it when JWT/JWKS verification is configured against the cluster issuer.</p>
-<p>This token is still a credential. Audience binding and expiry reduce its usefulness elsewhere but
-do not make the workspace trusted.</p>
+<p>Audience binding and expiry confine the token to the gateway for a short window; handle it as a
+credential like any other.</p>
 <h2 id="network-boundary">Network boundary<a class="headerlink" href="#network-boundary" title="Permanent link">&para;</a></h2>
-<p>The direct <code>Sandbox</code> resource does not create an upstream NetworkPolicy. The chart's
-NetworkPolicies are therefore the network boundary for this path. They require a CNI that enforces
-NetworkPolicy; the local profile uses Calico. The smoke check refuses to treat kindnet as valid
-egress evidence.</p>
+<p>The chart's NetworkPolicies are the network boundary for the direct <code>Sandbox</code> path. They run on a
+CNI that enforces NetworkPolicy; the local profile uses Calico, and the smoke check requires an
+enforcing CNI (kindnet is rejected as egress evidence).</p>
 <p>Every external CIDR entry needs a <code>catalogRef</code> from
-<code>platform/network/egress-catalog.yaml</code>. Approved destinations can still receive data, so the
-catalog must stay narrow and be reviewed as an exfiltration boundary.</p>
+<code>platform/network/egress-catalog.yaml</code>. Approved destinations can receive data, so keep the
+catalog narrow and review it as an exfiltration boundary.</p>
 <h2 id="updates-and-lifecycle">Updates and lifecycle<a class="headerlink" href="#updates-and-lifecycle" title="Permanent link">&para;</a></h2>
 <p><code>workspace.shutdownTime</code> and <code>workspace.shutdownPolicy</code> can bound a workspace lifetime. They are
 unset by default.</p>
-<p>The v0.5.0 controller does not replace its singleton pod when the <code>Sandbox</code> pod template changes.
-After a chart update, delete the managed pod so the controller recreates it from the current
-template. <code>make agent-sandbox-smoke</code> detects image or volume drift and performs that refresh.</p>
-<p>Warm pools, <code>SandboxClaim</code>, multi-cluster scheduling, and workspace snapshot/restore are not
-implemented by this chart.</p>
+<p>The v0.5.0 controller keeps its singleton pod across <code>Sandbox</code> pod template changes. After a chart
+update, delete the managed pod so the controller recreates it from the current template. <code>make agent-sandbox-smoke</code> detects image or volume drift and performs that refresh.</p>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
 <p>After the controller and workspace application are synced, run:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>agent-sandbox-smoke
@@ -1887,14 +1882,14 @@ read-only root filesystem, writable workspace storage, absence of the ambient to
 token audience, working DNS, and blocked non-catalog egress.</p>
 <p><code>make agent-sandbox-demo</code> adds the governed model-call and audit-receipt walkthrough used by the
 README animation.</p>
-<h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
+<h2 id="operator-configuration">Operator configuration<a class="headerlink" href="#operator-configuration" title="Permanent link">&para;</a></h2>
 <ul>
-<li>A missing isolation <code>RuntimeClass</code> means the workspace shares the node kernel.</li>
-<li>NetworkPolicy restricts connections but does not encrypt them.</li>
-<li>Namespace RBAC does not restrict actions performed through an approved external service.</li>
-<li>The gateway audit chain records governed model calls, not every process or file operation inside
-  the workspace.</li>
-<li>PVC availability, backup, retention, and secure deletion depend on the cluster storage system.</li>
+<li>Select an isolation <code>RuntimeClass</code> to give the workspace its own kernel; without one it shares the node kernel.</li>
+<li>Enable the opt-in mTLS overlay to encrypt connections that NetworkPolicy allows.</li>
+<li>Scope credentials for approved external services separately from namespace RBAC.</li>
+<li>The gateway audit chain records governed model calls and reported agent actions; runtime detection
+  (Falco/Tetragon) covers process and file activity inside the workspace.</li>
+<li>PVC availability, backup, retention, and secure deletion follow the cluster storage system.</li>
 </ul>
 
 

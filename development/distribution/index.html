@@ -1063,14 +1063,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1781,16 +1781,16 @@ documentation is retained by <code>mike</code>.</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--version<span class="w"> </span><span class="m">0</span>.29.0<span class="w"> </span>--namespace<span class="w"> </span>ai-platform<span class="w"> </span>--create-namespace
 </code></pre></div>
 <p>Release CI publishes <code>artifacthub-repo.yml</code> to the chart repository's special
-<code>artifacthub.io</code> OCI tag. To finish discoverability, a maintainer must register
+<code>artifacthub.io</code> OCI tag. For Artifact Hub listing, a maintainer registers
 <code>oci://ghcr.io/ramazankara/private-ai-platform-kit/charts/platform</code> once in the Artifact Hub
-control panel, copy the assigned <code>repositoryID</code> into <code>artifacthub-repo.yml</code>, and cut the next
-release. This external registration cannot be completed from repository code.</p>
+control panel, copies the assigned <code>repositoryID</code> into <code>artifacthub-repo.yml</code>, and cuts the next
+release.</p>
 <h2 id="python-package">Python package<a class="headerlink" href="#python-package" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>https://github.com/RamazanKara/private-ai-platform-kit/releases/download/v0.29.0/private_ai_platform_kit_client-0.29.0-py3-none-any.whl
 </code></pre></div>
 <p>The wheel, source archive, and <code>sdk-checksums.txt</code> are attached to each GitHub release.
 Follow <a href="../release-verification/">release verification</a> to verify the files before installing.
-Version 0.29.0 uses GitHub downloads only; it is not published to PyPI.</p>
+Version 0.29.0 is distributed through GitHub release downloads.</p>
 <h3 id="optional-pypi-publishing">Optional PyPI publishing<a class="headerlink" href="#optional-pypi-publishing" title="Permanent link">&para;</a></h3>
 <p>PyPI is disabled unless the repository Actions variable <code>PYPI_PUBLISH_ENABLED</code> is exactly
 <code>true</code>. GitHub downloads complete independently of this setting and PyPI environment approval.</p>

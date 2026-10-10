@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1648,7 +1648,7 @@
 <p>A consolidated, code-grounded view of how the platform behaves when a dependency degrades or fails.
 Each row states the failure symptom, the gateway/RAG behavior that ships today (with the exact code
 path or probe), the blast radius, the first operator action, and the runbook to open next.</p>
-<p>This is a triage map, not a substitute for the per-incident runbooks. During an active incident start
+<p>This triage map complements the per-incident runbooks. During an active incident start
 from the <a href="../incident-response/">incident-response index</a>, then return here to confirm whether the
 observed behavior matches the designed degradation for the failing dependency.</p>
 <h2 id="how-to-read-this-matrix">How to read this matrix<a class="headerlink" href="#how-to-read-this-matrix" title="Permanent link">&para;</a></h2>
@@ -1719,7 +1719,7 @@ auth is enabled.</p>
 <tr>
 <td>Qdrant vector store (RAG <code>qdrant</code> profile)</td>
 <td><code>POST /v1/rag/query</code> returns <code>503</code> <code>vector_store_unavailable</code>; RAG <code>/readyz</code> returns <code>503</code></td>
-<td>A query that cannot reach Qdrant raises <code>VectorStoreError</code> (<code>retriever.py:319-342</code>), mapped to <code>503</code> with reason <code>vector_store_unavailable</code> (<code>main.py:488-500</code>). Startup bootstrap is best-effort: a failure is recorded and surfaced via <code>/readyz</code>/<code>last_sync_status</code> rather than crashing the pod (<code>_lifespan</code>, <code>main.py:214-230</code>). The <code>rag-degradation-fault</code> chaos drill proves the RAG Deployment stays <code>Available</code> while Qdrant is at 0 replicas.</td>
+<td>A query that cannot reach Qdrant raises <code>VectorStoreError</code> (<code>retriever.py:319-342</code>), mapped to <code>503</code> with reason <code>vector_store_unavailable</code> (<code>main.py:488-500</code>). Startup bootstrap is non-blocking: a failure is recorded and surfaced via <code>/readyz</code>/<code>last_sync_status</code> rather than crashing the pod (<code>_lifespan</code>, <code>main.py:214-230</code>). The <code>rag-degradation-fault</code> chaos drill proves the RAG Deployment stays <code>Available</code> while Qdrant is at 0 replicas.</td>
 <td>RAG retrieval for the <code>qdrant</code> profile only; chat completions that do not call RAG are unaffected</td>
 <td>Check Qdrant pods and the RAG <code>/readyz</code> / <code>last_sync_status</code>; restore Qdrant, then re-run RAG smoke</td>
 <td><a href="../vector-rag/">Vector RAG</a>, <a href="../qdrant-migration/">Qdrant migration</a>, <a href="../chaos-drills/">Chaos drills</a></td>
@@ -1828,8 +1828,8 @@ auth is enabled.</p>
   (Promtail). Plan log retention accordingly; see <a href="../data-retention/">Data retention</a>.</li>
 <li><strong>Operator-owned resilience.</strong> HA replica counts, PodDisruptionBudgets, topology spread, a managed
   Redis-compatible service, a reachable JWKS issuer, and a wired Alertmanager receiver are operator
-  responsibilities; the kit ships sane defaults and examples but does not operate these for you. See
-  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/README.md#support-boundaries">Support Boundaries</a>.</li>
+  responsibilities; the kit ships sane defaults and examples for each. See the
+  <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/production-readiness.md">production readiness matrix</a>.</li>
 </ul>
 <h2 id="validating-these-behaviors">Validating these behaviors<a class="headerlink" href="#validating-these-behaviors" title="Permanent link">&para;</a></h2>
 <p>The <a href="../chaos-drills/">chaos drills</a> exercise several rows here directly:</p>

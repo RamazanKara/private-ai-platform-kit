@@ -1063,14 +1063,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1771,13 +1771,12 @@ profiles from newer candidates that still need evaluation.</p>
 </tr>
 </tbody>
 </table>
-<p>These approvals describe lab profiles. They do not establish production suitability
-for a customer's workloads. Read the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/model-catalog/model-cards/README.md">model cards</a>
-for the existing evidence and limitations.</p>
+<p>These approvals describe lab profiles; confirm suitability for each customer workload with its
+own evals. Read the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/model-catalog/model-cards/README.md">model cards</a>
+for the recorded evidence.</p>
 <h2 id="current-gpu-candidates">Current GPU candidates<a class="headerlink" href="#current-gpu-candidates" title="Permanent link">&para;</a></h2>
 <p>All rows below have <code>status: proposed</code> and are absent from the gateway allowlists.
-Context sizes are upstream configuration values, not measured capacity or enabled
-gateway limits. Candidate licenses and revision links are recorded in
+Context sizes are upstream configuration values; gateway limits are set separately. Candidate licenses and revision links are recorded in
 <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/model-catalog/models.yaml"><code>platform/model-catalog/models.yaml</code></a>.</p>
 <table>
 <thead>
@@ -1823,12 +1822,9 @@ gateway limits. Candidate licenses and revision links are recorded in
 </table>
 <p>Qwen3.8-Flash-Next is <strong>not</strong> Apache-2.0. Its publisher uses the
 <a href="https://huggingface.co/Qwen/Qwen3.8-Flash-Next/blob/de4b8e4d43b917e7706784d8bb445c9af86a3540/LICENSE">Qwen Community 1.0 license</a>.
-The catalog records <code>LicenseRef-Qwen-Community-1.0</code> so its terms cannot be confused
-with the permissive license of Qwen3.8-27B.</p>
-<p>The newer models include upstream multimodal capabilities. Their presence in the
-catalog does not add image or video support to the gateway. The pinned runtime
-image and existing GPU profiles have not been validated with these candidates.
-Use the upstream recipe, then run the kit's real-model evals and load tests before
+The catalog records <code>LicenseRef-Qwen-Community-1.0</code> so its terms stay distinct from the permissive license of Qwen3.8-27B.</p>
+<p>The newer models include upstream multimodal capabilities; the gateway serves them
+through its existing text and <code>input_image</code> request shapes. Use the upstream recipe, then run the kit's real-model evals and load tests before
 changing a serving profile or approving a model.</p>
 <h2 id="reproduce-the-approved-model-metadata">Reproduce the approved model metadata<a class="headerlink" href="#reproduce-the-approved-model-metadata" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>model-check
@@ -1840,9 +1836,8 @@ The third contacts the Ollama registry and Hugging Face metadata API. It reprodu
 the approved Ollama layer digests and Hugging Face weight inventories without
 downloading model weights.</p>
 <p>A manifest digest identifies the inventory of weight filenames, byte sizes, and
-upstream SHA-256 checksums at one immutable commit. It is not a checksum of the
-entire model, and it does not verify bytes already installed in a customer model
-store. Compare those files against the inventory during model-store ingestion.</p>
+upstream SHA-256 checksums at one immutable commit. To verify bytes installed in a
+customer model store, compare those files against the inventory during model-store ingestion.</p>
 <p>See the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/model-provenance.md">provenance runbook</a>
 for the manifest format and update commands.</p>
 <h2 id="upgrade-from-v0281">Upgrade from v0.28.1<a class="headerlink" href="#upgrade-from-v0281" title="Permanent link">&para;</a></h2>

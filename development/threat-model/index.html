@@ -1270,14 +1270,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -2015,9 +2015,8 @@ documented, operator-owned CNI/mesh control. See the opt-in overlay and options 
 mTLS, Cilium WireGuard/IPsec, or cert-manager-issued TLS). Treat enabling it as required before
 handling regulated data in a multi-tenant cluster (see Required Customer Hardening).</p>
 <h3 id="detective-runtime-monitoring">Detective / runtime monitoring<a class="headerlink" href="#detective-runtime-monitoring" title="Permanent link">&para;</a></h3>
-<p>Admission (Kyverno) and NetworkPolicies are preventive; they do not observe post-admission
-behavior of a hijacked agent or compromised runtime pod. An optional runtime-detection layer
-(Falco/Tetragon) is provided. See <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md">runbooks/runtime-threat-detection.md</a>.</p>
+<p>Admission (Kyverno) and NetworkPolicies are preventive. The optional runtime-detection layer
+(Falco/Tetragon) observes post-admission behavior of agent and runtime pods. See <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/runtime-threat-detection.md">runbooks/runtime-threat-detection.md</a>.</p>
 <h3 id="agent-workspace-isolation-boundary">Agent workspace isolation boundary<a class="headerlink" href="#agent-workspace-isolation-boundary" title="Permanent link">&para;</a></h3>
 <p>Coding-agent workspaces execute model-generated code and always run on the agent-sandbox runtime
 (ADR 0009, ADR 0010): controller-managed sandbox pods without ambient Kubernetes credentials on a
@@ -2025,7 +2024,7 @@ hardened template. The platform credential is a projected, audience-bound Servic
 with a short TTL, useless against the Kubernetes API and self-expiring, replacing long-lived
 secrets. Without a kernel-isolation runtime class the syscall boundary is still the container
 runtime plus the restricted pod profile; set <code>sandbox.runtimeClassName</code> (gVisor/Kata) where the
-cluster provides one, expected at the <code>high</code> risk tier (<code>C-ISOLATE</code>). What kernel isolation does <strong>not</strong> change: prompt injection and tool abuse remain
+cluster provides one, expected at the <code>high</code> risk tier (<code>C-ISOLATE</code>). Prompt injection and tool abuse are
 application-layer threats (bounded by the egress catalog, budgets, and gateway guardrails, not by
 the sandbox), and exfiltration through <em>approved</em> catalog destinations remains a governance
 decision. NetworkPolicy enforcement depends on the CNI: the local lab therefore defaults to
@@ -2034,8 +2033,7 @@ Its deny target is the otherwise reachable Kubernetes API, so a failed connectio
 evidence of policy enforcement rather than an unroutable-address false positive.</p>
 <h2 id="ai-specific-threats">AI-Specific Threats<a class="headerlink" href="#ai-specific-threats" title="Permanent link">&para;</a></h2>
 <p>These are the threats that distinguish an AI platform from a generic web service.
-The controls below are mechanisms already in this repo; none of them make the
-threat go away, so treat them as defense in depth, not a guarantee.</p>
+The controls below are mechanisms in this repo, layered as defense in depth.</p>
 <h3 id="indirect-rag-prompt-injection">Indirect / RAG prompt injection<a class="headerlink" href="#indirect-rag-prompt-injection" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Primary Risk.</strong> Untrusted text in the RAG corpus, a retrieved document, or a
@@ -2052,9 +2050,9 @@ threat go away, so treat them as defense in depth, not a guarantee.</p>
   gateway redacts and fingerprints prompts/queries instead of logging raw text,
   runs prompt secret detection, and applies sandbox budgets and admission limits
   that cap the blast radius of a runaway agent loop. Coding-agent eval suites
-  include <code>forbiddenAny</code> secret-leak checks. Residual risk remains: these reduce
-  what an injected instruction can <em>reach</em>, not whether the model is <em>influenced</em>.
-  Review which documents enter the corpus and keep agent egress narrow.</li>
+  include <code>forbiddenAny</code> secret-leak checks. These controls limit what an injected
+  instruction can <em>reach</em>. Review which documents enter the corpus and keep agent
+  egress narrow.</li>
 </ul>
 <h3 id="model-artifact-tampering-weight-poisoning">Model-artifact tampering / weight poisoning<a class="headerlink" href="#model-artifact-tampering-weight-poisoning" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2071,9 +2069,8 @@ threat go away, so treat them as defense in depth, not a guarantee.</p>
   models pin a commit and safetensors checksum inventory; Ollama entries record
   registry weight-layer digests. Customers verify downloaded bytes before
   production. vLLM/Ollama model caches are isolated per the sandbox and runtime
-  security context. Residual risk: provenance proves <em>what</em> was pulled, not that
-  the upstream training was clean -- weight-level backdoors are out of scope for
-  digest verification.</li>
+  security context. Provenance proves <em>what</em> was pulled; pair it with evals and
+  source review to assess upstream training.</li>
 </ul>
 <h3 id="build-release-pipeline-trust-boundary">Build / release pipeline trust boundary<a class="headerlink" href="#build-release-pipeline-trust-boundary" title="Permanent link">&para;</a></h3>
 <ul>

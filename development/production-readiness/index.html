@@ -1063,14 +1063,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -2036,9 +2036,8 @@
 </table>
 <h2 id="stateful-stores-devreference-footprints-and-their-ha-path">Stateful stores: dev/reference footprints and their HA path<a class="headerlink" href="#stateful-stores-devreference-footprints-and-their-ha-path" title="Permanent link">&para;</a></h2>
 <p>Three bundled stateful stores ship as <strong>single-node reference footprints</strong> so a laptop lab and
-a fresh cluster start with no external dependencies. They are deliberately not production
-topologies. State this plainly to any operator sizing a production environment, and swap each to
-its external/HA path before a regulated or multi-tenant handoff. The full opt-in procedure
+a fresh cluster start with no external dependencies. For production, swap each to its
+external/HA path before a regulated or multi-tenant handoff. The full opt-in procedure
 (with rollback) is in the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md">external / managed stores runbook</a>.</p>
 <table>
 <thead>
@@ -2057,7 +2056,7 @@ its external/HA path before a regulated or multi-tenant handoff. The full opt-in
 <tr>
 <td>Qdrant vector store (<code>deploy/charts/qdrant-vector-store</code>)</td>
 <td>Single-instance, <strong>schema-enforced</strong> (<code>replicaCount</code> max 1) on one RWO PVC</td>
-<td>Use an <strong>external managed Qdrant or a Qdrant cluster</strong> (sharded/replicated) and point <code>retrieval.vectorStore.url</code> at it; the bundled chart intentionally does not model clustering</td>
+<td>Use an <strong>external managed Qdrant or a Qdrant cluster</strong> (sharded/replicated) and point <code>retrieval.vectorStore.url</code> at it; the bundled chart covers the single-instance footprint</td>
 </tr>
 <tr>
 <td>Loki (<code>deploy/observability/applications.yaml</code>)</td>
@@ -2067,7 +2066,7 @@ its external/HA path before a regulated or multi-tenant handoff. The full opt-in
 </tbody>
 </table>
 <p>These three are the "external HA stores" operator-owned item tracked in
-<a href="../scope-and-non-goals/">Scope and non-goals</a>; the bundled charts are working references and are
+<a href="../scope/">Scope</a>; the bundled charts are working references and are
 never removed, so rolling back to the reference footprint for a demo is a one-line values change.</p>
 <h2 id="promotion-review">Promotion Review<a class="headerlink" href="#promotion-review" title="Permanent link">&para;</a></h2>
 <p>Use the matrix above as the source of truth, then review this shorter sequence before a customer handoff or production-style demo:</p>

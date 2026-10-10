@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1642,9 +1642,9 @@
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>The gateway is OpenAI-compatible and already offers a <strong>synchronous</strong> fan-out at
 <code>POST /v1/batch-inference</code>: it runs a bounded set of chat requests concurrently and returns
-every result inline, within one request timeout. ADR 0005 and <code>docs/scope-and-non-goals.md</code>
-listed the OpenAI <strong>asynchronous</strong> file-batch API (<code>/v1/files</code> + <code>/v1/batches</code>) as an explicit
-non-goal, because it is a stateful subsystem rather than a request handler.</p>
+every result inline, within one request timeout. ADR 0005 and <code>docs/scope.md</code>
+deferred the OpenAI <strong>asynchronous</strong> file-batch API (<code>/v1/files</code> + <code>/v1/batches</code>), because it is
+a stateful subsystem rather than a request handler.</p>
 <p>The requirement now is to support large, offline, bulk workloads that do not fit a single
 request: submit thousands of requests as a JSONL file, have them processed asynchronously under
 the same governance as live traffic, poll for status, and retrieve the results (and per-item
@@ -1728,15 +1728,15 @@ cannot cross tenants.</p>
   receipts extend the existing chain, admission and budget apply per item, and <strong>partial completion
   is normal</strong> (some items land in the output file, some in the error file with the standard error
   envelope). No batch-specific copy of the policy exists to drift.</li>
-<li>This <strong>reverses the async-batch non-goal</strong> in ADR 0005 and <code>docs/scope-and-non-goals.md</code>, which
+<li>This <strong>adopts the previously deferred async batch API</strong> from ADR 0005 and <code>docs/scope.md</code>, which
   are updated when the subsystem lands. The synchronous <code>/v1/batch-inference</code> route is unchanged
   and remains the right tool for small inline batches.</li>
 <li>Operational cost: an object store (MinIO locally, external S3 for customers) and a durable Redis
   must be run, and the <code>batch-processor</code> Deployment sized. This is documented for both the local
   and customer overlays, with the feature off by default.</li>
 <li>The self-hosted context means OpenAI's 50% batch <strong>cost discount</strong> has no analogue; the
-  <code>completion_window</code> is honored as an <strong>expiry</strong> bound, not a scheduling SLA. Streaming batch
-  output is out of scope; the batch <code>endpoint</code> set is limited to chat/completions/embeddings.</li>
+  <code>completion_window</code> is honored as an <strong>expiry</strong> bound. Batch output is delivered as files; the
+  batch <code>endpoint</code> set covers chat/completions/embeddings.</li>
 </ul>
 <p><strong>Phased rollout</strong> (each phase independently shippable and gated by <code>make validate</code> + <code>make
 coverage</code> + <code>make production-check</code>):</p>
@@ -1745,7 +1745,7 @@ coverage</code> + <code>make production-check</code>):</p>
    config/api contracts scaffolding. No externally visible behavior.</li>
 <li><strong>Files API</strong>: <code>/v1/files</code> endpoints over the object store + Redis metadata, size/line caps.</li>
 <li><strong>Batches API (state)</strong>: <code>/v1/batches</code> create/get/cancel/list, job records, enqueue to the
-   queue; batches reach <code>in_progress</code> but are not yet processed.</li>
+   queue; batches reach <code>in_progress</code>, and phase 4 adds processing.</li>
 <li><strong><code>batch-processor</code> worker</strong>: the Deployment consumes, replays through the gateway, writes
    output/error files, updates counts/status, cancellation, expiry/reaper, crash recovery.</li>
 <li><strong>Governance &amp; hardening</strong>: per-item budget/audit correctness, tenant-isolation enforcement in

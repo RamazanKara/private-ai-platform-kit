@@ -699,10 +699,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#does-the-gateway-implement-the-full-openai-or-anthropic-api" class="md-nav__link">
+  <a href="#which-openai-and-anthropic-routes-does-the-gateway-implement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Does the gateway implement the full OpenAI or Anthropic API?
+        Which OpenAI and Anthropic routes does the gateway implement?
       
     </span>
   </a>
@@ -1258,14 +1258,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1843,10 +1843,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#does-the-gateway-implement-the-full-openai-or-anthropic-api" class="md-nav__link">
+  <a href="#which-openai-and-anthropic-routes-does-the-gateway-implement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Does the gateway implement the full OpenAI or Anthropic API?
+        Which OpenAI and Anthropic routes does the gateway implement?
       
     </span>
   </a>
@@ -1943,21 +1943,21 @@
 <h2 id="do-i-need-a-gpu">Do I need a GPU?<a class="headerlink" href="#do-i-need-a-gpu" title="Permanent link">&para;</a></h2>
 <p>Not for the local path. The local smoke test uses <code>qwen2.5:0.5b</code> with Ollama on CPU. The checked-in customer vLLM profiles expect GPU resources and must be resized for the target model and nodes.</p>
 <h2 id="is-in-cluster-traffic-encrypted">Is in-cluster traffic encrypted?<a class="headerlink" href="#is-in-cluster-traffic-encrypted" title="Permanent link">&para;</a></h2>
-<p>Not by default. The data plane uses HTTP. NetworkPolicy restricts which pods can connect but does not encrypt packets. See <a href="../security-overview/">Security overview</a>.</p>
+<p>The data plane uses HTTP by default, and NetworkPolicy restricts which pods can connect. Enable the opt-in <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md">mTLS overlay</a> to encrypt pod-to-pod traffic. See <a href="../security-overview/">Security overview</a>.</p>
 <h2 id="is-the-agent-workspace-a-separate-kernel-sandbox">Is the agent workspace a separate kernel sandbox?<a class="headerlink" href="#is-the-agent-workspace-a-separate-kernel-sandbox" title="Permanent link">&para;</a></h2>
-<p>Only when the cluster supplies an isolation runtime and <code>sandbox.runtimeClassName</code> selects it. Otherwise the workspace uses a restricted container/pod security boundary on the node's normal container runtime.</p>
+<p>Yes, when the cluster supplies an isolation runtime such as gVisor or Kata and <code>sandbox.runtimeClassName</code> selects it. On the node's standard container runtime, the workspace uses a restricted container/pod security boundary.</p>
 <h2 id="how-is-tenant-identity-enforced">How is tenant identity enforced?<a class="headerlink" href="#how-is-tenant-identity-enforced" title="Permanent link">&para;</a></h2>
-<p>A sandbox-bound key record or verified JWT tenant claim can bind the gateway request to a tenant. RAG can verify its own JWT as well. Without those bindings, <code>X-Sandbox-ID</code> is trusted caller input and is not a safe multi-tenant boundary under a shared key.</p>
-<h2 id="does-the-gateway-implement-the-full-openai-or-anthropic-api">Does the gateway implement the full OpenAI or Anthropic API?<a class="headerlink" href="#does-the-gateway-implement-the-full-openai-or-anthropic-api" title="Permanent link">&para;</a></h2>
-<p>No. It implements the routes in the checked-in <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json">OpenAPI contract</a>. Chat completions and Anthropic Messages can stream; legacy completions and Responses cannot in this release. See <a href="../scope-and-non-goals/">Scope and non-goals</a>.</p>
+<p>A sandbox-bound key record or verified JWT tenant claim binds the gateway request to a tenant. RAG can verify its own JWT as well. Use one of these bindings for multi-tenant deployments: without them, <code>X-Sandbox-ID</code> is trusted caller input under a shared key.</p>
+<h2 id="which-openai-and-anthropic-routes-does-the-gateway-implement">Which OpenAI and Anthropic routes does the gateway implement?<a class="headerlink" href="#which-openai-and-anthropic-routes-does-the-gateway-implement" title="Permanent link">&para;</a></h2>
+<p>The routes in the checked-in <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json">OpenAPI contract</a>. Chat completions and Anthropic Messages stream; legacy completions and Responses return complete responses. See <a href="../scope/">Scope</a>.</p>
 <h2 id="what-do-the-checked-in-evidence-files-prove">What do the checked-in evidence files prove?<a class="headerlink" href="#what-do-the-checked-in-evidence-files-prove" title="Permanent link">&para;</a></h2>
-<p>Files named <code>sample-*</code> prove report shape and gate behavior. The non-strict gate may use them. They do not prove the state of the current checkout, a release, or a customer cluster. Generate fresh reports and use <code>make release-gate-strict</code> for a handoff.</p>
+<p>Files named <code>sample-*</code> show report shape and gate behavior, and the non-strict gate uses them. For the state of the current checkout, a release, or a customer cluster, generate fresh reports and use <code>make release-gate-strict</code> for a handoff.</p>
 <h2 id="does-the-audit-chain-prevent-log-tampering">Does the audit chain prevent log tampering?<a class="headerlink" href="#does-the-audit-chain-prevent-log-tampering" title="Permanent link">&para;</a></h2>
-<p>It makes edits and reordering detectable in an exported chain. Durability and rollback detection require external log retention and a trusted chain-head anchor. Each gateway process/replica has its own chain.</p>
+<p>It makes edits and reordering detectable in an exported chain. Pair it with external log retention and a trusted chain-head anchor for durability and rollback detection. Each gateway process/replica has its own chain.</p>
 <h2 id="what-does-the-regulated-offline-profile-guarantee">What does the <code>regulated-offline</code> profile guarantee?<a class="headerlink" href="#what-does-the-regulated-offline-profile-guarantee" title="Permanent link">&para;</a></h2>
-<p>It renders a tenant namespace without external CIDR egress. It does not air-gap the whole cluster or configure private registries, model mirrors, internal identity, or cluster-wide egress policy. See the <a href="../regulated-offline-tenant-example/">restricted-egress example</a>.</p>
+<p>It renders a tenant namespace with no external CIDR egress. Cluster-wide air-gapping, private registries, model mirrors, internal identity, and cluster-wide egress policy are configured by the operator. See the <a href="../regulated-offline-tenant-example/">restricted-egress example</a>.</p>
 <h2 id="how-do-i-upgrade-or-roll-back">How do I upgrade or roll back?<a class="headerlink" href="#how-do-i-upgrade-or-roll-back" title="Permanent link">&para;</a></h2>
-<p>Change the immutable <code>CUSTOMER_REVISION</code>, review the rendered changes, and let Argo CD reconcile. Roll back by returning to the prior tag. Follow the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/upgrade.md">upgrade runbook</a>; stateful schema or collection changes may require a separate data rollback.</p>
+<p>Change the immutable <code>CUSTOMER_REVISION</code>, review the rendered changes, and let Argo CD reconcile. Roll back by returning to the prior tag. Follow the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/upgrade.md">upgrade runbook</a>; for stateful schema or collection changes, plan a matching data rollback.</p>
 <h2 id="where-should-i-report-a-security-issue">Where should I report a security issue?<a class="headerlink" href="#where-should-i-report-a-security-issue" title="Permanent link">&para;</a></h2>
 <p>Use the private process in <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/SECURITY.md">SECURITY.md</a>. Do not put secrets, customer data, private prompts, or exploit details in a public issue.</p>
 

@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1888,7 +1888,7 @@ external managed Qdrant or a Qdrant cluster instead of raising the bundled repli
 <li><strong>External managed Qdrant</strong> (Qdrant Cloud or a separately-operated Qdrant cluster): point
   the RAG service at it and stop deploying the bundled chart.</li>
 <li><strong>Self-run Qdrant cluster</strong>, a multi-node deployment with sharding/replication, operated
-  outside this chart (the bundled chart intentionally does not model clustering).</li>
+  outside this chart (the bundled chart covers the single-instance footprint).</li>
 </ul>
 <h3 id="steps_1">Steps<a class="headerlink" href="#steps_1" title="Permanent link">&para;</a></h3>
 <ol>
@@ -1957,8 +1957,8 @@ object store for long-term hold (see <a href="../audit-chain/">Audit chain &amp;
    runbook covers exporting/anchoring the chain head and shipping receipts to a SIEM.</p>
 </li>
 </ol>
-<p>Loki is an operator-owned platform service the kit does not run for you (see
-<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope-and-non-goals.md">Scope and non-goals</a>);
+<p>Loki is an operator-owned platform service (see
+<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope.md">Scope</a>);
 the bundled footprint is a working reference, and the object-storage/replicated topology is
 yours to size and operate.</p>
 <hr />

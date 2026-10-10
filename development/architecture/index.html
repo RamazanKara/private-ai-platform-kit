@@ -1181,14 +1181,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1795,7 +1795,7 @@
 <li>metrics and a redacted audit event.</li>
 </ol>
 <p>The exact HTTP surface is generated into <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/api-contracts/inference-gateway.openapi.json"><code>platform/api-contracts/inference-gateway.openapi.json</code></a>. Not every route performs model inference, and optional controls only apply when enabled in the active values.</p>
-<p>RAG is a separate service. It returns retrieved passages and grounded message objects; it does not automatically intercept gateway calls. The local profile uses the checked-in lexical corpus. The customer values select Qdrant and an embedding endpoint.</p>
+<p>RAG is a separate service. It returns retrieved passages and grounded message objects; clients call it directly alongside the gateway. The local profile uses the checked-in lexical corpus. The customer values select Qdrant and an embedding endpoint.</p>
 <h2 id="components">Components<a class="headerlink" href="#components" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1863,7 +1863,7 @@
 </tr>
 </tbody>
 </table>
-<p>The data plane uses plaintext HTTP by default. NetworkPolicy restricts reachability but does not encrypt traffic. The customer must supply transport encryption where it is required.</p>
+<p>The data plane uses HTTP by default, and NetworkPolicy restricts reachability. Enable the opt-in <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/mtls/README.md">mTLS overlay</a> where transport encryption is required.</p>
 <h2 id="local-profile">Local profile<a class="headerlink" href="#local-profile" title="Permanent link">&para;</a></h2>
 <p><img alt="Local profile" src="../assets/architecture-local.svg" /></p>
 <p><code>make quickstart</code> creates a single-node <code>kind</code> cluster with Calico, builds the gateway and RAG images locally, installs the vendored agent-sandbox controller, and deploys the local application set.</p>
@@ -1876,10 +1876,10 @@
 <li>local-path storage and single-node availability.</li>
 </ul>
 <p>The default Argo CD path includes platform operators, observability, policies, cost controls, and backup examples. <code>QUICKSTART_DIRECT_APPLY=1</code> is intentionally smaller: it applies the core runtime charts directly and omits those add-ons.</p>
-<p>The local path needs network access for downloads and image/model pulls. It keeps inference requests on the local cluster after those components are installed, but it is not an air-gapped installation procedure.</p>
+<p>The local path needs network access for downloads and image/model pulls. After those components are installed, inference requests stay on the local cluster.</p>
 <h2 id="customer-profile">Customer profile<a class="headerlink" href="#customer-profile" title="Permanent link">&para;</a></h2>
 <p><img alt="Customer profile" src="../assets/architecture-customer.svg" /></p>
-<p>The customer profile assumes that the cluster, Argo CD, ingress, secret integration, observability, and backup systems already exist. Its Argo CD application list is deliberately smaller than the local list and does not install the local observability, cost-control, platform-operator, or Velero applications.</p>
+<p>The customer profile assumes that the cluster, Argo CD, ingress, secret integration, observability, and backup systems already exist. Its Argo CD application list is a focused subset of the local list; the operator's existing observability, cost-control, platform-operator, and backup tooling takes the place of the local versions.</p>
 <p>The checked-in customer values deploy both Ollama and vLLM routes. They also add a separate vLLM embedding service and configure RAG to use Qdrant. The NVIDIA example requests four GPUs per vLLM replica and keeps at least two replicas when KEDA is enabled. Those values describe a large reference configuration, not a minimum or recommendation.</p>
 <p>Before deployment, the operator must at least:</p>
 <ul>
@@ -1895,10 +1895,10 @@
 <h2 id="regulated-offline-tenant-example"><code>regulated-offline</code> tenant example<a class="headerlink" href="#regulated-offline-tenant-example" title="Permanent link">&para;</a></h2>
 <p><img alt="Restricted-egress tenant" src="../assets/architecture-regulated-offline.svg" /></p>
 <p><code>tenants/onboarding/regulated-offline-coding-agents.yaml</code> is a tenant policy example. It renders a namespace with no external CIDR egress and allows only DNS plus the in-cluster gateway and RAG service.</p>
-<p>The profile name does not make the cluster air-gapped. It does not control image pulls, model downloads, Argo CD, the gateway namespace, the identity provider, or other cluster services. An offline deployment also needs private registries and mirrors, preloaded model weights, internal Git and identity endpoints, and cluster-wide egress controls.</p>
+<p>The profile governs the tenant namespace. A fully offline deployment adds private registries and mirrors, preloaded model weights, internal Git and identity endpoints, and cluster-wide egress controls for image pulls, model downloads, Argo CD, the gateway namespace, and other cluster services.</p>
 <p>Use the <a href="../regulated-offline-tenant-example/">restricted-egress tenant walkthrough</a> to render and inspect the manifests.</p>
 <h2 id="stateful-and-failure-boundaries">Stateful and failure boundaries<a class="headerlink" href="#stateful-and-failure-boundaries" title="Permanent link">&para;</a></h2>
-<p>The bundled Redis, Qdrant, and Loki configurations are development/reference footprints. Redis has no persistence in the bundled chart, Qdrant is a single instance, and the local observability stack is not an HA logging service. The <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md">external stores runbook</a> describes the handoff path.</p>
+<p>The bundled Redis, Qdrant, and Loki configurations are development/reference footprints. The bundled Redis runs without persistence, Qdrant runs as a single instance, and the local observability stack is a single-binary logging service. The <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/external-managed-stores.md">external stores runbook</a> describes the handoff path.</p>
 <p>The gateway audit chain is per process/replica. Export records and store chain-head anchors outside the gateway if the log is intended as tamper or rollback evidence.</p>
 
 

@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1699,9 +1699,8 @@ without forwarding it to a runtime. It is a deterministic content-policy surface
 semantic toxicity/jailbreak classifier can be layered behind the same endpoint without
 changing callers.</p>
 <h2 id="output-guardrail-response-path">Output Guardrail (Response Path)<a class="headerlink" href="#output-guardrail-response-path" title="Permanent link">&para;</a></h2>
-<p>Input moderation cannot catch a credential or PII value that the <em>model</em> emits: a successful
-prompt injection or a hallucinated secret leaves the gateway in the completion. The output
-guardrail inspects the model response before it is returned or cached, contributing controls for
+<p>The output guardrail catches credential and PII values that the <em>model</em> emits, such as a secret
+surfaced by prompt injection or hallucination, complementing input moderation. It inspects the model response before it is returned or cached, contributing controls for
 OWASP LLM02:2025 (sensitive information disclosure) and LLM05:2025 (improper output handling).</p>
 <p>Configure it in Helm values:</p>
 <div class="highlight"><pre><span></span><code>guardrails:
@@ -1731,9 +1730,8 @@ OWASP LLM02:2025 (sensitive information disclosure) and LLM05:2025 (improper out
 </ul>
 <p>Each action increments <code>inference_gateway_output_guardrail_total{action,route}</code> and sets the
 <code>X-Output-Guardrail</code> response header.</p>
-<p>Streaming responses are <strong>detected and flagged</strong> only (<code>flagged_stream</code>): the bytes are already
-on the wire, so the guardrail cannot redact or block them mid-stream. For hard redact/block
-enforcement, run callers non-streaming (the default <code>admission.allowStreaming: false</code>).</p>
+<p>Streaming responses are <strong>detected and flagged</strong> (<code>flagged_stream</code>) at end of stream, since the
+bytes are already on the wire. For redact/block enforcement, run callers non-streaming (the default <code>admission.allowStreaming: false</code>).</p>
 <p>Treat model output as untrusted: a coding agent must never pass a completion to a shell, <code>eval</code>,
 or file write without its own validation, regardless of the gateway guardrail.</p>
 <h2 id="rejection-behavior">Rejection Behavior<a class="headerlink" href="#rejection-behavior" title="Permanent link">&para;</a></h2>

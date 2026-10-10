@@ -1054,10 +1054,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#production-work-left-to-the-operator" class="md-nav__link">
+  <a href="#operator-production-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Production work left to the operator
+        Operator production checklist
       
     </span>
   </a>
@@ -1203,14 +1203,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1777,10 +1777,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#production-work-left-to-the-operator" class="md-nav__link">
+  <a href="#operator-production-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Production work left to the operator
+        Operator production checklist
       
     </span>
   </a>
@@ -1824,19 +1824,19 @@
 
 
 <h1 id="security-overview">Security overview<a class="headerlink" href="#security-overview" title="Permanent link">&para;</a></h1>
-<p>This page summarizes the security-relevant defaults in release <code>v0.29.0</code>. The <a href="../threat-model/">threat model</a> has the detailed trust boundaries and residual risks. The <a href="../production-readiness/">production readiness matrix</a> lists validation commands.</p>
+<p>This page summarizes the security-relevant defaults in release <code>v0.29.0</code>. The <a href="../threat-model/">threat model</a> has the detailed trust boundaries and risks. The <a href="../production-readiness/">production readiness matrix</a> lists validation commands.</p>
 <h2 id="defaults-that-matter">Defaults that matter<a class="headerlink" href="#defaults-that-matter" title="Permanent link">&para;</a></h2>
 <ul>
 <li>The local profile uses the public key <code>local-development-only</code>. It is for the local lab only.</li>
-<li>In-cluster application traffic is plaintext HTTP. NetworkPolicy controls reachability, not encryption.</li>
+<li>In-cluster application traffic is HTTP, with NetworkPolicy controlling reachability. The opt-in mTLS overlay adds encryption.</li>
 <li>The output guardrail and stored Responses state are off in the base chart.</li>
 <li>The local RAG profile disables tenant isolation because it uses one shared demo corpus.</li>
 <li>Without a tenant-bound key record or verified JWT claim, <code>X-Sandbox-ID</code> is caller-supplied.</li>
-<li>The agent-sandbox pod template is restricted, but a separate kernel boundary exists only when the cluster supplies and the values select an isolation <code>RuntimeClass</code> such as gVisor or Kata.</li>
+<li>The agent-sandbox pod template is restricted. Select an isolation <code>RuntimeClass</code> such as gVisor or Kata in the values to add a separate kernel boundary.</li>
 <li>The bundled Redis, Qdrant, and Loki footprints are single-node reference services.</li>
-<li>Sample reports under <code>results/</code> are not current security evidence.</li>
+<li>Sample reports under <code>results/</code> show report shape; generate current security evidence per release.</li>
 </ul>
-<p>Do not deploy the customer values unchanged.</p>
+<p>Review and adapt the customer values before deploying them.</p>
 <h2 id="gateway-controls">Gateway controls<a class="headerlink" href="#gateway-controls" title="Permanent link">&para;</a></h2>
 <p>The gateway supports API-key hashes and JWT/JWKS verification. Key records can add scopes, expiry, sandbox binding, and budget overrides. JWT configuration can bind a verified tenant claim to the sandbox. A contradictory <code>X-Sandbox-ID</code> is rejected when a binding exists.</p>
 <p>Before forwarding an inference request, the gateway can enforce:</p>
@@ -1847,24 +1847,23 @@
 <li>input credential-pattern detection;</li>
 <li>a per-process concurrency limit and load shedding.</li>
 </ul>
-<p>The optional output guardrail can flag, redact, or block configured credential, PII, and denied-content patterns. Redact and block behavior require a non-streaming response. Streaming can only be flagged after the stream has already been emitted.</p>
-<p>These are deterministic application checks. They do not make model output trustworthy or prevent prompt injection.</p>
+<p>The optional output guardrail can flag, redact, or block configured credential, PII, and denied-content patterns. Redact and block apply to non-streaming responses; streaming responses are flagged at end of stream.</p>
+<p>These are deterministic application checks. Combine them with caller-side output handling and least-privilege tools to address prompt injection.</p>
 <h2 id="tenant-and-rag-identity">Tenant and RAG identity<a class="headerlink" href="#tenant-and-rag-identity" title="Permanent link">&para;</a></h2>
-<p>The customer RAG values enable owner-based tenant filtering. That filtering is only a security boundary when the tenant identity is trustworthy.</p>
+<p>The customer RAG values enable owner-based tenant filtering, backed by a trusted tenant identity.</p>
 <p>The RAG service can verify its own JWT and derive the tenant from a claim. When JWT verification is off, it trusts <code>X-Sandbox-ID</code>; a caller with the shared key can assert another sandbox ID. Put direct RAG access behind a trusted identity-stamping path or enable RAG-side JWT verification for multi-tenant use.</p>
-<p>Tenant NetworkPolicies default to deny and add explicit DNS, gateway, RAG, and reviewed external CIDR rules. Enforcement depends on the cluster CNI. The local cluster uses Calico by default because kindnet does not enforce NetworkPolicy.</p>
+<p>Tenant NetworkPolicies default to deny and add explicit DNS, gateway, RAG, and reviewed external CIDR rules. The cluster CNI enforces them; the local cluster uses Calico by default for NetworkPolicy enforcement.</p>
 <h2 id="workspace-isolation">Workspace isolation<a class="headerlink" href="#workspace-isolation" title="Permanent link">&para;</a></h2>
 <p>Agent workspaces use the vendored <code>kubernetes-sigs/agent-sandbox</code> controller and a restricted pod template: non-root user, read-only root filesystem, dropped capabilities, no ambient service-account token, resource limits, namespace RBAC, and default-deny egress.</p>
-<p>The projected platform token is short-lived and audience-bound, but it is still a credential. The workspace can also exfiltrate through any approved destination. Keep the egress catalog narrow and treat files, retrieved text, model output, and tool arguments as untrusted.</p>
+<p>The projected platform token is short-lived and audience-bound; handle it as a credential. Approved egress destinations are reachable from the workspace, so keep the egress catalog narrow and treat files, retrieved text, model output, and tool arguments as untrusted.</p>
 <h2 id="audit-records">Audit records<a class="headerlink" href="#audit-records" title="Permanent link">&para;</a></h2>
 <p>The gateway audit event stores request metadata and hashes rather than raw prompt or completion text. Records are linked into a per-process hash chain.</p>
-<p>The chain detects edits and reordering in an exported sequence. It does not by itself prevent deletion, survive a lost log stream, join replicas into one chain, or prove that the first and last records are complete. Export logs, retain the <code>chain_id</code>, and commit chain-head anchors to a separate trusted system. Use <code>make audit-verify</code> and follow the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/audit-chain.md">audit-chain runbook</a>.</p>
-<p>Also review runtime, ingress, proxy, RAG, object-store, and application logs. Gateway redaction does not control what another component logs.</p>
+<p>The chain detects edits and reordering in an exported sequence, and each replica keeps its own chain. For deletion resistance, log-stream durability, and end-to-end completeness, export logs, retain the <code>chain_id</code>, and commit chain-head anchors to a separate trusted system. Use <code>make audit-verify</code> and follow the <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/runbooks/audit-chain.md">audit-chain runbook</a>.</p>
+<p>Gateway redaction covers gateway logs; also review runtime, ingress, proxy, RAG, object-store, and application logs.</p>
 <h2 id="supply-chain">Supply chain<a class="headerlink" href="#supply-chain" title="Permanent link">&para;</a></h2>
 <p>Release workflows build the two first-party images, create SBOM and vulnerability-scan artifacts, sign image/chart digests with Cosign, and publish provenance. GitHub Actions are pinned by commit.</p>
-<p>That boundary does not cover the integrity or license of customer model weights, customer base images, external Helm charts, private mirrors, or the target cluster. Verify those separately. Forks that publish their own images must update the Kyverno image reference and signing identity or admission will reject them.</p>
-<h2 id="production-work-left-to-the-operator">Production work left to the operator<a class="headerlink" href="#production-work-left-to-the-operator" title="Permanent link">&para;</a></h2>
-<p>At minimum:</p>
+<p>Verify the integrity and license of customer model weights, customer base images, external Helm charts, private mirrors, and the target cluster as part of the deployment. Forks that publish their own images update the Kyverno image reference and signing identity so admission accepts them.</p>
+<h2 id="operator-production-checklist">Operator production checklist<a class="headerlink" href="#operator-production-checklist" title="Permanent link">&para;</a></h2>
 <ul>
 <li>connect gateway and RAG auth to the customer identity boundary;</li>
 <li>source secrets from the customer secret system;</li>

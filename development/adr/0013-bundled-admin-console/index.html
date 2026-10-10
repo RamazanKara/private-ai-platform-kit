@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1640,7 +1640,7 @@
 <li>Deciders: Platform maintainer</li>
 </ul>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p><code>docs/scope-and-non-goals.md</code> listed "No admin/usage console UI": the kit shipped the data
+<p><code>docs/scope.md</code> kept the kit API-only: it shipped the data
 layer a console would build on (<code>/v1/usage</code>, <code>/v1/sandbox/budget</code>, <code>/v1/models</code>, Prometheus
 metrics, the client SDK) but no UI. The requirement now is a lightweight read-only console so an
 operator can see a sandbox's usage, budget, and approved models without wiring Grafana or
@@ -1682,9 +1682,9 @@ HTML; the API calls the page makes carry the operator's key). No new dependency 
 <li><strong>Server-rendered HTML from the gateway.</strong> Would add templating to an API service and re-render
   on every view. Rejected: a static page calling the JSON APIs keeps the gateway API-only in
   spirit.</li>
-<li><strong>Keep it a non-goal (Grafana + curl).</strong> Grafana still owns metrics dashboards; this console is
+<li><strong>Stay API-only (Grafana + curl).</strong> Grafana still owns metrics dashboards; this console is
   a lightweight per-sandbox usage/budget/model view for operators who do not want to wire Grafana
-  for that. Implemented as <strong>opt-in</strong> so the non-goal stance remains the default.</li>
+  for that. Implemented as <strong>opt-in</strong> so API-only remains the default.</li>
 </ul>
 
 

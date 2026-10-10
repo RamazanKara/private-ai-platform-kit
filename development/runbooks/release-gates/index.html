@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1686,7 +1686,7 @@ make evidence LIVE=1
 <div class="highlight"><pre><span></span><code>make release-gate-strict RELEASE_GATE_MAX_EVIDENCE_AGE_HOURS=48
 </code></pre></div>
 <h2 id="interpreting-failures">Interpreting Failures<a class="headerlink" href="#interpreting-failures" title="Permanent link">&para;</a></h2>
-<p>A failed release gate means the handoff evidence is incomplete or below the defined threshold. Do not promote the lab to a customer handoff until the failed gate has been rerun and the report passes.</p>
+<p>A failed release gate points to the evidence to regenerate or the threshold to meet. Promote the lab to a customer handoff once the failed gate has been rerun and the report passes.</p>
 <p>If the strict gate reports sample evidence, rerun the matching evidence command from the previous section. Sample artifacts prove report shape only; they do not prove the current build is ready for a customer handoff.</p>
 <p>Tune thresholds only through reviewed changes to <code>platform/slo/release-gates.yaml</code>; do not edit generated evidence to make a gate pass.</p>
 

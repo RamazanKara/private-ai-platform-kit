@@ -7,10 +7,9 @@
 # shipped or supported component.
 #
 # WHY THIS IS AN EXAMPLE, NOT A SHIPPED/RENDERED MANIFEST:
-#   - A human-facing chat UI is a separate product surface. The kit's non-goal list is explicit:
-#     "No bundled end-user chat UI": this UI is operator-owned; the kit's read-only operator console
-#     non-goal (see docs/scope-and-non-goals.md). Shipping and supporting a UI would cross the
-#     kit's "manifests, charts, service code, validation tooling, runbooks" boundary.
+#   - A human-facing chat UI is a separate product surface that runs on top of the gateway and is
+#     operator-owned (see docs/scope.md); the kit ships its read-only operator console at /console
+#     and keeps to its "manifests, charts, service code, validation tooling, runbooks" boundary.
 #   - The image tag, storage, ingress/TLS, and human SSO wiring are all environment-specific.
 #   Rendering one "correct" manifest through kubeconform/helm would bake in choices wrong for
 #   most clusters. So this ships under docs/examples/ (which scripts/validate.sh does not

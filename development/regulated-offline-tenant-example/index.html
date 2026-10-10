@@ -1148,14 +1148,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1715,7 +1715,7 @@
 
 <h1 id="restricted-egress-tenant-example">Restricted-egress tenant example<a class="headerlink" href="#restricted-egress-tenant-example" title="Permanent link">&para;</a></h1>
 <p>The file <code>tenants/onboarding/regulated-offline-coding-agents.yaml</code> defines a tenant named <code>regulated-offline</code>. The name describes its intended use; the generated manifests enforce a narrower fact: pods in that tenant namespace receive no external CIDR egress rule.</p>
-<p>This is not an air-gap configuration for the cluster. Image pulls, model downloads, GitOps, identity, and services outside the tenant namespace need separate offline controls.</p>
+<p>The profile covers the tenant namespace. For a fully offline cluster, add offline controls for image pulls, model downloads, GitOps, identity, and services outside the tenant namespace.</p>
 <h2 id="render-the-manifests">Render the manifests<a class="headerlink" href="#render-the-manifests" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>make<span class="w"> </span>tenant-onboard-regulated<span class="w"> </span><span class="nv">TENANT_OUTPUT</span><span class="o">=</span>.out/tenants
 </code></pre></div>
@@ -1767,9 +1767,9 @@
 <li>storage class, quota, and PVC size are appropriate;</li>
 <li>identity and API-key material are supplied without being written to Git.</li>
 </ul>
-<p>Apply the reviewed files through the customer's GitOps process. A direct <code>kubectl apply</code> can be used in a disposable lab, but it is not the documented customer handoff path.</p>
+<p>Apply the reviewed files through the customer's GitOps process. A direct <code>kubectl apply</code> works for a disposable lab; GitOps is the documented customer handoff path.</p>
 <h2 id="test-the-boundary">Test the boundary<a class="headerlink" href="#test-the-boundary" title="Permanent link">&para;</a></h2>
-<p>Use an image that is already present or available from the internal registry. From a pod in the tenant namespace, test both an allowed in-cluster destination and a destination that is otherwise reachable from the cluster. A timeout to an unroutable address does not prove that NetworkPolicy is working.</p>
+<p>Use an image that is already present or available from the internal registry. From a pod in the tenant namespace, test both an allowed in-cluster destination and a destination that is otherwise reachable from the cluster. Use a reachable deny target, because a timeout to an unroutable address says nothing about NetworkPolicy.</p>
 <p>The repository's agent-sandbox smoke test uses the Kubernetes API as the deny target for this reason:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>make<span class="w"> </span>agent-sandbox-smoke
 </code></pre></div>

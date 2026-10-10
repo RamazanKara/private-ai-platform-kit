@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1752,7 +1752,7 @@ claim at the next heartbeat and stops without touching the replica that took ove
 <h2 id="cancellation-and-expiry">Cancellation and expiry<a class="headerlink" href="#cancellation-and-expiry" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>POST /v1/batches/{id}/cancel</code> flips the batch to <code>cancelling</code>; the worker finalizes it to
-  <code>cancelled</code> at its next chunk boundary (best-effort; in-flight items may still complete).</li>
+  <code>cancelled</code> at its next chunk boundary (in-flight items can still complete).</li>
 <li>A batch not finished within its <code>completion_window</code> (default <code>24h</code>, honored as an expiry
   bound) becomes <code>expired</code> at the next chunk boundary or when a worker next picks it up.
   Results finished before cancellation or expiry are kept in the output and error files.</li>

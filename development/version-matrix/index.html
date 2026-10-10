@@ -1063,14 +1063,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1524,10 +1524,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-the-kit-does-not-pin" class="md-nav__link">
+  <a href="#operator-pinned-components" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What the kit does not pin
+        Operator-pinned components
       
     </span>
   </a>
@@ -1744,10 +1744,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-the-kit-does-not-pin" class="md-nav__link">
+  <a href="#operator-pinned-components" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What the kit does not pin
+        Operator-pinned components
       
     </span>
   </a>
@@ -1896,13 +1896,11 @@ and an immutable manifest-list digest in <code>values.yaml</code>.</p>
 (<code>src/inference-gateway/Dockerfile</code>, <code>src/rag-service/Dockerfile</code>), digest-pinned in the Dockerfiles.
 The current base resolves to Python 3.14.8 on Alpine 3.24.2. The final images remove
 pip after installing locked dependencies; build a new image when changing dependencies.</p>
-<p>Model revisions and evaluation status are documented in <a href="../model-selection/">Model selection</a>.
-The new GPU candidates have not been validated against the pinned serving runtimes;
-their upstream context sizes are not a runtime compatibility claim.</p>
+<p>Model revisions and evaluation status are documented in <a href="../model-selection/">Model selection</a>.</p>
 <h2 id="local-profile-add-ons">Local-profile add-ons<a class="headerlink" href="#local-profile-add-ons" title="Permanent link">&para;</a></h2>
-<p>These third-party charts are referenced by the local Argo CD application set. The customer
-application list does not install them; customer clusters must provide compatible operators and
-observability services before syncing resources that depend on them.</p>
+<p>These third-party charts are referenced by the local Argo CD application set. Customer clusters
+provide their own compatible operators and observability services before syncing resources that
+depend on them.</p>
 <table>
 <thead>
 <tr>
@@ -1982,8 +1980,8 @@ observability services before syncing resources that depend on them.</p>
 <p>Notes:</p>
 <ul>
 <li>Kyverno, KEDA, and External Secrets are grouped into the local multi-source
-  <code>platform-operators</code> Application. The customer overlay assumes the required operators already
-  exist and does not sync <code>external-secrets.yaml</code> automatically.</li>
+  <code>platform-operators</code> Application. The customer overlay uses the cluster's existing operators
+  and treats <code>external-secrets.yaml</code> as an example the operator adapts and applies.</li>
 <li>OpenCost is pinned in the <strong>local</strong> overlay only (<code>cost-controls</code> Application); the customer overlay
   leaves cost tooling to the operator's chargeback stack.</li>
 <li>The kyverno <code>3.2.7</code> value is the <strong>Helm chart</strong> version. The Kyverno <strong>CLI</strong> used for
@@ -1992,7 +1990,7 @@ observability services before syncing resources that depend on them.</p>
   manifests rather than a pinned third-party chart.</li>
 <li>The agent-sandbox workspace runtime is installed from vendored, checksummed release manifests
   (<code>deploy/vendor/agent-sandbox/</code>) by the local/customer Argo CD applications or, on the direct
-  quickstart path, by <code>make agent-sandbox-install</code>. It is not installed from a Helm chart. See
+  quickstart path, by <code>make agent-sandbox-install</code>. See
   ADR 0009 and the row below.</li>
 </ul>
 <h2 id="runtime-kubernetes-and-toolchain">Runtime, Kubernetes, and toolchain<a class="headerlink" href="#runtime-kubernetes-and-toolchain" title="Permanent link">&para;</a></h2>
@@ -2046,7 +2044,7 @@ observability services before syncing resources that depend on them.</p>
 <td>Helm</td>
 <td><code>v4.2.0</code> bootstrap</td>
 <td><a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/tools/validation-toolchain.yaml">validation-toolchain.yaml</a>; <code>azure/setup-helm</code> in CI</td>
-<td>The Linux/WSL bootstrap pins v4.2.0. Helm 3 is not exercised by a dedicated CI matrix.</td>
+<td>The Linux/WSL bootstrap pins v4.2.0.</td>
 </tr>
 <tr>
 <td>Go</td>
@@ -2138,21 +2136,20 @@ OCI metadata, <code>mike==2.2.0</code> retains versioned documentation, and
 <code>pypa/gh-action-pypi-publish</code> is pinned to the peeled commit for its <code>v1.14.0</code> release, matching
 the tag used by its runtime container. The exact action pins live in
 <code>.github/workflows/ci.yml</code>, <code>.github/workflows/docs.yml</code>, and <code>requirements-docs.txt</code>.</p>
-<h2 id="what-the-kit-does-not-pin">What the kit does not pin<a class="headerlink" href="#what-the-kit-does-not-pin" title="Permanent link">&para;</a></h2>
-<p>Consistent with the kit boundary, the following are the operator's responsibility and are
-intentionally not pinned here:</p>
+<h2 id="operator-pinned-components">Operator-pinned components<a class="headerlink" href="#operator-pinned-components" title="Permanent link">&para;</a></h2>
+<p>The operator chooses and pins these for each deployment:</p>
 <ul>
 <li>The customer's Kubernetes distribution and its exact minor version (any conformant cluster at or
   above the chart floor).</li>
 <li>Ingress controllers, <code>StorageClass</code> / CSI drivers, and load balancers.</li>
-<li>Secret backends and identity providers (the External Secrets <em>operator</em> is pinned; the backing
-  secret store is not).</li>
+<li>Secret backends and identity providers (the kit pins the External Secrets <em>operator</em>; the operator
+  chooses the backing secret store).</li>
 <li>GPU drivers, device plugins, and accelerator runtimes for NVIDIA / AMD nodes.</li>
 <li>Served model weights and revisions (governed via
   <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/platform/governance/model-provenance.yaml">model provenance</a>
   and the model catalog, not this matrix).</li>
 </ul>
-<p>See <a href="../scope-and-non-goals/">Scope and non-goals</a> for the full boundary and
+<p>See <a href="../scope/">Scope</a> for the full boundary and
 <a href="../release-verification/">Release verification</a> for how to verify the published artifacts against
 these pins.</p>
 

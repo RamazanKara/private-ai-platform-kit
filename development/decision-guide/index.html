@@ -1170,14 +1170,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../scope-and-non-goals/" class="md-nav__link">
+      <a href="../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1831,7 +1831,7 @@ cluster, with one record that shows what every model call and agent action did.<
 </ol>
 <p>The <a href="../capacity-sizing/">capacity worksheet</a>, <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/deploy/clusters/customer/README.md">customer deployment guide</a>, and <a href="../production-readiness/">production readiness matrix</a> cover those decisions.</p>
 <h2 id="maturity">Maturity<a class="headerlink" href="#maturity" title="Permanent link">&para;</a></h2>
-<p>The local path is an executable lab. The customer path is a template. The bundled Redis, Qdrant, and Loki footprints are not HA services, transport encryption is off by default, and the checked-in customer values contain integration placeholders. Treat a production deployment as its own engineering and acceptance project.</p>
+<p>The local path is an executable lab. The customer path is a template you adapt: swap the bundled single-node Redis, Qdrant, and Loki footprints for their HA paths, enable the opt-in transport encryption overlay, and fill in the integration placeholders in the customer values. Plan a production deployment as its own engineering and acceptance project.</p>
 
 
 

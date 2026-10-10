@@ -1057,14 +1057,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scope-and-non-goals/" class="md-nav__link">
+      <a href="../../scope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scope and non-goals
+    Scope
   
 
     
@@ -1565,10 +1565,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#scope-and-non-goal" class="md-nav__link">
+  <a href="#scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scope and non-goal
+        Scope
       
     </span>
   </a>
@@ -1681,11 +1681,10 @@
 <p>Use this runbook to put a self-hosted end-user chat UI in front of the inference gateway so
 humans can type into a chat box, while every request still flows through the gateway's auth,
 model allowlist, admission, budget, and audit controls.</p>
-<h2 id="scope-and-non-goal">Scope and non-goal<a class="headerlink" href="#scope-and-non-goal" title="Permanent link">&para;</a></h2>
-<p>The kit does not bundle an end-user chat product. It does ship an opt-in read-only operator
-console at <code>/console</code>; a human-facing multi-user chat UI remains an <strong>operator-owned example, not a
-supported component</strong>, consistent with the explicit
-<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope-and-non-goals.md">product boundary</a>.
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h2>
+<p>The kit ships an opt-in read-only operator console at <code>/console</code>. A human-facing multi-user chat UI
+is an <strong>operator-owned example</strong> that runs on top of the gateway, in line with the
+<a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/scope.md">platform scope</a>.
 <a href="https://github.com/open-webui/open-webui">Open WebUI</a> is the common choice and is used here, but
 any OpenAI-compatible chat frontend works. The kit ships a copy-adapt manifest at
 <a href="https://github.com/RamazanKara/private-ai-platform-kit/blob/main/docs/examples/open-webui.yaml"><code>docs/examples/open-webui.yaml</code></a>
@@ -1749,7 +1748,7 @@ fail-closed (a UI request cannot spoof another sandbox via the header, because t
 it to the record's sandbox) and needs no extra proxy.</p>
 <h2 id="3-human-auth-sso-into-the-ui">3. Human auth: SSO into the UI<a class="headerlink" href="#3-human-auth-sso-into-the-ui" title="Permanent link">&para;</a></h2>
 <p>The UI itself must sit behind HTTPS and human SSO: the gateway's API key authenticates the <em>UI
-process</em>, not the <em>person</em> using it. The kit does not run an IdP; wire Open WebUI's OIDC to the
+process</em>, not the <em>person</em> using it. Wire Open WebUI's OIDC to the
 <strong>same IdP</strong> you already use for the platform dashboards.</p>
 <ul>
 <li>The Grafana and Argo CD SSO templates in <a href="../api-access/">API access</a> (OIDC via Keycloak/Auth0/
