@@ -1,4 +1,4 @@
-FROM python:3.14-alpine@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8 AS runtime
+FROM python:3.15-alpine@sha256:2699b90f4d562a22e2dd076c82f964032f64814204bff36d271a54ba4cc2c7e2 AS runtime
 
 # OCI image metadata. VCS_REF/IMAGE_SOURCE are wired from CI build-args; the
 # defaults keep labels meaningful for local/standalone builds.
