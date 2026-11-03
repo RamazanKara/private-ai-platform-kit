@@ -3,4 +3,4 @@
 # Regenerate the hashed lock with `make relock` (scripts/relock.sh).
 ruff==0.16.10
 mypy==2.4.0
-types-PyYAML==6.0.12.20260906
+types-PyYAML==6.0.12.20261030
