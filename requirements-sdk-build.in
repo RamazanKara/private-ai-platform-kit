@@ -1,4 +1,4 @@
 # Reproducible build-only toolchain for the first-party Python SDK.
 # Regenerate with `make relock` (scripts/relock.sh).
 build==1.6.1
-hatchling==1.32.4
+hatchling==1.33.0
